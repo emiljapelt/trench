@@ -1,0 +1,41 @@
+The program which run games. Takes some parameters, like gamerules, player settings etc.
+
+gamerule ideas:
+- directive rules
+    - static, keeps the same player directive throuout the entire game
+    - dynamic 'x', the players can change directive after 'x' rounds
+    - nuke dynamic 'x', the players can change directive after 'x' rounds, and after x rounds every space is bombed
+- maximum steps per turn
+- board layout
+    - size
+    - generated/empty/file
+- teams
+    - free for all, every player has their own id
+    - two-sided, players are split into teams, i.e. everyone on a team has the same id.
+
+
+player settings:
+    - color
+    - starting step
+    - starting directive
+
+
+A player directive is just a string of characters, which the engine interprets to update player and game states.
+
+Directive instructions:
+- E{n|e|s|w}: Expand trench in some direction
+- t{n|e|s|w}: Checks if there is trench is some direction, 1 meaing yes, 0 meaning no. Checks only for player controlled trenches.
+- m{n|e|s|w}: Move in some direction, only via trenches
+- F: Fortify trench here
+- B: Bomb a coordinate, taken for the stack, first x then y
+    - Bombing destroys an unfortified trench
+    - Bombing kills a player in an unfortified trench
+    - Bombing unfortifies a fortified trench
+- p i: Place i on the player stack
+- {+, -, *, /}: Operates on the player stack
+- s{n|e|s|w}: Scan in some direction, placing the distance to the nears trench on the stack, or 0 if there is none
+- x: Place the players x coordinate on the stack
+- y: Place the players y coordinate on the stack
+- ? i: if the top stack value is non-zero goto step 'i'
+- ! i: goto step 'i'
+- a: Assign a value onto the stack, from info on the stack. The first value is the stack address, the second is the value

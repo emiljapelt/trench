@@ -1,0 +1,34 @@
+The frontend language is a really simple, high level language with only one type, the signed integer, and no functions (scripting language).
+
+Wanted features:
+- if-statement
+- goto's
+- labels (the 'start' label is the program entrypoint)
+- scopes/blocks
+- variables (declaration, assignment)
+
+
+
+example:
+'
+start:
+
+#i = 5;
+
+loop:
+fortify;
+expand(E);
+move(E);
+if (i) goto loop;
+
+move(W);
+move(W);
+
+#t = scan(N);
+if (t) {
+    bomb(?x,t);
+}
+
+goto start;
+
+'
