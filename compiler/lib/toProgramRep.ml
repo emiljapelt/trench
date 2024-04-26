@@ -126,7 +126,7 @@ let compile path parse =
     let File(regs,absyn) = parse path in
     let regs = default_regs@regs in
     check_registers_unique regs;
-    List.fold_right (fun stmt acc -> compile_stmt stmt regs acc) absyn []
+    (regs,List.fold_right (fun stmt acc -> compile_stmt stmt regs acc) absyn [])
   )
   with 
   | Failure _ as f -> raise f

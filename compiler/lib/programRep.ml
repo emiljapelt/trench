@@ -1,3 +1,4 @@
+open Absyn
 
 module StringMap = Map.Make(String)
 module StringSet = Set.Make(String)
@@ -53,10 +54,10 @@ let rec attempt_find name idx pps : int option = match pps with
   | CGoTo(_, Some i) ::t -> attempt_find name (idx + 1 + num_digits i) t
   | IfTrue(n, None) ::t 
   | CGoTo(n, None) ::t -> 
-    if n = name then match attempt_find n 0 t with
+    match attempt_find n 0 t with
       | None -> None
       | Some i -> Some(idx + 1 + i)
-    else None
+    
 
 let unresolved pp = match pp with
   | IfTrue(_,None)
@@ -118,7 +119,7 @@ let rec resolve_labels pps : program_part list =
   | true -> resolve_labels pps
   | false -> pps
 
-let to_string pp =
+let program_to_string pp =
   check_labels_exist pp (label_set pp);
   let pp = resolve_labels pp in
   Printf.printf "result: %s\n" (temp_to_string pp);
@@ -132,3 +133,9 @@ let to_string pp =
     | IfTrue(n,None) -> failwith ("Unresolved label: "^n)
   ) pp
   |> String.concat "")
+
+let regs_to_string regs = 
+  List.map (fun (Register(_,n,v)) -> match v with
+    | Int i -> string_of_int i
+    | _ -> failwith ("Register not a constant: "^n)
+  ) regs |> String.concat ","

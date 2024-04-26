@@ -24,8 +24,8 @@ let read_file path =
     
 let () = try (
   let _ = check_input Sys.argv.(1) in
-  let program = compile Sys.argv.(1) (fun file -> Trenchclib.Parser.main (Trenchclib.Lexer.start file) (Lexing.from_string (read_file file))) in
-  Printf.printf "%s\n%!" (Trenchclib.ProgramRep.to_string program)
+  let (regs,program) = compile Sys.argv.(1) (fun file -> Trenchclib.Parser.main (Trenchclib.Lexer.start file) (Lexing.from_string (read_file file))) in
+  Printf.printf "%s:%s\n%!" (Trenchclib.ProgramRep.regs_to_string regs) (Trenchclib.ProgramRep.program_to_string program)
 ) with 
 | Failure(line_opt, expl) -> (
   Printf.printf "%s" expl ;
