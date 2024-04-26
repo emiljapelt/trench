@@ -17,9 +17,7 @@ and statement_inner =
     | Label of string
     | Move of direction
     | Expand of direction
-    | Check of direction
     | Bomb of expression * expression
-    | Scan of direction
     | Fortify
     | GoTo of string
     
@@ -32,6 +30,8 @@ and value =
     | Binary_op of string * expression * expression
     | Unary_op of string * expression
     | Int of int
+    | Check of direction
+    | Scan of direction
 
 and register =
     | Register of bool * string * value

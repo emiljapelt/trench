@@ -60,4 +60,6 @@ and optimize_value expr var_env =
     | ("!", Value(Int i)) -> Value(Int (if i = 0 then 1 else 0))
     | _ -> Value(Unary_op(op, opte))
   )
+  | Scan _ 
+  | Check _
   | Int _ -> Value(expr)

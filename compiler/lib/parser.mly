@@ -93,6 +93,8 @@ simple_value:
 
 value:
     simple_value { $1 }
+  | SCAN direction                         { Scan $2 }
+  | CHECK direction                        { Check $2 }
   | expression_not_ternary binop expression_not_ternary { Binary_op ($2, $1, $3) }
 ;
 
@@ -152,8 +154,6 @@ non_control_flow_stmt:
   | MOVE direction                         { Move $2 }
   | EXPAND direction                       { Expand $2 }
   | FORTIFY                                { Fortify }
-  | SCAN direction                         { Scan $2 }
-  | CHECK direction                        { Check $2 }
   | BOMB LPAR expression COMMA expression RPAR                   { Bomb($3, $5) }
 ;
 

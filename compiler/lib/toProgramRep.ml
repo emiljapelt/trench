@@ -31,6 +31,8 @@ let rec compile_expr expr regs acc =
 and compile_value val_expr regs acc =
   match val_expr with
   | Int i -> Instruction("p"^string_of_int i) :: acc
+  | Check d -> Instruction ("c"^direction_string d) :: acc
+  | Scan d -> Instruction ("s"^direction_string d) :: acc
   | Binary_op (op, e1, e2) -> ( match op with
     | "&" -> compile_expr e1 regs (compile_expr e2 regs (Instruction "&" :: acc))
     | "|" -> compile_expr e1 regs (compile_expr e2 regs (Instruction "|" :: acc))
@@ -79,8 +81,6 @@ and compile_stmt (Stmt(stmt,ln)) regs acc =
   | Expand d -> Instruction ("E"^direction_string d) :: acc
   | Fortify -> Instruction "F" :: acc
   | GoTo n -> CGoTo(n, None) :: acc
-  | Check d -> Instruction ("c"^direction_string d) :: acc
-  | Scan d -> Instruction ("s"^direction_string d) :: acc
   | Bomb(x,y) -> compile_expr y regs (compile_expr x regs (Instruction "B" :: acc))
   with 
   | Failure(None,msg) -> raise (Failure(Some ln, msg))
