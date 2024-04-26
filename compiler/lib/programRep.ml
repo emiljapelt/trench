@@ -1,41 +1,144 @@
 
 module StringMap = Map.Make(String)
+module StringSet = Set.Make(String)
 
 type program_part =
   | CLabel of string
-  | CGoTo of string
-  | IfTrue of string
+  | CGoTo of string * int option
+  | IfTrue of string * int option
   | Instruction of string
 
-let extract_labels pp =
-  let rec aux pp i acc start lmap = match pp with
-    | [] -> ( match start with
-      | None -> failwith "No starting label found"
-      | Some i -> (List.rev acc, i, lmap)
-    )
+let num_digits n = ((log10 (n |> float)) |> Int.of_float) + 1
+let pp_size pp = match pp with
+  | CLabel _ -> 0
+  | Instruction i -> String.length i
+  | CGoTo(_,Some i)
+  | IfTrue(_,Some i) -> 1 + (num_digits i)
+  | _ -> failwith "Unsizeable part"
+
+let label_set pp =
+  let rec aux pp set = match pp with
+    | [] -> set
     | CLabel n :: t -> ( 
-      if StringMap.mem n lmap then failwith ("Duplicate label: "^n)   
-      else match n, start with
-      | "start", None -> aux t i acc (Some i) (StringMap.add n i lmap)
-      | _ , _ -> aux t i acc start (StringMap.add n i lmap)
+      if StringSet.mem n set then failwith ("Duplicate label: "^n)   
+      else aux t (StringSet.add n set)
     )
-    | h::t -> aux t (i+1) (h::acc) start lmap
+    | _::t -> aux t set
   in
-  aux pp 0 [] None StringMap.empty
+  aux pp StringSet.empty
+
+
+let rec check_labels_exist pp set = match pp with
+  | [] -> ()
+  | CGoTo(n,_)::t
+  | IfTrue(n,_)::t -> if StringSet.mem n set then check_labels_exist t set else failwith ("Undefined label: "^n)
+  | _ ::t -> check_labels_exist t set
+
+let temp_to_string pp = (List.map (
+  fun p -> match p with
+  | CLabel n-> n^":"(*failwith "Unextracted label"*)
+  | CGoTo(_,Some idx) -> "!"^string_of_int idx
+  | IfTrue(_, Some idx) -> "?"^string_of_int idx
+  | CGoTo(n,_) -> "!"^n
+  | IfTrue(n,_) -> "?"^n
+  | Instruction i -> i
+) pp
+|> String.concat "")
+
+let rec attempt_find name idx pps : int option = match pps with
+  | [] -> None
+  | CLabel n ::t -> if n = name then Some idx else attempt_find name idx t
+  | Instruction instr ::t -> attempt_find name (idx + (String.length instr)) t
+  | IfTrue(_, Some i) ::t
+  | CGoTo(_, Some i) ::t -> attempt_find name (idx + 1 + num_digits i) t
+  | IfTrue(n, None) ::t 
+  | CGoTo(n, None) ::t -> 
+    if n = name then match attempt_find n 0 t with
+      | None -> None
+      | Some i -> Some(idx + 1 + i)
+    else None
+
+let unresolved pp = match pp with
+  | IfTrue(_,None)
+  | CGoTo(_,None) -> true
+  | _ -> false
+
+let add_digits n =
+  let digits = num_digits n in
+  if num_digits(digits + n) > digits then n+digits+1
+  else n + digits
+
+
+let rec resolve_labels pps : program_part list =
+  Printf.printf "resolve %s\n" (temp_to_string pps);
+  let rec aux pps labels idx acc = match pps with
+    | [] -> List.rev acc
+    | pp::t -> ( match pp with
+      | CLabel n -> ( match idx with
+        | Some i -> aux t (StringMap.add n i labels) idx (pp::acc)
+        | None -> aux t labels None (pp::acc)
+      )
+      | Instruction instr -> (match idx with
+        | Some i -> aux t labels (Some(i + String.length instr)) (pp::acc)
+        | None -> aux t labels None (pp::acc)
+      )
+      | CGoTo(n,None) -> ( match StringMap.find_opt n labels with
+        | Some label_idx -> ( 
+          let next_idx = match idx with
+            | Some i -> Some (i + 1 + num_digits label_idx)
+            | None -> None
+          in  
+          aux t labels next_idx (CGoTo(n,Some label_idx)::acc)
+        )
+        | None -> ( match idx with
+          | Some i -> (match attempt_find n 0 t with
+            | Some found_offset -> 
+              let label_idx = i + 1 + found_offset + num_digits found_offset in
+              let label_idx = add_digits label_idx in
+              aux t (StringMap.add n label_idx labels) (Some (i + 1 + num_digits label_idx)) (CGoTo(n,(Some label_idx))::acc)
+            | None -> aux t labels None (CGoTo(n,None)::acc)
+          )
+          | None -> aux t labels None (CGoTo(n,None)::acc)
+        )
+      )
+      | IfTrue(n,None) -> ( match StringMap.find_opt n labels with
+        | Some label_idx -> ( 
+          let next_idx = match idx with
+            | Some i -> Some (i + 1 + num_digits label_idx)
+            | None -> None
+          in  
+          aux t labels next_idx (IfTrue(n,Some label_idx)::acc)
+        )
+        | None -> ( match idx with
+          | Some i -> ( Printf.printf "looking for %s in %s\n" n (temp_to_string t);match attempt_find n 0 t with
+            | Some found_offset -> 
+              let label_idx = i + 1 + found_offset + num_digits found_offset in
+              let label_idx = add_digits label_idx in
+              aux t (StringMap.add n label_idx labels) (Some (i + 1 + num_digits label_idx)) (IfTrue(n,(Some label_idx))::acc)
+            | None -> aux t labels None (IfTrue(n,None)::acc)
+          )
+          | None -> aux t labels None (IfTrue(n,None)::acc)
+        )
+      )
+      | _ -> aux t labels idx (pp::acc)
+    )
+  in
+  let pps = aux pps StringMap.empty (Some 0) [] in
+  match List.exists unresolved pps with
+  | true -> resolve_labels pps
+  | false -> pps
 
 let to_string pp =
-  let (pp, start, lmap) = extract_labels pp in
-  string_of_int start ^ (List.map (
+  check_labels_exist pp (label_set pp);
+  let pp = resolve_labels pp in
+  Printf.printf "result: %s\n" (temp_to_string pp);
+  (*string_of_int start ^*) (List.map (
     fun p -> match p with
-    | CLabel _ -> failwith "Unextracted label"
-    | CGoTo l -> (match StringMap.find_opt l lmap with
-      | Some i -> "!"^string_of_int i
-      | None -> failwith ("Undefined label:"^l)
-    )
-    | IfTrue l -> (match StringMap.find_opt l lmap with
-      | Some i -> "?"^string_of_int i
-      | None -> failwith ("Undefined label:"^l)
-    )
+    | CLabel _ -> ""
+    | CGoTo(_,Some idx) -> "!"^string_of_int idx
+    | IfTrue(_,Some idx) -> "?"^string_of_int idx
     | Instruction i -> i
+    | CGoTo(n,None)
+    | IfTrue(n,None) -> failwith ("Unresolved label: "^n)
   ) pp
   |> String.concat "")

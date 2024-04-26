@@ -66,7 +66,7 @@ and compile_stmt (Stmt(stmt,ln)) regs acc =
     match opt_expr with 
     | Value(Int 0) -> (compile_stmt s2 regs acc)
     | Value(Int _) -> (compile_stmt s1 regs acc)
-    | _ -> compile_expr expr regs (IfTrue label_true :: (compile_stmt s2 regs (CGoTo(label_stop) :: CLabel label_true :: (compile_stmt s1 regs (CLabel label_stop :: acc)))))
+    | _ -> compile_expr expr regs (IfTrue(label_true,None) :: (compile_stmt s2 regs (CGoTo(label_stop, None) :: CLabel label_true :: (compile_stmt s1 regs (CLabel label_stop :: acc)))))
   )
   | Block (stmt_list) -> (
     List.fold_left (fun acc stmt -> compile_stmt stmt regs acc) acc stmt_list
@@ -78,7 +78,7 @@ and compile_stmt (Stmt(stmt,ln)) regs acc =
   | Move d -> Instruction ("m"^direction_string d) :: acc
   | Expand d -> Instruction ("E"^direction_string d) :: acc
   | Fortify -> Instruction "F" :: acc
-  | GoTo n -> CGoTo n :: acc
+  | GoTo n -> CGoTo(n, None) :: acc
   | Check d -> Instruction ("c"^direction_string d) :: acc
   | Scan d -> Instruction ("s"^direction_string d) :: acc
   | Bomb(x,y) -> compile_expr y regs (compile_expr x regs (Instruction "B" :: acc))
