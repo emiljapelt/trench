@@ -5,6 +5,8 @@ open Optimize
 
 (*** Compiling functions ***)
 
+module StringSet = Set.Make(String)
+
 let fetch_reg_index (name: string) regs = 
   let rec aux regs i = match regs with
     | [] -> failwith ("No such register: "^name)
@@ -12,6 +14,14 @@ let fetch_reg_index (name: string) regs =
       if n = name then i else aux t (i+1)
   in
   aux regs 0
+
+let is_const_reg (name: string) regs = 
+let rec aux regs i = match regs with
+  | [] -> failwith ("No such register: "^name)
+  | Register(c,n,_)::t ->
+    if n = name then c else aux t (i+1)
+in
+aux regs 0
 
 let rec compile_expr expr regs acc =
   match expr with
@@ -47,8 +57,8 @@ and direction_string d = match d with
   | South -> "s"
   | West -> "w"
 
-and compile_stmt stmt regs acc =
-  match stmt with
+and compile_stmt (Stmt(stmt,ln)) regs acc =
+  try match stmt with
   | If (expr, s1, s2) -> (
     let label_true = Helpers.new_label () in
     let label_stop = Helpers.new_label () in
@@ -62,7 +72,8 @@ and compile_stmt stmt regs acc =
     List.fold_left (fun acc stmt -> compile_stmt stmt regs acc) acc stmt_list
   )
   | Assign (target, aexpr) -> 
-    Instruction ("p"^string_of_int (fetch_reg_index target regs)) :: compile_expr (optimize_expr aexpr regs) regs (Instruction "a" :: acc)
+    if is_const_reg target regs then raise_failure ("Assignment to constant register: "^target)
+    else Instruction ("p"^string_of_int (fetch_reg_index target regs)) :: compile_expr (optimize_expr aexpr regs) regs (Instruction "a" :: acc)
   | Label name -> CLabel name :: acc
   | Move d -> Instruction ("m"^direction_string d) :: acc
   | Expand d -> Instruction ("E"^direction_string d) :: acc
@@ -71,6 +82,9 @@ and compile_stmt stmt regs acc =
   | Check d -> Instruction ("c"^direction_string d) :: acc
   | Scan d -> Instruction ("s"^direction_string d) :: acc
   | Bomb(x,y) -> compile_expr y regs (compile_expr x regs (Instruction "B" :: acc))
+  with 
+  | Failure(None,msg) -> raise (Failure(Some ln, msg))
+  | a -> raise a
 
 let compress_path path =
   let rec compress parts acc =
@@ -89,12 +103,31 @@ let total_path path =
 let complete_path base path = compress_path (if path.[0] = '.' then (String.sub base 0 ((String.rindex base '/')+1) ^ path) else path)
 
 
+let default_regs = [
+  Register(true, "x", Int 0);
+  Register(true, "y", Int 0);
+  Register(true, "b", Int 0);
+]
+
+let check_registers_unique regs =
+  let rec aux regs set = match regs with
+  | [] -> ()
+  | Register(_,n,_)::t -> 
+    if StringSet.mem n set 
+    then raise_failure ("Duplicate register name: "^n) 
+    else aux t (StringSet.add n set)
+  in
+  aux regs StringSet.empty
+
+
 let compile path parse =
   let path = (compress_path (total_path path)) in
   try (
     let File(regs,absyn) = parse path in
+    let regs = default_regs@regs in
+    check_registers_unique regs;
     List.fold_right (fun stmt acc -> compile_stmt stmt regs acc) absyn []
   )
   with 
   | Failure _ as f -> raise f
-  | _ -> raise (Failure(Some path, None, "Parser error"))
+  | _ -> raise (Failure(None, "Parser error"))

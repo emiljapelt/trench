@@ -25,7 +25,7 @@
   | "\'\\n\'" -> '\n'
   | "\'\\t\'" -> '\t'
   | "\'\\\\'" -> '\\'
-  | _ when s.[1] = '\\' -> raise (Failure (Some((Lexing.lexeme_start_p lexbuf).pos_fname), Some((Lexing.lexeme_start_p lexbuf).pos_lnum), ("Unknown escape character: " ^ s)))
+  | _ when s.[1] = '\\' -> raise (Failure (Some((Lexing.lexeme_start_p lexbuf).pos_lnum), ("Unknown escape character: " ^ s)))
   | _ -> s.[1]
 
   let incr_linenum lexbuf = 
@@ -81,7 +81,7 @@ rule lex = parse
     |   ':'           { COLON }
     |   '#'           { HASH }
     |   '_'           { UNDERSCORE }
-    |   _             { raise (Failure(Some((Lexing.lexeme_start_p lexbuf).pos_fname), Some((Lexing.lexeme_start_p lexbuf).pos_lnum), ("Unknown token"))) }
+    |   _             { raise (Failure(Some((Lexing.lexeme_start_p lexbuf).pos_lnum), ("Unknown token"))) }
     |   eof           { EOF }
 
 and start filename = parse

@@ -7,6 +7,9 @@ type direction =
     | West
 
 and statement =
+    | Stmt of statement_inner * int
+
+and statement_inner =
     | If of expression * statement * statement
     (*| While of expression * statement * statement option (* condition, body, incrementer *)*)
     | Block of statement list

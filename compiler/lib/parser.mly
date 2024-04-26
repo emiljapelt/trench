@@ -43,12 +43,13 @@ main:
     try (File ($1,$2)) 
     with
     | Failure _ as failure -> raise failure
-    | _ -> (raise (Failure(Some $symbolstartpos.pos_fname, Some $symbolstartpos.pos_lnum, "Parser error")))
+    | _ -> (raise (Failure(Some $symbolstartpos.pos_lnum, "Parser error")))
   }
 ;
 
 register_defs:
-  LBRAKE registers RBRAKE { $2 }
+  {[]}
+  | LBRAKE registers RBRAKE { $2 }
 ;
 
 registers:
@@ -80,7 +81,7 @@ expression_not_ternary:
 
 const_value:
   | CSTINT                                                { Int $1 }
-  | error { raise (Failure(Some $symbolstartpos.pos_fname, Some $symbolstartpos.pos_lnum, "Expected a constant value")) }
+  | error { raise (Failure(Some $symbolstartpos.pos_lnum, "Expected a constant value")) }
 ;
 
 simple_value:
@@ -123,11 +124,18 @@ stmt:
 ;
 
 stmt2:
+  stmt2_inner { Stmt($1,$symbolstartpos.pos_lnum) }
+;
+stmt2_inner:
     IF LPAR expression RPAR stmt1 ELSE stmt2       { If ($3, $5, $7) }
-  | IF LPAR expression RPAR stmt                   { If ($3, $5, Block []) }
+  | IF LPAR expression RPAR stmt                   { If ($3, $5, Stmt(Block [], $symbolstartpos.pos_lnum)) }
 ;
 
-stmt1: /* No unbalanced if-else */
+/* No unbalanced if-else */
+stmt1:
+  stmt1_inner { Stmt($1,$symbolstartpos.pos_lnum) }
+;
+stmt1_inner: 
     block                                          { $1 }
   | IF LPAR expression RPAR stmt1 ELSE stmt1       { If ($3, $5, $7) }
   | GOTO NAME SEMI                                 { GoTo $2 }
