@@ -69,6 +69,12 @@ let add_digits n =
   else n + digits
 
 
+let reconstruct_with_label_index pp i = match pp with
+  | IfTrue(n,_) -> IfTrue(n, i)
+  | CGoTo(n,_) -> CGoTo(n, i)
+  | _ -> pp
+
+
 let rec resolve_labels pps : program_part list =
   Printf.printf "resolve %s\n" (temp_to_string pps);
   let rec aux pps labels idx acc = match pps with
@@ -82,42 +88,26 @@ let rec resolve_labels pps : program_part list =
         | Some i -> aux t labels (Some(i + String.length instr)) (pp::acc)
         | None -> aux t labels None (pp::acc)
       )
-      | CGoTo(n,None) -> ( match StringMap.find_opt n labels with
+      | CGoTo(n,None)
+      | IfTrue(n,None) -> (
+        let reconstruct = reconstruct_with_label_index pp in
+        match StringMap.find_opt n labels with
         | Some label_idx -> ( 
           let next_idx = match idx with
             | Some i -> Some (i + 1 + num_digits label_idx)
             | None -> None
           in  
-          aux t labels next_idx (CGoTo(n,Some label_idx)::acc)
+          aux t labels next_idx (reconstruct (Some label_idx)::acc)
         )
         | None -> ( match idx with
           | Some i -> (match attempt_find n 0 t with
             | Some found_offset -> 
-              let label_idx = i + 1 + found_offset + num_digits found_offset in
+              let label_idx = i + 1 + found_offset in
               let label_idx = add_digits label_idx in
-              aux t (StringMap.add n label_idx labels) (Some (i + 1 + num_digits label_idx)) (CGoTo(n,(Some label_idx))::acc)
-            | None -> aux t labels None (CGoTo(n,None)::acc)
+              aux t (StringMap.add n label_idx labels) (Some (i + 1 + num_digits label_idx)) (reconstruct (Some label_idx)::acc)
+            | None -> aux t labels None (reconstruct None::acc)
           )
-          | None -> aux t labels None (CGoTo(n,None)::acc)
-        )
-      )
-      | IfTrue(n,None) -> ( match StringMap.find_opt n labels with
-        | Some label_idx -> ( 
-          let next_idx = match idx with
-            | Some i -> Some (i + 1 + num_digits label_idx)
-            | None -> None
-          in  
-          aux t labels next_idx (IfTrue(n,Some label_idx)::acc)
-        )
-        | None -> ( match idx with
-          | Some i -> ( Printf.printf "looking for %s in %s\n" n (temp_to_string t);match attempt_find n 0 t with
-            | Some found_offset -> 
-              let label_idx = i + 1 + found_offset + num_digits found_offset in
-              let label_idx = add_digits label_idx in
-              aux t (StringMap.add n label_idx labels) (Some (i + 1 + num_digits label_idx)) (IfTrue(n,(Some label_idx))::acc)
-            | None -> aux t labels None (IfTrue(n,None)::acc)
-          )
-          | None -> aux t labels None (IfTrue(n,None)::acc)
+          | None -> aux t labels None (reconstruct None::acc)
         )
       )
       | _ -> aux t labels idx (pp::acc)
