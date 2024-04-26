@@ -13,6 +13,7 @@
 #include "player.h"
 #include "game_state.h"
 #include "visual.h"
+#include "util.h"
 
 typedef enum direction {
     NORTH,
@@ -27,19 +28,6 @@ field_state* empty_board(int x, int y) {
     field_state* brd = malloc(size);
     memset(brd,0,size);
     return brd;
-}
-
-int numeric_size(char* str, int start) {
-    int i = 0;
-    if (str[start] == '-') i++;
-    while(str[start + i] >= 48 && str[start + i] <= 57) i++;
-    return i;
-}
-
-int sub_str_to_int(char* str, int start, int size) {
-    char* buf = malloc(size);
-    memcpy(buf, str+start, size);
-    return atoi(buf);
 }
 
 int scan_dir(char dir, int x, int y, game_state* gs) {
@@ -155,7 +143,7 @@ void player_turn(game_state* gs, player_state* ps) {
                 else ps->step += num_size;
                 break;
             }
-            default: exit(1);
+            default: cont = 0;
         }
     }
 }
@@ -181,9 +169,9 @@ int main() {
     };
 
     player_init players[] = {
-        {.x = 5, .y = 5, .directive = "EemeEemeEemeEeFmwFEnmnFEnmnF"},
-        {.x = 12, .y = 10, .directive = "EnmnFEnmnFp5p5B"},
-        {.x = 15, .y = 15, .directive = "EnmnEwmw!0"},
+        {.x = 5, .y = 5, .directive = "0,0,0:EemeEemeEemeEeFmwFEnmnFEnmnF"},
+        {.x = 12, .y = 10, .directive = "0,0,0:EnmnFEnmnFp5p5B"},
+        {.x = 15, .y = 15, .directive = "0,0,0,0:EnmnEwmw#3?0"},
     };
 
     create_players(3, players, &gs);
