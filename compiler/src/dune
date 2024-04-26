@@ -1,0 +1,6 @@
+(executable
+ (public_name trenchc)
+ (name trenchc)
+ (modules trenchc)
+ (libraries trenchclib str) 
+)

@@ -1,0 +1,29 @@
+(lang dune 3.7)
+
+(name trenchc)
+
+(generate_opam_files true)
+
+(source
+ (github emiljapelt/trench))
+
+(authors "Emil Jäpelt")
+
+(maintainers "Emil Jäpelt")
+
+(license LICENSE)
+
+(documentation https://github.com/emiljapelt/trench)
+
+(using menhir 2.1)
+
+(package
+ (name trenchc)
+ (synopsis "A compiler for the Trench scripting langauge.")
+ (description "A compiler for the Trench scripting langauge.")
+ (depends ocaml dune)
+ (tags
+  (compiler)))
+
+; See the complete stanza docs at https://dune.readthedocs.io/en/stable/dune-files.html#dune-project
+

@@ -1,0 +1,15 @@
+(ocamllex lexer)
+(menhir (modules parser))
+(library
+ (name trenchclib)
+ (modules
+   programRep
+   exceptions
+   absyn
+   optimize
+   helpers
+   lexer
+   parser
+   toProgramRep
+ )
+)
