@@ -23,6 +23,7 @@ player settings:
 A player directive is just a string of characters, which the engine interprets to update player and game states.
 
 Directive instructions:
+- W: Waits, aka. end of turn
 - E{n|e|s|w}: Expand trench in some direction
 - c{n|e|s|w}: Checks if there is trench is some direction, 1 meaing yes, 0 meaning no. Checks only for player controlled trenches.
 - m{n|e|s|w}: Move in some direction, only via trenches

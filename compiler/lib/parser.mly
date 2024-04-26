@@ -22,7 +22,7 @@
 %token QMARK
 %token IF ELSE REPEAT
 %token BREAK CONTINUE GOTO
-%token CONST MOVE FORTIFY EXPAND
+%token CONST MOVE FORTIFY WAIT EXPAND
 %token NORTH EAST SOUTH WEST BOMB CHECK SCAN
 %token HASH UNDERSCORE
 
@@ -154,6 +154,7 @@ non_control_flow_stmt:
   | MOVE direction                         { Move $2 }
   | EXPAND direction                       { Expand $2 }
   | FORTIFY                                { Fortify }
+  | WAIT                                { Wait }
   | BOMB LPAR expression COMMA expression RPAR                   { Bomb($3, $5) }
 ;
 

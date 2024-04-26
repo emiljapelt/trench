@@ -14,6 +14,7 @@
                         "scan", SCAN;
                         "check", CHECK;
                         "bomb", BOMB;
+                        "wait", WAIT;
                         "N", NORTH;
                         "E", EAST;
                         "S", SOUTH;

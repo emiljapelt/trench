@@ -19,6 +19,7 @@ and statement_inner =
     | Expand of direction
     | Bomb of expression * expression
     | Fortify
+    | Wait
     | GoTo of string
     
 and expression =

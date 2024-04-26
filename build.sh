@@ -1,10 +1,10 @@
 echo "Building Trench..."
 
-#echo "Building engine..."
-#cd ./machine
-#source ./compile.sh
-#cd ..
-#mv -f ./machine/seplin .
+echo "Building engine..."
+cd ./engine
+source ./compile.sh
+cd ..
+mv -f ./engine/trench .
 
 echo "Building compiler..."
 cd ./compiler
