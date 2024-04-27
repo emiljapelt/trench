@@ -4,7 +4,7 @@
 
 #ifdef _WIN32
 #include <windows.h>
-#define sleep(x) Sleep(x)
+#define sleep(x) Sleep(x*1000)
 #elif __unix__
 #include <unistd.h>
 #define sleep(x) sleep(x)
@@ -156,7 +156,7 @@ void play_round(game_state* gs) {
             turns++;
         }
         print_board(gs);
-        sleep(1000);
+        sleep(1);
     }
 }
 

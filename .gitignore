@@ -1,5 +1,6 @@
 _build
 trenchc
+trench
 *.tr
 *.exe
 .vscode

@@ -2,7 +2,7 @@ echo "Building Trench..."
 
 echo "Building engine..."
 cd ./engine
-source ./compile.sh
+source ./build.sh
 cd ..
 mv -f ./engine/trench .
 
