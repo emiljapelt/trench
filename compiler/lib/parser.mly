@@ -60,7 +60,7 @@ registers:
 
 register:
   | NAME { Register(false, $1, Int 0) }
-  | NAME ASSIGNMENT const_value { Register(true, $1, $3) }
+  | NAME ASSIGNMENT const_value { Register(false, $1, $3) }
   | CONST NAME ASSIGNMENT const_value { Register(true, $2, $4) }
 ;
 
@@ -88,7 +88,7 @@ simple_value:
     LPAR value RPAR                                       { $2 }
   | const_value                                           { $1 }
   | MINUS expression_not_ternary                          { Binary_op ("-", Value (Int 0), $2) } %prec NOT
-  | NOT expression_not_ternary                            { Unary_op ("!", $2) }
+  | TILDE expression_not_ternary                          { Unary_op ("~", $2) }
 ;
 
 value:
@@ -112,7 +112,6 @@ value:
   | MINUS       { "-"  }
   | FSLASH      { "/"  }
   | PCT         { "%"  }
-  | TILDE       { "~"  }
 ;
 
 stmt_list:

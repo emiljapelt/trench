@@ -46,10 +46,11 @@ int scan_dir(char dir, int x, int y, game_state* gs) {
     goto incr;
 }
 
-void player_turn(game_state* gs, player_state* ps) {
+int player_turn(game_state* gs, player_state* ps) {
     char cont = 1;
     while(cont) {
-        if (ps->step >= ps->directive_len) break;
+        if (ps->step >= ps->directive_len) return 0;
+        //printf("%c\n", ps->directive[ps->step]); sleep(1);
         switch (ps->directive[ps->step++]) {
             case 'W': {
                 cont = 0;
@@ -80,10 +81,10 @@ void player_turn(game_state* gs, player_state* ps) {
             }
             case 'E': {
                 switch(ps->directive[ps->step++]) {
-                    case 'n': build_field(player_x(ps),player_y(ps)-1,ps->id,gs); break;
-                    case 'e': build_field(player_x(ps)+1,player_y(ps),ps->id,gs); break;
-                    case 's': build_field(player_x(ps),player_y(ps)+1,ps->id,gs); break;
-                    case 'w': build_field(player_x(ps)-1,player_y(ps),ps->id,gs); break;
+                    case 'n': if (get_field(player_x(ps),player_y(ps)-1,gs)->controller == 0) build_field(player_x(ps),player_y(ps)-1,ps->id,gs); break;
+                    case 'e': if (get_field(player_x(ps)+1,player_y(ps),gs)->controller == 0) build_field(player_x(ps)+1,player_y(ps),ps->id,gs); break;
+                    case 's': if (get_field(player_x(ps),player_y(ps)+1,gs)->controller == 0) build_field(player_x(ps),player_y(ps)+1,ps->id,gs); break;
+                    case 'w': if (get_field(player_x(ps)-1,player_y(ps),gs)->controller == 0) build_field(player_x(ps)-1,player_y(ps),ps->id,gs); break;
                 }
                 cont = 0;
                 break;
@@ -143,20 +144,85 @@ void player_turn(game_state* gs, player_state* ps) {
                 else ps->step += num_size;
                 break;
             }
+            case '=': {
+                int v0 = ps->stack[--ps->sp];
+                int v1 = ps->stack[--ps->sp];
+                ps->stack[ps->sp++] = v0 == v1;
+                break;
+            }
+            case '<': {
+                int v0 = ps->stack[--ps->sp];
+                int v1 = ps->stack[--ps->sp];
+                ps->stack[ps->sp++] = v0 < v1;
+                break;
+            }
+            case '-': {
+                int v0 = ps->stack[--ps->sp];
+                int v1 = ps->stack[--ps->sp];
+                ps->stack[ps->sp++] = v0 - v1;
+                break;
+            }
+            case '+': {
+                int v0 = ps->stack[--ps->sp];
+                int v1 = ps->stack[--ps->sp];
+                ps->stack[ps->sp++] = v0 + v1;
+                break;
+            }
+            case '*': {
+                int v0 = ps->stack[--ps->sp];
+                int v1 = ps->stack[--ps->sp];
+                ps->stack[ps->sp++] = v0 * v1;
+                break;
+            }
+            case '/': {
+                int v0 = ps->stack[--ps->sp];
+                int v1 = ps->stack[--ps->sp];
+                ps->stack[ps->sp++] = v0 / v1;
+                break;
+            }
+            case '%': {
+                int v0 = ps->stack[--ps->sp];
+                int v1 = ps->stack[--ps->sp];
+                ps->stack[ps->sp++] = v0 % v1;
+                break;
+            }
+            case '~': {
+                int v = ps->stack[--ps->sp];
+                ps->stack[ps->sp++] = !v;
+                break;
+            }
+            case '|': {
+                int v0 = ps->stack[--ps->sp];
+                int v1 = ps->stack[--ps->sp];
+                ps->stack[ps->sp++] = v0 || v1;
+                break;
+            }
+            case '&': {
+                int v0 = ps->stack[--ps->sp];
+                int v1 = ps->stack[--ps->sp];
+                ps->stack[ps->sp++] = v0 && v1;
+                break;
+            }
+            case 'a': {
+                int v = ps->stack[--ps->sp];
+                int target = ps->stack[--ps->sp];
+                ps->stack[target] = v;
+                break;
+            }
             default: cont = 0;
         }
     }
+    return 1;
 }
 
 void play_round(game_state* gs) {
     int turns = 0;
     for(int i = 0; i < gs->player_count; i++) {
-        if (gs->players[i].alive) {
-            player_turn(gs, gs->players+i);
-            turns++;
-        }
-        print_board(gs);
+        if (!gs->players[i].alive) continue; 
+        if (!player_turn(gs, gs->players+i)) continue;
         sleep(1);
+        turns++;
+        print_board(gs);
     }
 }
 
@@ -171,7 +237,7 @@ int main() {
     player_init players[] = {
         {.x = 5, .y = 5, .directive = "0,0,0:EemeEemeEemeEeFmwFEnmnFEnmnF"},
         {.x = 12, .y = 10, .directive = "0,0,0:EnmnFEnmnFp5p5B"},
-        {.x = 15, .y = 15, .directive = "0,0,0,0:EnmnEwmw#3?0"},
+        {.x = 15, .y = 15, .directive = "0,0,0,2:#3p0=?11!14!28Enmnp3p1#3-a!0Ewmw!28"},
     };
 
     create_players(3, players, &gs);

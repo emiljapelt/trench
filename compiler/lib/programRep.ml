@@ -35,30 +35,6 @@ let rec check_labels_exist pp set = match pp with
   | IfTrue(n,_)::t -> if StringSet.mem n set then check_labels_exist t set else failwith ("Undefined label: "^n)
   | _ ::t -> check_labels_exist t set
 
-let temp_to_string pp = (List.map (
-  fun p -> match p with
-  | CLabel n-> n^":"(*failwith "Unextracted label"*)
-  | CGoTo(_,Some idx) -> "!"^string_of_int idx
-  | IfTrue(_, Some idx) -> "?"^string_of_int idx
-  | CGoTo(n,_) -> "!"^n
-  | IfTrue(n,_) -> "?"^n
-  | Instruction i -> i
-) pp
-|> String.concat "")
-
-let rec attempt_find name idx pps : int option = match pps with
-  | [] -> None
-  | CLabel n ::t -> if n = name then Some idx else attempt_find name idx t
-  | Instruction instr ::t -> attempt_find name (idx + (String.length instr)) t
-  | IfTrue(_, Some i) ::t
-  | CGoTo(_, Some i) ::t -> attempt_find name (idx + 1 + num_digits i) t
-  | IfTrue(n, None) ::t 
-  | CGoTo(n, None) ::t -> 
-    match attempt_find n 0 t with
-      | None -> None
-      | Some i -> Some(idx + 1 + i)
-    
-
 let unresolved pp = match pp with
   | IfTrue(_,None)
   | CGoTo(_,None) -> true
@@ -74,6 +50,32 @@ let reconstruct_with_label_index pp i = match pp with
   | IfTrue(n,_) -> IfTrue(n, i)
   | CGoTo(n,_) -> CGoTo(n, i)
   | _ -> pp
+
+let temp_to_string pp = (List.map (
+  fun p -> match p with
+  | CLabel n-> n^":"
+  | CGoTo(_,Some idx) -> "!"^string_of_int idx
+  | IfTrue(_, Some idx) -> "?"^string_of_int idx
+  | CGoTo(n,_) -> "!"^n
+  | IfTrue(n,_) -> "?"^n
+  | Instruction i -> i
+) pp
+|> String.concat "")
+
+let rec attempt_find name idx labels pps : int option = match pps with
+  | [] -> None
+  | CLabel n ::t -> if n = name then Some idx else attempt_find name idx labels t
+  | Instruction instr ::t -> attempt_find name (idx + (String.length instr)) labels t
+  | IfTrue(_, Some i) ::t
+  | CGoTo(_, Some i) ::t -> attempt_find name (idx + 1 + num_digits i) labels t
+  | IfTrue(n, None) ::t 
+  | CGoTo(n, None) ::t -> ( match StringMap.find_opt n labels with
+    | Some i -> attempt_find name (idx + 1 + num_digits i) labels t
+    | None -> ( match attempt_find n (idx + 1) labels t with
+      | Some i -> attempt_find name (idx + 1 + num_digits i) labels t
+      | None -> None
+    )
+  )
 
 
 let rec resolve_labels pps : program_part list =
@@ -101,10 +103,9 @@ let rec resolve_labels pps : program_part list =
           aux t labels next_idx (reconstruct (Some label_idx)::acc)
         )
         | None -> ( match idx with
-          | Some i -> (match attempt_find n 0 t with
+          | Some i -> (match attempt_find n (i+1) labels t with
             | Some found_offset -> 
-              let label_idx = i + 1 + found_offset in
-              let label_idx = add_digits label_idx in
+              let label_idx = add_digits found_offset in
               aux t (StringMap.add n label_idx labels) (Some (i + 1 + num_digits label_idx)) (reconstruct (Some label_idx)::acc)
             | None -> aux t labels None (reconstruct None::acc)
           )
