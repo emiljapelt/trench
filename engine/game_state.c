@@ -1,10 +1,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "game_rules.h"
 #include "game_state.h"
 #include "util.h"
 
-void create_players(int players, player_init* inits, game_state* gs) {
+void create_players(int players, player_init* inits, game_state* gs, game_rules* gr) {
 
 
     player_state* pss = malloc(sizeof(player_state) * players);
@@ -30,7 +31,7 @@ void create_players(int players, player_init* inits, game_state* gs) {
 
         player_stack[0] = inits[i].x;
         player_stack[1] = inits[i].y;
-        player_stack[2] = 10; // bombs
+        player_stack[2] = gr->bombs;
 
         int id = ++gs->player_count;
         pss[i] = (player_state){

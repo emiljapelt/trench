@@ -2,6 +2,7 @@
 #define GAME_STATE_H
 
 #include "player.h"
+#include "game_rules.h"
 
 typedef struct field_state {
     int destroyed : 1;
@@ -17,7 +18,7 @@ typedef struct game_state {
     field_state* board;
 } game_state;
 
-void create_players(int players, player_init* inits, game_state* gs);
+void create_players(int players, player_init* inits, game_state* gs, game_rules* gr);
 
 field_state* get_field(int x, int y, game_state* gs);
 void set_field(int x, int y, game_state* gs, field_state* f);

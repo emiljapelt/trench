@@ -11,6 +11,7 @@
 #endif
 
 #include "player.h"
+#include "game_rules.h"
 #include "game_state.h"
 #include "visual.h"
 #include "util.h"
@@ -46,14 +47,14 @@ int scan_dir(char dir, int x, int y, game_state* gs) {
     goto incr;
 }
 
-int player_turn(game_state* gs, player_state* ps) {
-    char cont = 1;
-    while(cont) {
+int player_turn(game_state* gs, player_state* ps, game_rules* gr) {
+    char actions = gr->actions;
+    while(actions) {
         if (ps->step >= ps->directive_len) return 0;
         //printf("%c\n", ps->directive[ps->step]); sleep(1);
         switch (ps->directive[ps->step++]) {
             case 'W': {
-                cont = 0;
+                actions = 0;
                 break;
             }
             case 'c': {
@@ -86,12 +87,12 @@ int player_turn(game_state* gs, player_state* ps) {
                     case 's': if (get_field(player_x(ps),player_y(ps)+1,gs)->controller == 0) build_field(player_x(ps),player_y(ps)+1,ps->id,gs); break;
                     case 'w': if (get_field(player_x(ps)-1,player_y(ps),gs)->controller == 0) build_field(player_x(ps)-1,player_y(ps),ps->id,gs); break;
                 }
-                cont = 0;
+                actions--;
                 break;
             }
             case 'F': {
                 if (get_field(player_x(ps),player_y(ps),gs)->controller == ps->id) fortify_field(player_x(ps),player_y(ps),gs);
-                cont = 0;
+                actions--;
                 break;
             }
             case 'p': {
@@ -118,7 +119,7 @@ int player_turn(game_state* gs, player_state* ps) {
                     }
                     mod_player_b(ps,-1);
                 }
-                cont = 0;
+                actions--;
                 break;
             }
             case '#': {
@@ -209,17 +210,25 @@ int player_turn(game_state* gs, player_state* ps) {
                 ps->stack[target] = v;
                 break;
             }
-            default: cont = 0;
+            default: actions = 0;
         }
     }
     return 1;
 }
 
-void play_round(game_state* gs) {
+void get_new_directive(player_state* ps) {       
+    printf("Player %i, new directive:\n", ps->id);
+    char* str = malloc(1001);
+    scanf("%1000s", str);
+    ps->directive = str;
+    ps->step = 0;
+}
+
+void play_round(game_state* gs, game_rules* gr) {
     int turns = 0;
     for(int i = 0; i < gs->player_count; i++) {
         if (!gs->players[i].alive) continue; 
-        if (!player_turn(gs, gs->players+i)) continue;
+        if (!player_turn(gs, gs->players+i, gr)) continue;
         sleep(1);
         turns++;
         print_board(gs);
@@ -227,6 +236,12 @@ void play_round(game_state* gs) {
 }
 
 int main() {
+
+    game_rules gr = {
+        1, // actions per turn
+        10, // bombs
+        0 // no directive change
+    };
 
     game_state gs = {
         .board_x = 20,
@@ -240,11 +255,20 @@ int main() {
         {.x = 15, .y = 15, .directive = "0,0,0,2:#3p0=?11!14!28Enmnp3p1#3-a!0Ewmw!28"},
     };
 
-    create_players(3, players, &gs);
+    create_players(3, players, &gs, &gr);
 
     print_board(&gs);
+    
+    int round = 1;
     while(1) {
-        play_round(&gs);
+        play_round(&gs, &gr);
+        round++;
+        if (gr.dir_change > 0 && (round % gr.dir_change == 0)) {
+            for(int i = 0; i < gs.player_count; i++) {
+                if (!gs.players[i].alive) continue; 
+                get_new_directive(gs.players+i);
+            }
+        }
     }
 
 
