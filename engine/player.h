@@ -8,7 +8,7 @@ typedef struct player_init {
 } player_init;
 
 typedef struct player_state {
-    int alive: 1;
+    unsigned char alive: 1;
     int id: 4;
     int* stack;
     int sp;
@@ -19,8 +19,10 @@ typedef struct player_state {
 
 int player_x(player_state* ps);
 void mod_player_x(player_state* ps, int v);
+void set_player_x(player_state* ps, int v);
 int player_y(player_state* ps);
 void mod_player_y(player_state* ps, int v);
+void set_player_y(player_state* ps, int v);
 int player_b(player_state* ps);
 void mod_player_b(player_state* ps, int v);
 void kill_player(player_state* ps);

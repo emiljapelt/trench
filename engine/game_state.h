@@ -1,13 +1,14 @@
 #ifndef GAME_STATE_H
 #define GAME_STATE_H
 
+#include "loader.h"
 #include "player.h"
 #include "game_rules.h"
 
 typedef struct field_state {
-    int destroyed : 1;
-    int fortified : 1;
-    int controller : 4;
+    unsigned char destroyed : 1;
+    unsigned char fortified : 1;
+    unsigned char controller : 4;
 } field_state;
 
 typedef struct game_state {
@@ -18,7 +19,7 @@ typedef struct game_state {
     field_state* board;
 } game_state;
 
-void create_players(int players, player_init* inits, game_state* gs, game_rules* gr);
+void create_players(int players, parsed_player_file** inits, game_state* gs, game_rules* gr);
 
 field_state* get_field(int x, int y, game_state* gs);
 void set_field(int x, int y, game_state* gs, field_state* f);

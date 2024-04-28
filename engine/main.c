@@ -15,6 +15,7 @@
 #include "game_state.h"
 #include "visual.h"
 #include "util.h"
+#include "loader.h"
 
 typedef enum direction {
     NORTH,
@@ -47,6 +48,46 @@ int scan_dir(char dir, int x, int y, game_state* gs) {
     goto incr;
 }
 
+void move_coord(int x, int y, char d, int* _x, int* _y) {
+    switch(d) {
+        case 'n': *_x = x; *_y = y-1; break;
+        case 'e': *_x = x+1; *_y = y; break;
+        case 's': *_x = x; *_y = y+1; break;
+        case 'w': *_x = x-1; *_y = y; break;
+    }
+}
+
+void expand(char d, player_state* ps, game_state* gs) {
+    int x, y;
+    move_coord(player_x(ps), player_y(ps), d, &x, &y);
+    if (!in_bounds(x, y, gs)) return;
+    if (get_field(x,y,gs)->controller == 0) build_field(x,y,ps->id,gs);
+}
+
+void move(char d, player_state* ps, game_state* gs) {
+    int x, y;
+    move_coord(player_x(ps), player_y(ps), d, &x, &y);
+    if (!in_bounds(x, y, gs)) return;
+    if (get_field(x,y,gs)->controller == ps->id) {
+        set_player_x(ps, x);
+        set_player_y(ps, y);
+    }
+}
+
+void check(char d, player_state* ps, game_state* gs) {
+    int x, y;
+    move_coord(player_x(ps), player_y(ps), d, &x, &y);
+    if (!in_bounds(x, y, gs)) { 
+        ps->stack[ps->sp++] = 0;
+    }
+    else if (get_field(x,y,gs)->controller == ps->id) {
+        ps->stack[ps->sp++] = 1;
+    }
+    else {
+        ps->stack[ps->sp++] = 0;
+    }
+}
+
 int player_turn(game_state* gs, player_state* ps, game_rules* gr) {
     char actions = gr->actions;
     while(actions) {
@@ -58,12 +99,7 @@ int player_turn(game_state* gs, player_state* ps, game_rules* gr) {
                 break;
             }
             case 'c': {
-                switch(ps->directive[ps->step++]) {
-                    case 'n': if (get_field(player_x(ps),player_y(ps)-1,gs)->controller == ps->id) ps->stack[ps->sp++] = 1; else ps->stack[ps->sp++] = 0; break;
-                    case 'e': if (get_field(player_x(ps)+1,player_y(ps),gs)->controller == ps->id) ps->stack[ps->sp++] = 1; else ps->stack[ps->sp++] = 0; break;
-                    case 's': if (get_field(player_x(ps),player_y(ps)+1,gs)->controller == ps->id) ps->stack[ps->sp++] = 1; else ps->stack[ps->sp++] = 0; break;
-                    case 'w': if (get_field(player_x(ps)-1,player_y(ps),gs)->controller == ps->id) ps->stack[ps->sp++] = 1; else ps->stack[ps->sp++] = 0; break;
-                }
+                check(ps->directive[ps->step++],ps,gs);
                 break;
             }
             case 's': {
@@ -72,21 +108,11 @@ int player_turn(game_state* gs, player_state* ps, game_rules* gr) {
                 break;
             }
             case 'm': {
-                switch(ps->directive[ps->step++]) {
-                    case 'n': if (get_field(player_x(ps),player_y(ps)-1,gs)->controller == ps->id) mod_player_y(ps,-1); break;
-                    case 'e': if (get_field(player_x(ps)+1,player_y(ps),gs)->controller == ps->id) mod_player_x(ps,+1); break;
-                    case 's': if (get_field(player_x(ps),player_y(ps)+1,gs)->controller == ps->id) mod_player_y(ps,+1); break;
-                    case 'w': if (get_field(player_x(ps)-1,player_y(ps),gs)->controller == ps->id) mod_player_x(ps,-1); break;
-                }
+                move(ps->directive[ps->step++],ps,gs);
                 break;
             }
             case 'E': {
-                switch(ps->directive[ps->step++]) {
-                    case 'n': if (get_field(player_x(ps),player_y(ps)-1,gs)->controller == 0) build_field(player_x(ps),player_y(ps)-1,ps->id,gs); break;
-                    case 'e': if (get_field(player_x(ps)+1,player_y(ps),gs)->controller == 0) build_field(player_x(ps)+1,player_y(ps),ps->id,gs); break;
-                    case 's': if (get_field(player_x(ps),player_y(ps)+1,gs)->controller == 0) build_field(player_x(ps),player_y(ps)+1,ps->id,gs); break;
-                    case 'w': if (get_field(player_x(ps)-1,player_y(ps),gs)->controller == 0) build_field(player_x(ps)-1,player_y(ps),ps->id,gs); break;
-                }
+                expand(ps->directive[ps->step++],ps,gs);
                 actions--;
                 break;
             }
@@ -235,27 +261,29 @@ void play_round(game_state* gs, game_rules* gr) {
     }
 }
 
-int main() {
+int main(int argc, char** argv) {
+
+    parsed_game_file* pgf = parse_game_file(argv[1]);
 
     game_rules gr = {
-        1, // actions per turn
-        10, // bombs
-        0 // no directive change
+        pgf->actions,
+        pgf->bombs,
+        pgf->change
     };
 
     game_state gs = {
-        .board_x = 20,
-        .board_y = 20,
-        .board = empty_board(20,20)
+        .board_x = pgf->board_x,
+        .board_y = pgf->board_y,
+        .board = empty_board(pgf->board_x,pgf->board_y)
     };
 
-    player_init players[] = {
-        {.x = 5, .y = 5, .directive = "0,0,0:EemeEemeEemeEeFmwFEnmnFEnmnF"},
-        {.x = 12, .y = 10, .directive = "0,0,0:EnmnFEnmnFp5p5B"},
-        {.x = 15, .y = 15, .directive = "0,0,0,2:#3p0=?11!14!28Enmnp3p1#3-a!0Ewmw!28"},
-    };
+    // player_init players[] = {
+    //     {.x = 5, .y = 5, .directive = "0,0,0:EemeEemeEemeEeFmwFEnmnFEnmnF"},
+    //     {.x = 12, .y = 10, .directive = "0,0,0:EnmnFEnmnFp5p5B"},
+    //     {.x = 15, .y = 15, .directive = "0,0,0,2:#3p0=?11!14!28Enmnp3p1#3-a!0Ewmw!28"},
+    // };
 
-    create_players(3, players, &gs, &gr);
+    create_players(pgf->player_count, pgf->players, &gs, &gr);
 
     print_board(&gs);
     
