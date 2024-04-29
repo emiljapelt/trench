@@ -270,6 +270,11 @@ void play_round(game_state* gs, game_rules* gr) {
 
 int main(int argc, char** argv) {
 
+    if (argc < 3) {
+        printf("Too few arguments given, needs: <game_file_path> <compiler_path>\n");
+        exit(1);
+    }
+
     char* comp_path = argv[2];
     parsed_game_file* pgf = parse_game_file(argv[1], comp_path);
 

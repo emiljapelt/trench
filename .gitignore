@@ -2,7 +2,7 @@ _build
 trenchc
 trench
 *.tr
-*.trr
+*.trg
 *.trc
 *.exe
 .vscode
