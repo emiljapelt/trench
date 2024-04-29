@@ -7,7 +7,6 @@
                         "const", CONST;
                         "if", IF;
                         "else", ELSE;
-                        "repeat", REPEAT;
                         "move", MOVE;
                         "expand", EXPAND;
                         "fortify", FORTIFY;
@@ -66,7 +65,6 @@ rule lex = parse
     |   ">"           { GT }
     |   "&"           { LOGIC_AND }
     |   "|"           { LOGIC_OR }
-    |   '!'           { NOT }
     |   '?'           { QMARK }
     |   '~'           { TILDE }
     |   ":="          { ASSIGNMENT }
@@ -77,11 +75,8 @@ rule lex = parse
     |   '['           { LBRAKE }
     |   ']'           { RBRAKE }
     |   ','           { COMMA }
-    |   '.'           { DOT }
     |   ';'           { SEMI }
-    |   ':'           { COLON }
     |   '#'           { HASH }
-    |   '_'           { UNDERSCORE }
     |   _             { raise (Failure(Some((Lexing.lexeme_start_p lexbuf).pos_lnum), ("Unknown token"))) }
     |   eof           { EOF }
 

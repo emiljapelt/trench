@@ -17,14 +17,14 @@
 %token ASSIGNMENT
 %token LPAR RPAR LBRACE RBRACE LBRAKE RBRAKE
 %token PLUS MINUS TIMES EQ NEQ LT GT LTEQ GTEQ
-%token LOGIC_AND LOGIC_OR PIPE NOT FSLASH PCT TILDE
-%token COMMA DOT SEMI COLON EOF
+%token LOGIC_AND LOGIC_OR PIPE FSLASH PCT TILDE
+%token COMMA SEMI EOF
 %token QMARK
-%token IF ELSE REPEAT
-%token BREAK CONTINUE GOTO
+%token IF ELSE
+%token GOTO
 %token CONST MOVE FORTIFY WAIT EXPAND
 %token NORTH EAST SOUTH WEST BOMB CHECK SCAN
-%token HASH UNDERSCORE
+%token HASH
 
 /*Low precedence*/
 %left LOGIC_AND LOGIC_OR
@@ -32,7 +32,7 @@
 %left GT LT GTEQ LTEQ
 %left PLUS MINUS
 %left TIMES FSLASH PCT
-%nonassoc NOT TILDE
+%nonassoc TILDE
 /*High precedence*/
 
 %start main
@@ -73,9 +73,9 @@ expression:
   | value                                   { Value $1 }
 ;
 
-expression_not_ternary:
+simple_expression:
     NAME                                    { Reference $1 }
-  | value                                   { Value $1 }
+  | simple_value                            { Value $1 }
   | LPAR expression RPAR                    { $2 }
 ;
 
@@ -87,15 +87,15 @@ const_value:
 simple_value:
     LPAR value RPAR                                       { $2 }
   | const_value                                           { $1 }
-  | MINUS expression_not_ternary                          { Binary_op ("-", Value (Int 0), $2) } %prec NOT
-  | TILDE expression_not_ternary                          { Unary_op ("~", $2) }
+  | MINUS simple_expression                          { Binary_op ("-", Value (Int 0), $2) } %prec TILDE
+  | TILDE simple_expression                          { Unary_op ("~", $2) }
 ;
 
 value:
     simple_value { $1 }
   | SCAN direction                         { Scan $2 }
   | CHECK direction                        { Check $2 }
-  | expression_not_ternary binop expression_not_ternary { Binary_op ($2, $1, $3) }
+  | expression binop expression { Binary_op ($2, $1, $3) }
 ;
 
 %inline binop:
@@ -149,12 +149,12 @@ non_control_flow_stmt:
   | NAME PLUS ASSIGNMENT expression   { Assign ($1, Value(Binary_op("+", Reference $1, $4))) }
   | NAME MINUS ASSIGNMENT expression  { Assign ($1, Value(Binary_op("-", Reference $1, $4))) }
   | NAME TIMES ASSIGNMENT expression  { Assign ($1, Value(Binary_op("*", Reference $1, $4))) }
-  | NAME NOT ASSIGNMENT expression    { Assign ($1, Value(Unary_op("!", $4))) }
+  | NAME TILDE ASSIGNMENT expression    { Assign ($1, Value(Unary_op("~", $4))) }
   | MOVE direction                         { Move $2 }
   | EXPAND direction                       { Expand $2 }
   | FORTIFY                                { Fortify }
   | WAIT                                { Wait }
-  | BOMB LPAR expression COMMA expression RPAR                   { Bomb($3, $5) }
+  | BOMB simple_expression simple_expression                   { Bomb($2, $3) }
 ;
 
 direction:
