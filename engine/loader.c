@@ -5,6 +5,7 @@
 #include <stdlib.h>
 
 #include "util.h"
+#include "compiler_interface.h"
 
 
 
@@ -148,7 +149,29 @@ loaded_game_file* load_game_file(char* content, const int size) {
     return lgf;
 }
 
-parsed_player_file* parse_player(char* value) {
+char* get_program_from_file(char* file_path, char* comp_path) {
+    int fp_len = strlen(file_path);
+    char* content;
+    switch (file_path[fp_len-1]) {
+        case 'c': {
+            int content_len;
+            load_file(file_path, &content, &content_len);
+            if (content == NULL) { printf("Failure: No such file: %s\n", file_path); exit(1);}
+            break;
+        }
+        case 'r': {
+            content = compile_file(file_path,comp_path);
+            break;
+        }
+        default: {
+            printf("Unknown file extension");
+            exit(1);
+        }
+    }
+    return content;
+}
+
+parsed_player_file* parse_player(char* value, char* comp_path) {
     parsed_player_file* ppf = malloc(sizeof(parsed_player_file));
     memset(ppf, 0, sizeof(parsed_player_file));
 
@@ -170,17 +193,14 @@ parsed_player_file* parse_player(char* value) {
     char* directive_file = malloc(end+1); directive_file[end] = 0;
     memcpy(directive_file, value, end);
 
-    char* content;
-    int content_len;
-    load_file(directive_file, &content, &content_len);
-    if (content == NULL) { printf("Failure: No such file: %s\n", directive_file); exit(1);}
+    
 
-    ppf->reg_directive = content;
+    ppf->reg_directive = get_program_from_file(directive_file, comp_path);
 
     return ppf;
 }
 
-parsed_game_file* parse_game_file(char* file_path) {
+parsed_game_file* parse_game_file(char* file_path, char* comp_path) {
 
     char* content;
     int content_len;
@@ -203,7 +223,7 @@ parsed_game_file* parse_game_file(char* file_path) {
     parsed_player_file** pps = malloc(sizeof(parsed_player_file*)*pgf->player_count);
     string_chain* player_infos = lgf->players;
     for(int i = 0; i < pgf->player_count; i++) {
-        pps[i] = parse_player(player_infos->str);
+        pps[i] = parse_player(player_infos->str, comp_path);
         player_infos = player_infos->next;
     }
     pgf->players = pps;

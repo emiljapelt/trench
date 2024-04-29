@@ -16,6 +16,7 @@
 #include "visual.h"
 #include "util.h"
 #include "loader.h"
+#include "compiler_interface.h"
 
 typedef enum direction {
     NORTH,
@@ -242,12 +243,18 @@ int player_turn(game_state* gs, player_state* ps, game_rules* gr) {
     return 1;
 }
 
-void get_new_directive(player_state* ps) {       
+void get_new_directive(player_state* ps, char* comp_path) {       
     printf("Player %i, new directive:\n", ps->id);
-    char* str = malloc(1001);
-    scanf("%1000s", str);
-    ps->directive = str;
-    ps->step = 0;
+    char* path = malloc(1001);
+    fgets(path, 1000, stdin);
+    if (path[0] != '\n') {
+        path[strlen(path)-1] = 0;
+        char* new = get_program_from_file(path, comp_path);
+        int i = 0;
+        while (new[i] != ':') i++;
+        ps->directive = new+i+1;
+        ps->step = 0;
+    }
 }
 
 void play_round(game_state* gs, game_rules* gr) {
@@ -263,7 +270,8 @@ void play_round(game_state* gs, game_rules* gr) {
 
 int main(int argc, char** argv) {
 
-    parsed_game_file* pgf = parse_game_file(argv[1]);
+    char* comp_path = argv[2];
+    parsed_game_file* pgf = parse_game_file(argv[1], comp_path);
 
     game_rules gr = {
         pgf->actions,
@@ -294,7 +302,7 @@ int main(int argc, char** argv) {
         if (gr.dir_change > 0 && (round % gr.dir_change == 0)) {
             for(int i = 0; i < gs.player_count; i++) {
                 if (!gs.players[i].alive) continue; 
-                get_new_directive(gs.players+i);
+                get_new_directive(gs.players+i, comp_path);
             }
         }
     }

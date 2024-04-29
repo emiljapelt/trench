@@ -43,6 +43,7 @@ typedef struct parsed_game_file {
     parsed_player_file** players;
 } parsed_game_file;
 
-parsed_game_file* parse_game_file(char* file_path);
+char* get_program_from_file(char* file_path, char* comp_path);
+parsed_game_file* parse_game_file(char* file_path, char* comp_path);
 
 #endif

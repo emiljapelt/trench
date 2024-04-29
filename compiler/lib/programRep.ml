@@ -79,7 +79,6 @@ let rec attempt_find name idx labels pps : int option = match pps with
 
 
 let rec resolve_labels pps : program_part list =
-  Printf.printf "resolve %s\n" (temp_to_string pps);
   let rec aux pps labels idx acc = match pps with
     | [] -> List.rev acc
     | pp::t -> ( match pp with
@@ -123,7 +122,6 @@ let rec resolve_labels pps : program_part list =
 let program_to_string pp =
   check_labels_exist pp (label_set pp);
   let pp = resolve_labels pp in
-  Printf.printf "result: %s\n" (temp_to_string pp);
   (*string_of_int start ^*) (List.map (
     fun p -> match p with
     | CLabel _ -> ""
