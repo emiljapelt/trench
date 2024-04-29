@@ -11,94 +11,98 @@ static inline void clear_screen(void) {
     //printf("\033[%d;%dH", (0), (0));
 }
 
+static inline char connects(int x, int y, char ctrl, game_state* gs) {
+    return (in_bounds(x,y,gs) ? get_field(x,y,gs)->controller == ctrl : 0);
+}
+
 char* get_field_char(int x, int y, game_state* gs) {
     if (get_field(x,y,gs)->destroyed) return DESTORYED;
     field_state *fld = get_field(x,y,gs);
     char ctrl = fld->controller;
     if(ctrl == 0) return " ";
     if(
-        (in_bounds(x,y-1,gs) ? get_field(x,y-1,gs)->controller == ctrl : 0) && // N
-        (in_bounds(x+1,y,gs) ? get_field(x+1,y,gs)->controller == ctrl : 0) && // E
-        (in_bounds(x,y+1,gs) ? get_field(x,y+1,gs)->controller == ctrl : 0) && // S
-        (in_bounds(x-1,y,gs) ? get_field(x-1,y,gs)->controller == ctrl : 0)    // W
+        connects(x,y-1,ctrl,gs) && // N
+        connects(x+1,y,ctrl,gs) && // E
+        connects(x,y+1,ctrl,gs) && // S
+        connects(x-1,y,ctrl,gs)    // W
     ) return fld->fortified ? F_ALL : ALL;
     if(
-        (in_bounds(x,y-1,gs) ? get_field(x,y-1,gs)->controller == ctrl : 0) && // N
-        (in_bounds(x+1,y,gs) ? get_field(x+1,y,gs)->controller == ctrl : 0) && // E
-        (in_bounds(x,y+1,gs) ? get_field(x,y+1,gs)->controller != ctrl : 1) && // S
-        (in_bounds(x-1,y,gs) ? get_field(x-1,y,gs)->controller == ctrl : 0)    // W
+        connects(x,y-1,ctrl,gs) && // N
+        connects(x+1,y,ctrl,gs) && // E
+        !connects(x,y+1,ctrl,gs) && // S
+        connects(x-1,y,ctrl,gs)    // W
     ) return fld->fortified ? F_WNE : WNE;
     if(
-        (in_bounds(x,y-1,gs) ? get_field(x,y-1,gs)->controller != ctrl : 1) && // N
-        (in_bounds(x+1,y,gs) ? get_field(x+1,y,gs)->controller == ctrl : 0) && // E
-        (in_bounds(x,y+1,gs) ? get_field(x,y+1,gs)->controller == ctrl : 0) && // S
-        (in_bounds(x-1,y,gs) ? get_field(x-1,y,gs)->controller == ctrl : 0)    // W
+        !connects(x,y-1,ctrl,gs) && // N 
+        connects(x+1,y,ctrl,gs) && // E 
+        connects(x,y+1,ctrl,gs) && // S 
+        connects(x-1,y,ctrl,gs)    // W 
     ) return fld->fortified ? F_ESW : ESW;
     if(
-        (in_bounds(x,y-1,gs) ? get_field(x,y-1,gs)->controller == ctrl : 0) && // N
-        (in_bounds(x+1,y,gs) ? get_field(x+1,y,gs)->controller != ctrl : 1) && // E
-        (in_bounds(x,y+1,gs) ? get_field(x,y+1,gs)->controller == ctrl : 0) && // S
-        (in_bounds(x-1,y,gs) ? get_field(x-1,y,gs)->controller == ctrl : 0)    // W
+        connects(x,y-1,ctrl,gs) && // N
+        !connects(x+1,y,ctrl,gs) && // E
+        connects(x,y+1,ctrl,gs) && // S
+        connects(x-1,y,ctrl,gs)    // W
     ) return fld->fortified ? F_SWN : SWN;
     if(
-        (in_bounds(x,y-1,gs) ? get_field(x,y-1,gs)->controller != ctrl : 1) && // N
-        (in_bounds(x+1,y,gs) ? get_field(x+1,y,gs)->controller == ctrl : 0) &&  // E
-        (in_bounds(x,y+1,gs) ? get_field(x,y+1,gs)->controller != ctrl : 1) &&  // S
-        (in_bounds(x-1,y,gs) ? get_field(x-1,y,gs)->controller == ctrl : 0)    // W
+        !connects(x,y-1,ctrl,gs) && // N 
+        connects(x+1,y,ctrl,gs) && // E 
+        !connects(x,y+1,ctrl,gs) && // S 
+        connects(x-1,y,ctrl,gs)    // W 
     ) return fld->fortified ? F_EW : EW;
     if(
-        (in_bounds(x,y-1,gs) ? get_field(x,y-1,gs)->controller != ctrl : 1) && // N
-        (in_bounds(x+1,y,gs) ? get_field(x+1,y,gs)->controller == ctrl : 0) &&  // E
-        (in_bounds(x,y+1,gs) ? get_field(x,y+1,gs)->controller != ctrl : 1) &&  // S
-        (in_bounds(x-1,y,gs) ? get_field(x-1,y,gs)->controller != ctrl : 1)    // W
+        !connects(x,y-1,ctrl,gs) && // N 
+        connects(x+1,y,ctrl,gs) && // E 
+        !connects(x,y+1,ctrl,gs) && // S 
+        !connects(x-1,y,ctrl,gs)    // W 
     ) return fld->fortified ? F_E : E;
     if(
-        (in_bounds(x,y-1,gs) ? get_field(x,y-1,gs)->controller != ctrl : 1) && // N
-        (in_bounds(x+1,y,gs) ? get_field(x+1,y,gs)->controller != ctrl : 1) &&  // E
-        (in_bounds(x,y+1,gs) ? get_field(x,y+1,gs)->controller != ctrl : 1) &&  // S
-        (in_bounds(x-1,y,gs) ? get_field(x-1,y,gs)->controller == ctrl : 0)    // W
+        !connects(x,y-1,ctrl,gs) && // N 
+        !connects(x+1,y,ctrl,gs) && // E 
+        !connects(x,y+1,ctrl,gs) && // S 
+        connects(x-1,y,ctrl,gs)    // W 
     ) return fld->fortified ? F_W : W;
     if(
-        (in_bounds(x,y-1,gs) ? get_field(x,y-1,gs)->controller == ctrl : 0) && // N
-        (in_bounds(x+1,y,gs) ? get_field(x+1,y,gs)->controller != ctrl : 1) &&  // E
-        (in_bounds(x,y+1,gs) ? get_field(x,y+1,gs)->controller == ctrl : 0) &&  // S
-        (in_bounds(x-1,y,gs) ? get_field(x-1,y,gs)->controller != ctrl : 1)    // W
+        connects(x,y-1,ctrl,gs) && // N 
+        !connects(x+1,y,ctrl,gs) && // E 
+        connects(x,y+1,ctrl,gs) && // S 
+        !connects(x-1,y,ctrl,gs)    // W 
     ) return fld->fortified ? F_NS : NS;
     if(
-        (in_bounds(x,y-1,gs) ? get_field(x,y-1,gs)->controller == ctrl : 0) && // N
-        (in_bounds(x+1,y,gs) ? get_field(x+1,y,gs)->controller != ctrl : 1) &&  // E
-        (in_bounds(x,y+1,gs) ? get_field(x,y+1,gs)->controller != ctrl : 1) &&  // S
-        (in_bounds(x-1,y,gs) ? get_field(x-1,y,gs)->controller != ctrl : 1)    // W
+        connects(x,y-1,ctrl,gs) && // N (
+        !connects(x+1,y,ctrl,gs) && // E 
+        !connects(x,y+1,ctrl,gs) && // S 
+        !connects(x-1,y,ctrl,gs)    // W 
     ) return fld->fortified ? F_N : N;
     if(
-        (in_bounds(x,y-1,gs) ? get_field(x,y-1,gs)->controller != ctrl : 1) && // N
-        (in_bounds(x+1,y,gs) ? get_field(x+1,y,gs)->controller != ctrl : 1) &&  // E
-        (in_bounds(x,y+1,gs) ? get_field(x,y+1,gs)->controller == ctrl : 0) &&  // S
-        (in_bounds(x-1,y,gs) ? get_field(x-1,y,gs)->controller != ctrl : 1)    // W
+        !connects(x,y-1,ctrl,gs) && // N 
+        !connects(x+1,y,ctrl,gs) && // E 
+        connects(x,y+1,ctrl,gs) && // S 
+        !connects(x-1,y,ctrl,gs)    // W 
     ) return fld->fortified ? F_S : S;
     if(
-        (in_bounds(x,y-1,gs) ? get_field(x,y-1,gs)->controller == ctrl : 0) && // N
-        (in_bounds(x+1,y,gs) ? get_field(x+1,y,gs)->controller == ctrl : 0) && // E
-        (in_bounds(x,y+1,gs) ? get_field(x,y+1,gs)->controller != ctrl : 1) && // S
-        (in_bounds(x-1,y,gs) ? get_field(x-1,y,gs)->controller != ctrl : 1)    // W
+        connects(x,y-1,ctrl,gs) && // N 
+        connects(x+1,y,ctrl,gs) && // E 
+        !connects(x,y+1,ctrl,gs) && // S 
+        !connects(x-1,y,ctrl,gs)    // W 
     ) return fld->fortified ? F_NE : NE;
     if(
-        (in_bounds(x,y-1,gs) ? get_field(x,y-1,gs)->controller != ctrl : 1) && // N
-        (in_bounds(x+1,y,gs) ? get_field(x+1,y,gs)->controller != ctrl : 1) && // E
-        (in_bounds(x,y+1,gs) ? get_field(x,y+1,gs)->controller == ctrl : 0) && // S
-        (in_bounds(x-1,y,gs) ? get_field(x-1,y,gs)->controller == ctrl : 0)    // W
+        !connects(x,y-1,ctrl,gs) && // N 
+        !connects(x+1,y,ctrl,gs) && // E 
+        connects(x,y+1,ctrl,gs) && // S 
+        connects(x-1,y,ctrl,gs)    // W 
     ) return fld->fortified ? F_SW : SW;
     if(
-        (in_bounds(x,y-1,gs) ? get_field(x,y-1,gs)->controller != ctrl : 1) && // N
-        (in_bounds(x+1,y,gs) ? get_field(x+1,y,gs)->controller == ctrl : 0) && // E
-        (in_bounds(x,y+1,gs) ? get_field(x,y+1,gs)->controller == ctrl : 0) && // S
-        (in_bounds(x-1,y,gs) ? get_field(x-1,y,gs)->controller != ctrl : 1)    // W
+        !connects(x,y-1,ctrl,gs) && // N
+        connects(x+1,y,ctrl,gs) && // E
+        connects(x,y+1,ctrl,gs) && // S
+        !connects(x-1,y,ctrl,gs)    // W
     ) return fld->fortified ? F_SE : SE;
     if(
-        (in_bounds(x,y-1,gs) ? get_field(x,y-1,gs)->controller == ctrl : 0) && // N
-        (in_bounds(x+1,y,gs) ? get_field(x+1,y,gs)->controller != ctrl : 1) && // E
-        (in_bounds(x,y+1,gs) ? get_field(x,y+1,gs)->controller != ctrl : 1) && // S
-        (in_bounds(x-1,y,gs) ? get_field(x-1,y,gs)->controller == ctrl : 0)    // W
+        connects(x,y-1,ctrl,gs) && // N 
+        !connects(x+1,y,ctrl,gs) && // E 
+        !connects(x,y+1,ctrl,gs) && // S 
+        connects(x-1,y,ctrl,gs)    // W 
     ) return fld->fortified ? F_NW : NW;
 
     return fld->fortified ? F_NONE : NONE;
