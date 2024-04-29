@@ -8,6 +8,12 @@
 #include "compiler_interface.h"
 
 
+void skip_whitespace(char* str, int* i) {
+    while(str[*i] == ' ' || str[*i] == '\n' || str[*i] == '\t') {
+        (*i)++;
+    }
+}
+
 
 void load_file(char* file_name, char** out_file, int* out_len) {
     FILE* fp;
@@ -35,9 +41,7 @@ void load_file(char* file_name, char** out_file, int* out_len) {
 load_key get_load_key(char* content, int* skips) {
     *skips = 0;
     int i = 0;
-    while(content[i] == ' ' || content[i] == '\n' || content[i] == '\t') {
-        i++;(*skips)++;
-    }
+    skip_whitespace(content, &i);
 
     int key_size = 0;
     while(content[i+key_size] != ':') {
@@ -66,9 +70,7 @@ load_key get_load_key(char* content, int* skips) {
 char* get_load_value(char* content, int* skips) {
     *skips = 0;
     int i = 0;
-    while(content[i] == ' ' || content[i] == '\n' || content[i] == '\t') {
-        i++;(*skips)++;
-    }
+    skip_whitespace(content, &i);
 
     int val_size = 0;
     while(content[i+val_size] != ';') {
@@ -144,6 +146,7 @@ loaded_game_file* load_game_file(char* content, const int size) {
                 break;
             }
         }
+        skip_whitespace(content, &i);
     }
 
     return lgf;
@@ -194,7 +197,6 @@ parsed_player_file* parse_player(char* value, char* comp_path) {
     memcpy(directive_file, value, end);
 
     
-
     ppf->reg_directive = get_program_from_file(directive_file, comp_path);
 
     return ppf;
