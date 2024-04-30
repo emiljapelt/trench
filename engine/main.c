@@ -325,20 +325,13 @@ int main(int argc, char** argv) {
         .board = empty_board(pgf->board_x,pgf->board_y)
     };
 
-    // player_init players[] = {
-    //     {.x = 5, .y = 5, .directive = "0,0,0:EemeEemeEemeEeFmwFEnmnFEnmnF"},
-    //     {.x = 12, .y = 10, .directive = "0,0,0:EnmnFEnmnFp5p5B"},
-    //     {.x = 15, .y = 15, .directive = "0,0,0,2:#3p0=?11!14!28Enmnp3p1#3-a!0Ewmw!28"},
-    // };
-
     create_players(pgf->players, &gs, &gr);
 
     print_board(&gs);
     
-    int round = 0;
+    int round = 1;
     while(1) {
         play_round(&gs, &gr);
-        round++;
         if (gr.dir_change > 0 && (round % gr.dir_change == 0)) {
             if (gr.nuke) nuke_board(&gs);
             print_board(&gs);
@@ -349,6 +342,7 @@ int main(int argc, char** argv) {
             }
         }
         else check_win_condition(&gs);
+        round++;
     }
 
 
