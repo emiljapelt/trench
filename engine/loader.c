@@ -60,6 +60,7 @@ load_key get_load_key(char* content, int* skips) {
     else if(strcmp(key, "player") == 0) ret = PLAYER;
     else if(strcmp(key, "board_x") == 0) ret = BOARD_X;
     else if(strcmp(key, "board_y") == 0) ret = BOARD_Y;
+    else if(strcmp(key, "nuke") == 0) ret = NUKE;
 
     if (ret == -1) { printf("Unknown load key: %s\n", key); exit(1); }
     free(key);
@@ -145,6 +146,11 @@ loaded_game_file* load_game_file(char* content, const int size) {
                 i += skips;
                 break;
             }
+            case NUKE: {
+                if (lgf->board_y) { printf("Multiple entries from 'nuke'"); exit(1); }
+                lgf->nuke = get_load_value(content+i, &skips);
+                i += skips;
+            }
         }
         skip_whitespace(content, &i);
     }
@@ -221,6 +227,7 @@ parsed_game_file* parse_game_file(char* file_path, char* comp_path) {
     pgf->board_x = (lgf->board_x == 0) ? 20 : atoi(lgf->board_x);
     pgf->board_y = (lgf->board_y == 0) ? 20 : atoi(lgf->board_y);
     pgf->player_count = lgf->player_count;
+    pgf->nuke = (lgf->nuke == 0) ? 0 : atoi(lgf->nuke);
 
     parsed_player_file** pps = malloc(sizeof(parsed_player_file*)*pgf->player_count);
     string_chain* player_infos = lgf->players;

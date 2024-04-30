@@ -75,6 +75,20 @@ void move(char d, player_state* ps, game_state* gs) {
     }
 }
 
+void bomb(int x, int y, game_state* gs) {
+    field_state* fld = get_field(x,y,gs);
+    if (fld->fortified) fld->fortified = 0;
+    else if (fld->controller) {
+        fld->controller = 0;
+        fld->destroyed = 1;
+        for(int p = 0; p < gs->player_count; p++) {
+            if (player_x(gs->players+p) == x && player_y(gs->players+p) == y) {
+                kill_player(gs->players+p);
+            }
+        }
+    }
+}
+
 void check(char d, player_state* ps, game_state* gs) {
     int x, y;
     move_coord(player_x(ps), player_y(ps), d, &x, &y);
@@ -133,17 +147,7 @@ int player_turn(game_state* gs, player_state* ps, game_rules* gr) {
                 if (player_b(ps)) {
                     int x = ps->stack[--ps->sp];
                     int y = ps->stack[--ps->sp];
-                    field_state* fld = get_field(x,y,gs);
-                    if (fld->fortified) fld->fortified = 0;
-                    else if (fld->controller) {
-                        fld->controller = 0;
-                        fld->destroyed = 1;
-                        for(int p = 0; p < gs->player_count; p++) {
-                            if (player_x(gs->players+p) == x && player_y(gs->players+p) == y) {
-                                kill_player(gs->players+p);
-                            }
-                        }
-                    }
+                    bomb(x,y,gs);
                     mod_player_b(ps,-1);
                 }
                 actions--;
@@ -257,6 +261,24 @@ void get_new_directive(player_state* ps, char* comp_path) {
     }
 }
 
+void nuke_board(game_state* gs) {
+    for(int y = 0; y < gs->board_y; y++)
+    for(int x = 0; x < gs->board_x; x++) 
+        bomb(x, y, gs);
+}
+
+int players_alive(game_state* gs) {
+    int alive = 0;
+    for(int i = 0; i < gs->player_count; i++) if (gs->players[i].alive) alive++;
+    return alive;
+}
+
+int first_player_alive(game_state* gs) {
+    for(int i = 0; i < gs->player_count; i++) if (gs->players[i].alive) return gs->players[i].id;
+    printf("No player is alive\n");
+    exit(1);
+}
+
 void play_round(game_state* gs, game_rules* gr) {
     int turns = 0;
     for(int i = 0; i < gs->player_count; i++) {
@@ -281,7 +303,8 @@ int main(int argc, char** argv) {
     game_rules gr = {
         pgf->actions,
         pgf->bombs,
-        pgf->change
+        pgf->change,
+        pgf->nuke
     };
 
     game_state gs = {
@@ -300,15 +323,25 @@ int main(int argc, char** argv) {
 
     print_board(&gs);
     
-    int round = 1;
+    int round = 0;
     while(1) {
         play_round(&gs, &gr);
         round++;
         if (gr.dir_change > 0 && (round % gr.dir_change == 0)) {
+            if (gr.nuke) nuke_board(&gs);
+            print_board(&gs);
             for(int i = 0; i < gs.player_count; i++) {
                 if (!gs.players[i].alive) continue; 
                 get_new_directive(gs.players+i, comp_path);
             }
+        }
+        switch (players_alive(&gs)) {
+            case 0:
+                printf("GAME OVER: Everyone is dead...\n"); exit(0);
+            case 1:
+                if (gs.player_count == 1) break;
+                else printf("Player %i won!\n", first_player_alive(&gs)); exit(0);
+            default: break;
         }
     }
 

@@ -9,6 +9,7 @@ typedef enum load_key {
     PLAYER,
     BOARD_X,
     BOARD_Y,
+    NUKE,
 } load_key;
 
 typedef struct string_chain {
@@ -25,6 +26,7 @@ typedef struct loaded_game_file {
     char* board_y;
     int player_count;
     string_chain* players;
+    char* nuke;
 } loaded_game_file;
 
 
@@ -40,6 +42,7 @@ typedef struct parsed_game_file {
     int change;
     int board_x, board_y;
     int player_count;
+    int nuke;
     parsed_player_file** players;
 } parsed_game_file;
 
