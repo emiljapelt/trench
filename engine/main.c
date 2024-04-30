@@ -279,6 +279,17 @@ int first_player_alive(game_state* gs) {
     exit(1);
 }
 
+void check_win_condition(game_state* gs) {
+    switch (players_alive(gs)) {
+        case 0:
+            printf("GAME OVER: Everyone is dead...\n"); exit(0);
+        case 1:
+            if (gs->player_count == 1) break;
+            else printf("Player %i won!\n", first_player_alive(gs)); exit(0);
+        default: break;
+    }
+}
+
 void play_round(game_state* gs, game_rules* gr) {
     int turns = 0;
     for(int i = 0; i < gs->player_count; i++) {
@@ -310,6 +321,7 @@ int main(int argc, char** argv) {
     game_state gs = {
         .board_x = pgf->board_x,
         .board_y = pgf->board_y,
+        .player_count = pgf->player_count,
         .board = empty_board(pgf->board_x,pgf->board_y)
     };
 
@@ -319,7 +331,7 @@ int main(int argc, char** argv) {
     //     {.x = 15, .y = 15, .directive = "0,0,0,2:#3p0=?11!14!28Enmnp3p1#3-a!0Ewmw!28"},
     // };
 
-    create_players(pgf->player_count, pgf->players, &gs, &gr);
+    create_players(pgf->players, &gs, &gr);
 
     print_board(&gs);
     
@@ -330,19 +342,13 @@ int main(int argc, char** argv) {
         if (gr.dir_change > 0 && (round % gr.dir_change == 0)) {
             if (gr.nuke) nuke_board(&gs);
             print_board(&gs);
+            check_win_condition(&gs);
             for(int i = 0; i < gs.player_count; i++) {
                 if (!gs.players[i].alive) continue; 
                 get_new_directive(gs.players+i, comp_path);
             }
         }
-        switch (players_alive(&gs)) {
-            case 0:
-                printf("GAME OVER: Everyone is dead...\n"); exit(0);
-            case 1:
-                if (gs.player_count == 1) break;
-                else printf("Player %i won!\n", first_player_alive(&gs)); exit(0);
-            default: break;
-        }
+        else check_win_condition(&gs);
     }
 
 

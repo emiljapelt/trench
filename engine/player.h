@@ -9,7 +9,7 @@ typedef struct player_init {
 
 typedef struct player_state {
     unsigned char alive: 1;
-    int id: 4;
+    unsigned char id: 4;
     int* stack;
     int sp;
     char* directive;

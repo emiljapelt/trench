@@ -6,10 +6,10 @@
 #include "loader.h"
 #include "util.h"
 
-void create_players(int players, parsed_player_file** inits, game_state* gs, game_rules* gr) {
+void create_players(parsed_player_file** inits, game_state* gs, game_rules* gr) {
 
-    player_state* pss = malloc(sizeof(player_state) * players);
-    for(int i = 0; i < players; i++) {
+    player_state* pss = malloc(sizeof(player_state) * gs->player_count);
+    for(int i = 0; i < gs->player_count; i++) {
         int* player_stack = malloc(sizeof(int)*1000);
 
         int reg_prog_seperator = 0;
@@ -32,7 +32,6 @@ void create_players(int players, parsed_player_file** inits, game_state* gs, gam
         player_stack[1] = inits[i]->y;
         player_stack[2] = gr->bombs;
 
-        int id = ++gs->player_count;
         pss[i] = (player_state){
             1, // alive
             inits[i]->id, // id
@@ -42,7 +41,7 @@ void create_players(int players, parsed_player_file** inits, game_state* gs, gam
             strlen(inits[i]->reg_directive + reg_prog_seperator + 1),
             0 // starting step
         }; 
-        build_field(inits[i]->x, inits[i]->y, id, gs);
+        build_field(inits[i]->x, inits[i]->y, inits[i]->id, gs);
     }
     gs->players = pss;
 }
@@ -64,7 +63,7 @@ void destroy_field(int x, int y, game_state gs) {
     gs.board[(y * gs.board_x) + x].destroyed = 1;
 }
 
-void build_field(int x, int y, int id, game_state* gs) {
+void build_field(int x, int y, unsigned char id, game_state* gs) {
     gs->board[(y * gs->board_x) + x].destroyed = 0;
     gs->board[(y * gs->board_x) + x].controller = id;
 }

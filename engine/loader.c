@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #include "util.h"
 #include "compiler_interface.h"
@@ -202,7 +203,6 @@ parsed_player_file* parse_player(char* value, char* comp_path) {
     char* directive_file = malloc(end+1); directive_file[end] = 0;
     memcpy(directive_file, value, end);
 
-    
     ppf->reg_directive = get_program_from_file(directive_file, comp_path);
 
     return ppf;
