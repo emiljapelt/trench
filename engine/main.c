@@ -103,6 +103,7 @@ void check(char d, player_state* ps, game_state* gs) {
     }
 }
 
+// Returning 1 means eventful turn, 0 means uneventful
 int player_turn(game_state* gs, player_state* ps, game_rules* gr) {
     char actions = gr->actions;
     while(actions) {
@@ -110,8 +111,7 @@ int player_turn(game_state* gs, player_state* ps, game_rules* gr) {
         //printf("%c\n", ps->directive[ps->step]); sleep(1);
         switch (ps->directive[ps->step++]) {
             case 'W': {
-                actions = 0;
-                break;
+                return (actions != gr->actions);
             }
             case 'c': {
                 check(ps->directive[ps->step++],ps,gs);
@@ -241,7 +241,7 @@ int player_turn(game_state* gs, player_state* ps, game_rules* gr) {
                 ps->stack[target] = v;
                 break;
             }
-            default: actions = 0;
+            default: return 0;
         }
     }
     return 1;
