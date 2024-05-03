@@ -103,15 +103,20 @@ void check(char d, player_state* ps, game_state* gs) {
     }
 }
 
-// Returning 1 means eventful turn, 0 means uneventful
 int player_turn(game_state* gs, player_state* ps, game_rules* gr) {
     char actions = gr->actions;
+    int eventful = 0;
     while(actions) {
-        if (ps->step >= ps->directive_len) return 0;
+        if (ps->step >= ps->directive_len) return eventful;
         //printf("%c\n", ps->directive[ps->step]); sleep(1);
         switch (ps->directive[ps->step++]) {
             case 'W': {
-                return (actions != gr->actions);
+                actions--;
+                break;
+            }
+            case 'S': {
+                actions = 0;
+                break;
             }
             case 'c': {
                 check(ps->directive[ps->step++],ps,gs);
@@ -128,11 +133,13 @@ int player_turn(game_state* gs, player_state* ps, game_rules* gr) {
             }
             case 'E': {
                 expand(ps->directive[ps->step++],ps,gs);
+                eventful = 1;
                 actions--;
                 break;
             }
             case 'F': {
                 if (get_field(player_x(ps),player_y(ps),gs)->controller == ps->id) fortify_field(player_x(ps),player_y(ps),gs);
+                eventful = 1;
                 actions--;
                 break;
             }
@@ -150,6 +157,7 @@ int player_turn(game_state* gs, player_state* ps, game_rules* gr) {
                     bomb(x,y,gs);
                     mod_player_b(ps,-1);
                 }
+                eventful = 1;
                 actions--;
                 break;
             }
@@ -241,10 +249,10 @@ int player_turn(game_state* gs, player_state* ps, game_rules* gr) {
                 ps->stack[target] = v;
                 break;
             }
-            default: return 0;
+            default: return eventful;
         }
     }
-    return 1;
+    return eventful;
 }
 
 void get_new_directive(player_state* ps, char* comp_path) {       

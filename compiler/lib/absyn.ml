@@ -20,6 +20,7 @@ and statement_inner =
     | Bomb of expression * expression
     | Fortify
     | Wait
+    | Stop
     | GoTo of string
     
 and expression =

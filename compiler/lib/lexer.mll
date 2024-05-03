@@ -14,6 +14,7 @@
                         "check", CHECK;
                         "bomb", BOMB;
                         "wait", WAIT;
+                        "stop", STOP;
                         "N", NORTH;
                         "E", EAST;
                         "S", SOUTH;
