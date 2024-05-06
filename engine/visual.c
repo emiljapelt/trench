@@ -1,6 +1,9 @@
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "game_state.h"
+#include "loader.h"
+#include "player.h"
 #include "visual.h"
 
 static inline void clear_screen(void) {
@@ -11,8 +14,8 @@ static inline void clear_screen(void) {
     //printf("\033[%d;%dH", (0), (0));
 }
 
-static inline char connects(int x, int y, char ctrl, game_state* gs) {
-    return (in_bounds(x,y,gs) ? get_field(x,y,gs)->controller == ctrl : 0);
+static inline char trench_connects(int x, int y, game_state* gs) {
+    return (in_bounds(x,y,gs) ? get_field(x,y,gs)->trenched : 0);
 }
 
 // 0xNESW
@@ -54,16 +57,30 @@ const char* f_char_lookup[] = {
 };
 
 const char* get_field_char(int x, int y, game_state* gs) {
-    if (get_field(x,y,gs)->destroyed) return DESTORYED;
     field_state *fld = get_field(x,y,gs);
-    char ctrl = fld->controller;
 
-    if(ctrl == 0) return " ";
+    if(fld->target) return TARGET;
+    if(fld->explosion) return EXPLOSION;
+    if(fld->destroyed) return DESTORYED;
+
+    if(!fld->trenched) { 
+        for(int i = 0; i < gs->player_count; i++) {
+            if (player_x(gs->players+i) == x && player_y(gs->players+i) == y && gs->players[i].alive) return PERSON;
+        }
+
+        if(fld->bullet_state) {
+            if (fld->bullet_state == NS_bullets) return BULLETS_NS;
+            if (fld->bullet_state == EW_bullets) return BULLETS_EW;
+        }
+
+        return " "; 
+    }
+
     int char_idx = 
-        (connects(x,y-1,ctrl,gs) << 3) | // N
-        (connects(x+1,y,ctrl,gs) << 2) | // E
-        (connects(x,y+1,ctrl,gs) << 1) | // S
-        connects(x-1,y,ctrl,gs);         // W 
+        (trench_connects(x,y-1,gs) << 3) | // N
+        (trench_connects(x+1,y,gs) << 2) | // E
+        (trench_connects(x,y+1,gs) << 1) | // S
+        trench_connects(x-1,y,gs);         // W 
 
     if (fld->fortified) return f_char_lookup[char_idx];
     else return char_lookup[char_idx];

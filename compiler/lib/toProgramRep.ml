@@ -79,9 +79,10 @@ and compile_stmt (Stmt(stmt,ln)) regs acc =
   | Label name -> CLabel name :: acc
   | Move d -> Instruction ("m"^direction_string d) :: acc
   | Expand d -> Instruction ("E"^direction_string d) :: acc
+  | Shoot d -> Instruction ("S"^direction_string d) :: acc
   | Fortify -> Instruction "F" :: acc
   | Wait -> Instruction "W" :: acc
-  | Stop -> Instruction "S" :: acc
+  | Pass -> Instruction "P" :: acc
   | GoTo n -> CGoTo(n, None) :: acc
   | Bomb(x,y) -> compile_expr y regs (compile_expr x regs (Instruction "B" :: acc))
   with 

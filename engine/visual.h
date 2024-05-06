@@ -5,7 +5,7 @@
 
 // ** CHARACTER CODES ** 
 
-#define DESTORYED "\u2217"
+#define DESTORYED "*"
 #define NONE "\u2022"
 #define F_NONE "\u2299"
 #define N "\u2575"
@@ -38,6 +38,14 @@
 #define F_WNE "\u2569"
 #define ALL "\u253c"
 #define F_ALL "\u256c"
+
+#define PERSON "\u1330"
+
+#define EXPLOSION "\u2311"
+#define TARGET "\u2316"
+
+#define BULLETS_NS "\u22ee"
+#define BULLETS_EW "\u2026"
 
 // ****
 

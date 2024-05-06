@@ -2,13 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#ifdef _WIN32
-#include <windows.h>
-#define sleep(x) Sleep(x*1000)
-#elif __unix__
-#include <unistd.h>
-#define sleep(x) sleep(x)
-#endif
 
 #include "player.h"
 #include "game_rules.h"
@@ -45,7 +38,7 @@ int scan_dir(char dir, int x, int y, game_state* gs) {
     }
     check:
     if (!in_bounds(x,y,gs)) return 0;
-    if (get_field(x,y,gs)->controller) return i;
+    if (get_field(x,y,gs)->trenched) return i;
     goto incr;
 }
 
@@ -62,31 +55,16 @@ void expand(char d, player_state* ps, game_state* gs) {
     int x, y;
     move_coord(player_x(ps), player_y(ps), d, &x, &y);
     if (!in_bounds(x, y, gs)) return;
-    if (get_field(x,y,gs)->controller == 0) build_field(x,y,ps->id,gs);
+    if (!get_field(x,y,gs)->trenched) build_field(x,y,ps->id,gs);
 }
 
 void move(char d, player_state* ps, game_state* gs) {
     int x, y;
     move_coord(player_x(ps), player_y(ps), d, &x, &y);
     if (!in_bounds(x, y, gs)) return;
-    if (get_field(x,y,gs)->controller == ps->id) {
-        set_player_x(ps, x);
-        set_player_y(ps, y);
-    }
-}
-
-void bomb(int x, int y, game_state* gs) {
-    field_state* fld = get_field(x,y,gs);
-    if (fld->fortified) fld->fortified = 0;
-    else if (fld->controller) {
-        fld->controller = 0;
-        fld->destroyed = 1;
-        for(int p = 0; p < gs->player_count; p++) {
-            if (player_x(gs->players+p) == x && player_y(gs->players+p) == y) {
-                kill_player(gs->players+p);
-            }
-        }
-    }
+    if (get_field(x,y,gs)->destroyed) return;
+    set_player_x(ps, x);
+    set_player_y(ps, y);
 }
 
 void check(char d, player_state* ps, game_state* gs) {
@@ -95,7 +73,7 @@ void check(char d, player_state* ps, game_state* gs) {
     if (!in_bounds(x, y, gs)) { 
         ps->stack[ps->sp++] = 0;
     }
-    else if (get_field(x,y,gs)->controller == ps->id) {
+    else if (get_field(x,y,gs)->trenched) {
         ps->stack[ps->sp++] = 1;
     }
     else {
@@ -103,19 +81,52 @@ void check(char d, player_state* ps, game_state* gs) {
     }
 }
 
-int player_turn(game_state* gs, player_state* ps, game_rules* gr) {
+void shoot(char d, player_state* ps, game_state* gs) {
+    int x = player_x(ps);
+    int y = player_y(ps);
+    move_coord(x, y, d, &x, &y);
+    while (in_bounds(x,y,gs)) { 
+        shoot_field(x,y,d,gs);
+        for(int p = 0; p < gs->player_count; p++) {
+            if (player_x(gs->players+p) == x && player_y(gs->players+p) == y && !get_field(x,y,gs)->trenched) {
+                kill_player(gs->players+p);
+            }
+        }
+        move_coord(x, y, d, &x, &y);
+    }
+    print_board(gs);    
+    sleep(500);
+
+    x = player_x(ps);
+    y = player_y(ps);
+    while (in_bounds(x,y,gs)) {
+        unshoot_field(x,y,gs);   
+        move_coord(x, y, d, &x, &y);
+    }
+    print_board(gs);
+}
+
+void player_turn(game_state* gs, player_state* ps, game_rules* gr) {
+    update_bomb_chain(ps,gs);
     char actions = gr->actions;
     int eventful = 0;
     while(actions) {
-        if (ps->step >= ps->directive_len) return eventful;
+        if (ps->step >= ps->directive_len) return;
         //printf("%c\n", ps->directive[ps->step]); sleep(1);
         switch (ps->directive[ps->step++]) {
             case 'W': {
                 actions--;
                 break;
             }
-            case 'S': {
+            case 'P': {
                 actions = 0;
+                break;
+            }
+            case 'S': {
+                shoot(ps->directive[ps->step++],ps,gs);
+                print_board(gs);
+                sleep(500);
+                actions--;
                 break;
             }
             case 'c': {
@@ -129,16 +140,22 @@ int player_turn(game_state* gs, player_state* ps, game_rules* gr) {
             }
             case 'm': {
                 move(ps->directive[ps->step++],ps,gs);
+                print_board(gs);
+                sleep(500);
                 break;
             }
             case 'E': {
                 expand(ps->directive[ps->step++],ps,gs);
+                print_board(gs);
+                sleep(500);
                 eventful = 1;
                 actions--;
                 break;
             }
             case 'F': {
-                if (get_field(player_x(ps),player_y(ps),gs)->controller == ps->id) fortify_field(player_x(ps),player_y(ps),gs);
+                if (get_field(player_x(ps),player_y(ps),gs)->trenched) fortify_field(player_x(ps),player_y(ps),gs);
+                print_board(gs);
+                sleep(500);
                 eventful = 1;
                 actions--;
                 break;
@@ -154,7 +171,13 @@ int player_turn(game_state* gs, player_state* ps, game_rules* gr) {
                 if (player_b(ps)) {
                     int x = ps->stack[--ps->sp];
                     int y = ps->stack[--ps->sp];
-                    bomb(x,y,gs);
+                    target_field(x, y, gs);
+                    add_bomb(x, y, ps, gs);
+                    print_board(gs);
+                    sleep(250);
+                    untarget_field(x, y, gs);
+                    sleep(250);
+
                     mod_player_b(ps,-1);
                 }
                 eventful = 1;
@@ -249,10 +272,9 @@ int player_turn(game_state* gs, player_state* ps, game_rules* gr) {
                 ps->stack[target] = v;
                 break;
             }
-            default: return eventful;
+            default: return;;
         }
     }
-    return eventful;
 }
 
 void get_new_directive(player_state* ps, char* comp_path) {       
@@ -272,7 +294,7 @@ void get_new_directive(player_state* ps, char* comp_path) {
 void nuke_board(game_state* gs) {
     for(int y = 0; y < gs->board_y; y++)
     for(int x = 0; x < gs->board_x; x++) 
-        bomb(x, y, gs);
+        explode_field(x, y, gs);
 }
 
 int players_alive(game_state* gs) {
@@ -302,10 +324,9 @@ void play_round(game_state* gs, game_rules* gr) {
     int turns = 0;
     for(int i = 0; i < gs->player_count; i++) {
         if (!gs->players[i].alive) continue; 
-        if (!player_turn(gs, gs->players+i, gr)) continue;
-        sleep(1);
+        player_turn(gs, gs->players+i, gr);
         turns++;
-        print_board(gs);
+        //print_board(gs);
     }
 }
 
@@ -336,7 +357,8 @@ int main(int argc, char** argv) {
     create_players(pgf->players, &gs, &gr);
 
     print_board(&gs);
-    
+    sleep(2000);
+
     int round = 1;
     while(1) {
         play_round(&gs, &gr);

@@ -17,10 +17,11 @@ and statement_inner =
     | Label of string
     | Move of direction
     | Expand of direction
+    | Shoot of direction
     | Bomb of expression * expression
     | Fortify
     | Wait
-    | Stop
+    | Pass
     | GoTo of string
     
 and expression =

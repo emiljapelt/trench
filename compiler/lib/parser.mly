@@ -22,8 +22,8 @@
 %token QMARK
 %token IF ELSE
 %token GOTO
-%token CONST MOVE FORTIFY WAIT STOP EXPAND
-%token NORTH EAST SOUTH WEST BOMB CHECK SCAN
+%token CONST MOVE FORTIFY WAIT PASS EXPAND
+%token NORTH EAST SOUTH WEST BOMB SHOOT CHECK SCAN
 %token HASH
 
 /*Low precedence*/
@@ -152,9 +152,10 @@ non_control_flow_stmt:
   | NAME TILDE ASSIGNMENT expression    { Assign ($1, Value(Unary_op("~", $4))) }
   | MOVE direction                         { Move $2 }
   | EXPAND direction                       { Expand $2 }
+  | SHOOT direction                        { Shoot $2 }
   | FORTIFY                                { Fortify }
   | WAIT                                { Wait }
-  | STOP                                { Stop }
+  | PASS                                { Pass }
   | BOMB simple_expression simple_expression                   { Bomb($2, $3) }
 ;
 

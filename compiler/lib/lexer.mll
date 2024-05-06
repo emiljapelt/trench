@@ -14,12 +14,13 @@
                         "check", CHECK;
                         "bomb", BOMB;
                         "wait", WAIT;
-                        "stop", STOP;
+                        "pass", PASS;
                         "N", NORTH;
                         "E", EAST;
                         "S", SOUTH;
                         "W", WEST;
                         "goto", GOTO;
+                        "shoot", SHOOT;
                       ]
   
   let char_of_string s lexbuf = match s with
