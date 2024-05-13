@@ -38,7 +38,7 @@ const char* char_lookup[] = {
     ALL, // 0x1111
 };
 const char* f_char_lookup[] = {
-    NONE, // 0x0000
+    F_NONE, // 0x0000
     F_W, // 0x0001
     F_S, // 0x0010
     F_SW, // 0x0011
@@ -82,8 +82,7 @@ const char* get_field_char(int x, int y, game_state* gs) {
         (trench_connects(x,y+1,gs) << 1) | // S
         trench_connects(x-1,y,gs);         // W 
 
-    if (fld->fortified) return f_char_lookup[char_idx];
-    else return char_lookup[char_idx];
+    return (fld->fortified) ? f_char_lookup[char_idx] : char_lookup[char_idx];
 }
 
 void print_board(game_state* gs) {
