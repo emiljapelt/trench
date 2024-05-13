@@ -6,8 +6,8 @@
 // ** CHARACTER CODES ** 
 
 #define DESTORYED "*"
-#define NONE "\u2022"
-#define F_NONE "\u2299"
+#define NONE "\u2219"
+#define F_NONE "\u2022"
 #define N "\u2575"
 #define F_N "\u2579"
 #define E "\u2576"
