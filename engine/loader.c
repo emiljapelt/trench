@@ -56,7 +56,9 @@ load_key get_load_key(char* content, int* skips) {
 
     load_key ret = -1;
     if(strcmp(key, "bombs") == 0) ret = BOMBS;
+    else if(strcmp(key, "shoots") == 0) ret = SHOTS;
     else if(strcmp(key, "actions") == 0) ret = ACTIONS;
+    else if(strcmp(key, "steps") == 0) ret = STEPS;
     else if(strcmp(key, "change") == 0) ret = CHANGE;
     else if(strcmp(key, "player") == 0) ret = PLAYER;
     else if(strcmp(key, "board_x") == 0) ret = BOARD_X;
@@ -112,9 +114,21 @@ loaded_game_file* load_game_file(char* content, const int size) {
                 i += skips;
                 break;
             }
+            case SHOTS: {
+                if (lgf->shots) { printf("Multiple entries from 'shoots'"); exit(1); }
+                lgf->shots = get_load_value(content+i, &skips);
+                i += skips;
+                break;
+            }
             case ACTIONS: {
                 if (lgf->actions) { printf("Multiple entries from 'actions'"); exit(1); }
                 lgf->actions = get_load_value(content+i, &skips);
+                i += skips;
+                break;
+            }
+            case STEPS: {
+                if (lgf->steps) { printf("Multiple entries from 'actions'"); exit(1); }
+                lgf->steps = get_load_value(content+i, &skips);
                 i += skips;
                 break;
             }
@@ -222,7 +236,9 @@ parsed_game_file* parse_game_file(char* file_path, char* comp_path) {
     memset(pgf, 0, sizeof(parsed_game_file));
 
     pgf->bombs = (lgf->bombs == 0) ? 10 : atoi(lgf->bombs);
+    pgf->shots = (lgf->shots == 0) ? 100 : atoi(lgf->shots);
     pgf->actions = (lgf->actions == 0) ? 1 : atoi(lgf->actions);
+    pgf->steps = (lgf->steps == 0) ? 1000 : atoi(lgf->steps);
     pgf->change = (lgf->change == 0) ? 0 : atoi(lgf->change);
     pgf->board_x = (lgf->board_x == 0) ? 20 : atoi(lgf->board_x);
     pgf->board_y = (lgf->board_y == 0) ? 20 : atoi(lgf->board_y);

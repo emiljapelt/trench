@@ -25,7 +25,7 @@ void create_players(parsed_player_file** inits, game_state* gs, game_rules* gr) 
             int directive_index = 0;
             for(int r = 0; r < regs; r++) {
                 int num_len = numeric_size(inits[i]->reg_directive, directive_index);
-                if (1 || r > 2) player_stack[r] = sub_str_to_int(inits[i]->reg_directive, directive_index, num_len);
+                if (1 || r > 3) player_stack[r] = sub_str_to_int(inits[i]->reg_directive, directive_index, num_len);
                 directive_index += num_len+1;
             }
         }
@@ -33,6 +33,7 @@ void create_players(parsed_player_file** inits, game_state* gs, game_rules* gr) 
         player_stack[0] = inits[i]->x;
         player_stack[1] = inits[i]->y;
         player_stack[2] = gr->bombs;
+        player_stack[3] = gr->shots;
 
         pss[i] = (player_state){
             1, // alive

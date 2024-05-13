@@ -9,6 +9,7 @@
                         "else", ELSE;
                         "move", MOVE;
                         "expand", EXPAND;
+                        "trench", TRENCH;
                         "fortify", FORTIFY;
                         "scan", SCAN;
                         "check", CHECK;

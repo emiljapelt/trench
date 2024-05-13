@@ -81,10 +81,11 @@ and compile_stmt (Stmt(stmt,ln)) regs acc =
   | Expand d -> Instruction ("E"^direction_string d) :: acc
   | Shoot d -> Instruction ("S"^direction_string d) :: acc
   | Fortify -> Instruction "F" :: acc
+  | Trench -> Instruction "T" :: acc
   | Wait -> Instruction "W" :: acc
   | Pass -> Instruction "P" :: acc
   | GoTo n -> CGoTo(n, None) :: acc
-  | Bomb(x,y) -> compile_expr y regs (compile_expr x regs (Instruction "B" :: acc))
+  | Bomb(d,i) -> compile_expr i regs (Instruction ("B"^direction_string d) :: acc)
   with 
   | Failure(None,msg) -> raise (Failure(Some ln, msg))
   | a -> raise a
@@ -109,7 +110,8 @@ let complete_path base path = compress_path (if path.[0] = '.' then (String.sub 
 let default_regs = [
   Register(true, "x", Int 0);
   Register(true, "y", Int 0);
-  Register(true, "b", Int 0);
+  Register(true, "bombs", Int 0);
+  Register(true, "shots", Int 0);
 ]
 
 let check_registers_unique regs =

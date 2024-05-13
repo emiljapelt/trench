@@ -23,8 +23,10 @@ void set_player_x(player_state* ps, int v);
 int player_y(player_state* ps);
 void mod_player_y(player_state* ps, int v);
 void set_player_y(player_state* ps, int v);
-int player_b(player_state* ps);
-void mod_player_b(player_state* ps, int v);
+int player_bombs(player_state* ps);
+int player_shots(player_state* ps);
+void mod_player_bombs(player_state* ps, int v);
+void mod_player_shots(player_state* ps, int v);
 void kill_player(player_state* ps);
 
 #endif

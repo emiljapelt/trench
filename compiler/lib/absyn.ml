@@ -18,8 +18,9 @@ and statement_inner =
     | Move of direction
     | Expand of direction
     | Shoot of direction
-    | Bomb of expression * expression
+    | Bomb of direction * expression
     | Fortify
+    | Trench
     | Wait
     | Pass
     | GoTo of string

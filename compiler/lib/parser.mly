@@ -22,7 +22,7 @@
 %token QMARK
 %token IF ELSE
 %token GOTO
-%token CONST MOVE FORTIFY WAIT PASS EXPAND
+%token CONST MOVE FORTIFY WAIT PASS EXPAND TRENCH
 %token NORTH EAST SOUTH WEST BOMB SHOOT CHECK SCAN
 %token HASH
 
@@ -154,9 +154,10 @@ non_control_flow_stmt:
   | EXPAND direction                       { Expand $2 }
   | SHOOT direction                        { Shoot $2 }
   | FORTIFY                                { Fortify }
+  | TRENCH                                 { Trench }
   | WAIT                                { Wait }
   | PASS                                { Pass }
-  | BOMB simple_expression simple_expression                   { Bomb($2, $3) }
+  | BOMB direction simple_expression    { Bomb($2, $3) }
 ;
 
 direction:
