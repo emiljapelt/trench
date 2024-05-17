@@ -10,6 +10,15 @@
     let () = vg.next <- vg.next+1 in
     Int.to_string number*)
 
+  let meta_name n ln = match n with
+    | "x" -> PlayerX
+    | "y" -> PlayerY
+    | "bombs" -> PlayerBombs
+    | "shots" -> PlayerShots
+    | "board_x" -> BoardX
+    | "board_y" -> BoardY
+    | _ -> raise (Failure(Some ln, "Unknown meta reference"))
+
 %}
 %token <int> CSTINT
 %token <string> NAME
@@ -21,7 +30,7 @@
 %token QMARK
 %token IF ELSE REPEAT
 %token GOTO
-%token CONST MOVE FORTIFY WAIT PASS EXPAND TRENCH
+%token MOVE FORTIFY WAIT PASS EXPAND TRENCH
 %token NORTH EAST SOUTH WEST BOMB SHOOT CHECK SCAN
 %token HASH
 
@@ -31,7 +40,7 @@
 %left GT LT GTEQ LTEQ
 %left PLUS MINUS
 %left TIMES FSLASH PCT
-%nonassoc TILDE
+%nonassoc TILDE HASH
 /*High precedence*/
 
 %start main
@@ -58,9 +67,8 @@ registers:
 ;
 
 register:
-  | NAME { Register(false, $1, Int 0) }
-  | NAME EQ const_value { Register(false, $1, $3) }
-  | CONST NAME EQ const_value { Register(true, $2, $4) }
+  | NAME { Register($1, Int 0) }
+  | NAME EQ const_value { Register($1, $3) }
 ;
 
 block:
@@ -70,10 +78,12 @@ block:
 expression:
     NAME                                    { Reference $1 }
   | value                                   { Value $1 }
+  | simple_expression                       { $1 }
 ;
 
 simple_expression:
     NAME                                    { Reference $1 }
+  | HASH NAME                               { MetaReference (meta_name $2 $symbolstartpos.pos_lnum) }
   | simple_value                            { Value $1 }
   | LPAR expression RPAR                    { $2 }
 ;

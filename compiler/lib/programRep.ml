@@ -134,7 +134,7 @@ let program_to_string pp =
   |> String.concat "")
 
 let regs_to_string regs = 
-  List.map (fun (Register(_,n,v)) -> match v with
+  List.map (fun (Register(n,v)) -> match v with
     | Int i -> string_of_int i
     | _ -> failwith ("Register not a constant: "^n)
   ) regs |> String.concat ","

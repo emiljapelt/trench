@@ -1,8 +1,6 @@
 #include <stdio.h>
-#include <stdlib.h>
 
 #include "game_state.h"
-#include "loader.h"
 #include "player.h"
 #include "visual.h"
 
@@ -65,7 +63,7 @@ const char* get_field_char(int x, int y, game_state* gs) {
 
     if(!fld->trenched) { 
         for(int i = 0; i < gs->player_count; i++) {
-            if (player_x(gs->players+i) == x && player_y(gs->players+i) == y && gs->players[i].alive) return PERSON;
+            if (gs->players[i].x == x && gs->players[i].y == y && gs->players[i].alive) return PERSON;
         }
 
         if(fld->bullet_state) {

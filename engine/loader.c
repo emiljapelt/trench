@@ -254,7 +254,7 @@ parsed_game_file* parse_game_file(const char* file_path, const char* comp_path) 
     pgf->player_count = lgf->player_count;
     pgf->nuke = (lgf->nuke == 0) ? 0 : atoi(lgf->nuke);
 
-    parsed_player_file** pps = malloc(sizeof(parsed_player_file*)*pgf->player_count);
+    parsed_player_file** pps = malloc(sizeof(parsed_player_file*) * pgf->player_count);
     string_chain* player_infos = lgf->players;
     for(int i = 0; i < pgf->player_count; i++) {
         pps[i] = parse_player(player_infos->str, comp_path);

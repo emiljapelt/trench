@@ -10,22 +10,22 @@ module StringSet = Set.Make(String)
 let fetch_reg_index (name: string) regs = 
   let rec aux regs i = match regs with
     | [] -> failwith ("No such register: "^name)
-    | Register(_,n,_)::t ->
+    | Register(n,_)::t ->
       if n = name then i else aux t (i+1)
   in
   aux regs 0
 
-let is_const_reg (name: string) regs = 
-let rec aux regs i = match regs with
-  | [] -> failwith ("No such register: "^name)
-  | Register(c,n,_)::t ->
-    if n = name then c else aux t (i+1)
-in
-aux regs 0
-
 let rec compile_expr expr regs acc =
   match expr with
   | Reference name -> Instruction ("#"^(string_of_int (fetch_reg_index name regs))) :: acc
+  | MetaReference md -> (match md with
+    | PlayerX -> Instruction ("#x") :: acc
+    | PlayerY -> Instruction ("#y") :: acc
+    | PlayerBombs -> Instruction ("#b") :: acc
+    | PlayerShots -> Instruction ("#s") :: acc
+    | BoardX -> Instruction ("#_") :: acc
+    | BoardY -> Instruction ("#|") :: acc
+  )
   | Value val_expr -> compile_value val_expr regs acc
 
 and compile_value val_expr regs acc =
@@ -80,8 +80,7 @@ and compile_stmt (Stmt(stmt,ln)) regs acc =
     aux count stmt acc
   )
   | Assign (target, aexpr) -> 
-    if is_const_reg target regs then raise_failure ("Assignment to constant register: "^target)
-    else Instruction ("p"^string_of_int (fetch_reg_index target regs)) :: compile_expr (optimize_expr aexpr regs) regs (Instruction "a" :: acc)
+    Instruction ("p"^string_of_int (fetch_reg_index target regs)) :: compile_expr (optimize_expr aexpr regs) regs (Instruction "a" :: acc)
   | Label name -> CLabel name :: acc
   | Move d -> Instruction ("m"^direction_string d) :: acc
   | Expand d -> Instruction ("E"^direction_string d) :: acc
@@ -113,17 +112,10 @@ let total_path path =
 let complete_path base path = compress_path (if path.[0] = '.' then (String.sub base 0 ((String.rindex base '/')+1) ^ path) else path)
 
 
-let default_regs = [
-  Register(true, "x", Int 0);
-  Register(true, "y", Int 0);
-  Register(true, "bombs", Int 0);
-  Register(true, "shots", Int 0);
-]
-
 let check_registers_unique regs =
   let rec aux regs set = match regs with
   | [] -> ()
-  | Register(_,n,_)::t -> 
+  | Register(n,_)::t -> 
     if StringSet.mem n set 
     then raise_failure ("Duplicate register name: "^n) 
     else aux t (StringSet.add n set)
@@ -135,7 +127,6 @@ let compile path parse =
   let path = (compress_path (total_path path)) in
   try (
     let File(regs,absyn) = parse path in
-    let regs = default_regs@regs in
     check_registers_unique regs;
     (regs,List.fold_right (fun stmt acc -> compile_stmt stmt regs acc) absyn [])
   )

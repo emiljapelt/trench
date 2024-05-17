@@ -28,6 +28,7 @@ and statement_inner =
     
 and expression =
     | Reference of string
+    | MetaReference of meta_data
     | Value of value
     (*| Ternary of expression * expression * expression *)
 
@@ -38,8 +39,16 @@ and value =
     | Check of direction
     | Scan of direction
 
+and meta_data =
+    | PlayerX     (* #x *)
+    | PlayerY     (* #y *)  
+    | PlayerBombs (* #bombs *)
+    | PlayerShots (* #shots *)
+    | BoardX      (* #board_x *)  
+    | BoardY      (* #board_y *)  
+
 and register =
-    | Register of bool * string * value
+    | Register of string * value
 
 and file = 
     | File of register list * statement list

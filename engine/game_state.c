@@ -25,24 +25,23 @@ void create_players(parsed_player_file** inits, game_state* gs, game_rules* gr) 
             int directive_index = 0;
             for(int r = 0; r < regs; r++) {
                 int num_len = numeric_size(inits[i]->reg_directive, directive_index);
-                if (1 || r > 3) player_stack[r] = sub_str_to_int(inits[i]->reg_directive, directive_index, num_len);
+                player_stack[r] = sub_str_to_int(inits[i]->reg_directive, directive_index, num_len);
                 directive_index += num_len+1;
             }
         }
 
-        player_stack[0] = inits[i]->x;
-        player_stack[1] = inits[i]->y;
-        player_stack[2] = gr->bombs;
-        player_stack[3] = gr->shots;
-
         pss[i] = (player_state){
-            1, // alive
-            inits[i]->id, // id
-            player_stack, // stack base
-            regs, // stack pointer
-            inits[i]->reg_directive + reg_prog_seperator + 1, // directive instructions
-            strlen(inits[i]->reg_directive + reg_prog_seperator + 1),
-            0 // starting step
+            .alive = 1,
+            .id = inits[i]->id,
+            .stack = player_stack,
+            .sp = regs,
+            .directive = inits[i]->reg_directive + reg_prog_seperator + 1,
+            .directive_len = strlen(inits[i]->reg_directive + reg_prog_seperator + 1),
+            .step = 0,
+            .x = inits[i]->x,
+            .y = inits[i]->y,
+            .bombs = gr->bombs,
+            .shots = gr->shots,
         }; 
         build_field(inits[i]->x, inits[i]->y, inits[i]->id, gs);
     }
@@ -90,7 +89,7 @@ void explode_field(int x, int y, game_state* gs) {
         fld->trenched = 0;
         fld->destroyed = 1;
         for(int p = 0; p < gs->player_count; p++) {
-            if (player_x(gs->players+p) == x && player_y(gs->players+p) == y) {
+            if (gs->players[p].x == x && gs->players[p].y == y) {
                 kill_player(gs->players+p);
             }
         }

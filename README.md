@@ -21,13 +21,13 @@ Here the set of available names has to be defined. For example if you want to be
 
 A register can be given an explicit initial value, by assignment, otherwise it will take 0 as its value. The 'const' modifier, makes the register unmodifiable at run time.
 
-Players have 4 default registers:
+Players have 4 default registers, all of which are constants:
 | register | explaination |
 | --- | --- |
-| x | A constant register, containing the players x position |
-| y | A constant register, containing the players y position |
-| bombs | A register, containing the players remaining bombs |
-| shots | A register, containing the players remaining shots |
+| x | Contains the players x position |
+| y | Contains the players y position |
+| bombs | Contains the players remaining bombs |
+| shots | Contains the players remaining shots |
 
 ### Directive block
 Here the logic is defined. It consist of a series of statements, which will be interpreted from the top. Statements take some steps to execute, a limit to how many steps can be taken in a turn is set in the game rules. Executing some statements will use an action, the number of actions available per turn is defined by the game rules.

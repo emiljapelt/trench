@@ -3,6 +3,7 @@ open Exceptions
 
 let rec optimize_expr expr var_env =
   match expr with
+  | MetaReference _
   | Reference _ -> expr
   | Value val_expr -> optimize_value val_expr var_env
 

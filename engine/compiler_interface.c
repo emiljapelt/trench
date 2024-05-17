@@ -33,7 +33,7 @@ int compile_file(const char* file_path, const char* comp_path, char** result) {
     }
 
     for(int i = 0; !feof(fp); i++) {
-        buffer[i] = fgetc(fp);
+        buffer[i] = (char)fgetc(fp);
     }
 
     if(pclose(fp) != 0) {
@@ -46,7 +46,8 @@ int compile_file(const char* file_path, const char* comp_path, char** result) {
         if (buffer[i] == '\n') { buffer[i] = 0; break; }
 
     int result_len = strlen(buffer);
-    *result = malloc(result_len + 1); result[result_len] = 0;
+    *result = malloc(result_len + 1); 
+    memset(*result, 0, result_len+1);
     memcpy(*result, buffer, result_len);
 
     free(command);

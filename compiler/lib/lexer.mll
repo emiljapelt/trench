@@ -4,7 +4,6 @@
   let keyword_table = Hashtbl.create 53
   let () = List.iter (fun (kwd, tok) -> Hashtbl.add keyword_table kwd tok)
                       [ 
-                        "const", CONST;
                         "if", IF;
                         "else", ELSE;
                         "repeat", REPEAT;
