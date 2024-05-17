@@ -16,18 +16,10 @@ A program consists of a register block and a directive block.
 Here the set of available names has to be defined. For example if you want to be able to save information under the name 'a', a register 'a' must be defined here.
 
 ```
-[const a = 1, b, counter = 0, ...]
+[a = 1, b, counter = 0, ...]
 ```
 
-A register can be given an explicit initial value, by assignment, otherwise it will take 0 as its value. The 'const' modifier, makes the register unmodifiable at run time.
-
-Players have 4 default registers, all of which are constants:
-| register | explaination |
-| --- | --- |
-| x | Contains the players x position |
-| y | Contains the players y position |
-| bombs | Contains the players remaining bombs |
-| shots | Contains the players remaining shots |
+A register can be given an explicit initial value, by assignment, otherwise it will take 0 as its initial value.
 
 ### Directive block
 Here the logic is defined. It consist of a series of statements, which will be interpreted from the top. Statements take some steps to execute, a limit to how many steps can be taken in a turn is set in the game rules. Executing some statements will use an action, the number of actions available per turn is defined by the game rules.
@@ -35,6 +27,7 @@ Here the logic is defined. It consist of a series of statements, which will be i
 | expression | explaination | examples |
 | --- | --- | --- |
 | _x_ | reference to a register 'x' | counter |
+| #_x_ | reference to a meta variable 'x' | #x |
 | _i_ | interger value | 14, -1 |
 | _d_ | cardinal direction | N, E, S, W |
 | _a_ _binop_ _b_| binary operation | 1 + 2, x % 10 |
@@ -44,6 +37,17 @@ Here the logic is defined. It consist of a series of statements, which will be i
 binary operators: +, -, *, /, %, >, >=, <, <=, !=, =, |, &
 
 unary operators: ~ (not)
+
+| meta variable | explaination |
+| --- | --- |
+| #x | players 'x' position |
+| #y | players 'y' position |
+| #bombs | players remaining bombs |
+| #shots | players remaining shots |
+| #board_x | board width |
+| #board_y | board height |
+
+
 
 | statement | explaination | examples | actions |
 | --- | --- | --- | --- |
