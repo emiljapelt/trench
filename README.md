@@ -16,7 +16,7 @@ A program consists of a register block and a directive block.
 Here the set of available names has to be defined. For example if you want to be able to save information under the name 'a', a register 'a' must be defined here.
 
 ```
-[const a := 1, b, counter := 0, ...]
+[const a = 1, b, counter = 0, ...]
 ```
 
 A register can be given an explicit initial value, by assignment, otherwise it will take 0 as its value. The 'const' modifier, makes the register unmodifiable at run time.
@@ -49,7 +49,8 @@ unary operators: ~ (not)
 | --- | --- | --- | --- |
 | if | conditional execution | if (c) { ... } else { ... } , if (c) { }  | 0 |
 | block | A contained series of statements. | { ... } | 0 |
-| assign | Assign a value to a register. | a := a + 1;, a +:= 1;| 0 |
+| repeat(x)| Repeat a statement 'x' times | repeat(2) ... | ? |
+| assign | Assign a value to a register. | a = a + 1; a += 1;| 0 |
 | label | Marks a location in the directive | loop: | 0 |
 | move | Move the player 1 space in some direction. | move N; | 0 |
 | expand | Dig a trench in some direction. | expand E; | 1 |
@@ -62,7 +63,7 @@ unary operators: ~ (not)
 | goto | Jump to a location in the directive. | goto loop; | 0 |
 
 ## Game file
-The game file specifies the players and rules of a particular game. It consists of key value pairs, seperated by semi-colons, defining a set of values.
+The game file specifies the players and rules of a particular game. It consists of key value pairs, seperated by semi-colons, defining a set of values. Pairs can be left out, in which case a default will be used.
 
 | key | explaination |
 | --- | --- |
@@ -70,11 +71,11 @@ The game file specifies the players and rules of a particular game. It consists 
 | shots | the number of shots a player can fire in a game |
 | actions | the number of actions a player can take per turn |
 | steps | the number of steps a player can can perform per turn |
-| change | the number of round that must pass before players can change directive, 0 meaning never |
+| mode | the number of round that must pass before players can change directive, 0 meaning never. Any negative number meaning before every turn. |
 | player | the id, x and y position, and source file of a player |
 | board_x | the board width |
 | board_y | the board height |
-| nuke | wheter or not every space on the board blows up, before directive changes occur |
+| nuke | how many round must pass, between every space on the board being blow up. 0 meaning never. |
 
 In the following, every value is set to its default, except the player:
 ```
@@ -82,7 +83,7 @@ bombs:10;
 shots:100;
 actions:1;
 steps:1000;
-change:0;
+mode:0;
 nuke:0;
 
 board_x:20;
