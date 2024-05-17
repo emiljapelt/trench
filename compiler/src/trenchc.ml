@@ -24,7 +24,13 @@ let read_file path =
     
 let () = try (
   let _ = check_input Sys.argv.(1) in
-  let (regs,program) = compile Sys.argv.(1) (fun file -> Trenchclib.Parser.main (Trenchclib.Lexer.start file) (Lexing.from_string (read_file file))) in
+  let (regs,program) = compile Sys.argv.(1) (fun file -> 
+    let lexbuf = (Lexing.from_string (read_file file)) in
+    try
+    Trenchclib.Parser.main (Trenchclib.Lexer.start file) lexbuf
+    with
+    | _ -> raise (Failure(Some(lexbuf.lex_curr_p.pos_lnum), "Syntax error"))
+  ) in
   Printf.printf "%s:%s\n%!" (Trenchclib.ProgramRep.regs_to_string regs) (Trenchclib.ProgramRep.program_to_string program)
 ) with 
 | Failure(line_opt, expl) -> (

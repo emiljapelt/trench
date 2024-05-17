@@ -32,7 +32,7 @@ typedef struct game_state {
     const int board_x;
     const int board_y;
     player_state* players;
-    int player_count;
+    const int player_count;
     field_state* board;
     bomb_chain* bomb_chain;
 } game_state;
