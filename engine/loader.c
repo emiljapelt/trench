@@ -56,7 +56,7 @@ load_key get_load_key(char* content, int* skips) {
 
     load_key ret = -1;
     if(strcmp(key, "bombs") == 0) ret = BOMBS;
-    else if(strcmp(key, "shoots") == 0) ret = SHOTS;
+    else if(strcmp(key, "shots") == 0) ret = SHOTS;
     else if(strcmp(key, "actions") == 0) ret = ACTIONS;
     else if(strcmp(key, "steps") == 0) ret = STEPS;
     else if(strcmp(key, "mode") == 0) ret = MODE;

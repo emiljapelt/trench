@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-const int max_result_size = 10000;
+const int max_result_size = 1000000;
 
 int compile_file(const char* file_path, const char* comp_path, char** result) {
 

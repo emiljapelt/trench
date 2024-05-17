@@ -43,7 +43,7 @@ void create_players(parsed_player_file** inits, game_state* gs, game_rules* gr) 
             .bombs = gr->bombs,
             .shots = gr->shots,
         }; 
-        build_field(inits[i]->x, inits[i]->y, inits[i]->id, gs);
+        build_field(inits[i]->x, inits[i]->y, gs);
     }
     gs->players = pss;
 }
@@ -65,7 +65,7 @@ void destroy_field(int x, int y, game_state gs) {
     gs.board[(y * gs.board_x) + x].destroyed = 1;
 }
 
-void build_field(int x, int y, unsigned char id, game_state* gs) {
+void build_field(int x, int y, game_state* gs) {
     gs->board[(y * gs->board_x) + x].destroyed = 0;
     gs->board[(y * gs->board_x) + x].trenched = 1;
 }

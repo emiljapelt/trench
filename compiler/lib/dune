@@ -11,5 +11,6 @@
    lexer
    parser
    toProgramRep
+   typing
  )
 )

@@ -8,7 +8,6 @@
                         "else", ELSE;
                         "repeat", REPEAT;
                         "move", MOVE;
-                        "expand", EXPAND;
                         "trench", TRENCH;
                         "fortify", FORTIFY;
                         "scan", SCAN;
@@ -22,6 +21,8 @@
                         "W", WEST;
                         "goto", GOTO;
                         "shoot", SHOOT;
+                        "int", INT;
+                        "dir", DIR;
                       ]
   
   let char_of_string s lexbuf = match s with

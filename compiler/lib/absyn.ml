@@ -6,38 +6,40 @@ type direction =
     | South
     | West
 
+and typ =
+    | T_Int
+    | T_Dir
+
 and statement =
     | Stmt of statement_inner * int
 
 and statement_inner =
-    | If of expression * statement * statement
-    (*| While of expression * statement * statement option (* condition, body, incrementer *)*)
+    | If of value * statement * statement
     | Block of statement list
     | Repeat of int * statement
-    | Assign of string * expression
+    | Assign of string * value
     | Label of string
-    | Move of direction
-    | Expand of direction
-    | Shoot of direction
-    | Bomb of direction * expression
-    | Fortify
-    | Trench
+    | Move of value
+    | Shoot of value
+    | Bomb of value * value
+    | Fortify of value option
+    | Trench of value option
     | Wait
     | Pass
     | GoTo of string
-    
-and expression =
+
+and value =
     | Reference of string
     | MetaReference of meta_data
     | Value of value
-    (*| Ternary of expression * expression * expression *)
-
-and value =
-    | Binary_op of string * expression * expression
-    | Unary_op of string * expression
+    | Binary_op of string * value * value
+    | Unary_op of string * value
     | Int of int
-    | Check of direction
-    | Scan of direction
+    | Check of value
+    | Scan of value
+    | Direction of direction
+    | Random
+    | RandomSet of value list
 
 and meta_data =
     | PlayerX     (* #x *)
@@ -48,7 +50,13 @@ and meta_data =
     | BoardY      (* #board_y *)  
 
 and register =
-    | Register of string * value
+    | Register of typ * string * value
 
 and file = 
     | File of register list * statement list
+
+let string_of_dir d = match d with
+    | North -> "0"
+    | East -> "1"
+    | South -> "2"
+    | West -> "3"

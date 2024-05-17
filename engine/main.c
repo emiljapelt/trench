@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
+#include <unistd.h>
+#include <time.h>
 
 #include "player.h"
 #include "game_rules.h"
@@ -15,7 +16,8 @@ typedef enum direction {
     NORTH,
     EAST,
     SOUTH,
-    WEST
+    WEST,
+    HERE
 } direction;
 
 
@@ -29,6 +31,7 @@ field_state* empty_board(int x, int y) {
 int scan_dir(char dir, int x, int y, game_state* gs) {
     int i = 0;
     incr:
+    printf("%i,%i\n",x,y);
     i++;
     switch (dir) {
         case 'n': y--; break;
@@ -41,27 +44,22 @@ int scan_dir(char dir, int x, int y, game_state* gs) {
     goto incr;
 }
 
-void move_coord(int x, int y, char d, int* _x, int* _y) {
+void move_coord(int x, int y, direction d, int* _x, int* _y) {
     switch(d) {
-        case 'n': *_x = x; *_y = y-1; break;
-        case 'e': *_x = x+1; *_y = y; break;
-        case 's': *_x = x; *_y = y+1; break;
-        case 'w': *_x = x-1; *_y = y; break;
+        case NORTH: *_x = x; *_y = y-1; break;
+        case EAST: *_x = x+1; *_y = y; break;
+        case SOUTH: *_x = x; *_y = y+1; break;
+        case WEST: *_x = x-1; *_y = y; break;
+        case HERE: *_x = x; *_y = y; break;
     }
 }
 
-void trench(player_state* ps, game_state* gs) {
-    if (!get_field(ps->x,ps->y,gs)->trenched) build_field(ps->x,ps->y,ps->id,gs);
-}
-
-void expand(char d, player_state* ps, game_state* gs) {
-    int x, y;
-    move_coord(ps->x, ps->y, d, &x, &y);
+void trench(int x, int y, game_state* gs) {
     if (!in_bounds(x, y, gs)) return;
-    if (!get_field(x,y,gs)->trenched) build_field(x,y,ps->id,gs);
+    if (!get_field(x,y,gs)->trenched) build_field(x,y,gs);
 }
 
-void move(char d, player_state* ps, game_state* gs) {
+void move(direction d, player_state* ps, game_state* gs) {
     int x, y;
     move_coord(ps->x, ps->y, d, &x, &y);
     if (!in_bounds(x, y, gs)) return;
@@ -70,7 +68,7 @@ void move(char d, player_state* ps, game_state* gs) {
     ps->y = y;
 }
 
-void check(char d, player_state* ps, game_state* gs) {
+void check(direction d, player_state* ps, game_state* gs) {
     int x, y;
     move_coord(ps->x, ps->y, d, &x, &y);
     if (!in_bounds(x, y, gs)) { 
@@ -84,7 +82,7 @@ void check(char d, player_state* ps, game_state* gs) {
     }
 }
 
-void shoot(char d, player_state* ps, game_state* gs) {
+void shoot(direction d, player_state* ps, game_state* gs) {
     int x = ps->x;
     int y = ps->y;
     move_coord(x, y, d, &x, &y);
@@ -115,7 +113,7 @@ void player_turn(game_state* gs, player_state* ps, game_rules* gr) {
     char steps = gr->steps;
     while(actions && steps) {
         if (ps->step >= ps->directive_len) return;
-        //fprintf(stderr,"%c", ps->directive[ps->step]); sleep(20);
+        //fprintf(stderr,"%c", ps->directive[ps->step]); sleep(500);
         switch (ps->directive[ps->step++]) {
             case 'W': {
                 actions--;
@@ -127,7 +125,8 @@ void player_turn(game_state* gs, player_state* ps, game_rules* gr) {
             }
             case 'S': {
                 if (ps->shots) {
-                    shoot(ps->directive[ps->step++],ps,gs);
+                    direction d = (direction)ps->stack[--ps->sp];
+                    shoot(d,ps,gs);
                     print_board(gs);
                     ps->shots--;
                 }
@@ -135,41 +134,54 @@ void player_turn(game_state* gs, player_state* ps, game_rules* gr) {
                 break;
             }
             case 'c': {
-                check(ps->directive[ps->step++],ps,gs);
+                direction d = (direction)ps->stack[--ps->sp];
+                check(d,ps,gs);
                 break;
             }
             case 's': {
-                char dir = ps->directive[ps->step++];
-                ps->stack[ps->sp++] = scan_dir(dir,ps->x,ps->y,gs);
+                direction d = (direction)ps->stack[--ps->sp];
+                sleep(100);
+                ps->stack[ps->sp++] = scan_dir(d,ps->x,ps->y,gs);
                 break;
             }
             case 'm': {
-                move(ps->directive[ps->step++],ps,gs);
+                direction d = (direction)ps->stack[--ps->sp];
+                move(d,ps,gs);
                 print_board(gs);
-                sleep(500);
-                break;
-            }
-            case 'E': {
-                expand(ps->directive[ps->step++],ps,gs);
-                print_board(gs);
-                sleep(500);
-                actions--;
+                sleep(250);
                 break;
             }
             case 'T': {
-                if (!get_field(ps->x,ps->y,gs)->trenched)
-                    trench(ps, gs);
+                int x, y;
+                direction d = (direction)ps->stack[--ps->sp];
+                move_coord(ps->x, ps->y, d, &x, &y);
+                trench(x, y, gs);
                 print_board(gs);
                 sleep(500);
                 actions--;
                 break;
             }
             case 'F': {
-                if (get_field(ps->x,ps->y,gs)->trenched) 
-                    fortify_field(ps->x,ps->y,gs);
+                int x, y;
+                direction d = (direction)ps->stack[--ps->sp];
+                move_coord(ps->x, ps->y, d, &x, &y);
+                if (get_field(x,y,gs)->trenched) 
+                    fortify_field(x,y,gs);
                 print_board(gs);
                 sleep(500);
                 actions--;
+                break;
+            }
+            case 'r': {
+                ps->stack[ps->sp++] = rand();
+            }
+            case 'R': {
+                int num_size = numeric_size(ps->directive,ps->step);
+                int num = sub_str_to_int(ps->directive,ps->step,num_size);
+                int pick = ps->stack[ps->sp - ((rand() % num)+1)];
+                ps->sp -= num;
+                ps->stack[ps->sp++] = pick;
+                ps->step += num_size;
                 break;
             }
             case 'p': {
@@ -180,11 +192,12 @@ void player_turn(game_state* gs, player_state* ps, game_rules* gr) {
                 break;
             }
             case 'B': {
-                char d = ps->directive[ps->step++];
+                int p = ps->stack[--ps->sp];
+                direction d = (direction)ps->stack[--ps->sp];
                 if (ps->bombs) {
                     int x = ps->x;
                     int y = ps->y;
-                    for (int i = ps->stack[--ps->sp]; i > 0; i--)
+                    for (int i = p; i > 0; i--)
                         move_coord(x,y,d,&x,&y);
                     target_field(x, y, gs);
                     add_bomb(x, y, ps, gs);
@@ -339,7 +352,7 @@ void get_new_directive(player_state* ps, const char* comp_path) {
         if(get_program_from_file(path, comp_path, &new)) {
             int i = 0;
             while (new[i] != ':') i++;
-            free(ps->directive);
+            //free(ps->directive);
             ps->directive = new+i+1;
             ps->step = 0;
             free(path);
@@ -431,6 +444,8 @@ void manual_mode(game_state* gs, game_rules* gr, const char* comp_path) {
 
 
 int main(int argc, char** argv) {
+
+    srand((unsigned) time(NULL));
 
     if (argc < 3) {
         printf("Too few arguments given, needs: <game_file_path> <compiler_path>\n");

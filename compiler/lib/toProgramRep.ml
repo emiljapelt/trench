@@ -1,7 +1,6 @@
 open Absyn
 open ProgramRep
 open Exceptions
-open Optimize
 
 (*** Compiling functions ***)
 
@@ -10,13 +9,13 @@ module StringSet = Set.Make(String)
 let fetch_reg_index (name: string) regs = 
   let rec aux regs i = match regs with
     | [] -> failwith ("No such register: "^name)
-    | Register(n,_)::t ->
+    | Register(_,n,_)::t ->
       if n = name then i else aux t (i+1)
   in
   aux regs 0
 
-let rec compile_expr expr regs acc =
-  match expr with
+let rec compile_value val_expr regs acc =
+  match val_expr with
   | Reference name -> Instruction ("#"^(string_of_int (fetch_reg_index name regs))) :: acc
   | MetaReference md -> (match md with
     | PlayerX -> Instruction ("#x") :: acc
@@ -27,51 +26,42 @@ let rec compile_expr expr regs acc =
     | BoardY -> Instruction ("#|") :: acc
   )
   | Value val_expr -> compile_value val_expr regs acc
-
-and compile_value val_expr regs acc =
-  match val_expr with
   | Int i -> Instruction("p"^string_of_int i) :: acc
-  | Check d -> Instruction ("c"^direction_string d) :: acc
-  | Scan d -> Instruction ("s"^direction_string d) :: acc
+  | Random -> Instruction("r") :: acc
+  | RandomSet vals -> 
+    List.fold_left (fun acc v -> compile_value v regs acc) (Instruction("R"^(string_of_int (List.length vals))) ::acc) vals
+  | Direction d -> Instruction ("p"^string_of_dir d) :: acc
+  | Check e -> compile_value e regs (Instruction "c" :: acc)
+  | Scan e -> compile_value e regs (Instruction "s" :: acc)
   | Binary_op (op, e1, e2) -> ( match op with
-    | "&" -> compile_expr e1 regs (compile_expr e2 regs (Instruction "&" :: acc))
-    | "|" -> compile_expr e1 regs (compile_expr e2 regs (Instruction "|" :: acc))
-    | "=" -> compile_expr e1 regs (compile_expr e2 regs (Instruction "=" :: acc))
-    | "!=" -> compile_expr e1 regs (compile_expr e2 regs (Instruction "=" :: Instruction "~" :: acc))
-    | "<=" -> compile_expr e1 regs (compile_expr e2 regs (Instruction "<" :: Instruction "~" :: acc))
-    | "<" -> compile_expr e2 regs (compile_expr e1 regs (Instruction "<" :: acc))
-    | ">=" -> compile_expr e2 regs (compile_expr e1 regs (Instruction "<" :: Instruction "~" :: acc))
-    | ">" -> compile_expr e1 regs (compile_expr e2 regs (Instruction "<" :: acc))
-    | "+" -> compile_expr e1 regs (compile_expr e2 regs (Instruction "+" :: acc))
-    | "/" -> compile_expr e2 regs (compile_expr e1 regs (Instruction "/" :: acc))
-    | "%" -> compile_expr e2 regs (compile_expr e1 regs (Instruction "%" :: acc))
-    | "-" -> compile_expr e2 regs (compile_expr e1 regs (Instruction "-" :: acc))
-    | "*" -> compile_expr e1 regs (compile_expr e2 regs (Instruction "*" :: acc))
+    | "&" -> compile_value e1 regs (compile_value e2 regs (Instruction "&" :: acc))
+    | "|" -> compile_value e1 regs (compile_value e2 regs (Instruction "|" :: acc))
+    | "=" -> compile_value e1 regs (compile_value e2 regs (Instruction "=" :: acc))
+    | "!=" -> compile_value e1 regs (compile_value e2 regs (Instruction "=" :: Instruction "~" :: acc))
+    | "<=" -> compile_value e1 regs (compile_value e2 regs (Instruction "<" :: Instruction "~" :: acc))
+    | "<" -> compile_value e2 regs (compile_value e1 regs (Instruction "<" :: acc))
+    | ">=" -> compile_value e2 regs (compile_value e1 regs (Instruction "<" :: Instruction "~" :: acc))
+    | ">" -> compile_value e1 regs (compile_value e2 regs (Instruction "<" :: acc))
+    | "+" -> compile_value e1 regs (compile_value e2 regs (Instruction "+" :: acc))
+    | "/" -> compile_value e2 regs (compile_value e1 regs (Instruction "/" :: acc))
+    | "%" -> compile_value e2 regs (compile_value e1 regs (Instruction "%" :: acc))
+    | "-" -> compile_value e2 regs (compile_value e1 regs (Instruction "-" :: acc))
+    | "*" -> compile_value e1 regs (compile_value e2 regs (Instruction "*" :: acc))
     | _ -> raise_failure "Unknown binary operation"
   )
   | Unary_op (op, e) -> match op with 
-      | "~" -> compile_expr e regs (Instruction "~" :: acc)
+      | "~" -> compile_value e regs (Instruction "~" :: acc)
       | _ -> raise_failure "Unknown unary operation"
-
-and direction_string d = match d with
-  | North -> "n"
-  | East -> "e"
-  | South -> "s"
-  | West -> "w"
 
 and compile_stmt (Stmt(stmt,ln)) regs acc =
   try match stmt with
   | If (expr, s1, s2) -> (
     let label_true = Helpers.new_label () in
     let label_stop = Helpers.new_label () in
-    let opt_expr = optimize_expr expr regs in
-    match opt_expr with 
-    | Value(Int 0) -> (compile_stmt s2 regs acc)
-    | Value(Int _) -> (compile_stmt s1 regs acc)
-    | _ -> compile_expr expr regs (IfTrue(label_true,None) :: (compile_stmt s2 regs (CGoTo(label_stop, None) :: CLabel label_true :: (compile_stmt s1 regs (CLabel label_stop :: acc)))))
+    compile_value expr regs (IfTrue(label_true,None) :: (compile_stmt s2 regs (CGoTo(label_stop, None) :: CLabel label_true :: (compile_stmt s1 regs (CLabel label_stop :: acc)))))
   )
   | Block (stmt_list) -> (
-    List.fold_left (fun acc stmt -> compile_stmt stmt regs acc) acc stmt_list
+    List.fold_left (fun acc stmt -> compile_stmt stmt regs acc) acc (List.rev stmt_list) 
   )
   | Repeat (count, stmt) -> (
     let rec aux c s acc = 
@@ -80,17 +70,18 @@ and compile_stmt (Stmt(stmt,ln)) regs acc =
     aux count stmt acc
   )
   | Assign (target, aexpr) -> 
-    Instruction ("p"^string_of_int (fetch_reg_index target regs)) :: compile_expr (optimize_expr aexpr regs) regs (Instruction "a" :: acc)
+    Instruction ("p"^string_of_int (fetch_reg_index target regs)) :: compile_value aexpr regs (Instruction "a" :: acc)
   | Label name -> CLabel name :: acc
-  | Move d -> Instruction ("m"^direction_string d) :: acc
-  | Expand d -> Instruction ("E"^direction_string d) :: acc
-  | Shoot d -> Instruction ("S"^direction_string d) :: acc
-  | Fortify -> Instruction "F" :: acc
-  | Trench -> Instruction "T" :: acc
+  | Move e -> compile_value e regs (Instruction "m" :: acc)
+  | Shoot e -> compile_value e regs (Instruction "S" :: acc)
+  | Fortify Some e -> compile_value e regs ( Instruction "F" :: acc)
+  | Fortify None -> Instruction "p4F" :: acc
+  | Trench Some e -> compile_value e regs ( Instruction "T" :: acc)
+  | Trench None -> Instruction "p4T" :: acc
   | Wait -> Instruction "W" :: acc
   | Pass -> Instruction "P" :: acc
   | GoTo n -> CGoTo(n, None) :: acc
-  | Bomb(d,i) -> compile_expr i regs (Instruction ("B"^direction_string d) :: acc)
+  | Bomb(d,i) -> compile_value d regs (compile_value i regs (Instruction "B" :: acc))
   with 
   | Failure(None,msg) -> raise (Failure(Some ln, msg))
   | a -> raise a
@@ -115,7 +106,7 @@ let complete_path base path = compress_path (if path.[0] = '.' then (String.sub 
 let check_registers_unique regs =
   let rec aux regs set = match regs with
   | [] -> ()
-  | Register(n,_)::t -> 
+  | Register(_,n,_)::t -> 
     if StringSet.mem n set 
     then raise_failure ("Duplicate register name: "^n) 
     else aux t (StringSet.add n set)

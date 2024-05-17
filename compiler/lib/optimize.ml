@@ -1,28 +1,22 @@
 open Absyn
 open Exceptions
 
-let rec optimize_expr expr var_env =
-  match expr with
-  | MetaReference _
-  | Reference _ -> expr
-  | Value val_expr -> optimize_value val_expr var_env
-
-and optimize_value expr var_env =
+let rec optimize_value expr =
   match expr with
   | Binary_op (op, e1, e2) -> ( 
-    let opte1 = optimize_expr e1 var_env in
-    let opte2 = optimize_expr e2 var_env in
+    let opte1 = optimize_value e1 in
+    let opte2 = optimize_value e2 in
     match op, opte1, opte2 with
-    (*| "&&", Value(Bool b1), Value(Bool b2) -> Value(Bool(b1&&b2))
-    | "&&", Value(Bool true), _ -> opte2
-    | "&&", _, Value(Bool true) -> opte1
-    | "&&", Value(Bool false), _ -> Value(Bool false)
-    | "&&", _, Value(Bool false) -> Value(Bool false)
-    | "||", Value(Bool b1), Value(Bool b2) -> Value(Bool(b1||b2))
-    | "||", Value(Bool true), _ -> Value(Bool true)
-    | "||", _, Value(Bool true) -> Value(Bool true)
-    | "||", Value(Bool false), _ -> opte2
-    | "||", _, Value(Bool false) -> opte1*)
+    | "&", Value(Int i1), Value(Int i2) -> Value(Int(i1*i2))
+    | "&", Value(Int i), _ when i <> 0 -> opte2
+    | "&", _, Value(Int i) when i <> 0 -> opte1
+    | "&", Value(Int 0), _
+    | "&", _, Value(Int 0) -> Value(Int 0)
+    | "|", Value(Int i1), Value(Int i2) -> Value(Int(i1+i2))
+    | "|", Value(Int i), _
+    | "|", _, Value(Int i) when i <> 0 -> Value(Int 1)
+    | "|", Value(Int 0), _ -> opte2
+    | "|", _, Value(Int 0) -> opte1
     | "+", Value(Int i1), Value(Int i2) -> Value(Int (i1+i2))
     | "+", Value(Int 0), _ -> opte2
     | "+", _, Value(Int 0) -> opte1
@@ -56,11 +50,43 @@ and optimize_value expr var_env =
     | _ -> Value(Binary_op(op, opte1, opte2))
   )
   | Unary_op (op, e) -> ( 
-    let opte = optimize_expr e var_env in
+    let opte = optimize_value e in
     match (op, opte) with
     | ("!", Value(Int i)) -> Value(Int (if i = 0 then 1 else 0))
     | _ -> Value(Unary_op(op, opte))
   )
   | Scan _ 
   | Check _
+  | Direction _
+  | Random
+  | RandomSet _
   | Int _ -> Value(expr)
+  | MetaReference _
+  | Reference _ -> expr
+  | Value val_expr -> optimize_value val_expr
+
+
+let rec optimize_stmt (Stmt(stmt_i,ln) as stmt) = match stmt_i with
+  | If(c,a,b) -> ( match optimize_value c with
+    | Value(Int 0) -> optimize_stmt b
+    | Value(Int _) -> optimize_stmt a
+    | o -> Stmt(If(o, optimize_stmt a, optimize_stmt b),ln)
+  )
+  | Block stmts -> Stmt(Block(optimize_stmts stmts),ln)
+  | Repeat(i,stmt) -> Stmt(Repeat(i,optimize_stmt stmt),ln)
+  | Assign(n,e) -> Stmt(Assign(n,optimize_value e),ln)
+  | Move e -> Stmt(Move(optimize_value e),ln)
+  | Shoot e -> Stmt(Shoot(optimize_value e),ln)
+  | Bomb(d,p) -> Stmt(Bomb(optimize_value d, optimize_value p),ln)
+  | Fortify o -> Stmt(Fortify(Option.map optimize_value o),ln)
+  | Trench o -> Stmt(Trench(Option.map optimize_value o),ln)
+  | Wait
+  | GoTo _
+  | Label _
+  | Pass -> stmt
+
+and optimize_stmts stmts =
+  List.map optimize_stmt stmts
+
+let optimize_program (File(regs,prog)) =
+  File(regs,optimize_stmts prog)

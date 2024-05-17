@@ -2,6 +2,7 @@
   open Absyn
   open Exceptions
   open Lexing
+  open Typing
 
   (*type var_name_generator = { mutable next : int }
   let vg = ( {next = 0;} )
@@ -30,9 +31,9 @@
 %token QMARK
 %token IF ELSE REPEAT
 %token GOTO
-%token MOVE FORTIFY WAIT PASS EXPAND TRENCH
+%token MOVE FORTIFY WAIT PASS TRENCH
 %token NORTH EAST SOUTH WEST BOMB SHOOT CHECK SCAN
-%token HASH
+%token HASH INT DIR
 
 /*Low precedence*/
 %left LOGIC_AND LOGIC_OR
@@ -40,7 +41,8 @@
 %left GT LT GTEQ LTEQ
 %left PLUS MINUS
 %left TIMES FSLASH PCT
-%nonassoc TILDE HASH
+%nonassoc TILDE HASH 
+%nonassoc SCAN CHECK
 /*High precedence*/
 
 %start main
@@ -67,44 +69,46 @@ registers:
 ;
 
 register:
-  | NAME { Register($1, Int 0) }
-  | NAME EQ const_value { Register($1, $3) }
+  | NAME { Register(T_Int, $1, Int 0) }
+  | NAME EQ const_value { Register(type_value [] $3, $1, $3) }
+  | INT NAME { Register(T_Int, $2, Int 0) }
+  | INT NAME EQ const_value { Register(T_Int, $2, $4) }
+  | DIR NAME { Register(T_Dir, $2, Int 0) }
+  | DIR NAME EQ const_value { Register(T_Dir, $2, $4) }
 ;
 
 block:
   LBRACE stmt_list RBRACE    { Block $2 }
 ;
 
-expression:
-    NAME                                    { Reference $1 }
-  | value                                   { Value $1 }
-  | simple_expression                       { $1 }
-;
-
-simple_expression:
-    NAME                                    { Reference $1 }
-  | HASH NAME                               { MetaReference (meta_name $2 $symbolstartpos.pos_lnum) }
-  | simple_value                            { Value $1 }
-  | LPAR expression RPAR                    { $2 }
-;
-
 const_value:
   | CSTINT                                                { Int $1 }
+  | direction                                             { Direction $1}
   | error { raise (Failure(Some $symbolstartpos.pos_lnum, "Expected a constant value")) }
 ;
 
+const_values:
+  {[]}
+  | const_value   { [$1] }
+  | const_value COMMA const_values { $1::$3 }
+;
+
 simple_value:
-    LPAR value RPAR                                       { $2 }
-  | const_value                                           { $1 }
-  | MINUS simple_expression                          { Binary_op ("-", Value (Int 0), $2) } %prec TILDE
-  | TILDE simple_expression                          { Unary_op ("~", $2) }
+  | const_value                        { $1 }
+  | QMARK                              { Random }
+  | LBRAKE const_values RBRAKE         { RandomSet $2 }
+  | MINUS simple_value                 { Binary_op ("-", Value (Int 0), $2) } %prec TILDE
+  | TILDE simple_value                 { Unary_op ("~", $2) }
+  | NAME                               { Reference $1 }
+  | HASH NAME                          { MetaReference (meta_name $2 $symbolstartpos.pos_lnum) }
+  | LPAR value RPAR                    { $2 }
 ;
 
 value:
-    simple_value { $1 }
-  | SCAN direction                         { Scan $2 }
-  | CHECK direction                        { Check $2 }
-  | expression binop expression { Binary_op ($2, $1, $3) }
+  | simple_value { $1 }
+  | SCAN value                         { Scan $2 }
+  | CHECK value                        { Check $2 }
+  | value binop value { Binary_op ($2, $1, $3) }
 ;
 
 %inline binop:
@@ -137,8 +141,8 @@ stmt2:
   stmt2_inner { Stmt($1,$symbolstartpos.pos_lnum) }
 ;
 stmt2_inner:
-    IF LPAR expression RPAR stmt1 ELSE stmt2       { If ($3, $5, $7) }
-  | IF LPAR expression RPAR stmt                   { If ($3, $5, Stmt(Block [], $symbolstartpos.pos_lnum)) }
+    IF LPAR value RPAR stmt1 ELSE stmt2       { If ($3, $5, $7) }
+  | IF LPAR value RPAR stmt                   { If ($3, $5, Stmt(Block [], $symbolstartpos.pos_lnum)) }
 ;
 
 /* No unbalanced if-else */
@@ -147,27 +151,28 @@ stmt1:
 ;
 stmt1_inner: 
     block                                          { $1 }
-  | IF LPAR expression RPAR stmt1 ELSE stmt1       { If ($3, $5, $7) }
+  | IF LPAR value RPAR stmt1 ELSE stmt1       { If ($3, $5, $7) }
   | GOTO NAME SEMI                                 { GoTo $2 }
   | LABEL                                  { Label $1 }
-  | REPEAT LPAR CSTINT RPAR stmt { Repeat($3, $5) }
+  | REPEAT LPAR CSTINT RPAR stmt1 { Repeat($3, $5) }
   | non_control_flow_stmt SEMI { $1 }
 ;
 
 non_control_flow_stmt:
-    NAME EQ expression        { Assign ($1, $3) }
-  | NAME PLUS EQ expression   { Assign ($1, Value(Binary_op("+", Reference $1, $4))) }
-  | NAME MINUS EQ expression  { Assign ($1, Value(Binary_op("-", Reference $1, $4))) }
-  | NAME TIMES EQ expression  { Assign ($1, Value(Binary_op("*", Reference $1, $4))) }
-  | NAME TILDE EQ expression    { Assign ($1, Value(Unary_op("~", $4))) }
-  | MOVE direction                         { Move $2 }
-  | EXPAND direction                       { Expand $2 }
-  | SHOOT direction                        { Shoot $2 }
-  | FORTIFY                                { Fortify }
-  | TRENCH                                 { Trench }
+    NAME EQ value        { Assign ($1, $3) }
+  | NAME PLUS EQ value   { Assign ($1, Value(Binary_op("+", Reference $1, $4))) }
+  | NAME MINUS EQ value  { Assign ($1, Value(Binary_op("-", Reference $1, $4))) }
+  | NAME TIMES EQ value  { Assign ($1, Value(Binary_op("*", Reference $1, $4))) }
+  | NAME TILDE EQ value    { Assign ($1, Value(Unary_op("~", $4))) }
+  | MOVE value                        { Move $2 }
+  | SHOOT value                       { Shoot $2 }
+  | FORTIFY                                { Fortify None }
+  | FORTIFY value                     { Fortify (Some $2) }
+  | TRENCH                                 { Trench None }
+  | TRENCH value                      { Trench (Some $2) }
   | WAIT                                { Wait }
   | PASS                                { Pass }
-  | BOMB direction simple_expression    { Bomb($2, $3) }
+  | BOMB simple_value simple_value    { Bomb($2, $3) }
 ;
 
 direction:

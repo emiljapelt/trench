@@ -43,7 +43,7 @@ field_state* get_field(int x, int y, game_state* gs);
 void set_field(int x, int y, game_state* gs, field_state* f);
 void fortify_field(int x, int y, game_state* gs);
 void destroy_field(int x, int y, game_state gs);
-void build_field(int x, int y, unsigned char id, game_state* gs);
+void build_field(int x, int y, game_state* gs);
 void shoot_field(int x, int y, char d, game_state* gs);
 void unshoot_field(int x, int y, game_state* gs);
 void explode_field(int x, int y, game_state* gs);
