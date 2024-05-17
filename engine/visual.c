@@ -87,6 +87,7 @@ const char* get_field_char(int x, int y, game_state* gs) {
 
 void print_board(game_state* gs) {
     clear_screen();
+    printf("Round: %i\n", gs->round);
     for(int y = 0; y < gs->board_y; (printf("\n"), y++))
     for(int x = 0; x < gs->board_x; x++) {
         printf("%s", get_field_char(x, y, gs));

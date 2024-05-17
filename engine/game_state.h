@@ -28,6 +28,7 @@ typedef struct field_state {
 } field_state;
 
 typedef struct game_state {
+    int round;
     const int board_x;
     const int board_y;
     player_state* players;

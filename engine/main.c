@@ -353,49 +353,47 @@ void play_round(game_state* gs, game_rules* gr) {
         if (!gs->players[i].alive) continue; 
         player_turn(gs, gs->players+i, gr);
     }
+    if (gr->nuke > 0 && gs->round % gr->nuke == 0) nuke_board(gs);
+    check_win_condition(gs);
 }
 
-
+// Mode: 0
 // Players cannot change directive
 void static_mode(game_state* gs, game_rules* gr, const char* comp_path) {
-    int round = 1;
     while(1) {
         play_round(gs, gr);
-        check_win_condition(gs);
-        round++;
+        gs->round++;
     }
 }
 
-// Players can change directive after 'change' rounds
-void dynamic_mode(game_state* gs, game_rules* gr, const char* comp_path, const int change) {
-    int round = 1;
+// Mode: x
+// Players can change directive after 'x' rounds
+void dynamic_mode(game_state* gs, game_rules* gr, const char* comp_path) {
     while(1) {
         play_round(gs, gr);
-        if (round % change == 0) {
-            if (gr->nuke) nuke_board(gs);
-            print_board(gs);
-            check_win_condition(gs);
+        if (gs->round % gr->mode == 0) {
             for(int i = 0; i < gs->player_count; i++) {
                 if (!gs->players[i].alive) continue; 
                 get_new_directive(gs->players+i, comp_path);
             }
         }
-        else check_win_condition(gs);
-        round++;
+        gs->round++;
     }
 }
 
+
+// Mode: -x
 // Players can change directive before each of their turns
 void manual_mode(game_state* gs, game_rules* gr, const char* comp_path) {
-    int round = 1;
     while(1) {
         for(int i = 0; i < gs->player_count; i++) {
             if (!gs->players[i].alive) continue; 
             get_new_directive(gs->players+i, comp_path);
             player_turn(gs, gs->players+i, gr);
         }
+        if (gr->nuke > 0 && gs->round % gr->nuke == 0) nuke_board(gs);
         check_win_condition(gs);
-        round++;
+        gs->round++;
     }
 }
 
@@ -411,15 +409,16 @@ int main(int argc, char** argv) {
     parsed_game_file* pgf = parse_game_file(argv[1], comp_path);
   
     game_rules gr = {
-        pgf->actions,
-        pgf->steps,
-        pgf->bombs,
-        pgf->shots,
-        pgf->mode,
-        pgf->nuke
+        .actions = pgf->actions,
+        .steps = pgf->steps,
+        .bombs = pgf->bombs,
+        .shots = pgf->shots,
+        .mode = pgf->mode,
+        .nuke = pgf->nuke
     };
 
     game_state gs = {
+        .round = 1,
         .board_x = pgf->board_x,
         .board_y = pgf->board_y,
         .player_count = pgf->player_count,
@@ -434,7 +433,7 @@ int main(int argc, char** argv) {
 
     if (gr.mode == 0) static_mode(&gs, &gr, comp_path);
     else if (gr.mode < 0) manual_mode(&gs, &gr, comp_path);
-    else if (gr.mode > 0) dynamic_mode(&gs, &gr, comp_path, gr.mode);
+    else if (gr.mode > 0) dynamic_mode(&gs, &gr, comp_path);
 
     return 0;
 }

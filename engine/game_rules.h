@@ -7,7 +7,7 @@ typedef struct game_rules {
     const int bombs;
     const int shots;
     const int mode;
-    const unsigned char nuke : 1;
+    const int nuke;
 } game_rules;
 
 #endif
