@@ -14,7 +14,6 @@
 %token <int> CSTINT
 %token <string> NAME
 %token <string> LABEL
-%token ASSIGNMENT
 %token LPAR RPAR LBRACE RBRACE LBRAKE RBRAKE
 %token PLUS MINUS TIMES EQ NEQ LT GT LTEQ GTEQ
 %token LOGIC_AND LOGIC_OR PIPE FSLASH PCT TILDE
@@ -60,8 +59,8 @@ registers:
 
 register:
   | NAME { Register(false, $1, Int 0) }
-  | NAME ASSIGNMENT const_value { Register(false, $1, $3) }
-  | CONST NAME ASSIGNMENT const_value { Register(true, $2, $4) }
+  | NAME EQ const_value { Register(false, $1, $3) }
+  | CONST NAME EQ const_value { Register(true, $2, $4) }
 ;
 
 block:
@@ -146,11 +145,11 @@ stmt1_inner:
 ;
 
 non_control_flow_stmt:
-    NAME ASSIGNMENT expression        { Assign ($1, $3) }
-  | NAME PLUS ASSIGNMENT expression   { Assign ($1, Value(Binary_op("+", Reference $1, $4))) }
-  | NAME MINUS ASSIGNMENT expression  { Assign ($1, Value(Binary_op("-", Reference $1, $4))) }
-  | NAME TIMES ASSIGNMENT expression  { Assign ($1, Value(Binary_op("*", Reference $1, $4))) }
-  | NAME TILDE ASSIGNMENT expression    { Assign ($1, Value(Unary_op("~", $4))) }
+    NAME EQ expression        { Assign ($1, $3) }
+  | NAME PLUS EQ expression   { Assign ($1, Value(Binary_op("+", Reference $1, $4))) }
+  | NAME MINUS EQ expression  { Assign ($1, Value(Binary_op("-", Reference $1, $4))) }
+  | NAME TIMES EQ expression  { Assign ($1, Value(Binary_op("*", Reference $1, $4))) }
+  | NAME TILDE EQ expression    { Assign ($1, Value(Unary_op("~", $4))) }
   | MOVE direction                         { Move $2 }
   | EXPAND direction                       { Expand $2 }
   | SHOOT direction                        { Shoot $2 }

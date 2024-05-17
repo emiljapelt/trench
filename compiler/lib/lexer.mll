@@ -71,7 +71,6 @@ rule lex = parse
     |   "|"           { LOGIC_OR }
     |   '?'           { QMARK }
     |   '~'           { TILDE }
-    |   ":="          { ASSIGNMENT }
     |   '('           { LPAR }
     |   ')'           { RPAR }
     |   '{'           { LBRACE }
