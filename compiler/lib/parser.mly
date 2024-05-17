@@ -90,7 +90,7 @@ const_value:
 const_values:
   {[]}
   | const_value   { [$1] }
-  | const_value COMMA const_values { $1::$3 }
+  | const_value FSLASH const_values { $1::$3 }
 ;
 
 simple_value:
