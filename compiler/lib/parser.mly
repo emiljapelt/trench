@@ -20,7 +20,7 @@
 %token LOGIC_AND LOGIC_OR PIPE FSLASH PCT TILDE
 %token COMMA SEMI EOF
 %token QMARK
-%token IF ELSE
+%token IF ELSE REPEAT
 %token GOTO
 %token CONST MOVE FORTIFY WAIT PASS EXPAND TRENCH
 %token NORTH EAST SOUTH WEST BOMB SHOOT CHECK SCAN
@@ -141,6 +141,7 @@ stmt1_inner:
   | IF LPAR expression RPAR stmt1 ELSE stmt1       { If ($3, $5, $7) }
   | GOTO NAME SEMI                                 { GoTo $2 }
   | LABEL                                  { Label $1 }
+  | REPEAT LPAR CSTINT RPAR stmt { Repeat($3, $5) }
   | non_control_flow_stmt SEMI { $1 }
 ;
 

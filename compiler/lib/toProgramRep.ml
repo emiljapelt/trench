@@ -73,6 +73,12 @@ and compile_stmt (Stmt(stmt,ln)) regs acc =
   | Block (stmt_list) -> (
     List.fold_left (fun acc stmt -> compile_stmt stmt regs acc) acc stmt_list
   )
+  | Repeat (count, stmt) -> (
+    let rec aux c s acc = 
+      if c = 0 then acc else aux (c-1) s (compile_stmt s regs acc)
+    in
+    aux count stmt acc
+  )
   | Assign (target, aexpr) -> 
     if is_const_reg target regs then raise_failure ("Assignment to constant register: "^target)
     else Instruction ("p"^string_of_int (fetch_reg_index target regs)) :: compile_expr (optimize_expr aexpr regs) regs (Instruction "a" :: acc)

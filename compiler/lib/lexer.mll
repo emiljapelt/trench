@@ -7,6 +7,7 @@
                         "const", CONST;
                         "if", IF;
                         "else", ELSE;
+                        "repeat", REPEAT;
                         "move", MOVE;
                         "expand", EXPAND;
                         "trench", TRENCH;

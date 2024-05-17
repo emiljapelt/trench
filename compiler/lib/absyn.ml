@@ -13,6 +13,7 @@ and statement_inner =
     | If of expression * statement * statement
     (*| While of expression * statement * statement option (* condition, body, incrementer *)*)
     | Block of statement list
+    | Repeat of int * statement
     | Assign of string * expression
     | Label of string
     | Move of direction
