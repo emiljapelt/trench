@@ -225,7 +225,7 @@ parsed_player_file* parse_player(char* value, const char* comp_path) {
     memcpy(directive_file, value, end);
 
     if(!get_program_from_file(directive_file, comp_path, &ppf->reg_directive)) {
-        /*printf("Player inital directive did not load\n");*/ exit(1);
+        printf("Player definition: '%s' did not load correctly\n", value); exit(1);
     }
 
     return ppf;

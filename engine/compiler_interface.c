@@ -1,4 +1,5 @@
 #include "compiler_interface.h"
+#include "util.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -27,17 +28,27 @@ int compile_file(const char* file_path, const char* comp_path, char** result) {
     FILE* fp;
     fp = popen(command, "r");
     if (fp == NULL) {
-        printf("Compilation failed\n" );
+        printf("Compilation failed: Unknown error\n");
         return 0;
     }
-    fgets(buffer, max_result_size, fp);    
+
+    for(int i = 0; !feof(fp); i++) {
+        buffer[i] = fgetc(fp);
+    }
+
+    if(pclose(fp) != 0) {
+        printf("Compilation failed: %s\n", buffer);
+        return 0;
+    }
     
     // Copy significant result from buffer
+    for(int i = 0; i < max_result_size; i++) 
+        if (buffer[i] == '\n') { buffer[i] = 0; break; }
+
     int result_len = strlen(buffer);
     *result = malloc(result_len + 1); result[result_len] = 0;
     memcpy(*result, buffer, result_len);
 
-    pclose(fp);
     free(command);
     free(buffer);
     return 1;

@@ -45,4 +45,5 @@ let () = try (
       | _ ->  printer (line-2) ; printer (line-1) ; printer line
     )
     else Printf.printf "\n" ;
+    exit 1
 )
