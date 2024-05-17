@@ -1,0 +1,59 @@
+
+
+t:
+repeat (4) { trench N; move N; }
+trench E; trench W;
+
+repeat (1) move S;
+repeat (2) move E;
+
+r:
+trench;
+trench E;
+trench S; move S; trench S;
+
+move N;
+repeat (3) move E;
+
+e:
+trench;
+trench S;
+repeat (2) { trench E; move E; }
+repeat (2) { trench S; move S; }
+repeat (2) { trench W; move W; }
+repeat (2) { trench S; move S; }
+repeat (2) { trench E; move E; }
+
+
+repeat (2) move E;
+
+n:
+trench;
+trench N;
+repeat (2) { trench S; move S; } repeat (2) move N;
+repeat (2) { trench E; move E; }
+repeat (2) { trench S; move S; }
+
+repeat (4) { move E; move N; }
+
+c:
+trench;
+repeat (2) { trench W; move W; }
+repeat (2) { trench S; move S; }
+repeat (2) { trench E; move E; }
+
+
+repeat (2) { move E; move N; }
+
+h:
+trench;
+repeat (2) { trench N; move N; }
+repeat (2) move S;
+repeat (2) { trench S; move S; }
+repeat (2) move N;
+repeat (2) { trench E; move E; }
+repeat (2) { trench S; move S; }
+
+
+repeat (4) { move W; move N; }
+repeat (2) move W;

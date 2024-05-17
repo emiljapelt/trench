@@ -6,3 +6,5 @@ trench
 *.trc
 *.exe
 .vscode
+
+!logo.tr
