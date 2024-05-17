@@ -7,7 +7,7 @@ typedef enum load_key {
     SHOTS,
     ACTIONS,
     STEPS,
-    CHANGE,
+    MODE,
     PLAYER,
     BOARD_X,
     BOARD_Y,
@@ -25,7 +25,7 @@ typedef struct loaded_game_file {
     char* shots;
     char* actions;
     char* steps;
-    char* change;
+    char* mode;
     char* board_x; 
     char* board_y;
     int player_count;
@@ -45,14 +45,15 @@ typedef struct parsed_game_file {
     int shots;
     int actions;
     int steps;
-    int change;
+    int mode;
     int board_x, board_y;
     int player_count;
     int nuke;
     parsed_player_file** players;
 } parsed_game_file;
 
-char* get_program_from_file(char* file_path, char* comp_path);
-parsed_game_file* parse_game_file(char* file_path, char* comp_path);
+int get_program_from_file(const char* file_path, const char* comp_path, char** result);
+parsed_game_file* parse_game_file(const char* file_path, const char* comp_path);
+void free_parsed_game_file(parsed_game_file* pgf);
 
 #endif

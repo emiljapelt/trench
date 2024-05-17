@@ -16,7 +16,7 @@ void skip_whitespace(char* str, int* i) {
 }
 
 
-void load_file(char* file_name, char** out_file, int* out_len) {
+void load_file(const char* file_name, char** out_file, int* out_len) {
     FILE* fp;
     char* buffer;
     long numbytes;
@@ -59,7 +59,7 @@ load_key get_load_key(char* content, int* skips) {
     else if(strcmp(key, "shoots") == 0) ret = SHOTS;
     else if(strcmp(key, "actions") == 0) ret = ACTIONS;
     else if(strcmp(key, "steps") == 0) ret = STEPS;
-    else if(strcmp(key, "change") == 0) ret = CHANGE;
+    else if(strcmp(key, "mode") == 0) ret = MODE;
     else if(strcmp(key, "player") == 0) ret = PLAYER;
     else if(strcmp(key, "board_x") == 0) ret = BOARD_X;
     else if(strcmp(key, "board_y") == 0) ret = BOARD_Y;
@@ -98,6 +98,12 @@ void free_loaded_game_file(loaded_game_file* lgf) {
     free(lgf);
 }
 
+void free_parsed_game_file(parsed_game_file* pgf) {
+    for(int i = 0; i < pgf->player_count; i++) 
+        free(pgf->players[i]);
+    free(pgf);
+}
+
 loaded_game_file* load_game_file(char* content, const int size) {
     loaded_game_file* lgf = malloc(sizeof(loaded_game_file));
     memset(lgf, 0, sizeof(loaded_game_file));
@@ -109,43 +115,43 @@ loaded_game_file* load_game_file(char* content, const int size) {
         i += skips;
         switch (lk) {
             case BOMBS: {
-                if (lgf->bombs) { printf("Multiple entries from 'bombs'"); exit(1); }
+                if (lgf->bombs) { printf("Multiple entries for 'bombs'"); exit(1); }
                 lgf->bombs = get_load_value(content+i, &skips);
                 i += skips;
                 break;
             }
             case SHOTS: {
-                if (lgf->shots) { printf("Multiple entries from 'shoots'"); exit(1); }
+                if (lgf->shots) { printf("Multiple entries for 'shoots'"); exit(1); }
                 lgf->shots = get_load_value(content+i, &skips);
                 i += skips;
                 break;
             }
             case ACTIONS: {
-                if (lgf->actions) { printf("Multiple entries from 'actions'"); exit(1); }
+                if (lgf->actions) { printf("Multiple entries for 'actions'"); exit(1); }
                 lgf->actions = get_load_value(content+i, &skips);
                 i += skips;
                 break;
             }
             case STEPS: {
-                if (lgf->steps) { printf("Multiple entries from 'actions'"); exit(1); }
+                if (lgf->steps) { printf("Multiple entries for 'actions'"); exit(1); }
                 lgf->steps = get_load_value(content+i, &skips);
                 i += skips;
                 break;
             }
-            case CHANGE: {
-                if (lgf->change) { printf("Multiple entries from 'change'"); exit(1); }
-                lgf->change = get_load_value(content+i, &skips);
+            case MODE: {
+                if (lgf->mode) { printf("Multiple entries for 'mode'"); exit(1); }
+                lgf->mode = get_load_value(content+i, &skips);
                 i += skips;
                 break;
             }
             case BOARD_X: {
-                if (lgf->board_x) { printf("Multiple entries from 'board_x'"); exit(1); }
+                if (lgf->board_x) { printf("Multiple entries for 'board_x'"); exit(1); }
                 lgf->board_x = get_load_value(content+i, &skips);
                 i += skips;
                 break;
             }
             case BOARD_Y: {
-                if (lgf->board_y) { printf("Multiple entries from 'board_y'"); exit(1); }
+                if (lgf->board_y) { printf("Multiple entries for 'board_y'"); exit(1); }
                 lgf->board_y = get_load_value(content+i, &skips);
                 i += skips;
                 break;
@@ -162,7 +168,7 @@ loaded_game_file* load_game_file(char* content, const int size) {
                 break;
             }
             case NUKE: {
-                if (lgf->board_y) { printf("Multiple entries from 'nuke'"); exit(1); }
+                if (lgf->board_y) { printf("Multiple entries for 'nuke'"); exit(1); }
                 lgf->nuke = get_load_value(content+i, &skips);
                 i += skips;
             }
@@ -173,29 +179,30 @@ loaded_game_file* load_game_file(char* content, const int size) {
     return lgf;
 }
 
-char* get_program_from_file(char* file_path, char* comp_path) {
+int get_program_from_file(const char* file_path, const char* comp_path, char** result) {
     int fp_len = strlen(file_path);
     char* content;
     switch (file_path[fp_len-1]) {
         case 'c': {
             int content_len;
             load_file(file_path, &content, &content_len);
-            if (content == NULL) { printf("Failure: No such file: %s\n", file_path); exit(1);}
+            if (content == NULL) { printf("Failure: No such file: %s\n", file_path); return 0;}
             break;
         }
         case 'r': {
-            content = compile_file(file_path,comp_path);
+            if(!compile_file(file_path,comp_path, &content)) return 0;
             break;
         }
         default: {
             printf("Unknown file extension");
-            exit(1);
+            return 0;
         }
     }
-    return content;
+    *result = content;
+    return 1;
 }
 
-parsed_player_file* parse_player(char* value, char* comp_path) {
+parsed_player_file* parse_player(char* value, const char* comp_path) {
     parsed_player_file* ppf = malloc(sizeof(parsed_player_file));
     memset(ppf, 0, sizeof(parsed_player_file));
 
@@ -217,12 +224,14 @@ parsed_player_file* parse_player(char* value, char* comp_path) {
     char* directive_file = malloc(end+1); directive_file[end] = 0;
     memcpy(directive_file, value, end);
 
-    ppf->reg_directive = get_program_from_file(directive_file, comp_path);
+    if(!get_program_from_file(directive_file, comp_path, &ppf->reg_directive)) {
+        /*printf("Player inital directive did not load\n");*/ exit(1);
+    }
 
     return ppf;
 }
 
-parsed_game_file* parse_game_file(char* file_path, char* comp_path) {
+parsed_game_file* parse_game_file(const char* file_path, const char* comp_path) {
 
     char* content;
     int content_len;
@@ -239,7 +248,7 @@ parsed_game_file* parse_game_file(char* file_path, char* comp_path) {
     pgf->shots = (lgf->shots == 0) ? 100 : atoi(lgf->shots);
     pgf->actions = (lgf->actions == 0) ? 1 : atoi(lgf->actions);
     pgf->steps = (lgf->steps == 0) ? 1000 : atoi(lgf->steps);
-    pgf->change = (lgf->change == 0) ? 0 : atoi(lgf->change);
+    pgf->mode = (lgf->mode == 0) ? 0 : atoi(lgf->mode);
     pgf->board_x = (lgf->board_x == 0) ? 20 : atoi(lgf->board_x);
     pgf->board_y = (lgf->board_y == 0) ? 20 : atoi(lgf->board_y);
     pgf->player_count = lgf->player_count;

@@ -6,7 +6,7 @@
 
 const int max_result_size = 10000;
 
-char* compile_file(char* file_path, char* comp_path) {
+int compile_file(const char* file_path, const char* comp_path, char** result) {
 
     // Prepare command string
     int fp_len = strlen(file_path);
@@ -28,17 +28,17 @@ char* compile_file(char* file_path, char* comp_path) {
     fp = popen(command, "r");
     if (fp == NULL) {
         printf("Compilation failed\n" );
-        exit(1);
+        return 0;
     }
     fgets(buffer, max_result_size, fp);    
     
     // Copy significant result from buffer
     int result_len = strlen(buffer);
-    char* result = malloc(result_len + 1); result[result_len] = 0;
-    memcpy(result, buffer, result_len);
+    *result = malloc(result_len + 1); result[result_len] = 0;
+    memcpy(*result, buffer, result_len);
 
     pclose(fp);
     free(command);
     free(buffer);
-    return result;
+    return 1;
 }

@@ -293,17 +293,29 @@ void player_turn(game_state* gs, player_state* ps, game_rules* gr) {
     }
 }
 
-void get_new_directive(player_state* ps, char* comp_path) {       
-    printf("Player %i, new directive:\n", ps->id);
-    char* path = malloc(1001);
-    fgets(path, 1000, stdin);
-    if (path[0] != '\n') {
-        path[strlen(path)-1] = 0;
-        char* new = get_program_from_file(path, comp_path);
-        int i = 0;
-        while (new[i] != ':') i++;
-        ps->directive = new+i+1;
-        ps->step = 0;
+void get_new_directive(player_state* ps, const char* comp_path) {      
+    while(1) {
+        printf("Player %i, change directive?:\n", ps->id);
+        char* path = malloc(1001);
+        fgets(path, 1000, stdin);
+        if (path[0] == '\n') break;
+        
+        for(int i = 0; i < 1000; i++) 
+            if (path[i] == '\n') { path[i] = 0; break; }
+
+        char* new;
+        if(get_program_from_file(path, comp_path, &new)) {
+            int i = 0;
+            while (new[i] != ':') i++;
+            free(ps->directive);
+            ps->directive = new+i+1;
+            ps->step = 0;
+            free(path);
+            break;
+        }
+        free(path);
+        continue;
+        
     }
 }
 
@@ -337,14 +349,56 @@ void check_win_condition(game_state* gs) {
 }
 
 void play_round(game_state* gs, game_rules* gr) {
-    int turns = 0;
     for(int i = 0; i < gs->player_count; i++) {
         if (!gs->players[i].alive) continue; 
         player_turn(gs, gs->players+i, gr);
-        turns++;
-        //print_board(gs);
     }
 }
+
+
+// Players cannot change directive
+void static_mode(game_state* gs, game_rules* gr, const char* comp_path) {
+    int round = 1;
+    while(1) {
+        play_round(gs, gr);
+        check_win_condition(gs);
+        round++;
+    }
+}
+
+// Players can change directive after 'change' rounds
+void dynamic_mode(game_state* gs, game_rules* gr, const char* comp_path, const int change) {
+    int round = 1;
+    while(1) {
+        play_round(gs, gr);
+        if (round % change == 0) {
+            if (gr->nuke) nuke_board(gs);
+            print_board(gs);
+            check_win_condition(gs);
+            for(int i = 0; i < gs->player_count; i++) {
+                if (!gs->players[i].alive) continue; 
+                get_new_directive(gs->players+i, comp_path);
+            }
+        }
+        else check_win_condition(gs);
+        round++;
+    }
+}
+
+// Players can change directive before each of their turns
+void manual_mode(game_state* gs, game_rules* gr, const char* comp_path) {
+    int round = 1;
+    while(1) {
+        for(int i = 0; i < gs->player_count; i++) {
+            if (!gs->players[i].alive) continue; 
+            get_new_directive(gs->players+i, comp_path);
+            player_turn(gs, gs->players+i, gr);
+        }
+        check_win_condition(gs);
+        round++;
+    }
+}
+
 
 int main(int argc, char** argv) {
 
@@ -355,13 +409,13 @@ int main(int argc, char** argv) {
 
     char* comp_path = argv[2];
     parsed_game_file* pgf = parse_game_file(argv[1], comp_path);
-
+  
     game_rules gr = {
         pgf->actions,
         pgf->steps,
         pgf->bombs,
         pgf->shots,
-        pgf->change,
+        pgf->mode,
         pgf->nuke
     };
 
@@ -373,26 +427,14 @@ int main(int argc, char** argv) {
     };
 
     create_players(pgf->players, &gs, &gr);
+    free_parsed_game_file(pgf);
 
     print_board(&gs);
     sleep(1000);
 
-    int round = 1;
-    while(1) {
-        play_round(&gs, &gr);
-        if (gr.dir_change > 0 && (round % gr.dir_change == 0)) {
-            if (gr.nuke) nuke_board(&gs);
-            print_board(&gs);
-            check_win_condition(&gs);
-            for(int i = 0; i < gs.player_count; i++) {
-                if (!gs.players[i].alive) continue; 
-                get_new_directive(gs.players+i, comp_path);
-            }
-        }
-        else check_win_condition(&gs);
-        round++;
-    }
-
+    if (gr.mode == 0) static_mode(&gs, &gr, comp_path);
+    else if (gr.mode < 0) manual_mode(&gs, &gr, comp_path);
+    else if (gr.mode > 0) dynamic_mode(&gs, &gr, comp_path, gr.mode);
 
     return 0;
 }
