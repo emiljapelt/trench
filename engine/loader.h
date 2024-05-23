@@ -37,7 +37,8 @@ typedef struct loaded_game_file {
 typedef struct parsed_player_file {
     int id;
     int x, y;
-    char* reg_directive;
+    char* regs;
+    char* directive;
 } parsed_player_file;
 
 typedef struct parsed_game_file {
@@ -52,7 +53,7 @@ typedef struct parsed_game_file {
     parsed_player_file** players;
 } parsed_game_file;
 
-int get_program_from_file(const char* file_path, const char* comp_path, char** result);
+int get_program_from_file(const char* file_path, const char* comp_path, char** result_regs, char** result_dir);
 parsed_game_file* parse_game_file(const char* file_path, const char* comp_path);
 void free_parsed_game_file(parsed_game_file* pgf);
 

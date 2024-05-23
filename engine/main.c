@@ -28,16 +28,15 @@ field_state* empty_board(int x, int y) {
     return brd;
 }
 
-int scan_dir(char dir, int x, int y, game_state* gs) {
+int scan_dir(const direction dir, int x, int y, game_state* gs) {
     int i = 0;
     incr:
-    printf("%i,%i\n",x,y);
     i++;
     switch (dir) {
-        case 'n': y--; break;
-        case 'e': x++; break;
-        case 's': y++; break;
-        case 'w': x--; break;
+        case NORTH: y--; break;
+        case EAST: x++; break;
+        case SOUTH: y++; break;
+        case WEST: x--; break;
     }
     if (!in_bounds(x,y,gs)) return 0;
     if (get_field(x,y,gs)->trenched) return i;
@@ -82,7 +81,7 @@ void check(direction d, player_state* ps, game_state* gs) {
     }
 }
 
-void shoot(direction d, player_state* ps, game_state* gs) {
+void shoot(const direction d, player_state* ps, game_state* gs) {
     int x = ps->x;
     int y = ps->y;
     move_coord(x, y, d, &x, &y);
@@ -109,18 +108,18 @@ void shoot(direction d, player_state* ps, game_state* gs) {
 
 void player_turn(game_state* gs, player_state* ps, game_rules* gr) {
     update_bomb_chain(ps,gs);
-    char actions = gr->actions;
-    char steps = gr->steps;
-    while(actions && steps) {
-        if (ps->step >= ps->directive_len) return;
-        //fprintf(stderr,"%c", ps->directive[ps->step]); sleep(500);
-        switch (ps->directive[ps->step++]) {
+    gs->remaining_actions = gr->actions;
+    gs->remaining_steps = gr->steps;
+    while(gs->remaining_actions && gs->remaining_steps) {
+        if (ps->dp >= ps->directive_len) return;
+        //fprintf(stderr,"%c", ps->directive[ps->dp]); sleep(500);
+        switch (ps->directive[ps->dp++]) {
             case 'W': {
-                actions--;
+                gs->remaining_actions--;
                 break;
             }
             case 'P': {
-                actions = 0;
+                gs->remaining_actions = 0;
                 break;
             }
             case 'S': {
@@ -130,7 +129,7 @@ void player_turn(game_state* gs, player_state* ps, game_rules* gr) {
                     print_board(gs);
                     ps->shots--;
                 }
-                actions--;
+                gs->remaining_actions--;
                 break;
             }
             case 'c': {
@@ -158,7 +157,7 @@ void player_turn(game_state* gs, player_state* ps, game_rules* gr) {
                 trench(x, y, gs);
                 print_board(gs);
                 sleep(500);
-                actions--;
+                gs->remaining_actions--;
                 break;
             }
             case 'F': {
@@ -169,26 +168,26 @@ void player_turn(game_state* gs, player_state* ps, game_rules* gr) {
                     fortify_field(x,y,gs);
                 print_board(gs);
                 sleep(500);
-                actions--;
+                gs->remaining_actions--;
                 break;
             }
             case 'r': {
                 ps->stack[ps->sp++] = rand();
             }
             case 'R': {
-                int num_size = numeric_size(ps->directive,ps->step);
-                int num = sub_str_to_int(ps->directive,ps->step,num_size);
+                int num_size = numeric_size(ps->directive,ps->dp);
+                int num = sub_str_to_int(ps->directive,ps->dp,num_size);
                 int pick = ps->stack[ps->sp - ((rand() % num)+1)];
                 ps->sp -= num;
                 ps->stack[ps->sp++] = pick;
-                ps->step += num_size;
+                ps->dp += num_size;
                 break;
             }
             case 'p': {
-                int num_size = numeric_size(ps->directive,ps->step);
-                int num = sub_str_to_int(ps->directive,ps->step,num_size);
+                int num_size = numeric_size(ps->directive,ps->dp);
+                int num = sub_str_to_int(ps->directive,ps->dp,num_size);
                 ps->stack[ps->sp++] = num;
-                ps->step += num_size;
+                ps->dp += num_size;
                 break;
             }
             case 'B': {
@@ -207,64 +206,64 @@ void player_turn(game_state* gs, player_state* ps, game_rules* gr) {
                     sleep(250);
                     ps->bombs--;
                 }
-                actions--;
+                gs->remaining_actions--;
                 break;
             }
             case '#': {
-                switch (ps->directive[ps->step]) {
+                switch (ps->directive[ps->dp]) {
                     case 'x': {
                         ps->stack[ps->sp++] = ps->x;
-                        ps->step++;
+                        ps->dp++;
                         break;
                     }
                     case 'y': {
                         ps->stack[ps->sp++] = ps->y;
-                        ps->step++;
+                        ps->dp++;
                         break;
                     }
                     case 'b': {
                         ps->stack[ps->sp++] = ps->bombs;
-                        ps->step++;
+                        ps->dp++;
                         break;
                     }
                     case 's': {
                         ps->stack[ps->sp++] = ps->shots;
-                        ps->step++;
+                        ps->dp++;
                         break;
                     }
                     case '_': {
                         ps->stack[ps->sp++] = gs->board_x;
-                        ps->step++;
+                        ps->dp++;
                         break;
                     }
                     case '|': {
                         ps->stack[ps->sp++] = gs->board_y;
-                        ps->step++;
+                        ps->dp++;
                         break;
                     }
                     default: {
-                        int num_size = numeric_size(ps->directive,ps->step);
-                        int num = sub_str_to_int(ps->directive,ps->step,num_size);
+                        int num_size = numeric_size(ps->directive,ps->dp);
+                        int num = sub_str_to_int(ps->directive,ps->dp,num_size);
                         ps->stack[ps->sp++] = ps->stack[num];
-                        ps->step += num_size;
+                        ps->dp += num_size;
                     }
                 }
                 break;
             }
             case '!': {
-                int num_size = numeric_size(ps->directive,ps->step);
-                int num = sub_str_to_int(ps->directive,ps->step,num_size);
-                ps->step = num;
+                int num_size = numeric_size(ps->directive,ps->dp);
+                int num = sub_str_to_int(ps->directive,ps->dp,num_size);
+                ps->dp = num;
                 break;
             }
             case '?': {
                 int v = ps->stack[--ps->sp];
-                int num_size = numeric_size(ps->directive,ps->step);
+                int num_size = numeric_size(ps->directive,ps->dp);
                 if (v) { 
-                    int num = sub_str_to_int(ps->directive,ps->step,num_size);
-                    ps->step = num; 
+                    int num = sub_str_to_int(ps->directive,ps->dp,num_size);
+                    ps->dp = num; 
                 }
-                else ps->step += num_size;
+                else ps->dp += num_size;
                 break;
             }
             case '=': {
@@ -334,7 +333,7 @@ void player_turn(game_state* gs, player_state* ps, game_rules* gr) {
             }
             default: return;;
         }
-        steps--;
+        gs->remaining_steps--;
     }
 }
 
@@ -348,13 +347,11 @@ void get_new_directive(player_state* ps, const char* comp_path) {
         for(int i = 0; i < 1000; i++) 
             if (path[i] == '\n') { path[i] = 0; break; }
 
-        char* new;
-        if(get_program_from_file(path, comp_path, &new)) {
-            int i = 0;
-            while (new[i] != ':') i++;
-            //free(ps->directive);
-            ps->directive = new+i+1;
-            ps->step = 0;
+        char* directive;
+        if(get_program_from_file(path, comp_path, NULL, &directive)) {
+            free(ps->directive);
+            ps->directive = directive;
+            ps->dp = 0;
             free(path);
             break;
         }

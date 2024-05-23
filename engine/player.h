@@ -14,7 +14,7 @@ typedef struct player_state {
     int sp;
     char* directive;
     int directive_len;
-    int step;
+    int dp;
     int x;
     int y;
     int bombs;

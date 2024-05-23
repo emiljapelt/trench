@@ -29,6 +29,8 @@ typedef struct field_state {
 
 typedef struct game_state {
     int round;
+    int remaining_steps;
+    int remaining_actions;
     const int board_x;
     const int board_y;
     player_state* players;

@@ -179,7 +179,7 @@ loaded_game_file* load_game_file(char* content, const int size) {
     return lgf;
 }
 
-int get_program_from_file(const char* file_path, const char* comp_path, char** result) {
+int get_program_from_file(const char* file_path, const char* comp_path, char** result_regs, char** result_dir) {
     int fp_len = strlen(file_path);
     char* content;
     switch (file_path[fp_len-1]) {
@@ -198,7 +198,26 @@ int get_program_from_file(const char* file_path, const char* comp_path, char** r
             return 0;
         }
     }
-    *result = content;
+
+    if (result_regs) {
+        int i = 0;
+        while(content[i] != ':') i++;
+        char* content_regs = malloc(i+1);
+        memset(content_regs,0,i+1);
+        memcpy(content_regs,content,i);
+        *result_regs = content_regs;
+    }
+    if (result_dir) {
+        int i = 0;
+        while(content[i] != ':') i++;
+        int len = strlen(content)-i;
+        char* content_dir = malloc(len+1);
+        memset(content_dir,0,len+1);
+        memcpy(content_dir,content+i+1,len);
+        *result_dir = content_dir;
+    }
+    free(content);
+
     return 1;
 }
 
@@ -220,14 +239,14 @@ parsed_player_file* parse_player(char* value, const char* comp_path) {
     }
 
     int end = 0;
-    while(value[end] != ';') end++;
+    while(value[end] != 0) end++;
     char* directive_file = malloc(end+1); directive_file[end] = 0;
     memcpy(directive_file, value, end);
 
-    if(!get_program_from_file(directive_file, comp_path, &ppf->reg_directive)) {
+    if(!get_program_from_file(directive_file, comp_path, &ppf->regs, &ppf->directive)) {
         printf("Player definition: '%s' did not load correctly\n", value); exit(1);
     }
-
+    
     return ppf;
 }
 

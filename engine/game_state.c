@@ -14,18 +14,20 @@ void create_players(parsed_player_file** inits, game_state* gs, game_rules* gr) 
     for(int i = 0; i < gs->player_count; i++) {
         int* player_stack = malloc(sizeof(int)*1000);
 
-        int reg_prog_seperator = 0;
-        int regs = 1;
-        while (inits[i]->reg_directive[reg_prog_seperator] != ':') {
-            if (inits[i]->reg_directive[reg_prog_seperator] == ',') regs++;
-            reg_prog_seperator++;
-        }
+        int regs_len = strlen(inits[i]->regs);
+        int regs;
+        if (regs_len) {
+            regs = 1;
+            for (int r = 0; r < regs_len; r++) {
+                if (inits[i]->regs[r] == ',') regs++;
+            }
+        } else regs = 0;
 
         {
             int directive_index = 0;
             for(int r = 0; r < regs; r++) {
-                int num_len = numeric_size(inits[i]->reg_directive, directive_index);
-                player_stack[r] = sub_str_to_int(inits[i]->reg_directive, directive_index, num_len);
+                int num_len = numeric_size(inits[i]->regs, directive_index);
+                player_stack[r] = sub_str_to_int(inits[i]->regs, directive_index, num_len);
                 directive_index += num_len+1;
             }
         }
@@ -35,9 +37,9 @@ void create_players(parsed_player_file** inits, game_state* gs, game_rules* gr) 
             .id = inits[i]->id,
             .stack = player_stack,
             .sp = regs,
-            .directive = inits[i]->reg_directive + reg_prog_seperator + 1,
-            .directive_len = strlen(inits[i]->reg_directive + reg_prog_seperator + 1),
-            .step = 0,
+            .directive = inits[i]->directive,
+            .directive_len = strlen(inits[i]->directive),
+            .dp = 0,
             .x = inits[i]->x,
             .y = inits[i]->y,
             .bombs = gr->bombs,
