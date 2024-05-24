@@ -86,15 +86,15 @@ const char* get_field_char(int x, int y, game_state* gs) {
 void print_board(game_state* gs) {
     clear_screen();
     printf("Round: %i, Actions: %i, Steps: %i\n", gs->round, gs->remaining_actions, gs->remaining_steps);
-    for(int i = 0; i < gs->board_x+2; i++) printf(".");
-    printf("\n");
-    for(int y = 0; y < gs->board_y; y++) {
-        printf(".");
+    for(int i = 0; i < gs->board_x+2; i++) putchar('.');
+    putchar('\n');
+    for(int y = 0; y < gs->board_y; (putchar('\n'), y++)) {
+        putchar('.');
         for(int x = 0; x < gs->board_x; x++) {
             printf("%s", get_field_char(x, y, gs));
         }
-        printf(".\n");
+        putchar('.');
     }
-    for(int i = 0; i < gs->board_x+2; i++) printf(".");
-    printf("\n");
+    for(int i = 0; i < gs->board_x+2; i++) putchar('.');
+    putchar('\n');
 }
