@@ -5,6 +5,14 @@
 #include "player.h"
 #include "game_rules.h"
 
+typedef enum direction {
+    NORTH,
+    EAST,
+    SOUTH,
+    WEST,
+    HERE
+} direction;
+
 typedef enum bullet_states {
     No_bullets = 0,
     NS_bullets,
@@ -46,7 +54,7 @@ void set_field(int x, int y, game_state* gs, field_state* f);
 void fortify_field(int x, int y, game_state* gs);
 void destroy_field(int x, int y, game_state gs);
 void build_field(int x, int y, game_state* gs);
-void shoot_field(int x, int y, char d, game_state* gs);
+void shoot_field(int x, int y, const direction d, game_state* gs);
 void unshoot_field(int x, int y, game_state* gs);
 void explode_field(int x, int y, game_state* gs);
 void bomb_field(int x, int y, game_state* gs);

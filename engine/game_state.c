@@ -45,7 +45,7 @@ void create_players(parsed_player_file** inits, game_state* gs, game_rules* gr) 
             .bombs = gr->bombs,
             .shots = gr->shots,
         }; 
-        build_field(inits[i]->x, inits[i]->y, gs);
+        //build_field(inits[i]->x, inits[i]->y, gs); // Inital player trench
     }
     gs->players = pss;
 }
@@ -72,11 +72,19 @@ void build_field(int x, int y, game_state* gs) {
     gs->board[(y * gs->board_x) + x].trenched = 1;
 }
 
-void shoot_field(int x, int y, char d, game_state* gs) {
-    if(d == 'n' || d == 's')
+void shoot_field(int x, int y, const direction d, game_state* gs) {
+    switch (d) {
+    case NORTH:
+    case SOUTH: 
         gs->board[(y * gs->board_x) + x].bullet_state = NS_bullets;
-    else if (d == 'e' || d == 'w')
+        break;
+    case EAST:
+    case WEST:
         gs->board[(y * gs->board_x) + x].bullet_state = EW_bullets;
+        break;
+    default:
+        break;
+    }
 }
 
 void unshoot_field(int x, int y, game_state* gs) {

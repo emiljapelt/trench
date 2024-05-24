@@ -12,14 +12,6 @@
 #include "loader.h"
 #include "compiler_interface.h"
 
-typedef enum direction {
-    NORTH,
-    EAST,
-    SOUTH,
-    WEST,
-    HERE
-} direction;
-
 
 field_state* empty_board(int x, int y) {
     int size = sizeof(field_state)*x*y;
