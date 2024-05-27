@@ -48,8 +48,20 @@
 %start main
 %type <Absyn.file> main
 %%
+
+%public seperated_or_empty(S,C):
+  | {[]}
+  | C  {[$1]}
+  | C S seperated(S,C) {$1::$3}
+;
+
+%public seperated(S,C):
+  | C  {[$1]}
+  | C S seperated(S,C) {$1::$3}
+;
+
 main:
-  register_defs stmt_list EOF     { 
+  register_defs stmt* EOF     { 
     try (File ($1,$2)) 
     with
     | Failure _ as failure -> raise failure
@@ -59,13 +71,7 @@ main:
 
 register_defs:
   {[]}
-  | LBRAKE registers RBRAKE { $2 }
-;
-
-registers:
-  {[]}
-  | register { [$1] }
-  | register COMMA registers { $1 :: $3 }
+  | LBRAKE seperated(COMMA,register) RBRAKE { $2 }
 ;
 
 register:
@@ -78,25 +84,19 @@ register:
 ;
 
 block:
-  LBRACE stmt_list RBRACE    { Block $2 }
+  LBRACE stmt* RBRACE    { Block $2 }
 ;
 
 const_value:
-  | CSTINT                                                { Int $1 }
-  | direction                                             { Direction $1}
+  | CSTINT      { Int $1 }
+  | direction   { Direction $1}
   | error { raise (Failure(Some $symbolstartpos.pos_lnum, "Expected a constant value")) }
-;
-
-const_values:
-  {[]}
-  | const_value   { [$1] }
-  | const_value FSLASH const_values { $1::$3 }
 ;
 
 simple_value:
   | const_value                        { $1 }
   | QMARK                              { Random }
-  | LBRAKE const_values RBRAKE         { RandomSet $2 }
+  | LBRAKE seperated(FSLASH, const_value) RBRAKE         { RandomSet $2 }
   | MINUS simple_value                 { Binary_op ("-", Value (Int 0), $2) } %prec TILDE
   | TILDE simple_value                 { Unary_op ("~", $2) }
   | NAME                               { Reference $1 }
@@ -105,14 +105,14 @@ simple_value:
 ;
 
 value:
-  | simple_value { $1 }
-  | SCAN value                         { Scan $2 }
-  | CHECK value                        { Check $2 }
-  | value binop value { Binary_op ($2, $1, $3) }
+  | simple_value        { $1 }
+  | SCAN value          { Scan $2 }
+  | CHECK value         { Check $2 }
+  | value binop value   { Binary_op ($2, $1, $3) }
 ;
 
 %inline binop:
-    LOGIC_AND   { "&" }
+  | LOGIC_AND   { "&" }
   | LOGIC_OR    { "|" }
   | EQ          { "="  }
   | NEQ         { "!=" }
@@ -127,13 +127,8 @@ value:
   | PCT         { "%"  }
 ;
 
-stmt_list:
-    { [] }
-  | stmt stmt_list     { $1 :: $2 }
-;
-
 stmt:
-    stmt1 { $1 }
+  | stmt1 { $1 }
   | stmt2 { $1 }
 ;
 
@@ -141,7 +136,7 @@ stmt2:
   stmt2_inner { Stmt($1,$symbolstartpos.pos_lnum) }
 ;
 stmt2_inner:
-    IF LPAR value RPAR stmt1 ELSE stmt2       { If ($3, $5, $7) }
+  | IF LPAR value RPAR stmt1 ELSE stmt2       { If ($3, $5, $7) }
   | IF LPAR value RPAR stmt                   { If ($3, $5, Stmt(Block [], $symbolstartpos.pos_lnum)) }
 ;
 
@@ -150,34 +145,34 @@ stmt1:
   stmt1_inner { Stmt($1,$symbolstartpos.pos_lnum) }
 ;
 stmt1_inner: 
-    block                                          { $1 }
+  | block                                     { $1 }
   | IF LPAR value RPAR stmt1 ELSE stmt1       { If ($3, $5, $7) }
-  | GOTO NAME SEMI                                 { GoTo $2 }
-  | LABEL                                  { Label $1 }
-  | REPEAT LPAR CSTINT RPAR stmt1 { Repeat($3, $5) }
-  | non_control_flow_stmt SEMI { $1 }
+  | GOTO NAME SEMI                            { GoTo $2 }
+  | LABEL                                     { Label $1 }
+  | REPEAT LPAR CSTINT RPAR stmt1             { Repeat($3, $5) }
+  | non_control_flow_stmt SEMI                { $1 }
 ;
 
 non_control_flow_stmt:
-    NAME EQ value        { Assign ($1, $3) }
+  | NAME EQ value        { Assign ($1, $3) }
   | NAME PLUS EQ value   { Assign ($1, Value(Binary_op("+", Reference $1, $4))) }
   | NAME MINUS EQ value  { Assign ($1, Value(Binary_op("-", Reference $1, $4))) }
   | NAME TIMES EQ value  { Assign ($1, Value(Binary_op("*", Reference $1, $4))) }
-  | NAME TILDE EQ value    { Assign ($1, Value(Unary_op("~", $4))) }
+  | NAME TILDE EQ value  { Assign ($1, Value(Unary_op("~", $4))) }
   | MOVE value                        { Move $2 }
   | SHOOT value                       { Shoot $2 }
-  | FORTIFY                                { Fortify None }
+  | FORTIFY                           { Fortify None }
   | FORTIFY value                     { Fortify (Some $2) }
-  | TRENCH                                 { Trench None }
+  | TRENCH                            { Trench None }
   | TRENCH value                      { Trench (Some $2) }
-  | WAIT                                { Wait }
-  | PASS                                { Pass }
+  | WAIT                              { Wait }
+  | PASS                              { Pass }
   | BOMB simple_value simple_value    { Bomb($2, $3) }
 ;
 
 direction:
-  NORTH { North }
-  | EAST { East  }
+  | NORTH   { North }
+  | EAST  { East  }
   | SOUTH { South }
-  | WEST { West }
+  | WEST  { West }
 ;
