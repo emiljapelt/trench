@@ -3,148 +3,142 @@
 
 #include "game_rules.h"
 #include "game_state.h"
-#include "loader.h"
 #include "player.h"
 #include "util.h"
 #include "visual.h"
 
-void create_players(parsed_player_file** inits, game_state* gs, game_rules* gr) {
+game_state* _gs;
+game_rules* _gr;
 
-    player_state* pss = malloc(sizeof(player_state) * gs->player_count);
-    for(int i = 0; i < gs->player_count; i++) {
+void create_players(char* player_info) {
+
+    player_state* pss = malloc(sizeof(player_state) * _gs->player_count);
+    int p = 0;
+    for(int i = 0; i < _gs->player_count; i++) {
         int* player_stack = malloc(sizeof(int)*1000);
 
-        int regs_len = strlen(inits[i]->regs);
+        int id = ((int*)(player_info+p))[0];
+        int x = ((int*)(player_info+p))[1];
+        int y = ((int*)(player_info+p))[2];
+        int dl = ((int*)(player_info+p))[3];
+        char* d = player_info+p+(4*sizeof(int));
+
+        int regs_len = 0;
+        while(d[regs_len] != ':') regs_len++;
         int regs;
         if (regs_len) {
             regs = 1;
             for (int r = 0; r < regs_len; r++) {
-                if (inits[i]->regs[r] == ',') regs++;
+                if (d[i] == ',') regs++;
             }
         } else regs = 0;
 
         {
             int directive_index = 0;
             for(int r = 0; r < regs; r++) {
-                int num_len = numeric_size(inits[i]->regs, directive_index);
-                player_stack[r] = sub_str_to_int(inits[i]->regs, directive_index, num_len);
+                int num_len = numeric_size(d, directive_index);
+                player_stack[r] = sub_str_to_int(d, directive_index, num_len);
                 directive_index += num_len+1;
             }
         }
 
+        char* directive = malloc((dl-regs_len)+1); directive[dl-regs_len] = 0;
+        memcpy(directive, d+regs_len+1, dl-regs_len);
+
         pss[i] = (player_state){
             .alive = 1,
-            .id = inits[i]->id,
+            .id = id,
             .stack = player_stack,
             .sp = regs,
-            .directive = inits[i]->directive,
-            .directive_len = strlen(inits[i]->directive),
+            .directive = directive,
+            .directive_len = dl-(regs_len+1),
             .dp = 0,
-            .x = inits[i]->x,
-            .y = inits[i]->y,
-            .bombs = gr->bombs,
-            .shots = gr->shots,
+            .x = x,
+            .y = y,
+            .bombs = _gr->bombs,
+            .shots = _gr->shots,
         }; 
         //build_field(inits[i]->x, inits[i]->y, gs); // Inital player trench
+        p += (4*sizeof(int)+dl);
     }
-    gs->players = pss;
+    _gs->players = pss;
 }
 
 
-field_state* get_field(int x, int y, game_state* gs) {
-    return gs->board + ((y * gs->board_x) + x);
+field_state* get_field(int x, int y) {
+    return _gs->board + ((y * _gs->board_x) + x);
 }
 
-void set_field(int x, int y, game_state* gs, field_state* f) {
-    gs->board[(y * gs->board_x) + x] = *f;
+void set_field(int x, int y, field_state* f) {
+    _gs->board[(y * _gs->board_x) + x] = *f;
 }
 
-void fortify_field(int x, int y, game_state* gs) {
-    gs->board[(y * gs->board_x) + x].fortified = 1;
+void fortify_field(int x, int y) {
+    _gs->board[(y * _gs->board_x) + x].fortified = 1;
 }
 
-void destroy_field(int x, int y, game_state gs) {
-    gs.board[(y * gs.board_x) + x].destroyed = 1;
+void destroy_field(int x, int y) {
+    _gs->board[(y * _gs->board_x) + x].destroyed = 1;
 }
 
-void build_field(int x, int y, game_state* gs) {
-    gs->board[(y * gs->board_x) + x].destroyed = 0;
-    gs->board[(y * gs->board_x) + x].trenched = 1;
+void build_field(int x, int y) {
+    _gs->board[(y * _gs->board_x) + x].destroyed = 0;
+    _gs->board[(y * _gs->board_x) + x].trenched = 1;
 }
 
-void shoot_field(int x, int y, const direction d, game_state* gs) {
-    switch (d) {
-    case NORTH:
-    case SOUTH: 
-        gs->board[(y * gs->board_x) + x].bullet_state = NS_bullets;
-        break;
-    case EAST:
-    case WEST:
-        gs->board[(y * gs->board_x) + x].bullet_state = EW_bullets;
-        break;
-    default:
-        break;
-    }
+void set_visual(int x, int y, const char* visual) {
+    _gs->board[(y * _gs->board_x) + x].visual = visual;
+    _gs->board[(y * _gs->board_x) + x].vset = 1;
+    
 }
-
-void unshoot_field(int x, int y, game_state* gs) {
-    gs->board[(y * gs->board_x) + x].bullet_state = No_bullets;
+void unset_visual(int x, int y) {
+    _gs->board[(y * _gs->board_x) + x].vset = 0;
 }
 
 
-void explode_field(int x, int y, game_state* gs) {
-    field_state* fld = get_field(x,y,gs);
+void explode_field(int x, int y) {
+    field_state* fld = get_field(x,y);
     if (fld->fortified) fld->fortified = 0;
     else if (fld->trenched) {
         fld->trenched = 0;
         fld->destroyed = 1;
-        for(int p = 0; p < gs->player_count; p++) {
-            if (gs->players[p].x == x && gs->players[p].y == y) {
-                kill_player(gs->players+p);
+        for(int p = 0; p < _gs->player_count; p++) {
+            if (_gs->players[p].x == x && _gs->players[p].y == y) {
+                kill_player(_gs->players+p);
             }
         }
     }
 }
 
-void bomb_field(int x, int y, game_state* gs) {
-    field_state* fld = get_field(x,y,gs);
-    fld->explosion = 1;
-    print_board(gs);
+void bomb_field(int x, int y) {
+    field_state* fld = get_field(x,y);
+    set_visual(x,y,EXPLOSION);
+    print_board();
     sleep(500);
 
-    explode_field(x,y,gs);
+    explode_field(x,y);
 
-    fld->explosion = 0;
-    print_board(gs);
+    unset_visual(x,y);
+    print_board();
     sleep(250);
 }
-void unexplode_field(int x, int y, game_state* gs) {
-    gs->board[(y * gs->board_x) + x].explosion = 0;
-}
 
-void target_field(int x, int y, game_state* gs) {
-    gs->board[(y * gs->board_x) + x].target = 1;
-}
-void untarget_field(int x, int y, game_state* gs) {
-    gs->board[(y * gs->board_x) + x].target = 0;
-}
-
-void add_bomb(int x, int y, player_state* ps, game_state* gs) {
+void add_bomb(int x, int y, player_state* ps) {
     bomb_chain* link = malloc(sizeof(bomb_chain));
     link->player_id = ps->id;
-    link->next = gs->bomb_chain;
+    link->next = _gs->bomb_chain;
     link->x = x;
     link->y = y;
-    gs->bomb_chain = link;
+    _gs->bomb_chain = link;
 }
 
-void update_bomb_chain(player_state* ps, game_state* gs) {
-    bomb_chain* bc = gs->bomb_chain;
-    bomb_chain** prev = &gs->bomb_chain;
+void update_bomb_chain(player_state* ps) {
+    bomb_chain* bc = _gs->bomb_chain;
+    bomb_chain** prev = &_gs->bomb_chain;
     
     while(bc != NULL) {
         if(bc->player_id == ps->id) {
-            bomb_field(bc->x, bc->y, gs);
+            bomb_field(bc->x, bc->y);
             bomb_chain* link = bc;
             (*prev)->next = bc->next;
             bc = bc->next;

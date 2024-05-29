@@ -1,16 +1,20 @@
-(ocamllex lexer)
-(menhir (modules parser))
+(ocamllex player_lexer game_lexer)
+(menhir (modules player_parser game_parser))
 (library
  (name trenchclib)
+ (libraries str) 
  (modules
    programRep
    exceptions
    absyn
    optimize
    helpers
-   lexer
-   parser
+   player_lexer
+   player_parser
+   game_lexer
+   game_parser
    toProgramRep
    typing
+   compile
  )
 )

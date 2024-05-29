@@ -12,8 +12,8 @@ static inline void clear_screen(void) {
     //printf("\033[%d;%dH", (0), (0));
 }
 
-static inline char trench_connects(int x, int y, game_state* gs) {
-    return (in_bounds(x,y,gs) ? get_field(x,y,gs)->trenched : 0);
+static inline char trench_connects(int x, int y) {
+    return (in_bounds(x,y) ? get_field(x,y)->trenched : 0);
 }
 
 // 0xNESW
@@ -54,47 +54,39 @@ const char* f_char_lookup[] = {
     F_ALL, // 0x1111
 };
 
-const char* get_field_char(int x, int y, game_state* gs) {
-    field_state *fld = get_field(x,y,gs);
+const char* get_field_char(int x, int y) {
+    field_state *fld = get_field(x,y);
 
-    if(fld->target) return TARGET;
-    if(fld->explosion) return EXPLOSION;
-    if(fld->destroyed) return DESTORYED;
+    if(fld->vset) return fld->visual;
 
     if(!fld->trenched) { 
-        for(int i = 0; i < gs->player_count; i++) {
-            if (gs->players[i].x == x && gs->players[i].y == y && gs->players[i].alive) return PERSON;
+        for(int i = 0; i < _gs->player_count; i++) {
+            if (_gs->players[i].x == x && _gs->players[i].y == y && _gs->players[i].alive) return PERSON;
         }
-
-        if(fld->bullet_state) {
-            if (fld->bullet_state == NS_bullets) return BULLETS_NS;
-            if (fld->bullet_state == EW_bullets) return BULLETS_EW;
-        }
-
         return " "; 
     }
 
     int char_idx = 
-        (trench_connects(x,y-1,gs) << 3) | // N
-        (trench_connects(x+1,y,gs) << 2) | // E
-        (trench_connects(x,y+1,gs) << 1) | // S
-        trench_connects(x-1,y,gs);         // W 
+        (trench_connects(x,y-1) << 3) | // N
+        (trench_connects(x+1,y) << 2) | // E
+        (trench_connects(x,y+1) << 1) | // S
+        trench_connects(x-1,y);         // W 
 
     return (fld->fortified) ? f_char_lookup[char_idx] : char_lookup[char_idx];
 }
 
-void print_board(game_state* gs) {
+void print_board() {
     clear_screen();
-    printf("Round: %i, Actions: %i, Steps: %i\n", gs->round, gs->remaining_actions, gs->remaining_steps);
-    for(int i = 0; i < gs->board_x+2; i++) putchar('.');
+    printf("Round: %i, Actions: %i, Steps: %i\n", _gs->round, _gs->remaining_actions, _gs->remaining_steps);
+    for(int i = 0; i < _gs->board_x+2; i++) putchar('.');
     putchar('\n');
-    for(int y = 0; y < gs->board_y; (putchar('\n'), y++)) {
+    for(int y = 0; y < _gs->board_y; (putchar('\n'), y++)) {
         putchar('.');
-        for(int x = 0; x < gs->board_x; x++) {
-            printf("%s", get_field_char(x, y, gs));
+        for(int x = 0; x < _gs->board_x; x++) {
+            printf("%s", get_field_char(x, y));
         }
         putchar('.');
     }
-    for(int i = 0; i < gs->board_x+2; i++) putchar('.');
+    for(int i = 0; i < _gs->board_x+2; i++) putchar('.');
     putchar('\n');
 }

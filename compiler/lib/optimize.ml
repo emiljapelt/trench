@@ -78,6 +78,8 @@ let rec optimize_stmt (Stmt(stmt_i,ln) as stmt) = match stmt_i with
   | Move e -> Stmt(Move(optimize_value e),ln)
   | Shoot e -> Stmt(Shoot(optimize_value e),ln)
   | Bomb(d,p) -> Stmt(Bomb(optimize_value d, optimize_value p),ln)
+  | Mine d -> Stmt(Mine(optimize_value d),ln)
+  | Attack d -> Stmt(Attack(optimize_value d),ln)
   | Fortify o -> Stmt(Fortify(Option.map optimize_value o),ln)
   | Trench o -> Stmt(Trench(Option.map optimize_value o),ln)
   | Wait

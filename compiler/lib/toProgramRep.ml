@@ -82,45 +82,12 @@ and compile_stmt (Stmt(stmt,ln)) regs acc =
   | Pass -> Instruction "P" :: acc
   | GoTo n -> CGoTo(n, None) :: acc
   | Bomb(d,i) -> compile_value d regs (compile_value i regs (Instruction "B" :: acc))
+  | Mine d -> compile_value d regs (Instruction "M" :: acc)
+  | Attack d -> compile_value d regs (Instruction "A" :: acc)
   with 
-  | Failure(None,msg) -> raise (Failure(Some ln, msg))
+  | Failure(p,None,msg) -> raise (Failure(p,Some ln, msg))
   | a -> raise a
 
-let compress_path path =
-  let rec compress parts acc =
-    match parts with
-    | [] -> List.rev acc
-    | h::t when h = "." -> compress t (acc)
-    | _::h2::t when h2 = ".." -> compress t acc
-    | h::t -> compress t (h::acc) 
-  in
-  String.concat "/" (compress (String.split_on_char '/' path) [])
-
-let total_path path =
-  if path.[0] = '.' then Sys.getcwd () ^ "/" ^ path
-  else path
-
-let complete_path base path = compress_path (if path.[0] = '.' then (String.sub base 0 ((String.rindex base '/')+1) ^ path) else path)
-
-
-let check_registers_unique regs =
-  let rec aux regs set = match regs with
-  | [] -> ()
-  | Register(_,n,_)::t -> 
-    if StringSet.mem n set 
-    then raise_failure ("Duplicate register name: "^n) 
-    else aux t (StringSet.add n set)
-  in
-  aux regs StringSet.empty
-
-
-let compile path parse =
-  let path = (compress_path (total_path path)) in
-  try (
-    let File(regs,absyn) = parse path in
-    check_registers_unique regs;
-    (regs,List.fold_right (fun stmt acc -> compile_stmt stmt regs acc) absyn [])
-  )
-  with 
-  | Failure _ as f -> raise f
-  | _ -> raise (Failure(None, "Parser error"))
+let compile_player absyn =
+  let File(regs,program) = absyn in
+  (regs,List.fold_right (fun stmt acc -> compile_stmt stmt regs acc) program [])

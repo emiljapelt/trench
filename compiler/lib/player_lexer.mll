@@ -1,5 +1,5 @@
 {
-  open Parser
+  open Player_parser
   open Exceptions
   let keyword_table = Hashtbl.create 53
   let () = List.iter (fun (kwd, tok) -> Hashtbl.add keyword_table kwd tok)
@@ -21,6 +21,8 @@
                         "W", WEST;
                         "goto", GOTO;
                         "shoot", SHOOT;
+                        "mine", MINE;
+                        "attack", ATTACK;
                         "int", INT;
                         "dir", DIR;
                       ]
@@ -29,7 +31,7 @@
   | "\'\\n\'" -> '\n'
   | "\'\\t\'" -> '\t'
   | "\'\\\\'" -> '\\'
-  | _ when s.[1] = '\\' -> raise (Failure (Some((Lexing.lexeme_start_p lexbuf).pos_lnum), ("Unknown escape character: " ^ s)))
+  | _ when s.[1] = '\\' -> raise (Failure (Some((Lexing.lexeme_start_p lexbuf).pos_fname), Some((Lexing.lexeme_start_p lexbuf).pos_lnum), ("Unknown escape character: " ^ s)))
   | _ -> s.[1]
 
   let incr_linenum lexbuf = 
@@ -80,7 +82,7 @@ rule lex = parse
     |   ','           { COMMA }
     |   ';'           { SEMI }
     |   '#'           { HASH }
-    |   _             { raise (Failure(Some((Lexing.lexeme_start_p lexbuf).pos_lnum), ("Unknown token"))) }
+    |   _             { raise (Failure(Some((Lexing.lexeme_start_p lexbuf).pos_fname), Some((Lexing.lexeme_start_p lexbuf).pos_lnum), ("Unknown token"))) }
     |   eof           { EOF }
 
 and start filename = parse

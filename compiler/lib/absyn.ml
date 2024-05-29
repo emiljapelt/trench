@@ -22,6 +22,8 @@ and statement_inner =
     | Move of value
     | Shoot of value
     | Bomb of value * value
+    | Mine of value
+    | Attack of value
     | Fortify of value option
     | Trench of value option
     | Wait
@@ -47,7 +49,7 @@ and meta_data =
     | PlayerBombs (* #bombs *)
     | PlayerShots (* #shots *)
     | BoardX      (* #board_x *)  
-    | BoardY      (* #board_y *)  
+    | BoardY      (* #board_y *)
 
 and register =
     | Register of typ * string * value
@@ -60,3 +62,26 @@ let string_of_dir d = match d with
     | East -> "1"
     | South -> "2"
     | West -> "3"
+
+type player_info = PI of { id: int; pos: int * int; file: string }
+
+type game_setup_part =
+    | Player of player_info
+    | Bombs of int
+    | Shots of int
+    | Actions of int
+    | Steps of int
+    | Mode of int
+    | Board of int * int
+    | Nuke of int
+
+type game_setup = GS of {
+    players: player_info list;
+    bombs: int;
+    shots: int;
+    actions: int;
+    steps: int;
+    mode: int;
+    board: int * int;
+    nuke: int;
+}

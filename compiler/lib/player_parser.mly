@@ -11,29 +11,32 @@
     let () = vg.next <- vg.next+1 in
     Int.to_string number*)
 
-  let meta_name n ln = match n with
+  let meta_name n fn ln = match n with
     | "x" -> PlayerX
     | "y" -> PlayerY
     | "bombs" -> PlayerBombs
     | "shots" -> PlayerShots
     | "board_x" -> BoardX
     | "board_y" -> BoardY
-    | _ -> raise (Failure(Some ln, "Unknown meta reference"))
+    | _ -> raise (Failure(Some fn, Some ln, "Unknown meta reference"))
 
 %}
 %token <int> CSTINT
 %token <string> NAME
 %token <string> LABEL
+%token <string> PATH
 %token LPAR RPAR LBRACE RBRACE LBRAKE RBRAKE
 %token PLUS MINUS TIMES EQ NEQ LT GT LTEQ GTEQ
 %token LOGIC_AND LOGIC_OR PIPE FSLASH PCT TILDE
-%token COMMA SEMI EOF
+%token COMMA SEMI COLON EOF
 %token QMARK
 %token IF ELSE REPEAT
 %token GOTO
 %token MOVE FORTIFY WAIT PASS TRENCH
-%token NORTH EAST SOUTH WEST BOMB SHOOT CHECK SCAN
+%token NORTH EAST SOUTH WEST BOMB SHOOT CHECK SCAN MINE ATTACK
 %token HASH INT DIR
+
+%token PLAYER BOMBS SHOTS ACTIONS STEPS MODE BOARD NUKE
 
 /*Low precedence*/
 %left LOGIC_AND LOGIC_OR
@@ -61,12 +64,7 @@
 ;
 
 main:
-  register_defs stmt* EOF     { 
-    try (File ($1,$2)) 
-    with
-    | Failure _ as failure -> raise failure
-    | _ -> (raise (Failure(Some $symbolstartpos.pos_lnum, "Parser error")))
-  }
+  register_defs stmt* EOF     { (File ($1,$2)) }
 ;
 
 register_defs:
@@ -90,7 +88,7 @@ block:
 const_value:
   | CSTINT      { Int $1 }
   | direction   { Direction $1}
-  | error { raise (Failure(Some $symbolstartpos.pos_lnum, "Expected a constant value")) }
+  | error { raise (Failure(Some $symbolstartpos.pos_fname, Some $symbolstartpos.pos_lnum, "Expected a constant value")) }
 ;
 
 simple_value:
@@ -100,7 +98,7 @@ simple_value:
   | MINUS simple_value                 { Binary_op ("-", Value (Int 0), $2) } %prec TILDE
   | TILDE simple_value                 { Unary_op ("~", $2) }
   | NAME                               { Reference $1 }
-  | HASH NAME                          { MetaReference (meta_name $2 $symbolstartpos.pos_lnum) }
+  | HASH NAME                          { MetaReference (meta_name $2 $symbolstartpos.pos_fname $symbolstartpos.pos_lnum) }
   | LPAR value RPAR                    { $2 }
 ;
 
@@ -161,6 +159,8 @@ non_control_flow_stmt:
   | NAME TILDE EQ value  { Assign ($1, Value(Unary_op("~", $4))) }
   | MOVE value                        { Move $2 }
   | SHOOT value                       { Shoot $2 }
+  | MINE value                        { Mine $2 }
+  | ATTACK value                      { Attack $2 }
   | FORTIFY                           { Fortify None }
   | FORTIFY value                     { Fortify (Some $2) }
   | TRENCH                            { Trench None }

@@ -4,7 +4,6 @@
 
 
 // ** CHARACTER CODES ** 
-
 #define DESTORYED "*"
 #define NONE "\u2219"
 #define F_NONE "\u2022"
@@ -43,6 +42,7 @@
 
 #define EXPLOSION "\u2311"
 #define TARGET "\u2316"
+#define MINE "\u2313"
 
 #define BULLETS_NS "\u22ee"
 #define BULLETS_EW "\u2026"
@@ -51,7 +51,7 @@
 
 
 static inline void clear_screen(void);
-const char* get_field_char(int x, int y, game_state* gs);
-void print_board(game_state* gs);
+const char* get_field_char(int x, int y);
+void print_board();
 
 #endif

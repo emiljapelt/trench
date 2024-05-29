@@ -52,6 +52,8 @@ let rec type_check_stmt_inner regs stmt = match stmt with
   | Bomb(d,p) -> 
     require T_Dir (type_value regs d) (fun () -> ()) ;
     require T_Int (type_value regs p) (fun () -> ())
+  | Attack d
+  | Mine d -> require T_Dir (type_value regs d) (fun () -> ())
   | Fortify o
   | Trench o -> (match o with
     | Some e -> require T_Dir (type_value regs e) (fun () -> ())
@@ -66,7 +68,7 @@ and type_check_stmt regs (Stmt(stmt,ln)) =
   try 
     type_check_stmt_inner regs stmt
   with 
-  | Failure(None, msg) -> raise (Failure(Some ln, msg))
+  | Failure(p, None, msg) -> raise (Failure(p, Some ln, msg))
   | e -> raise e
 
 and type_check_stmts regs stmts =
