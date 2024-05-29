@@ -45,7 +45,7 @@ void create_players(char* player_info) {
         char* directive = malloc((dl-regs_len)+1); directive[dl-regs_len] = 0;
         memcpy(directive, d+regs_len+1, dl-regs_len);
 
-        pss[i] = (player_state){
+        pss[i] = (player_state) {
             .alive = 1,
             .id = id,
             .stack = player_stack,
@@ -111,7 +111,6 @@ void explode_field(int x, int y) {
 }
 
 void bomb_field(int x, int y) {
-    field_state* fld = get_field(x,y);
     set_visual(x,y,EXPLOSION);
     print_board();
     sleep(500);
