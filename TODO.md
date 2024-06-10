@@ -1,4 +1,0 @@
-- Make the change directive case handling nicer
-  - Save player directive path
-  - give 3 options: 1 - No change, 2 - Same file, 3 - New file
-  - 1 does nothing, 2 load the program in the saved path, 3 changes the saved path and loads the program there

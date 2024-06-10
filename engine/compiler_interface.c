@@ -38,7 +38,7 @@ int compile_file(const char* file_path, const char* comp_path, char** result) {
 
     for(int i = 0; i < len; i++) {
         buffer[i] = (char)fgetc(fp);
-        putchar(buffer[i]);
+        //putchar(buffer[i]);
     }
 
     if(pclose(fp) != 0) {

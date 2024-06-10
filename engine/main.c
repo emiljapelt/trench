@@ -149,7 +149,7 @@ void player_turn(player_state* ps) {
     _gs->remaining_actions = _gr->actions;
     _gs->remaining_steps = _gr->steps;
     while(_gs->remaining_actions && _gs->remaining_steps) {
-        if (ps->dp >= ps->directive_len) return;
+        if (ps->dp >= ps->directive_len) { return; }
         //fprintf(stderr,"%c", ps->directive[ps->dp]); sleep(500);
         switch (ps->directive[ps->dp++]) {
             case 'W': {
@@ -410,28 +410,38 @@ void player_turn(player_state* ps) {
 
 void get_new_directive(player_state* ps, const char* comp_path) {      
     while(1) {
-        printf("Player %i, change directive?:\n", ps->id);
-        char* path = malloc(1001);
-        memset(path,0,1001);
-        fgets(path, 1000, stdin);
-        if (path[0] == '\n') break;
-
-        for(int i = 0; i < 1000; i++) 
-            if (path[i] == '\n') { path[i] = 0; break; }
+        char* path;
+        char option;
+        print_board();
+        printf("Player %i, change directive?:\n0: No change\n1: Reload file\n2: New file\n", ps->id);
+        scanf(" %c",&option);
+        switch (option) {
+            case '0': return;
+            case '1': break;
+            case '2': {
+                free(ps->path);
+                path = malloc(1001);
+                memset(path,0,1001);
+                puts("New path:");
+                scanf(" %1000s", path);
+                ps->path = path;
+                break;
+            }
+            default: continue;
+        }
 
         char* directive;
-        if(compile_file(path, comp_path, &directive)) {
+        if(compile_file(ps->path, comp_path, &directive)) {
             int i = 0;
+            int len = directive[0];
             while(directive[i] != ':') i++; i++;
             memmove(directive, directive+i, strlen(directive+i));
             free(ps->directive);
             ps->directive = directive;
             ps->dp = 0;
-            free(path);
-            break;
+            ps->directive_len = len;
+            return;
         }
-        free(path);
-        continue;
     }
 }
 
@@ -491,6 +501,7 @@ void dynamic_mode(const char* comp_path) {
             for(int i = 0; i < _gs->player_count; i++) {
                 if (!_gs->players[i].alive) continue; 
                 get_new_directive(_gs->players+i, comp_path);
+                print_board();
             }
         }
         _gs->round++;
@@ -505,6 +516,7 @@ void manual_mode(const char* comp_path) {
         for(int i = 0; i < _gs->player_count; i++) {
             if (!_gs->players[i].alive) continue; 
             get_new_directive(_gs->players+i, comp_path);
+            print_board();
             player_turn(_gs->players+i);
         }
         if (_gr->nuke > 0 && _gs->round % _gr->nuke == 0) nuke_board();
@@ -523,10 +535,9 @@ int main(int argc, char** argv) {
         exit(1);
     }
 
-    
     char* game_info;
     compile_file(argv[1], argv[2], &game_info);
-
+    
     game_rules gr = {
         .bombs = ((int*)game_info)[0],
         .shots = ((int*)game_info)[1],

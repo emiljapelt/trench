@@ -12,6 +12,7 @@ typedef struct player_state {
     unsigned char id: 4;
     int* stack;
     int sp;
+    char* path;
     char* directive;
     int directive_len;
     int dp;

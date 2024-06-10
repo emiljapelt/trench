@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 #include "game_rules.h"
 #include "game_state.h"
@@ -20,36 +21,42 @@ void create_players(char* player_info) {
         int id = ((int*)(player_info+p))[0];
         int x = ((int*)(player_info+p))[1];
         int y = ((int*)(player_info+p))[2];
-        int dl = ((int*)(player_info+p))[3];
-        char* d = player_info+p+(4*sizeof(int));
+        int pl = ((int*)(player_info+p))[3];
+        int dl = ((int*)(player_info+p))[4];
+        char* pth = player_info+p+(5*sizeof(int));
+        char* dir = player_info+p+pl+(5*sizeof(int));
 
         int regs_len = 0;
-        while(d[regs_len] != ':') regs_len++;
+        while(dir[regs_len] != ':') regs_len++;
         int regs;
         if (regs_len) {
             regs = 1;
             for (int r = 0; r < regs_len; r++) {
-                if (d[i] == ',') regs++;
+                if (dir[i] == ',') regs++;
             }
         } else regs = 0;
 
         {
             int directive_index = 0;
             for(int r = 0; r < regs; r++) {
-                int num_len = numeric_size(d, directive_index);
-                player_stack[r] = sub_str_to_int(d, directive_index, num_len);
+                int num_len = numeric_size(dir, directive_index);
+                player_stack[r] = sub_str_to_int(dir, directive_index, num_len);
                 directive_index += num_len+1;
             }
         }
 
+        char* path = malloc(pl+1); path[pl] = 0;
+        memcpy(path, pth, pl);
+
         char* directive = malloc((dl-regs_len)+1); directive[dl-regs_len] = 0;
-        memcpy(directive, d+regs_len+1, dl-regs_len);
+        memcpy(directive, dir+regs_len+1, dl-regs_len);
 
         pss[i] = (player_state) {
             .alive = 1,
             .id = id,
             .stack = player_stack,
             .sp = regs,
+            .path = path,
             .directive = directive,
             .directive_len = dl-(regs_len+1),
             .dp = 0,
@@ -57,9 +64,9 @@ void create_players(char* player_info) {
             .y = y,
             .bombs = _gr->bombs,
             .shots = _gr->shots,
-        }; 
+        };
         //build_field(inits[i]->x, inits[i]->y, gs); // Inital player trench
-        p += (4*sizeof(int)+dl);
+        p += (5*sizeof(int)+dl+pl);
     }
     _gs->players = pss;
 }
