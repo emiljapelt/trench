@@ -15,7 +15,7 @@ and flag =
 and typ =
     | T_Int
     | T_Dir
-    | T_Flags
+    | T_Field
 
 and statement =
     | Stmt of statement_inner * int
@@ -44,8 +44,8 @@ and value =
     | Binary_op of string * value * value
     | Unary_op of string * value
     | Int of int
-    | Check of value
-    | Scan of value
+    | Scan of value * value
+    | Look of value
     | Direction of direction
     | Random
     | RandomSet of value list

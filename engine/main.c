@@ -19,7 +19,26 @@ field_state* empty_board(int x, int y) {
     return brd;
 }
 
-int scan_dir(const direction dir, int x, int y) {
+int scan(const direction dir, int x, int y, const int power) {
+    int result = 0;
+    switch (dir) {
+        case NORTH: y -= power; break;
+        case EAST: x += power; break;
+        case SOUTH: y += power; break;
+        case WEST: x -= power; break;
+    }
+    if (!in_bounds(x, y)) goto end;
+    if (get_field(x,y)->trenched) result |= TRENCH_FLAG;
+    if (get_field(x,y)->destroyed) result |= DESTORYED_FLAG;
+    if (get_field(x,y)->mine) result |= MINE_FLAG;
+    for(int i = 0; i < _gs->player_count; i++) 
+        if (_gs->players[i].x == x && _gs->players[i].y == y) result |= PLAYER_FLAG;
+
+    end:
+    return result;
+}
+
+int look(const direction dir, int x, int y) {
     int i = 0;
     incr:
     i++;
@@ -90,21 +109,6 @@ void move(direction d, player_state* ps) {
     ps->y = y;
 }
 
-void check(direction d, player_state* ps) {
-    int x, y;
-    move_coord(ps->x, ps->y, d, &x, &y);
-    int result = 0;
-    if (!in_bounds(x, y)) goto end;
-    if (get_field(x,y)->trenched) result |= TRENCH_FLAG;
-    if (get_field(x,y)->destroyed) result |= DESTORYED_FLAG;
-    if (get_field(x,y)->mine) result |= MINE_FLAG;
-    for(int i = 0; i < _gs->player_count; i++) 
-        if (_gs->players[i].x == x && _gs->players[i].y == y) result |= PLAYER_FLAG;
-
-    end:
-    ps->stack[ps->sp++] = result;
-}
-
 void shoot(const direction d, player_state* ps) {
     int x = ps->x;
     int y = ps->y;
@@ -166,15 +170,15 @@ void player_turn(player_state* ps) {
                 _gs->remaining_actions--;
                 break;
             }
-            case 'c': {
+            case 'l': {
                 direction d = (direction)ps->stack[--ps->sp];
-                check(d,ps);
+                ps->stack[ps->sp++] = look(d,ps->x,ps->y);
                 break;
             }
             case 's': {
+                direction p = (direction)ps->stack[--ps->sp];
                 direction d = (direction)ps->stack[--ps->sp];
-                sleep(100);
-                ps->stack[ps->sp++] = scan_dir(d,ps->x,ps->y);
+                ps->stack[ps->sp++] = scan(d,ps->x,ps->y,p);
                 break;
             }
             case 'M': {

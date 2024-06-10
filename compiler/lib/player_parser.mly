@@ -28,13 +28,13 @@
 %token LPAR RPAR LBRACE RBRACE LBRAKE RBRAKE
 %token PLUS MINUS TIMES EQ NEQ LT GT LTEQ GTEQ
 %token LOGIC_AND LOGIC_OR PIPE FSLASH PCT TILDE
-%token COMMA SEMI COLON EOF
+%token COMMA SEMI COLON DOT EOF
 %token QMARK
 %token IF ELSE REPEAT
 %token GOTO
 %token MOVE FORTIFY WAIT PASS TRENCH
-%token NORTH EAST SOUTH WEST BOMB SHOOT CHECK SCAN MINE ATTACK
-%token HASH INT DIR FLAGS
+%token NORTH EAST SOUTH WEST BOMB SHOOT LOOK SCAN MINE ATTACK
+%token HASH INT DIR FIELD FLAGS
 %token PLAYER_CAP TRENCH_CAP MINE_CAP DESTROYED_CAP
 
 /*Low precedence*/
@@ -81,7 +81,7 @@ register:
 typ:
   | INT { T_Int }
   | DIR { T_Dir }
-  | FLAGS { T_Flags }
+  | FIELD { T_Field }
 ;
 
 block:
@@ -114,10 +114,10 @@ flag:
 
 value:
   | simple_value        { $1 }
-  | SCAN value          { Scan $2 }
-  | CHECK value         { Check $2 }
-  | value binop value   { Binary_op ($2, $1, $3) }
-  | simple_value LBRAKE flag RBRAKE     { Flag($1, $3) }
+  | SCAN simple_value simple_value          { Scan($2,$3) }
+  | LOOK simple_value         { Look $2 }
+  | value binop value         { Binary_op ($2, $1, $3) }
+  | simple_value DOT flag     { Flag($1, $3) }
 ;
 
 %inline binop:

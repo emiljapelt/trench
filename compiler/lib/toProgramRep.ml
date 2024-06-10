@@ -31,8 +31,8 @@ let rec compile_value val_expr regs acc =
   | RandomSet vals -> 
     List.fold_left (fun acc v -> compile_value v regs acc) (Instruction("R"^(string_of_int (List.length vals))) ::acc) vals
   | Direction d -> Instruction ("p"^string_of_dir d) :: acc
-  | Check e -> compile_value e regs (Instruction "c" :: acc)
-  | Scan e -> compile_value e regs (Instruction "s" :: acc)
+  | Look d -> compile_value d regs (Instruction "l" :: acc)
+  | Scan(d,p) -> compile_value d regs (compile_value p regs (Instruction "s" :: acc))
   | Binary_op (op, e1, e2) -> ( match op with
     | "&" -> compile_value e1 regs (compile_value e2 regs (Instruction "&" :: acc))
     | "|" -> compile_value e1 regs (compile_value e2 regs (Instruction "|" :: acc))

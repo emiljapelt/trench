@@ -55,8 +55,8 @@ let rec optimize_value expr =
     | ("!", Value(Int i)) -> Value(Int (if i = 0 then 1 else 0))
     | _ -> Value(Unary_op(op, opte))
   )
-  | Scan _ 
-  | Check _
+  | Scan(d,p) -> Scan(optimize_value d, optimize_value p) 
+  | Look _
   | Direction _
   | Random
   | RandomSet _

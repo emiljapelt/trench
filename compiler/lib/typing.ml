@@ -4,7 +4,7 @@ open Exceptions
 let type_string t = match t with
   | T_Int -> "int"
   | T_Dir -> "dir"
-  | T_Flags -> "flags"
+  | T_Field -> "field"
 
 let require req_typ expr_t res = 
   if req_typ = expr_t then res ()
@@ -23,9 +23,12 @@ let rec type_value regs v = match v with
     | Unary_op _
     | Random
     | Int _ -> T_Int
-    | Flag(v,_) -> require T_Flags (type_value regs v) (fun () -> T_Int)
-    | Scan e 
-    | Check e -> require T_Dir (type_value regs e) (fun () -> T_Flags)
+    | Flag(v,_) -> require T_Field (type_value regs v) (fun () -> T_Int)
+    | Scan(d,p)  ->
+      require T_Dir (type_value regs d) (fun () -> ()) ;
+      require T_Int (type_value regs p) (fun () -> ()) ;
+      T_Field
+    | Look e -> require T_Dir (type_value regs e) (fun () -> T_Int)
     | Direction _ -> T_Dir
     | RandomSet vals -> (match vals with
       | [] -> raise_failure "Empty random set"

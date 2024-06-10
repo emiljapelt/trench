@@ -11,7 +11,6 @@
                         "trench", TRENCH;
                         "fortify", FORTIFY;
                         "scan", SCAN;
-                        "check", CHECK;
                         "bomb", BOMB;
                         "wait", WAIT;
                         "pass", PASS;
@@ -25,7 +24,7 @@
                         "attack", ATTACK;
                         "int", INT;
                         "dir", DIR;
-                        "flags", FLAGS;
+                        "field", FIELD;
                         "PLAYER", PLAYER_CAP;
                         "TRENCH", TRENCH_CAP;
                         "MINE", MINE_CAP;
@@ -84,6 +83,7 @@ rule lex = parse
     |   '}'           { RBRACE }
     |   '['           { LBRAKE }
     |   ']'           { RBRAKE }
+    |   '.'           { DOT }
     |   ','           { COMMA }
     |   ';'           { SEMI }
     |   '#'           { HASH }

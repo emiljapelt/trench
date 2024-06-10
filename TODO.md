@@ -1,6 +1,3 @@
-- Make 'scan' work like 'bomb', but return a T_Flags
-- Make new stmt 'look' that works like the old 'scan'
-- Remove 'check', its utility is handled by 'scan _ 1'
 - Make the change directive case handling nicer
   - Save player directive path
   - give 3 options: 1 - No change, 2 - Same file, 3 - New file
