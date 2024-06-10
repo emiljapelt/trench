@@ -49,9 +49,16 @@ let rec compile_value val_expr regs acc =
     | "*" -> compile_value e1 regs (compile_value e2 regs (Instruction "*" :: acc))
     | _ -> raise_failure "Unknown binary operation"
   )
-  | Unary_op (op, e) -> match op with 
+  | Unary_op (op, e) -> ( match op with 
       | "~" -> compile_value e regs (Instruction "~" :: acc)
       | _ -> raise_failure "Unknown unary operation"
+  )
+  | Flag(v,f) -> ( match f with 
+    | PLAYER -> compile_value v regs (Instruction "'1" :: acc)
+    | TRENCH -> compile_value v regs (Instruction "'2" :: acc)
+    | MINE -> compile_value v regs (Instruction "'4" :: acc)
+    | DESTROYED -> compile_value v regs (Instruction "'8" :: acc)
+  )
 
 and compile_stmt (Stmt(stmt,ln)) regs acc =
   try match stmt with

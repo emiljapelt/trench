@@ -93,15 +93,16 @@ void move(direction d, player_state* ps) {
 void check(direction d, player_state* ps) {
     int x, y;
     move_coord(ps->x, ps->y, d, &x, &y);
-    if (!in_bounds(x, y)) { 
-        ps->stack[ps->sp++] = 0;
-    }
-    else if (get_field(x,y)->trenched) {
-        ps->stack[ps->sp++] = 1;
-    }
-    else {
-        ps->stack[ps->sp++] = 0;
-    }
+    int result = 0;
+    if (!in_bounds(x, y)) goto end;
+    if (get_field(x,y)->trenched) result |= TRENCH_FLAG;
+    if (get_field(x,y)->destroyed) result |= DESTORYED_FLAG;
+    if (get_field(x,y)->mine) result |= MINE_FLAG;
+    for(int i = 0; i < _gs->player_count; i++) 
+        if (_gs->players[i].x == x && _gs->players[i].y == y) result |= PLAYER_FLAG;
+
+    end:
+    ps->stack[ps->sp++] = result;
 }
 
 void shoot(const direction d, player_state* ps) {
@@ -386,6 +387,15 @@ void player_turn(player_state* ps) {
                 int v = ps->stack[--ps->sp];
                 int target = ps->stack[--ps->sp];
                 ps->stack[target] = v;
+                break;
+            }
+            case '\'': {
+                int v = ps->stack[--ps->sp];
+                int num_size = numeric_size(ps->directive,ps->dp);
+                int num = sub_str_to_int(ps->directive,ps->dp,num_size);
+                ps->stack[ps->sp++] = num;
+                ps->dp += num_size;
+                ps->stack[ps->sp++] = v & num;
                 break;
             }
             default: return;;

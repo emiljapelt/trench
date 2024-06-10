@@ -62,6 +62,7 @@ let rec optimize_value expr =
   | RandomSet _
   | Int _ -> Value(expr)
   | MetaReference _
+  | Flag _
   | Reference _ -> expr
   | Value val_expr -> optimize_value val_expr
 

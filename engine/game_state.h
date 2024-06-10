@@ -12,11 +12,12 @@ typedef enum direction {
     HERE
 } direction;
 
-typedef enum bullet_states {
-    No_bullets = 0,
-    NS_bullets,
-    EW_bullets,
-} bullet_states;
+typedef enum field_state_flags {
+    PLAYER_FLAG = 0b0001,
+    TRENCH_FLAG = 0b0010,
+    MINE_FLAG = 0b0100,
+    DESTORYED_FLAG = 0b1000
+} field_state_flags;
 
 typedef struct bomb_chain {
     unsigned char player_id: 4;

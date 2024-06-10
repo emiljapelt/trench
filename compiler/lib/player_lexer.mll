@@ -25,7 +25,12 @@
                         "attack", ATTACK;
                         "int", INT;
                         "dir", DIR;
-                      ]
+                        "flags", FLAGS;
+                        "PLAYER", PLAYER_CAP;
+                        "TRENCH", TRENCH_CAP;
+                        "MINE", MINE_CAP;
+                        "DESTROYED", DESTROYED_CAP;
+                      ] 
   
   let char_of_string s lexbuf = match s with
   | "\'\\n\'" -> '\n'

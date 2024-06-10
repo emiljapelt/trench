@@ -34,9 +34,8 @@
 %token GOTO
 %token MOVE FORTIFY WAIT PASS TRENCH
 %token NORTH EAST SOUTH WEST BOMB SHOOT CHECK SCAN MINE ATTACK
-%token HASH INT DIR
-
-%token PLAYER BOMBS SHOTS ACTIONS STEPS MODE BOARD NUKE
+%token HASH INT DIR FLAGS
+%token PLAYER_CAP TRENCH_CAP MINE_CAP DESTROYED_CAP
 
 /*Low precedence*/
 %left LOGIC_AND LOGIC_OR
@@ -75,10 +74,14 @@ register_defs:
 register:
   | NAME { Register(T_Int, $1, Int 0) }
   | NAME EQ const_value { Register(type_value [] $3, $1, $3) }
-  | INT NAME { Register(T_Int, $2, Int 0) }
-  | INT NAME EQ const_value { Register(T_Int, $2, $4) }
-  | DIR NAME { Register(T_Dir, $2, Int 0) }
-  | DIR NAME EQ const_value { Register(T_Dir, $2, $4) }
+  | typ NAME { Register($1, $2, Int 0) }
+  | typ NAME EQ const_value { Register($1, $2, $4) }
+;
+
+typ:
+  | INT { T_Int }
+  | DIR { T_Dir }
+  | FLAGS { T_Flags }
 ;
 
 block:
@@ -102,11 +105,19 @@ simple_value:
   | LPAR value RPAR                    { $2 }
 ;
 
+flag:
+  | PLAYER_CAP { PLAYER }
+  | TRENCH_CAP { TRENCH }
+  | MINE_CAP   { MINE }
+  | DESTROYED_CAP { DESTROYED }
+;
+
 value:
   | simple_value        { $1 }
   | SCAN value          { Scan $2 }
   | CHECK value         { Check $2 }
   | value binop value   { Binary_op ($2, $1, $3) }
+  | simple_value LBRAKE flag RBRAKE     { Flag($1, $3) }
 ;
 
 %inline binop:

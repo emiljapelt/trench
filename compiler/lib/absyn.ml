@@ -6,9 +6,16 @@ type direction =
     | South
     | West
 
+and flag =
+    | PLAYER
+    | TRENCH
+    | MINE
+    | DESTROYED
+
 and typ =
     | T_Int
     | T_Dir
+    | T_Flags
 
 and statement =
     | Stmt of statement_inner * int
@@ -42,6 +49,7 @@ and value =
     | Direction of direction
     | Random
     | RandomSet of value list
+    | Flag of value * flag
 
 and meta_data =
     | PlayerX     (* #x *)
