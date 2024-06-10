@@ -8,29 +8,30 @@
           │ │                       
           ╵ ╵            
 ```
-## File extentsion
+# File extension
 | | |
 | --- | --- |
 | .tr | Source code for a players behavior |
 | .trc | Compiled .tr file |
 | .trg | A game file |
 
-## Trench langauge
+# Trench langauge
 
 A program consists of a register block and a directive block.
 
-### Register block
+## Register block
 Here the set of available names has to be defined. For example if you want to be able to save information under the name 'a', a register 'a' must be defined here.
 
 ```
-[int a = 1, b, counter = 0, d = N, dir k, ...]
+[int a = 1, b, counter = 0, d = N, dir k, field f, ...]
 ```
 
-A register can be given an explicit initial value, by assignment, otherwise it will take 0 as its initial value. By default register carry intergers, but they can also be made to carry directions.
+A register can be given an explicit initial value, by assignment, otherwise it will take 0 as its initial value. By default register carry intergers, but they can also be made to carry directions or fields information.
 
-### Directive block
+## Directive block
 Here the logic is defined. It consist of a series of statements, which will be interpreted from the top. Statements take some steps to execute, a limit to how many steps can be taken in a turn is set in the game rules. Additonally, some statements will use an action, the number of actions available per turn is defined by the game rules.
 
+### Values
 | value | explaination | examples | steps |
 | --- | --- | --- | --- |
 | _x_ | reference to a register 'x' | counter | 1 |
@@ -39,7 +40,9 @@ Here the logic is defined. It consist of a series of statements, which will be i
 | _d_ | cardinal direction | N, E, S, W | 1 |
 | _a_ _binop_ _b_| binary operation | 1 + 2, x % 10 | a + b + 1 |
 | _unop_ _a_ | unary operation | ~a | a + 1 |
-| scan | get the distance to the closest trench in some direction, or 0 if there is none | b = scan N; | 1 |
+| scan _d_ _a_ | Get field information of the field in direction _d_, distance _i_ | scan N 2; | d + a + 1 |
+| _a_._f_ | Get a part of some field information | (scan N 2).PLAYER | a + 1 | 
+| look _d_  | get the distance to the closest trench in some direction, or 0 if there is none | look N | d + 1 |
 | ? | Get a random positive integer | ? | 1 |
 | [e<sub>0</sub>, ..., e<sub>n</sub>] | pick a random value from a list | [N,S]  [1,24] | e<sub>0</sub> + ... + e<sub>n</sub> + 1 | 
 
@@ -56,8 +59,14 @@ unary operators: ~ (not)
 | #board_x | board width |
 | #board_y | board height |
 
+| field info | explaintion |
+| --- | --- |
+| PLAYER | The field has a player|
+| TRENCH | The field is trenched |
+| MINE | The field has a mine |
+| DESTROYED | The field is destroyed |
 
-
+### Statements
 | statement | explaination | examples | actions | steps |
 | --- | --- | --- | --- | --- |
 | if (_c_) _a_ else _b_ | conditional execution | if (c) { ... } else { ... }  | 0 | c + a + 1, or c + b + 2 |
