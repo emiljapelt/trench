@@ -105,6 +105,7 @@ void unset_visual(int x, int y) {
 
 void explode_field(int x, int y) {
     field_state* fld = get_field(x,y);
+    if(fld->mine) fld->mine = 0;
     if (fld->fortified) fld->fortified = 0;
     else if (fld->trenched) {
         fld->trenched = 0;
