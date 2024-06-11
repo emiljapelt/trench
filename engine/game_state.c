@@ -11,54 +11,66 @@
 game_state* _gs;
 game_rules* _gr;
 
+directive_info load_directive_to_struct(const char* directive, const int len) {
+    int regs_len = 0;
+    int regs;
+    int* stack = malloc(sizeof(int)*1000);
+    
+    while(directive[regs_len] != ':') regs_len++;
+    if (regs_len) {
+        regs = 1;
+        for (int r = 0; r < regs_len; r++) {
+            if (directive[r] == ',') regs++;
+        }
+    } else regs = 0;
+
+    {
+        int directive_index = 0;
+        for(int r = 0; r < regs; r++) {
+            int num_len = numeric_size(directive, directive_index);
+            stack[r] = sub_str_to_int(directive, directive_index, num_len);
+            directive_index += num_len+1;
+        }
+    }
+
+    char* dir = malloc((len-regs_len)+1); dir[len-regs_len] = 0;
+    memcpy(dir, directive+regs_len+1, len-regs_len);
+
+    return (directive_info) {
+        .regs_len = regs_len,
+        .regs = regs,
+        .stack = stack,
+        .directive = dir,
+        .dir_len = len-(regs_len+1),
+    };
+}
+
 void create_players(char* player_info) {
 
     player_state* pss = malloc(sizeof(player_state) * _gs->player_count);
     int p = 0;
     for(int i = 0; i < _gs->player_count; i++) {
-        int* player_stack = malloc(sizeof(int)*1000);
-
         int id = ((int*)(player_info+p))[0];
         int x = ((int*)(player_info+p))[1];
         int y = ((int*)(player_info+p))[2];
         int pl = ((int*)(player_info+p))[3];
-        int dl = ((int*)(player_info+p))[4];
-        char* pth = player_info+p+(5*sizeof(int));
-        char* dir = player_info+p+pl+(5*sizeof(int));
-
-        int regs_len = 0;
-        while(dir[regs_len] != ':') regs_len++;
-        int regs;
-        if (regs_len) {
-            regs = 1;
-            for (int r = 0; r < regs_len; r++) {
-                if (dir[i] == ',') regs++;
-            }
-        } else regs = 0;
-
-        {
-            int directive_index = 0;
-            for(int r = 0; r < regs; r++) {
-                int num_len = numeric_size(dir, directive_index);
-                player_stack[r] = sub_str_to_int(dir, directive_index, num_len);
-                directive_index += num_len+1;
-            }
-        }
+        char* pth = player_info+p+(4*sizeof(int));
+        int dl = ((int*)(player_info+p+pl))[4];
+        char* dir = player_info+p+pl+(5*sizeof(int))+1;
+        
+        directive_info di = load_directive_to_struct(dir,dl);
 
         char* path = malloc(pl+1); path[pl] = 0;
         memcpy(path, pth, pl);
 
-        char* directive = malloc((dl-regs_len)+1); directive[dl-regs_len] = 0;
-        memcpy(directive, dir+regs_len+1, dl-regs_len);
-
         pss[i] = (player_state) {
             .alive = 1,
             .id = id,
-            .stack = player_stack,
-            .sp = regs,
+            .stack = di.stack,
+            .sp = di.regs,
             .path = path,
-            .directive = directive,
-            .directive_len = dl-(regs_len+1),
+            .directive = di.directive,
+            .directive_len = dl-(di.regs_len+1),
             .dp = 0,
             .x = x,
             .y = y,
@@ -66,7 +78,7 @@ void create_players(char* player_info) {
             .shots = _gr->shots,
         };
         //build_field(inits[i]->x, inits[i]->y, gs); // Inital player trench
-        p += (5*sizeof(int)+dl+pl);
+        p += (5*sizeof(int)+dl+pl+1);
     }
     _gs->players = pss;
 }

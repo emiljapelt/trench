@@ -20,11 +20,15 @@ and typ =
 and statement =
     | Stmt of statement_inner * int
 
+and target =
+    | Local of string
+    | Global of typ * value
+
 and statement_inner =
     | If of value * statement * statement
     | Block of statement list
     | Repeat of int * statement
-    | Assign of string * value
+    | Assign of target * value
     | Label of string
     | Move of value
     | Shoot of value
@@ -38,7 +42,7 @@ and statement_inner =
     | GoTo of string
 
 and value =
-    | Reference of string
+    | Reference of target
     | MetaReference of meta_data
     | Value of value
     | Binary_op of string * value * value
@@ -70,6 +74,11 @@ let string_of_dir d = match d with
     | East -> "1"
     | South -> "2"
     | West -> "3"
+
+let type_index t = match t with
+    | T_Int -> 0
+    | T_Dir -> 1
+    | T_Field -> 2
 
 type player_info = PI of { id: int; pos: int * int; file: string }
 

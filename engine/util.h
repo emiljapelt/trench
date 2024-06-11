@@ -10,7 +10,7 @@
 #endif
 
 
-int numeric_size(char* str, int start) ;
-int sub_str_to_int(char* str, int start, int size);
+int numeric_size(const char* str, const int start) ;
+int sub_str_to_int(const char* str, const int start, const int size);
 
 #endif

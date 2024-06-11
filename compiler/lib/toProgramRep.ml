@@ -16,7 +16,8 @@ let fetch_reg_index (name: string) regs =
 
 let rec compile_value val_expr regs acc =
   match val_expr with
-  | Reference name -> Instruction ("#"^(string_of_int (fetch_reg_index name regs))) :: acc
+  | Reference Local name -> Instruction ("#"^(string_of_int (fetch_reg_index name regs))) :: acc
+  | Reference Global (t,v) -> Instruction ("p"^string_of_int (type_index t)) :: (compile_value v regs (Instruction "@" :: acc))
   | MetaReference md -> (match md with
     | PlayerX -> Instruction ("#x") :: acc
     | PlayerY -> Instruction ("#y") :: acc
@@ -76,8 +77,10 @@ and compile_stmt (Stmt(stmt,ln)) regs acc =
     in
     aux count stmt acc
   )
-  | Assign (target, aexpr) -> 
-    Instruction ("p"^string_of_int (fetch_reg_index target regs)) :: compile_value aexpr regs (Instruction "a" :: acc)
+  | Assign (Local target, aexpr) -> 
+    Instruction ("p"^string_of_int (fetch_reg_index target regs)) :: compile_value aexpr regs (Instruction "a_" :: acc)
+  | Assign (Global(typ,v), aexpr) -> 
+    Instruction ("p"^string_of_int (type_index typ)) :: compile_value v regs (compile_value aexpr regs (Instruction "a@" :: acc))
   | Label name -> CLabel name :: acc
   | Move e -> compile_value e regs (Instruction "m" :: acc)
   | Shoot e -> compile_value e regs (Instruction "S" :: acc)

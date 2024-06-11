@@ -16,7 +16,8 @@ let reg_type regs name =
   | None -> raise_failure ("No such register: "^name)
 
 let rec type_value regs v = match v with
-    | Reference n -> reg_type regs n  
+    | Reference Local n -> reg_type regs n  
+    | Reference Global (t,_) -> t
     | MetaReference m -> type_meta m
     | Value v -> type_value regs v
     | Binary_op _
@@ -51,7 +52,8 @@ let rec type_check_stmt_inner regs stmt = match stmt with
   | If(c,a,b) -> require T_Int (type_value regs c) (fun () -> type_check_stmt regs a ; type_check_stmt regs b)
   | Block stmts -> type_check_stmts regs stmts
   | Repeat(_,stmt) -> type_check_stmt regs stmt
-  | Assign(n,e) -> require (reg_type regs n) (type_value regs e) (fun () -> ())
+  | Assign(Local n,e) -> require (reg_type regs n) (type_value regs e) (fun () -> ())
+  | Assign(Global(t,_),e) -> require t (type_value regs e) (fun () -> ())
   | Move e 
   | Shoot e -> require T_Dir (type_value regs e) (fun () -> ())
   | Bomb(d,p) -> 

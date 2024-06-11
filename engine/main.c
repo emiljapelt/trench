@@ -271,6 +271,14 @@ void player_turn(player_state* ps) {
                 _gs->remaining_actions--;
                 break;
             }
+            case '@': {
+                int i = ps->stack[--ps->sp];
+                int t = ps->stack[--ps->sp];
+                if (i > 0 && i < 10) {
+                    ps->stack[ps->sp++] = _gs->global_arrays[t][i];
+                } else ps->stack[ps->sp++] = 0;
+                break;
+            }
             case '#': {
                 switch (ps->directive[ps->dp]) {
                     case 'x': {
@@ -388,10 +396,21 @@ void player_turn(player_state* ps) {
                 break;
             }
             case 'a': {
-                int v = ps->stack[--ps->sp];
-                int target = ps->stack[--ps->sp];
-                ps->stack[target] = v;
-                break;
+                switch (ps->directive[ps->dp++]) {
+                    case '_': {
+                        int v = ps->stack[--ps->sp];
+                        int target = ps->stack[--ps->sp];
+                        ps->stack[target] = v;
+                        break;
+                    }
+                    case '@': {
+                        int v = ps->stack[--ps->sp];
+                        int i = ps->stack[--ps->sp];
+                        int t = ps->stack[--ps->sp];
+                        if (i > 0 && i < 10) _gs->global_arrays[t][i] = v;
+                        break;
+                    }
+                }
             }
             case '\'': {
                 int v = ps->stack[--ps->sp];
@@ -431,13 +450,14 @@ void get_new_directive(player_state* ps, const char* comp_path) {
         }
 
         char* directive;
-        if(compile_file(ps->path, comp_path, &directive)) {
-            int i = 0;
-            int len = directive[0];
-            while(directive[i] != ':') i++; i++;
-            memmove(directive, directive+i, strlen(directive+i));
+        int len = compile_file(ps->path, comp_path, &directive);
+        if (len) {
+            directive_info di = load_directive_to_struct(directive,len);
             free(ps->directive);
-            ps->directive = directive;
+            free(ps->stack);
+            ps->directive = di.directive;
+            ps->stack = di.stack;
+            ps->sp = di.regs;
             ps->dp = 0;
             ps->directive_len = len;
             return;
@@ -553,7 +573,8 @@ int main(int argc, char** argv) {
         .board_x = ((int*)game_info)[6],
         .board_y = ((int*)game_info)[7],
         .player_count = ((int*)game_info)[8],
-        .board = empty_board(((int*)game_info)[6],((int*)game_info)[7])
+        .board = empty_board(((int*)game_info)[6],((int*)game_info)[7]),
+        .global_arrays = {0}
     };
     _gs = &gs;
 

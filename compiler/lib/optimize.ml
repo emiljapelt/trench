@@ -62,10 +62,15 @@ let rec optimize_value expr =
   | RandomSet _
   | Int _ -> Value(expr)
   | MetaReference _
-  | Flag _
-  | Reference _ -> expr
+  | Flag _ 
+  | Reference Local _ -> expr
+  | Reference Global(t,v) -> Reference(Global(t,optimize_value v))
   | Value val_expr -> optimize_value val_expr
 
+
+let optimize_assign_target tar = match tar with
+      | Local _ -> tar
+      | Global(t,v) -> Global(t,optimize_value v)
 
 let rec optimize_stmt (Stmt(stmt_i,ln) as stmt) = match stmt_i with
   | If(c,a,b) -> ( match optimize_value c with
@@ -75,7 +80,7 @@ let rec optimize_stmt (Stmt(stmt_i,ln) as stmt) = match stmt_i with
   )
   | Block stmts -> Stmt(Block(optimize_stmts stmts),ln)
   | Repeat(i,stmt) -> Stmt(Repeat(i,optimize_stmt stmt),ln)
-  | Assign(n,e) -> Stmt(Assign(n,optimize_value e),ln)
+  | Assign(n,e) -> Stmt(Assign(optimize_assign_target n,optimize_value e),ln)
   | Move e -> Stmt(Move(optimize_value e),ln)
   | Shoot e -> Stmt(Shoot(optimize_value e),ln)
   | Bomb(d,p) -> Stmt(Bomb(optimize_value d, optimize_value p),ln)

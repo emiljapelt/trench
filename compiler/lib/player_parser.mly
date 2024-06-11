@@ -100,7 +100,8 @@ simple_value:
   | LBRAKE seperated(FSLASH, const_value) RBRAKE         { RandomSet $2 }
   | MINUS simple_value                 { Binary_op ("-", Value (Int 0), $2) } %prec TILDE
   | TILDE simple_value                 { Unary_op ("~", $2) }
-  | NAME                               { Reference $1 }
+  | NAME                               { Reference(Local $1) }
+  | typ LBRAKE value RBRAKE            { Reference(Global($1,$3)) }
   | HASH NAME                          { MetaReference (meta_name $2 $symbolstartpos.pos_fname $symbolstartpos.pos_lnum) }
   | LPAR value RPAR                    { $2 }
 ;
@@ -162,12 +163,17 @@ stmt1_inner:
   | non_control_flow_stmt SEMI                { $1 }
 ;
 
+target:
+  | NAME { Local $1 }
+  | typ LBRAKE value RBRAKE { Global($1,$3) }
+; 
+
 non_control_flow_stmt:
-  | NAME EQ value        { Assign ($1, $3) }
-  | NAME PLUS EQ value   { Assign ($1, Value(Binary_op("+", Reference $1, $4))) }
-  | NAME MINUS EQ value  { Assign ($1, Value(Binary_op("-", Reference $1, $4))) }
-  | NAME TIMES EQ value  { Assign ($1, Value(Binary_op("*", Reference $1, $4))) }
-  | NAME TILDE EQ value  { Assign ($1, Value(Unary_op("~", $4))) }
+  | target EQ value        { Assign ($1, $3) }
+  | target PLUS EQ value   { Assign ($1, Value(Binary_op("+", Reference $1, $4))) }
+  | target MINUS EQ value  { Assign ($1, Value(Binary_op("-", Reference $1, $4))) }
+  | target TIMES EQ value  { Assign ($1, Value(Binary_op("*", Reference $1, $4))) }
+  | target TILDE EQ value  { Assign ($1, Value(Unary_op("~", $4))) }
   | MOVE value                        { Move $2 }
   | SHOOT value                       { Shoot $2 }
   | MINE value                        { Mine $2 }

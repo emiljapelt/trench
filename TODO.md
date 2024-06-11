@@ -1,0 +1,1 @@
+- Game option for size of global arrays

@@ -12,6 +12,14 @@ typedef enum direction {
     HERE
 } direction;
 
+typedef struct directive_info {
+    int regs;
+    int regs_len;
+    int dir_len;
+    int* stack;
+    char* directive;
+} directive_info;
+
 typedef enum field_state_flags {
     PLAYER_FLAG = 0b0001,
     TRENCH_FLAG = 0b0010,
@@ -45,11 +53,13 @@ typedef struct game_state {
     const int player_count;
     field_state* board;
     bomb_chain* bomb_chain;
+    int global_arrays[3][10];
 } game_state;
 
 extern game_state* _gs;
 extern game_rules* _gr;
 
+directive_info load_directive_to_struct(const char* directive, const int len);
 void create_players(char* player_info);
 
 field_state* get_field(int x, int y);

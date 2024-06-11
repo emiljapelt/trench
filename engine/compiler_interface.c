@@ -50,5 +50,5 @@ int compile_file(const char* file_path, const char* comp_path, char** result) {
     *result = buffer;
 
     free(command);
-    return 1;
+    return result_len;
 }

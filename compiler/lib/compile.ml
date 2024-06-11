@@ -119,12 +119,11 @@ and players_to_binary ps =
     | [] -> String.concat "" acc
     | (PI({id = id; pos = (x,y); file = file}))::t -> aux t (
       let dir = compile_player_file file in
-      (Printf.sprintf "%s%s%s%s%s%s%s" 
+      (Printf.sprintf "%s%s%s%s%s%s" 
         (int_to_binary id)
         (int_to_binary x)
         (int_to_binary y)
         (int_to_binary (String.length file))
-        (int_to_binary (String.length dir))
         (file)
         (dir)
       )
