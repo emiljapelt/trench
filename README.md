@@ -28,6 +28,8 @@ Here the set of available names has to be defined. For example if you want to be
 
 A register can be given an explicit initial value, by assignment, otherwise it will take 0 as its initial value. By default register carry intergers, but they can also be made to carry directions or fields information.
 
+The set of registers will be replaced along with the program, whenever a directive change occurs. To persist information beyond a directive change, the global arrays can be used. There is such an array for each information type, and the entire array is available to each player.
+
 ## Directive block
 Here the logic is defined. It consist of a series of statements, which will be interpreted from the top. Statements take some steps to execute, a limit to how many steps can be taken in a turn is set in the game rules. Additonally, some statements will use an action, the number of actions available per turn is defined by the game rules.
 
@@ -36,6 +38,7 @@ Here the logic is defined. It consist of a series of statements, which will be i
 | --- | --- | --- | --- |
 | _x_ | reference to a register 'x' | counter | 1 |
 | #_x_ | reference to a meta variable 'x' | #x | 1 |
+| _type_ [ _a_ ] | reference an index in the global _type_ array | int[2] | a + 2 |
 | _i_ | interger value | 14, -1 | 1 |
 | _d_ | cardinal direction | N, E, S, W | 1 |
 | _a_ _binop_ _b_| binary operation | 1 + 2, x % 10 | a + b + 1 |
@@ -58,6 +61,7 @@ unary operators: ~ (not)
 | #shots | players remaining shots |
 | #board_x | board width |
 | #board_y | board height |
+| #array_size | global array size |
 
 | field info | explaintion |
 | --- | --- |
@@ -74,6 +78,7 @@ unary operators: ~ (not)
 | {s<sub>0</sub> ... s<sub>n</sub>} | A contained series of statements. | { ... } | 0 | s<sub>0</sub> + ... + s<sub>n</sub> |
 | repeat(_x_) _s_ | Compile a statement 'x' times | repeat (2) ... | 0 | x * s |
 | _a_ = _e_ | Assign a value to a register. | a = a + 1; a += 1; | 0 | e + 2 |
+| _type_ [ _a_ ] = _e_ | Assign a value to the global _type_ array | int[4] = 2 + 2; | 0 | a + e + 2 |
 | label | Marks a location in the directive | loop: | 0 | 0 |
 | move _d_ | Move the player 1 space in some direction. | move [N,S]; | 0 | d + 1 |
 | shoot _d_ | Shoot in some direction, from the players current position. Any player in that direction, not in a trench will die. | shoot S; | 1 | d + 1 |
@@ -100,15 +105,17 @@ The game file specifies the players and rules of a particular game. It consists 
 | board_x | the board width |
 | board_y | the board height |
 | nuke | how many rounds must pass, between every space on the board being blow up. 0 meaning never. |
+| global_array | the size of each global array | 
 
 In the following, every value is set to its default, except the player:
 ```
 bombs:10;
 shots:100;
 actions:1;
-steps:1000;
+steps:100;
 mode:0;
 nuke:0;
+global_array: 10;
 
 board_x:20;
 board_y:20;

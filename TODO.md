@@ -1,1 +1,1 @@
-- Game option for size of global arrays
+- Game option for maximum number of registers

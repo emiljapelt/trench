@@ -18,7 +18,7 @@
     | "shots" -> PlayerShots
     | "board_x" -> BoardX
     | "board_y" -> BoardY
-    | "array" ->  GlobalArraySize
+    | "array_size" ->  GlobalArraySize
     | _ -> raise (Failure(Some fn, Some ln, "Unknown meta reference"))
 
 %}
