@@ -8,6 +8,7 @@ typedef struct game_rules {
     const int shots;
     const int mode;
     const int nuke;
+    const int array;
 } game_rules;
 
 #endif

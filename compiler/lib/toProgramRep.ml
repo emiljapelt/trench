@@ -18,14 +18,15 @@ let rec compile_value val_expr regs acc =
   match val_expr with
   | Reference Local name -> Instruction ("#"^(string_of_int (fetch_reg_index name regs))) :: acc
   | Reference Global (t,v) -> Instruction ("p"^string_of_int (type_index t)) :: (compile_value v regs (Instruction "@" :: acc))
-  | MetaReference md -> (match md with
-    | PlayerX -> Instruction ("#x") :: acc
-    | PlayerY -> Instruction ("#y") :: acc
-    | PlayerBombs -> Instruction ("#b") :: acc
-    | PlayerShots -> Instruction ("#s") :: acc
-    | BoardX -> Instruction ("#_") :: acc
-    | BoardY -> Instruction ("#|") :: acc
-  )
+  | MetaReference md -> ( match md with
+    | PlayerX -> Instruction ("#x") 
+    | PlayerY -> Instruction ("#y") 
+    | PlayerBombs -> Instruction ("#b")
+    | PlayerShots -> Instruction ("#s")
+    | BoardX -> Instruction ("#_")
+    | BoardY -> Instruction ("#|")
+    | GlobalArraySize -> Instruction ("#g")
+  ) :: acc
   | Value val_expr -> compile_value val_expr regs acc
   | Int i -> Instruction("p"^string_of_int i) :: acc
   | Random -> Instruction("r") :: acc

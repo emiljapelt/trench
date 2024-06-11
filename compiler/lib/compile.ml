@@ -52,10 +52,11 @@ let default_game_setup = GS {
   bombs = 3;
   shots = 10;
   actions = 1;
-  steps = 1000;
+  steps = 100;
   mode = 0;
   board = (20,20);
   nuke = 0;
+  array = 10;
 }
 
 let to_game_setup gsps =
@@ -70,6 +71,7 @@ let to_game_setup gsps =
       | Mode i -> (GS ({acc with mode = i}))
       | Board(x,y) -> (GS ({acc with board = (x,y)}))
       | Nuke i -> (GS ({acc with nuke = i}))
+      | GlobalArray i -> if i < 0 then raise_failure "Global array size cannot be negative" else (GS ({acc with array = i}))
     )
   in
   aux gsps default_game_setup
@@ -155,13 +157,14 @@ and players_to_binary ps =
   }
 *)
 and to_binary (GS gs) = 
-  let binary = Printf.sprintf "%s%s%s%s%s%s%s%s%s%s"
+  let binary = Printf.sprintf "%s%s%s%s%s%s%s%s%s%s%s"
   (int_to_binary gs.bombs)
   (int_to_binary gs.shots)
   (int_to_binary gs.actions)
   (int_to_binary gs.steps)
   (int_to_binary gs.mode)
   (int_to_binary gs.nuke)
+  (int_to_binary gs.array)
   (int_to_binary (fst gs.board))
   (int_to_binary (snd gs.board))
   (int_to_binary (List.length gs.players))

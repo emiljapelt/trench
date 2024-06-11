@@ -274,8 +274,8 @@ void player_turn(player_state* ps) {
             case '@': {
                 int i = ps->stack[--ps->sp];
                 int t = ps->stack[--ps->sp];
-                if (i > 0 && i < 10) {
-                    ps->stack[ps->sp++] = _gs->global_arrays[t][i];
+                if (i > 0 && i < _gr->array) {
+                    ps->stack[ps->sp++] = _gs->global_arrays[(t*_gr->array)+i];
                 } else ps->stack[ps->sp++] = 0;
                 break;
             }
@@ -308,6 +308,11 @@ void player_turn(player_state* ps) {
                     }
                     case '|': {
                         ps->stack[ps->sp++] = _gs->board_y;
+                        ps->dp++;
+                        break;
+                    }
+                    case 'g': {
+                        ps->stack[ps->sp++] = _gr->array;
                         ps->dp++;
                         break;
                     }
@@ -407,7 +412,7 @@ void player_turn(player_state* ps) {
                         int v = ps->stack[--ps->sp];
                         int i = ps->stack[--ps->sp];
                         int t = ps->stack[--ps->sp];
-                        if (i > 0 && i < 10) _gs->global_arrays[t][i] = v;
+                        if (i > 0 && i < _gr->array) _gs->global_arrays[(t*_gr->array)+i] = v;
                         break;
                     }
                 }
@@ -565,20 +570,22 @@ int main(int argc, char** argv) {
         .steps = ((int*)game_info)[3],
         .mode = ((int*)game_info)[4],
         .nuke = ((int*)game_info)[5],
+        .array = ((int*)game_info)[6],
     };
     _gr = &gr;
 
     game_state gs = {
         .round = 1,
-        .board_x = ((int*)game_info)[6],
-        .board_y = ((int*)game_info)[7],
-        .player_count = ((int*)game_info)[8],
-        .board = empty_board(((int*)game_info)[6],((int*)game_info)[7]),
-        .global_arrays = {0}
+        .board_x = ((int*)game_info)[7],
+        .board_y = ((int*)game_info)[8],
+        .player_count = ((int*)game_info)[9],
+        .board = empty_board(((int*)game_info)[7],((int*)game_info)[8]),
+        .global_arrays = malloc(3*(sizeof(int)*_gr->array)),
     };
+    memset(gs.global_arrays, 0, 3*(sizeof(int)*_gr->array));
     _gs = &gs;
 
-    create_players(game_info+(9*sizeof(int)));
+    create_players(game_info+(10*sizeof(int)));
     free(game_info);
 
     print_board();

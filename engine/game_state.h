@@ -53,7 +53,7 @@ typedef struct game_state {
     const int player_count;
     field_state* board;
     bomb_chain* bomb_chain;
-    int global_arrays[3][10];
+    int* global_arrays;
 } game_state;
 
 extern game_state* _gs;

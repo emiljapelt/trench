@@ -62,6 +62,7 @@ and meta_data =
     | PlayerShots (* #shots *)
     | BoardX      (* #board_x *)  
     | BoardY      (* #board_y *)
+    | GlobalArraySize (* #array_size  *)
 
 and register =
     | Register of typ * string * value
@@ -91,6 +92,7 @@ type game_setup_part =
     | Mode of int
     | Board of int * int
     | Nuke of int
+    | GlobalArray of int
 
 type game_setup = GS of {
     players: player_info list;
@@ -101,4 +103,5 @@ type game_setup = GS of {
     mode: int;
     board: int * int;
     nuke: int;
+    array: int;
 }

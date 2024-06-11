@@ -45,7 +45,8 @@ and type_meta m = match m with
     | PlayerBombs 
     | PlayerShots 
     | BoardX      
-    | BoardY -> T_Int     
+    | BoardY 
+    | GlobalArraySize -> T_Int     
 
 
 let rec type_check_stmt_inner regs stmt = match stmt with

@@ -12,6 +12,7 @@
                         "mode", MODE;
                         "board", BOARD;
                         "nuke", NUKE;
+                        "global_array", GLOBAL_ARRAY;
                       ]
   
   let char_of_string s lexbuf = match s with
@@ -39,8 +40,8 @@ rule lex = parse
         [' ' '\t']               { lex lexbuf }
     |   ('\r''\n' | '\n')        { incr_linenum lexbuf ; lex lexbuf }
     |   "//" [^ '\n' '\r']* ('\r''\n' | '\n' | eof)       { incr_linenum lexbuf ; lex lexbuf }
-    |   ['0'-'9']+ as lxm { CSTINT (int_of_string lxm) }
-    |   ['A'-'Z' 'a'-'z' '/' '.']['A'-'Z' 'a'-'z' '0'-'9' '/' '.']* as id
+    |  '-'? ['0'-'9']+ as lxm { CSTINT (int_of_string lxm) }
+    |   ['A'-'Z' 'a'-'z' '/' '.']['A'-'Z' 'a'-'z' '0'-'9' '/' '_' '.']* as id
                 { try
                     Hashtbl.find keyword_table id
                   with Not_found -> PATH id }
