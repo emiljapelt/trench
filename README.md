@@ -79,10 +79,11 @@ unary operators: ~ (not)
 | repeat(_x_) _s_ | Compile a statement 'x' times | repeat (2) ... | 0 | x * s |
 | _a_ = _e_ | Assign a value to a register. | a = a + 1; a += 1; | 0 | e + 2 |
 | _type_ [ _a_ ] = _e_ | Assign a value to the global _type_ array | int[4] = 2 + 2; | 0 | a + e + 2 |
-| label | Marks a location in the directive | loop: | 0 | 0 |
+| label: | Marks a location in the directive | loop: | 0 | 0 |
 | move _d_ | Move the player 1 space in some direction. | move [N,S]; | 0 | d + 1 |
 | shoot _d_ | Shoot in some direction, from the players current position. Any player in that direction, not in a trench will die. | shoot S; | 1 | d + 1 |
 | bomb _d_ _p_ | Throw a bomb in some direct, some number of spaces. It explodes after 1 round, killing any player hit, unless they are in a fortified trench. Fortified trenches become unfortifed, unfortified trenches are destroyed. | bomb N (2+1); | 1 | d + p + 1 |
+| mine _d_ | Place a mine in some direct. It explodes if anyone steps of it, killing that player. | mine N; | 1 | d + 1 |
 | fortify | Fortify the trench here, if there is a trench. | fortify; | 1 | 2 |
 | fortify _d_ | Fortify the trench in some direction, if there is a trench. | fortify N; | 1 | d + 1 |
 | trench | Dig a trench here. | trench; | 1 | 2 |
