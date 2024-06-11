@@ -64,14 +64,14 @@ let to_game_setup gsps =
     | [] -> (GS acc)
     | h::t -> aux t (match h with
       | Player pi -> (GS ({acc with players = pi :: acc.players}))
-      | Bombs i -> (GS ({acc with bombs = i}))
-      | Shots i -> (GS ({acc with shots = i}))
-      | Actions i -> (GS ({acc with actions = i}))
-      | Steps i -> (GS ({acc with steps = i}))
+      | Bombs i -> if i >= 0 then (GS ({acc with bombs = i})) else raise_failure "Cannot have a negative amount of bombs"
+      | Shots i -> if i >= 0 then (GS ({acc with shots = i})) else raise_failure "Cannot have a negative amount of shots"
+      | Actions i -> if i > 0 then (GS ({acc with actions = i})) else raise_failure "Must have some actions per trun"
+      | Steps i -> if i > 0 then (GS ({acc with steps = i})) else raise_failure "Must have some steps per trun"
       | Mode i -> (GS ({acc with mode = i}))
-      | Board(x,y) -> (GS ({acc with board = (x,y)}))
-      | Nuke i -> (GS ({acc with nuke = i}))
-      | GlobalArray i -> if i < 0 then raise_failure "Global array size cannot be negative" else (GS ({acc with array = i}))
+      | Board(x,y) -> if x >= 0 && y >= 0 then (GS ({acc with board = (x,y)})) else raise_failure "Board size cannot be negative"
+      | Nuke i -> if i >= 0 then (GS ({acc with nuke = i})) else raise_failure "Nuke option size cannot be negative"
+      | GlobalArray i -> if i >= 0 then (GS ({acc with array = i})) else raise_failure "Global array size cannot be negative"
     )
   in
   aux gsps default_game_setup
