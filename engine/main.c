@@ -4,20 +4,18 @@
 #include <unistd.h>
 #include <time.h>
 
+#include <caml/callback.h>
+
 #include "player.h"
 #include "game_rules.h"
 #include "game_state.h"
 #include "visual.h"
 #include "util.h"
-#include "compiler_interface.h"
 
+//"compiler_wrapper.h"
+extern int compile_game(const char* path, game_rules* gr, game_state* gs);
+extern int compile_player(const char* path, directive_info* result);
 
-field_state* empty_board(int x, int y) {
-    int size = sizeof(field_state)*x*y;
-    field_state* brd = malloc(size);
-    memset(brd,0,size);
-    return brd;
-}
 
 int scan(const direction dir, int x, int y, const int power) {
     int result = 0;
@@ -432,11 +430,11 @@ void player_turn(player_state* ps) {
     }
 }
 
-void get_new_directive(player_state* ps, const char* comp_path) {      
+void get_new_directive(player_state* ps) {      
     while(1) {
         char* path;
         char option;
-        print_board();
+        //print_board();
         printf("Player %i, change directive?:\n0: No change\n1: Reload file\n2: New file\n", ps->id);
         scanf(" %c",&option);
         switch (option) {
@@ -454,17 +452,15 @@ void get_new_directive(player_state* ps, const char* comp_path) {
             default: continue;
         }
 
-        char* directive;
-        int len = compile_file(ps->path, comp_path, &directive);
-        if (len) {
-            directive_info di = load_directive_to_struct(directive,len);
+        directive_info di;
+        if (compile_player(ps->path, &di)) {
             free(ps->directive);
             free(ps->stack);
             ps->directive = di.directive;
             ps->stack = di.stack;
             ps->sp = di.regs;
             ps->dp = 0;
-            ps->directive_len = len;
+            ps->directive_len = di.dir_len;
             return;
         }
     }
@@ -510,7 +506,7 @@ void play_round() {
 
 // Mode: 0
 // Players cannot change directive
-void static_mode(const char* comp_path) {
+void static_mode() {
     while(1) {
         play_round();
         _gs->round++;
@@ -519,13 +515,13 @@ void static_mode(const char* comp_path) {
 
 // Mode: x
 // Players can change directive after 'x' rounds
-void dynamic_mode(const char* comp_path) {
+void dynamic_mode() {
     while(1) {
         play_round(_gr);
         if (_gs->round % _gr->mode == 0) {
             for(int i = 0; i < _gs->player_count; i++) {
                 if (!_gs->players[i].alive) continue; 
-                get_new_directive(_gs->players+i, comp_path);
+                get_new_directive(_gs->players+i);
                 print_board();
             }
         }
@@ -536,11 +532,11 @@ void dynamic_mode(const char* comp_path) {
 
 // Mode: -x
 // Players can change directive before each of their turns
-void manual_mode(const char* comp_path) {
+void manual_mode() {
     while(1) {
         for(int i = 0; i < _gs->player_count; i++) {
             if (!_gs->players[i].alive) continue; 
-            get_new_directive(_gs->players+i, comp_path);
+            get_new_directive(_gs->players+i);
             print_board();
             player_turn(_gs->players+i);
         }
@@ -555,45 +551,22 @@ int main(int argc, char** argv) {
 
     srand((unsigned) time(NULL));
 
-    if (argc < 3) {
+    if (argc < 2) {
         printf("Too few arguments given, needs: <game_file_path> <compiler_path>\n");
         exit(1);
     }
 
-    char* game_info;
-    compile_file(argv[1], argv[2], &game_info);
-    
-    game_rules gr = {
-        .bombs = ((int*)game_info)[0],
-        .shots = ((int*)game_info)[1],
-        .actions = ((int*)game_info)[2],
-        .steps = ((int*)game_info)[3],
-        .mode = ((int*)game_info)[4],
-        .nuke = ((int*)game_info)[5],
-        .array = ((int*)game_info)[6],
-    };
-    _gr = &gr;
-
-    game_state gs = {
-        .round = 1,
-        .board_x = ((int*)game_info)[7],
-        .board_y = ((int*)game_info)[8],
-        .player_count = ((int*)game_info)[9],
-        .board = empty_board(((int*)game_info)[7],((int*)game_info)[8]),
-        .global_arrays = malloc(3*(sizeof(int)*_gr->array)),
-    };
-    memset(gs.global_arrays, 0, 3*(sizeof(int)*_gr->array));
-    _gs = &gs;
-
-    create_players(game_info+(10*sizeof(int)));
-    free(game_info);
+    caml_startup(argv);
+    _gr = malloc(sizeof(game_rules));
+    _gs = malloc(sizeof(game_state));
+    if(!compile_game(argv[1], _gr, _gs)) return 1;
 
     print_board();
     sleep(1000);
 
-    if (gr.mode == 0) static_mode(argv[2]);
-    else if (gr.mode < 0) manual_mode(argv[2]);
-    else if (gr.mode > 0) dynamic_mode(argv[2]);
+    if (_gr->mode == 0) static_mode();
+    else if (_gr->mode < 0) manual_mode();
+    else if (_gr->mode > 0) dynamic_mode();
 
     return 0;
 }

@@ -11,6 +11,7 @@
                         "trench", TRENCH;
                         "fortify", FORTIFY;
                         "scan", SCAN;
+                        "look", LOOK;
                         "bomb", BOMB;
                         "wait", WAIT;
                         "pass", PASS;

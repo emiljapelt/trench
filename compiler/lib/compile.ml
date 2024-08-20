@@ -8,20 +8,38 @@ open Absyn
 
 let check_input input =
   try (
-    if not (Sys.file_exists input) then (Printf.printf "%s\n" input; raise_failure "Input file does not exist")
+    if not (Sys.file_exists input) then raise_failure ("Input file does not exist: "^input)
     else if Str.string_match (regexp {|^\(\.\.?\)?\/?\(\([a-zA-Z0-9_-]+\|\(\.\.?\)\)\/\)*[a-zA-Z0-9_-]+\.trg?$|}) input 0 then ()
     else raise_failure "Invalid input file extension"
   ) with
   | ex -> raise ex
 
-let print_line ls l =
-  Printf.printf "%i | %s\n" (l+1) (List.nth ls l)
+
+let get_line ls l =
+  Printf.sprintf "%i | %s\n" (l+1) (List.nth ls l)
 
 let read_file path =
   let file = open_in path in
   let content = really_input_string (file) (in_channel_length file) in
   let () = close_in_noerr file in
   content
+
+let format_failure path f = match f with
+  | Failure(file_opt, line_opt, expl) -> (
+    let msg = Printf.sprintf "%s %s" expl (Option.value file_opt ~default:"") in
+    let details = if Option.is_some line_opt then (
+        let line_msg = Printf.sprintf ", line %i: \n" (Option.get line_opt) in
+        let line = Option.get line_opt in
+        let lines = String.split_on_char '\n' (read_file path) in
+        let printer =  get_line lines in match line with
+        | 1 -> line_msg ^ printer 0 ^ printer 1
+        | n when n = (List.length lines)-1 -> line_msg ^  printer (n-2) ^ printer (n-1)
+        | _ ->  line_msg ^ printer (line-2) ^ printer (line-1) ^ printer line
+      )
+      else "\n" in
+      msg ^ details
+  )
+  | _ -> "Uncaught error!"
 
 let compress_path path =
   let rec compress parts acc =
@@ -105,94 +123,68 @@ let check_registers_unique (File(regs,_)) =
   in
   aux regs StringSet.empty
 
-  let player_to_string (regs,program) = 
-    let info = regs_to_string regs^":"^program_to_string program in
-    (int_to_binary (String.length info)) ^ "\n" ^ info
-    
+let player_to_string (regs,program) = 
+  regs_to_string regs^":"^program_to_string program
 
-let compile_player_file path = 
-  compile Player_parser.main Player_lexer.start [type_check_program;optimize_program] [check_registers_unique] compile_player player_to_string path
+type compiled_player_info = {
+  id: int;
+  position: int * int;
+  path: string;
+  directive: string;
+  directive_len: int;
+}
 
-let rec compile_game_file path =
-  compile Game_parser.main Game_lexer.start [] [] to_game_setup to_binary path
+type compiled_game_file = {
+  bombs: int;
+  shots: int;
+  actions: int;
+  steps: int;
+  mode: int;
+  nuke: int;
+  array: int;
+  board_size: int * int;
+  player_count: int;
+  player_info: compiled_player_info array;
+}
 
-and players_to_binary ps = 
-  let rec aux ps acc = match ps with
-    | [] -> String.concat "" acc
-    | (PI({id = id; pos = (x,y); file = file}))::t -> aux t (
-      let dir = compile_player_file file in
-      (Printf.sprintf "%s%s%s%s%s%s" 
-        (int_to_binary id)
-        (int_to_binary x)
-        (int_to_binary y)
-        (int_to_binary (String.length file))
-        (file)
-        (dir)
-      )
-      ::acc
-    )
-  in
-  aux ps []
-
-
-(* Binary format: [n] = n bytes; n {...} = repeat n time
-  int length;
-  int bombs;
-  int shots;
-  int actions;
-  int steps;
-  int mode;
-  int nuke;
-  int board_x;
-  int board_y;
-  int player_count;
-  player_count {
-    int id;
-    int x;
-    int y;
-    int pl;
-    int dl;
-    [pl] p;
-    [dl] d;
-  }
-*)
-and to_binary (GS gs) = 
-  let binary = Printf.sprintf "%s%s%s%s%s%s%s%s%s%s%s"
-  (int_to_binary gs.bombs)
-  (int_to_binary gs.shots)
-  (int_to_binary gs.actions)
-  (int_to_binary gs.steps)
-  (int_to_binary gs.mode)
-  (int_to_binary gs.nuke)
-  (int_to_binary gs.array)
-  (int_to_binary (fst gs.board))
-  (int_to_binary (snd gs.board))
-  (int_to_binary (List.length gs.players))
-  (players_to_binary gs.players)
-  in
-  (int_to_binary (String.length binary)) ^ "\n" ^ binary
-  
-
-let compile_file path = try (
+let compile_player_file path = try (
   let _ = check_input path in
-  if (String.ends_with ~suffix:"g" path) then 
-    compile_game_file path
-  else if (String.ends_with ~suffix:"r" path) then
-    compile_player_file path
-  else raise_failure "Dont know what to do"
-) with 
-| Failure(file_opt, line_opt, expl) -> (
-  Printf.printf "%s %s" expl (Option.value file_opt ~default:"") ;
-    if Option.is_some line_opt then (
-      Printf.printf ", line %i: \n" (Option.get line_opt) ;
-      let line = Option.get line_opt in
-      let lines = String.split_on_char '\n' (read_file path) in
-      let printer =  print_line lines in match line with
-      | 1 -> printer 0 ; printer 1
-      | n when n = (List.length lines)-1 -> printer (n-2) ; printer (n-1)
-      | _ ->  printer (line-2) ; printer (line-1) ; printer line
-    )
-    else Printf.printf "\n" ;
-    exit 1
-)
+  Ok(compile Player_parser.main Player_lexer.start [type_check_program;optimize_program] [check_registers_unique] compile_player player_to_string path)
+) with
+| Failure _ as f -> Error(format_failure path f)
 
+let game_setup_player (PI player) = 
+  let p = match compile_player_file player.path with
+    | Ok p -> p
+    | Error msg -> raise_failure msg
+  in
+  {
+  id = player.id;
+  position = player.position;
+  path = player.path;
+  directive = p;
+  directive_len = String.length p;
+}
+
+let format_game_setup (GS gs) = {
+  bombs = gs.bombs;
+  shots = gs.shots;
+  actions = gs.actions;
+  steps = gs.steps;
+  mode = gs.mode;
+  board_size = gs.board;
+  nuke = gs.nuke;
+  array = gs.array;
+  player_count = List.length gs.players;
+  player_info = Array.of_list (List.map game_setup_player gs.players);
+}
+
+let compile_game_file path = try (
+  let _ = check_input path in
+  Ok(compile Game_parser.main Game_lexer.start [] [] to_game_setup format_game_setup path)
+) with
+| Failure _ as f -> Error(format_failure path f)
+
+
+let _ = Callback.register "compile_game_file" compile_game_file
+let _ = Callback.register "compile_player_file" compile_player_file

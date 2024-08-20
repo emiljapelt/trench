@@ -2,13 +2,13 @@
 #define GAME_RULES_H
 
 typedef struct game_rules {
-    const int actions;
-    const int steps;
-    const int bombs;
-    const int shots;
-    const int mode;
-    const int nuke;
-    const int array;
+    int actions;
+    int steps;
+    int bombs;
+    int shots;
+    int mode;
+    int nuke;
+    int array;
 } game_rules;
 
 #endif

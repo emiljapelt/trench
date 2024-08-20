@@ -2,5 +2,6 @@
  (public_name trenchc)
  (name trenchc)
  (modules trenchc)
- (libraries trenchclib str) 
+ (libraries trenchclib str)
+ (modes native (native object))
 )

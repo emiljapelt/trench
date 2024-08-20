@@ -47,10 +47,10 @@ typedef struct game_state {
     int round;
     int remaining_steps;
     int remaining_actions;
-    const int board_x;
-    const int board_y;
+    int board_x;
+    int board_y;
     player_state* players;
-    const int player_count;
+    int player_count;
     field_state* board;
     bomb_chain* bomb_chain;
     int* global_arrays;
@@ -58,9 +58,6 @@ typedef struct game_state {
 
 extern game_state* _gs;
 extern game_rules* _gr;
-
-directive_info load_directive_to_struct(const char* directive, const int len);
-void create_players(char* player_info);
 
 field_state* get_field(int x, int y);
 void set_field(int x, int y, field_state* f);

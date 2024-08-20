@@ -81,7 +81,7 @@ let type_index t = match t with
     | T_Dir -> 1
     | T_Field -> 2
 
-type player_info = PI of { id: int; pos: int * int; file: string }
+type player_info = PI of { id: int; position: int * int; path: string }
 
 type game_setup_part =
     | Player of player_info

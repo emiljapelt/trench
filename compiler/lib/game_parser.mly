@@ -31,7 +31,7 @@ main:
 ;
 
 game_setup_part:
-  | PLAYER COLON CSTINT COMMA LPAR CSTINT COMMA CSTINT RPAR COMMA PATH SEMI { Player(PI {id = $3; pos = ($6,$8); file = $11}) }
+  | PLAYER COLON CSTINT COMMA LPAR CSTINT COMMA CSTINT RPAR COMMA PATH SEMI { Player(PI {id = $3; position = ($6,$8); path = $11}) }
   | BOMBS COLON CSTINT SEMI { Bombs $3 }
   | SHOTS COLON CSTINT SEMI { Shots $3}
   | ACTIONS COLON CSTINT SEMI { Actions $3 }
