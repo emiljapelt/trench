@@ -3,13 +3,13 @@ open Typing
 open Exceptions
 open ToProgramRep
 open ProgramRep
-open Str
 open Absyn
 
 let check_input input =
   try (
     if not (Sys.file_exists input) then raise_failure ("Input file does not exist: "^input)
-    else if Str.string_match (regexp {|^\(\.\.?\)?\/?\(\([a-zA-Z0-9_-]+\|\(\.\.?\)\)\/\)*[a-zA-Z0-9_-]+\.trg?$|}) input 0 then ()
+    else if String.ends_with ~suffix:".tr" input then ()
+    else if String.ends_with ~suffix:".trg" input then ()
     else raise_failure "Invalid input file extension"
   ) with
   | ex -> raise ex
