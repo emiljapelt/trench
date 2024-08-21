@@ -10,13 +10,9 @@
 - Implement loops (while & for)
 - Implement functions?
 
-- Change random syntax
-    - Random int, is still: '?'
-    - Select random becomes: ?(...)  /  ?(N N E)  /  ?(1 (1+1) (1+2)) 
-
 - Direction operators
-    - dir + int, for clockwise. N + 1 = E
-    - dir - int, for counter-clockwise. N - 1 = W
+    - Fix subtraction/counter-clockwise
+
 
 - Consider getting replacing registers, with stack variables
     - Declaration must be moved to the top of their scope

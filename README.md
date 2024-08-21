@@ -41,13 +41,13 @@ Here the logic is defined. It consist of a series of statements, which will be i
 | _type_ [ _a_ ] | reference an index in the global _type_ array | int[2] | a + 2 |
 | _i_ | interger value | 14, -1 | 1 |
 | _d_ | cardinal direction | N, E, S, W | 1 |
-| _a_ _binop_ _b_| binary operation | 1 + 2, x % 10 | a + b + 1 |
+| _a_ _binop_ _b_| binary operation | 1 + 2, x % 10, N + 1 | a + b + 1 |
 | _unop_ _a_ | unary operation | ~a | a + 1 |
 | scan _d_ _a_ | Get field information of the field in direction _d_, distance _i_ | scan N 2; | d + a + 1 |
 | _a_._f_ | Get a part of some field information | (scan N 2).PLAYER | a + 1 | 
 | look _d_  | get the distance to the closest trench in some direction, or 0 if there is none | look N | d + 1 |
 | ? | Get a random positive integer | ? | 1 |
-| [e<sub>0</sub>, ..., e<sub>n</sub>] | pick a random value from a list | [N,S]  [1,24] | e<sub>0</sub> + ... + e<sub>n</sub> + 1 | 
+| ?(e<sub>0</sub>  ...  e<sub>n</sub>) | pick a random value from a list | ?(N S) ?(1, (2*12)) | e<sub>0</sub> + ... + e<sub>n</sub> + 1 | 
 
 binary operators: +, -, *, /, %, >, >=, <, <=, !=, =, |, &
 

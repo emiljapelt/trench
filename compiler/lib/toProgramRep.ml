@@ -1,6 +1,7 @@
 open Absyn
 open ProgramRep
 open Exceptions
+open Typing
 
 (*** Compiling functions ***)
 
@@ -35,20 +36,27 @@ let rec compile_value val_expr regs acc =
   | Direction d -> Instruction ("p"^string_of_dir d) :: acc
   | Look d -> compile_value d regs (Instruction "l" :: acc)
   | Scan(d,p) -> compile_value d regs (compile_value p regs (Instruction "s" :: acc))
-  | Binary_op (op, e1, e2) -> ( match op with
-    | "&" -> compile_value e1 regs (compile_value e2 regs (Instruction "&" :: acc))
-    | "|" -> compile_value e1 regs (compile_value e2 regs (Instruction "|" :: acc))
-    | "=" -> compile_value e1 regs (compile_value e2 regs (Instruction "=" :: acc))
-    | "!=" -> compile_value e1 regs (compile_value e2 regs (Instruction "=" :: Instruction "~" :: acc))
-    | "<=" -> compile_value e1 regs (compile_value e2 regs (Instruction "<" :: Instruction "~" :: acc))
-    | "<" -> compile_value e2 regs (compile_value e1 regs (Instruction "<" :: acc))
-    | ">=" -> compile_value e2 regs (compile_value e1 regs (Instruction "<" :: Instruction "~" :: acc))
-    | ">" -> compile_value e1 regs (compile_value e2 regs (Instruction "<" :: acc))
-    | "+" -> compile_value e1 regs (compile_value e2 regs (Instruction "+" :: acc))
-    | "/" -> compile_value e2 regs (compile_value e1 regs (Instruction "/" :: acc))
-    | "%" -> compile_value e2 regs (compile_value e1 regs (Instruction "%" :: acc))
-    | "-" -> compile_value e2 regs (compile_value e1 regs (Instruction "-" :: acc))
-    | "*" -> compile_value e1 regs (compile_value e2 regs (Instruction "*" :: acc))
+  | Binary_op (op, e1, e2) -> ( match op, type_value regs e1, type_value regs e2 with
+    | "+", T_Int, T_Int -> compile_value e1 regs (compile_value e2 regs (Instruction "+" :: acc))
+    | "-", T_Int, T_Int -> compile_value e2 regs (compile_value e1 regs (Instruction "-" :: acc))
+    | "*", T_Int, T_Int -> compile_value e1 regs (compile_value e2 regs (Instruction "*" :: acc))
+    | "&", T_Int, T_Int -> compile_value e1 regs (compile_value e2 regs (Instruction "&" :: acc))
+    | "|", T_Int, T_Int -> compile_value e1 regs (compile_value e2 regs (Instruction "|" :: acc))
+    | "=", T_Int, T_Int -> compile_value e1 regs (compile_value e2 regs (Instruction "=" :: acc))
+    | "=", T_Dir, T_Dir -> compile_value e1 regs (compile_value e2 regs (Instruction "=" :: acc))
+    | "!=", T_Int, T_Int -> compile_value e1 regs (compile_value e2 regs (Instruction "=" :: Instruction "~" :: acc))
+    | "!=", T_Dir, T_Dir -> compile_value e1 regs (compile_value e2 regs (Instruction "=" :: Instruction "~" :: acc))
+    | "<", T_Int, T_Int -> compile_value e2 regs (compile_value e1 regs (Instruction "<" :: acc))
+    | ">", T_Int, T_Int -> compile_value e1 regs (compile_value e2 regs (Instruction "<" :: acc))
+    | "<=", T_Int, T_Int -> compile_value e1 regs (compile_value e2 regs (Instruction "<" :: Instruction "~" :: acc))
+    | ">=", T_Int, T_Int -> compile_value e2 regs (compile_value e1 regs (Instruction "<" :: Instruction "~" :: acc))
+    | "/", T_Int, T_Int -> compile_value e2 regs (compile_value e1 regs (Instruction "/" :: acc))
+    | "%", T_Int, T_Int -> compile_value e2 regs (compile_value e1 regs (Instruction "%" :: acc))
+    | "+", T_Dir, T_Int -> Instruction "p4" :: (compile_value e1 regs (compile_value e2 regs (Instruction "+%" :: acc)))
+    | "+", T_Int, T_Dir -> Instruction "p4" :: (compile_value e1 regs (compile_value e2 regs (Instruction "+%" :: acc)))
+    (*Subtraction from direction does not work currently*)
+    | "-", T_Dir, T_Int -> Instruction "p4" :: (compile_value e1 regs (compile_value e2 regs (Instruction "-%" :: acc)))
+    | "-", T_Int, T_Dir -> Instruction "p4" :: (compile_value e2 regs (compile_value e1 regs (Instruction "-%" :: acc)))
     | _ -> raise_failure "Unknown binary operation"
   )
   | Unary_op (op, e) -> ( match op with 

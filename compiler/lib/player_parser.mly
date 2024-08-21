@@ -98,7 +98,7 @@ const_value:
 simple_value:
   | const_value                        { $1 }
   | QMARK                              { Random }
-  | LBRAKE seperated(FSLASH, const_value) RBRAKE         { RandomSet $2 }
+  | QMARK LPAR simple_value+ RPAR      { RandomSet $3 }
   | MINUS simple_value                 { Binary_op ("-", Value (Int 0), $2) } %prec TILDE
   | TILDE simple_value                 { Unary_op ("~", $2) }
   | NAME                               { Reference(Local $1) }

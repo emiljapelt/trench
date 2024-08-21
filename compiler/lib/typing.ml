@@ -20,7 +20,28 @@ let rec type_value regs v = match v with
     | Reference Global (t,_) -> t
     | MetaReference m -> type_meta m
     | Value v -> type_value regs v
-    | Binary_op _
+    | Binary_op(op,v0,v1) -> (match op, type_value regs v0, type_value regs v1 with
+      | "+", T_Int, T_Int 
+      | "-", T_Int, T_Int 
+      | "*", T_Int, T_Int 
+      | "&", T_Int, T_Int
+      | "|", T_Int, T_Int 
+      | "=", T_Int, T_Int
+      | "=", T_Dir, T_Dir
+      | "!=", T_Int, T_Int
+      | "!=", T_Dir, T_Dir
+      | "<", T_Int, T_Int 
+      | ">", T_Int, T_Int 
+      | "<=", T_Int, T_Int
+      | ">=", T_Int, T_Int 
+      | "/", T_Int, T_Int
+      | "%", T_Int, T_Int -> T_Int
+      | "+", T_Dir, T_Int 
+      | "+", T_Int, T_Dir
+      | "-", T_Dir, T_Int 
+      | "-", T_Int, T_Dir -> T_Dir
+      | _,t0,t1 -> failwith ("Unknown binary operation: "^type_string t0^op^type_string t1)
+    )
     | Unary_op _
     | Random
     | Int _ -> T_Int
