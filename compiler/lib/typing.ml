@@ -10,16 +10,15 @@ let require req_typ expr_t res =
   if req_typ = expr_t then res ()
   else raise_failure ("required type: '" ^type_string req_typ ^"'")
 
-let reg_type regs name = 
-  match List.find_opt (fun (Register(_,rn,_)) -> rn = name) regs with
-  | Some Register(t,_,_) -> t
-  | None -> raise_failure ("No such register: "^name)
+let var_type regs name = 
+  match List.find_opt (fun (Register(_,rn)) -> rn = name) regs with
+  | Some Register(t,_) -> t
+  | None -> raise_failure ("No such variable: "^name)
 
 let rec type_value regs v = match v with
-    | Reference Local n -> reg_type regs n  
+    | Reference Local n -> var_type regs n  
     | Reference Global (t,_) -> t
     | MetaReference m -> type_meta m
-    | Value v -> type_value regs v
     | Binary_op(op,v0,v1) -> (match op, type_value regs v0, type_value regs v1 with
       | "+", T_Int, T_Int 
       | "-", T_Int, T_Int 
@@ -70,28 +69,30 @@ and type_meta m = match m with
     | GlobalArraySize -> T_Int     
 
 
-let rec type_check_stmt_inner regs stmt = match stmt with
-  | If(c,a,b) -> require T_Int (type_value regs c) (fun () -> type_check_stmt regs a ; type_check_stmt regs b)
+let rec type_check_stmt_inner regs stmt : register list = match stmt with
+  | If(c,a,b) -> require T_Int (type_value regs c) (fun () -> type_check_stmt regs a |> ignore ; type_check_stmt regs b |> ignore ; regs)
   | Block stmts -> type_check_stmts regs stmts
-  | Repeat(_,stmt) -> type_check_stmt regs stmt
-  | Assign(Local n,e) -> require (reg_type regs n) (type_value regs e) (fun () -> ())
-  | Assign(Global(t,_),e) -> require t (type_value regs e) (fun () -> ())
+  | Repeat(_,_) -> failwith "Repeater remaining"
+  | Assign(Local n,e) -> require (var_type regs n) (type_value regs e) (fun () -> regs)
+  | Assign(Global(t,_),e) -> require t (type_value regs e) (fun () -> regs)
   | Move e 
-  | Shoot e -> require T_Dir (type_value regs e) (fun () -> ())
+  | Shoot e -> require T_Dir (type_value regs e) (fun () -> regs)
   | Bomb(d,p) -> 
-    require T_Dir (type_value regs d) (fun () -> ()) ;
-    require T_Int (type_value regs p) (fun () -> ())
+    require T_Dir (type_value regs d) (fun () -> regs) |> ignore ;
+    require T_Int (type_value regs p) (fun () -> regs)
   | Attack d
-  | Mine d -> require T_Dir (type_value regs d) (fun () -> ())
+  | Mine d -> require T_Dir (type_value regs d) (fun () -> regs)
   | Fortify o
   | Trench o -> (match o with
-    | Some e -> require T_Dir (type_value regs e) (fun () -> ())
-    | None -> ()
+    | Some e -> require T_Dir (type_value regs e) (fun () -> regs)
+    | None -> regs
   )
+  | DeclareAssign(t,n,v) -> require t (type_value regs v) (fun () -> Register(t,n)::regs)
+  | Declare(t,n) -> Register(t,n)::regs
   | Wait
   | GoTo _
   | Label _
-  | Pass -> ()
+  | Pass -> regs
 
 and type_check_stmt regs (Stmt(stmt,ln)) = 
   try 
@@ -101,7 +102,7 @@ and type_check_stmt regs (Stmt(stmt,ln)) =
   | e -> raise e
 
 and type_check_stmts regs stmts =
-  List.iter (type_check_stmt regs) stmts
+  List.fold_left (fun regs stmt -> type_check_stmt regs stmt) regs stmts |> ignore ; regs
 
 let type_check_program (File(regs,prog)) =
-  type_check_stmts regs prog ; File(regs,prog)
+  type_check_stmts regs prog |> ignore ; File(regs,prog)

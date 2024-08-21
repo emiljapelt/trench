@@ -252,6 +252,7 @@ void player_turn(player_state* ps) {
             }
             case 'd': {
                 ps->sp--;
+                ps->dp++;
                 break;
             }
             case 'B': {
@@ -382,7 +383,7 @@ void player_turn(player_state* ps) {
             case '%': {
                 int v0 = ps->stack[--ps->sp];
                 int v1 = ps->stack[--ps->sp];
-                ps->stack[ps->sp++] = (v0%v1 + v1)%v1;
+                ps->stack[ps->sp++] = ((v0%v1) + v1)%v1;
                 break;
             }
             case '~': {

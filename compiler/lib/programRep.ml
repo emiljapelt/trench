@@ -1,4 +1,3 @@
-open Absyn
 
 module StringMap = Map.Make(String)
 module StringSet = Set.Make(String)
@@ -133,9 +132,3 @@ let program_to_string pp =
   ) pp
   |> String.concat "")
 
-let regs_to_string regs = 
-  List.map (fun (Register(_,n,v)) -> match v with
-    | Int i -> string_of_int i
-    | Direction d -> string_of_dir d
-    | _ -> failwith ("Register not a constant: "^n)
-  ) regs |> String.concat ","

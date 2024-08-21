@@ -7,17 +7,17 @@ open Typing
 
 module StringSet = Set.Make(String)
 
-let fetch_reg_index (name: string) regs = 
+let fetch_var_index (name: string) regs = 
   let rec aux regs i = match regs with
     | [] -> failwith ("No such register: "^name)
-    | Register(_,n,_)::t ->
+    | Register(_,n)::t ->
       if n = name then i else aux t (i+1)
   in
   aux regs 0
 
 let rec compile_value val_expr regs acc =
   match val_expr with
-  | Reference Local name -> Instruction ("#"^(string_of_int (fetch_reg_index name regs))) :: acc
+  | Reference Local name -> Instruction ("#"^(string_of_int (fetch_var_index name regs))) :: acc
   | Reference Global (t,v) -> Instruction ("p"^string_of_int (type_index t)) :: (compile_value v regs (Instruction "@" :: acc))
   | MetaReference md -> ( match md with
     | PlayerX -> Instruction ("#x") 
@@ -28,7 +28,6 @@ let rec compile_value val_expr regs acc =
     | BoardY -> Instruction ("#|")
     | GlobalArraySize -> Instruction ("#g")
   ) :: acc
-  | Value val_expr -> compile_value val_expr regs acc
   | Int i -> Instruction("p"^string_of_int i) :: acc
   | Random -> Instruction("r") :: acc
   | RandomSet vals -> 
@@ -87,7 +86,7 @@ and compile_stmt (Stmt(stmt,ln)) regs acc =
     aux count stmt acc
   )
   | Assign (Local target, aexpr) -> 
-    Instruction ("p"^string_of_int (fetch_reg_index target regs)) :: compile_value aexpr regs (Instruction "a_" :: acc)
+    Instruction ("p"^string_of_int (fetch_var_index target regs)) :: compile_value aexpr regs (Instruction "a_" :: acc)
   | Assign (Global(typ,v), aexpr) -> 
     Instruction ("p"^string_of_int (type_index typ)) :: compile_value v regs (compile_value aexpr regs (Instruction "a@" :: acc))
   | Label name -> CLabel name :: acc
@@ -103,6 +102,8 @@ and compile_stmt (Stmt(stmt,ln)) regs acc =
   | Bomb(d,i) -> compile_value d regs (compile_value i regs (Instruction "B" :: acc))
   | Mine d -> compile_value d regs (Instruction "M" :: acc)
   | Attack d -> compile_value d regs (Instruction "A" :: acc)
+  | Declare _ -> Instruction "p0" :: acc
+  | DeclareAssign _ -> failwith "DeclareAssign still present"
   with 
   | Failure(p,None,msg) -> raise (Failure(p,Some ln, msg))
   | a -> raise a

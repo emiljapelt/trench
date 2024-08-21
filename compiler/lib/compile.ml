@@ -4,6 +4,7 @@ open Exceptions
 open ToProgramRep
 open ProgramRep
 open Absyn
+open Transform
 
 let check_input input =
   try (
@@ -116,7 +117,7 @@ let compile parser lexer transforms checks compiler stringer path =
 let check_registers_unique (File(regs,_)) =
   let rec aux regs set = match regs with
   | [] -> ()
-  | Register(_,n,_)::t -> 
+  | Register(_,n)::t -> 
     if StringSet.mem n set 
     then raise_failure ("Duplicate register name: "^n) 
     else aux t (StringSet.add n set)
@@ -124,7 +125,7 @@ let check_registers_unique (File(regs,_)) =
   aux regs StringSet.empty
 
 let player_to_string (regs,program) = 
-  regs_to_string regs^":"^program_to_string program
+  string_of_int(List.length regs)^":"^program_to_string program
 
 type compiled_player_info = {
   id: int;
@@ -149,7 +150,12 @@ type compiled_game_file = {
 
 let compile_player_file path = try (
   let _ = check_input path in
-  Ok(compile Player_parser.main Player_lexer.start [type_check_program;optimize_program] [check_registers_unique] compile_player player_to_string path)
+  Ok(compile Player_parser.main Player_lexer.start [
+    type_check_program;
+    rename_variables_of_file;
+    optimize_program;
+    pull_out_declarations_of_file
+  ] [check_registers_unique] compile_player player_to_string path)
 ) with
 | Failure _ as f -> Error(format_failure path f)
 

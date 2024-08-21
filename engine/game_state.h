@@ -14,7 +14,6 @@ typedef enum direction {
 
 typedef struct directive_info {
     int regs;
-    int regs_len;
     int dir_len;
     int* stack;
     char* directive;

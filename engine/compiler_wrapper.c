@@ -19,27 +19,13 @@ directive_info load_directive_to_struct(const char* directive, const int len) {
     int* stack = malloc(sizeof(int)*1000);
     
     while(directive[regs_len] != ':') regs_len++;
-    if (regs_len) {
-        regs = 1;
-        for (int r = 0; r < regs_len; r++) {
-            if (directive[r] == ',') regs++;
-        }
-    } else regs = 0;
-
-    {
-        int directive_index = 0;
-        for(int r = 0; r < regs; r++) {
-            int num_len = numeric_size(directive, directive_index);
-            stack[r] = sub_str_to_int(directive, directive_index, num_len);
-            directive_index += num_len+1;
-        }
-    }
+    regs = sub_str_to_int(directive,0,regs_len);
+    memset(stack,0,sizeof(int)*regs);
 
     char* dir = malloc((len-regs_len)+1); dir[len-regs_len] = 0;
     memcpy(dir, directive+regs_len+1, len-regs_len);
 
     return (directive_info) {
-        .regs_len = regs_len,
         .regs = regs,
         .stack = stack,
         .directive = dir,
@@ -111,7 +97,7 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 gs->players[i].sp = di.regs;
                 gs->players[i].path = strdup(String_val(Field(player_info, 2)));
                 gs->players[i].directive = di.directive;
-                gs->players[i].directive_len = Int_val(Field(player_info, 4))-(di.regs_len+1);
+                gs->players[i].directive_len = di.dir_len ;//(Field(player_info, 4))-(di.regs_len+1);
                 gs->players[i].dp = 0;
                 gs->players[i].x = Int_val(Field(Field(player_info, 1), 0));
                 gs->players[i].y = Int_val(Field(Field(player_info, 1), 1));;

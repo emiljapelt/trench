@@ -7,65 +7,64 @@ let rec optimize_value expr =
     let opte1 = optimize_value e1 in
     let opte2 = optimize_value e2 in
     match op, opte1, opte2 with
-    | "&", Value(Int i1), Value(Int i2) -> Value(Int(i1*i2))
-    | "&", Value(Int i), _ when i <> 0 -> opte2
-    | "&", _, Value(Int i) when i <> 0 -> opte1
-    | "&", Value(Int 0), _
-    | "&", _, Value(Int 0) -> Value(Int 0)
-    | "|", Value(Int i1), Value(Int i2) -> Value(Int(i1+i2))
-    | "|", Value(Int i), _
-    | "|", _, Value(Int i) when i <> 0 -> Value(Int 1)
-    | "|", Value(Int 0), _ -> opte2
-    | "|", _, Value(Int 0) -> opte1
-    | "+", Value(Int i1), Value(Int i2) -> Value(Int (i1+i2))
-    | "+", Value(Int 0), _ -> opte2
-    | "+", _, Value(Int 0) -> opte1
-    | "-", Value(Int 0), Value(Int i) -> Value(Int (-i))
-    | "-", Value(Int i1), Value(Int i2) -> Value(Int (i1-i2))
-    | "-", _, Value(Int 0) -> opte1
-    | "*", Value(Int i1), Value(Int i2) -> Value(Int (i1*i2))
-    | "*", Value(Int 0), _ -> Value(Int 0)
-    | "*", _, Value(Int 0) -> Value(Int 0)
-    | "*", Value(Int 1), _ -> opte2
-    | "*", _, Value(Int 1) -> opte1
-    | "+", Reference r1, Reference r2 when r1 = r2 -> Value(Binary_op("*", Value(Int 2), opte1))
-    | "+", Reference r1, Value(Binary_op("*", Value(Int i), Reference r2)) when r2 = r1 -> Value(Binary_op("*", Value(Int (i+1)), Reference r1))
-    | "+", Reference r1, Value(Binary_op("*", Reference r2, Value(Int i))) when r2 = r1 -> Value(Binary_op("*", Value(Int (i+1)), Reference r1))
-    | "+", Value(Binary_op("*", Value(Int i), Reference r2)), Reference r1 when r2 = r1 -> Value(Binary_op("*", Value(Int (i+1)), Reference r1))
-    | "+", Value(Binary_op("*", Reference r2, Value(Int i))), Reference r1 when r2 = r1 -> Value(Binary_op("*", Value(Int (i+1)), Reference r1))
-    | "/", Value(Int _), Value(Int 0) -> raise_failure "Division by zero"
-    | "/", Value(Int i1), Value(Int 1) -> Value(Int (i1))
-    | "/", Value(Int i1), Value(Int i2) -> Value(Int (i1/i2))
-    | "%", Value(Int _), Value(Int 0) -> raise_failure "Division by zero"
-    | "%", Value(Int i1), Value(Int 1) -> Value(Int (i1))
-    | "%", Value(Int i1), Value(Int i2) -> 
+    | "&", Int i1, Int i2 -> Int(i1*i2)
+    | "&", Int i, _ when i <> 0 -> opte2
+    | "&", _, Int i when i <> 0 -> opte1
+    | "&", Int 0, _
+    | "&", _, Int 0 -> Int 0
+    | "|", Int i1, Int i2 -> Int(i1+i2)
+    | "|", Int i, _
+    | "|", _, Int i when i <> 0 -> Int 1
+    | "|", Int 0, _ -> opte2
+    | "|", _, Int 0 -> opte1
+    | "+", Int i1, Int i2 -> Int (i1+i2)
+    | "+", Int 0, _ -> opte2
+    | "+", _, Int 0 -> opte1
+    | "-", Int 0, Int i -> Int (-i)
+    | "-", Int i1, Int i2 -> Int (i1-i2)
+    | "-", _, Int 0 -> opte1
+    | "*", Int i1, Int i2 -> Int (i1*i2)
+    | "*", Int 0, _ -> Int 0
+    | "*", _, Int 0 -> Int 0
+    | "*", Int 1, _ -> opte2
+    | "*", _, Int 1 -> opte1
+    | "+", Reference r1, Reference r2 when r1 = r2 -> Binary_op("*", Int 2, opte1)
+    | "+", Reference r1, Binary_op("*", Int i, Reference r2) when r2 = r1 -> Binary_op("*", Int (i+1), Reference r1)
+    | "+", Reference r1, Binary_op("*", Reference r2, Int i) when r2 = r1 -> Binary_op("*", Int (i+1), Reference r1)
+    | "+", Binary_op("*", Int i, Reference r2), Reference r1 when r2 = r1 -> Binary_op("*", Int (i+1), Reference r1)
+    | "+", Binary_op("*", Reference r2, Int i), Reference r1 when r2 = r1 -> Binary_op("*", Int (i+1), Reference r1)
+    | "/", Int _, Int 0 -> raise_failure "Division by zero"
+    | "/", Int i1, Int 1 -> Int (i1)
+    | "/", Int i1, Int i2 -> Int (i1/i2)
+    | "%", Int _, Int 0 -> raise_failure "Division by zero"
+    | "%", Int i1, Int 1 -> Int (i1)
+    | "%", Int i1, Int i2 -> 
       if i2 <= 0 then raise_failure "Right hand side of modolo operator, must be positive"
-      else Value(Int (((i1 mod i2) + i2) mod i2))
-    | "=", Value(Int i1), Value(Int i2) -> Value(Int (if i1=i2 then 1 else 0))
-    | "!=", Value(Int i1), Value(Int i2) -> Value(Int (if i1!=i2 then 1 else 0))
-    | "<", Value(Int i1), Value(Int i2) -> Value(Int (if i1<i2 then 1 else 0))
-    | "<=", Value(Int i1), Value(Int i2) -> Value(Int (if i1<=i2 then 1 else 0))
-    | ">", Value(Int i1), Value(Int i2) -> Value(Int (if i1>i2 then 1 else 0))
-    | ">=", Value(Int i1), Value(Int i2) -> Value(Int (if i1>=i2 then 1 else 0))
-    | _ -> Value(Binary_op(op, opte1, opte2))
+      else Int (((i1 mod i2) + i2) mod i2)
+    | "=", Int i1, Int i2 -> Int (if i1=i2 then 1 else 0)
+    | "!=", Int i1, Int i2 -> Int (if i1!=i2 then 1 else 0)
+    | "<", Int i1, Int i2 -> Int (if i1<i2 then 1 else 0)
+    | "<=", Int i1, Int i2 -> Int (if i1<=i2 then 1 else 0)
+    | ">", Int i1, Int i2 -> Int (if i1>i2 then 1 else 0)
+    | ">=", Int i1, Int i2 -> Int (if i1>=i2 then 1 else 0)
+    | _ -> Binary_op(op, opte1, opte2)
   )
   | Unary_op (op, e) -> ( 
     let opte = optimize_value e in
     match (op, opte) with
-    | ("!", Value(Int i)) -> Value(Int (if i = 0 then 1 else 0))
-    | _ -> Value(Unary_op(op, opte))
+    | ("!", Int i) -> Int(if i = 0 then 1 else 0)
+    | _ -> Unary_op(op, opte)
   )
   | Scan(d,p) -> Scan(optimize_value d, optimize_value p) 
   | Look _
   | Direction _
   | Random
   | RandomSet _
-  | Int _ -> Value(expr)
+  | Int _ -> expr
   | MetaReference _
   | Flag _ 
   | Reference Local _ -> expr
   | Reference Global(t,v) -> Reference(Global(t,optimize_value v))
-  | Value val_expr -> optimize_value val_expr
 
 
 let optimize_assign_target tar = match tar with
@@ -74,8 +73,8 @@ let optimize_assign_target tar = match tar with
 
 let rec optimize_stmt (Stmt(stmt_i,ln) as stmt) = match stmt_i with
   | If(c,a,b) -> ( match optimize_value c with
-    | Value(Int 0) -> optimize_stmt b
-    | Value(Int _) -> optimize_stmt a
+    | Int 0 -> optimize_stmt b
+    | Int _ -> optimize_stmt a
     | o -> Stmt(If(o, optimize_stmt a, optimize_stmt b),ln)
   )
   | Block stmts -> Stmt(Block(optimize_stmts stmts),ln)
@@ -88,6 +87,8 @@ let rec optimize_stmt (Stmt(stmt_i,ln) as stmt) = match stmt_i with
   | Attack d -> Stmt(Attack(optimize_value d),ln)
   | Fortify o -> Stmt(Fortify(Option.map optimize_value o),ln)
   | Trench o -> Stmt(Trench(Option.map optimize_value o),ln)
+  | DeclareAssign(ty,n,v) -> Stmt(DeclareAssign(ty,n,optimize_value v), ln)
+  | Declare _
   | Wait
   | GoTo _
   | Label _

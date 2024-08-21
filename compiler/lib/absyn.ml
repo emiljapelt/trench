@@ -40,11 +40,12 @@ and statement_inner =
     | Wait
     | Pass
     | GoTo of string
+    | Declare of typ * string
+    | DeclareAssign of typ * string * value
 
 and value =
     | Reference of target
     | MetaReference of meta_data
-    | Value of value
     | Binary_op of string * value * value
     | Unary_op of string * value
     | Int of int
@@ -65,7 +66,7 @@ and meta_data =
     | GlobalArraySize (* #array_size  *)
 
 and register =
-    | Register of typ * string * value
+    | Register of typ * string
 
 and file = 
     | File of register list * statement list

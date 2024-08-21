@@ -17,26 +17,13 @@
 
 # Trench langauge
 
-A program consists of a register block and a directive block.
-
-## Register block
-Here the set of available names has to be defined. For example if you want to be able to save information under the name 'a', a register 'a' must be defined here.
-
-```
-[int a = 1, b, counter = 0, d = N, dir k, field f, ...]
-```
-
-A register can be given an explicit initial value, by assignment, otherwise it will take 0 as its initial value. By default register carry intergers, but they can also be made to carry directions or fields information.
-
-The set of registers will be replaced along with the program, whenever a directive change occurs. To persist information beyond a directive change, the global arrays can be used. There is such an array for each information type, and the entire array is available to each player.
-
-## Directive block
-Here the logic is defined. It consist of a series of statements, which will be interpreted from the top. Statements take some steps to execute, a limit to how many steps can be taken in a turn is set in the game rules. Additonally, some statements will use an action, the number of actions available per turn is defined by the game rules.
+## Directive
+ It consist of a series of statements, which will be interpreted from the top. Statements take some steps to execute, a limit to how many steps can be taken in a turn is set in the game rules. Additonally, some statements will use an action, the number of actions available per turn is defined by the game rules.
 
 ### Values
 | value | explaination | examples | steps |
 | --- | --- | --- | --- |
-| _x_ | reference to a register 'x' | counter | 1 |
+| _x_ | reference to a variable 'x' | counter | 1 |
 | #_x_ | reference to a meta variable 'x' | #x | 1 |
 | _type_ [ _a_ ] | reference an index in the global _type_ array | int[2] | a + 2 |
 | _i_ | interger value | 14, -1 | 1 |
@@ -73,11 +60,13 @@ unary operators: ~ (not)
 ### Statements
 | statement | explaination | examples | actions | steps |
 | --- | --- | --- | --- | --- |
+| _type_ _a_ | declaration | int a; | 0 | 1 |
+| _type_ _a_ = _v_ | declaration with assignment | int a = 2; | 0 | 1 + v |
 | if (_c_) _a_ else _b_ | conditional execution | if (c) { ... } else { ... }  | 0 | c + a + 1, or c + b + 2 |
 | if (_c_) _a_ | conditional execution | if (c) { ... }  | 0 | c + a + 1, or c + 2 |
 | {s<sub>0</sub> ... s<sub>n</sub>} | A contained series of statements. | { ... } | 0 | s<sub>0</sub> + ... + s<sub>n</sub> |
 | repeat(_x_) _s_ | Compile a statement 'x' times | repeat (2) ... | 0 | x * s |
-| _a_ = _e_ | Assign a value to a register. | a = a + 1; a += 1; | 0 | e + 2 |
+| _a_ = _e_ | Assign a value to a variable. | a = a + 1; a += 1; | 0 | e + 2 |
 | _type_ [ _a_ ] = _e_ | Assign a value to the global _type_ array | int[4] = 2 + 2; | 0 | a + e + 2 |
 | label: | Marks a location in the directive | loop: | 0 | 0 |
 | move _d_ | Move the player 1 space in some direction. | move [N,S]; | 0 | d + 1 |

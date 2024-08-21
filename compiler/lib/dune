@@ -15,6 +15,7 @@
    game_parser
    toProgramRep
    typing
+   transform
    compile
  )
 )

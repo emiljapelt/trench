@@ -2,7 +2,6 @@
   open Absyn
   open Exceptions
   open Lexing
-  open Typing
 
   (*type var_name_generator = { mutable next : int }
   let vg = ( {next = 0;} )
@@ -64,19 +63,7 @@
 ;
 
 main:
-  register_defs stmt* EOF     { (File ($1,$2)) }
-;
-
-register_defs:
-  {[]}
-  | LBRAKE seperated(COMMA,register) RBRAKE { $2 }
-;
-
-register:
-  | NAME { Register(T_Int, $1, Int 0) }
-  | NAME EQ const_value { Register(type_value [] $3, $1, $3) }
-  | typ NAME { Register($1, $2, Int 0) }
-  | typ NAME EQ const_value { Register($1, $2, $4) }
+  stmt* EOF     { (File ([],$1)) }
 ;
 
 typ:
@@ -99,7 +86,7 @@ simple_value:
   | const_value                        { $1 }
   | QMARK                              { Random }
   | QMARK LPAR simple_value+ RPAR      { RandomSet $3 }
-  | MINUS simple_value                 { Binary_op ("-", Value (Int 0), $2) } %prec TILDE
+  | MINUS simple_value                 { Binary_op ("-", Int 0, $2) } %prec TILDE
   | TILDE simple_value                 { Unary_op ("~", $2) }
   | NAME                               { Reference(Local $1) }
   | typ LBRAKE value RBRAKE            { Reference(Global($1,$3)) }
@@ -171,10 +158,12 @@ target:
 
 non_control_flow_stmt:
   | target EQ value        { Assign ($1, $3) }
-  | target PLUS EQ value   { Assign ($1, Value(Binary_op("+", Reference $1, $4))) }
-  | target MINUS EQ value  { Assign ($1, Value(Binary_op("-", Reference $1, $4))) }
-  | target TIMES EQ value  { Assign ($1, Value(Binary_op("*", Reference $1, $4))) }
-  | target TILDE EQ value  { Assign ($1, Value(Unary_op("~", $4))) }
+  | target PLUS EQ value   { Assign ($1, Binary_op("+", Reference $1, $4)) }
+  | target MINUS EQ value  { Assign ($1, Binary_op("-", Reference $1, $4)) }
+  | target TIMES EQ value  { Assign ($1, Binary_op("*", Reference $1, $4)) }
+  | target TILDE EQ value  { Assign ($1, Unary_op("~", $4)) }
+  | typ NAME                                  { Declare($1,$2) }
+  | typ NAME EQ value                         { DeclareAssign($1,$2,$4) }
   | MOVE value                        { Move $2 }
   | SHOOT value                       { Shoot $2 }
   | MINE value                        { Mine $2 }

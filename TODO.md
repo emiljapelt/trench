@@ -13,10 +13,7 @@
 - Direction operators
     - Fix subtraction/counter-clockwise
 
-
-- Consider getting replacing registers, with stack variables
-    - Declaration must be moved to the top of their scope
-        - Assignment declarations are split, leaving the assignment inplace
-    - Stack decrease instructions needed, p0 could be used for stack increase
+- Consider 'repeat'
+    - Either remove, or create an early compile step, which expands these
 
 - Update README.md
