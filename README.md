@@ -8,17 +8,40 @@
           │ │                       
           ╵ ╵            
 ```
-# File extension
+# File extensions
 | | |
 | --- | --- |
 | .tr | Source code for a players behavior |
 | .trc | Compiled .tr file |
 | .trg | A game file |
 
-# Trench langauge
+# The Trench Language
 
-## Directive
- It consist of a series of statements, which will be interpreted from the top. Statements take some steps to execute, a limit to how many steps can be taken in a turn is set in the game rules. Additonally, some statements will use an action, the number of actions available per turn is defined by the game rules.
+The code written for a player character is called a directive and it consist of a series of statements, which will be interpreted from the top. Each statement takes some steps to execute, and a limit to how many steps can be taken in a turn, is set in the game rules. Additonally, some statements will use an action, the number of actions available per turn is also defined by the game rules. 
+
+## Statements
+| statement | explaination | examples | actions | steps |
+| --- | --- | --- | --- | --- |
+| _type_ _a_ | declaration | int a; | 0 | 1 |
+| _type_ _a_ = _v_ | declaration with assignment | int a = 2; | 0 | 1 + v |
+| if (_c_) _a_ else _b_ | conditional execution | if (c) { ... } else { ... }  | 0 | c + a + 1, or c + b + 2 |
+| if (_c_) _a_ | conditional execution | if (c) { ... }  | 0 | c + a + 1, or c + 2 |
+| {s<sub>0</sub> ... s<sub>n</sub>} | A contained series of statements. | { ... } | 0 | s<sub>0</sub> + ... + s<sub>n</sub> |
+| repeat(_x_) _s_ | Compile a statement 'x' times | repeat (2) ... | 0 | x * s |
+| _a_ = _e_ | Assign a value to a variable. | a = a + 1; a += 1; | 0 | e + 2 |
+| _type_ [ _a_ ] = _e_ | Assign a value to the global _type_ array | int[4] = 2 + 2; | 0 | a + e + 2 |
+| label: | Marks a location in the directive | loop: | 0 | 0 |
+| move _d_ | Move the player 1 space in some direction. | move [N,S]; | 0 | d + 1 |
+| shoot _d_ | Shoot in some direction, from the players current position. Any player in that direction, not in a trench will die. | shoot S; | 1 | d + 1 |
+| bomb _d_ _p_ | Throw a bomb in some direct, some number of spaces. It explodes after 1 round, killing any player hit, unless they are in a fortified trench. Fortified trenches become unfortifed, unfortified trenches are destroyed. | bomb N (2+1); | 1 | d + p + 1 |
+| mine _d_ | Place a mine in some direct. It explodes if anyone steps of it, killing that player. | mine N; | 1 | d + 1 |
+| fortify | Fortify the trench here, if there is a trench. | fortify; | 1 | 2 |
+| fortify _d_ | Fortify the trench in some direction, if there is a trench. | fortify N; | 1 | d + 1 |
+| trench | Dig a trench here. | trench; | 1 | 2 |
+| trench _d_ | Dig a trench in some direction. | trench W; trench; | 1 | d + 1 |
+| wait | Use an action on nothing. | wait; | 1 | 1 |
+| pass | End the current turn. | pass; | 0 | 1 |
+| goto | Jump to a location in the directive. | goto loop; | 0 | 1 |
 
 ### Values
 | value | explaination | examples | steps |
@@ -57,30 +80,6 @@ unary operators: ~ (not)
 | MINE | The field has a mine |
 | DESTROYED | The field is destroyed |
 
-### Statements
-| statement | explaination | examples | actions | steps |
-| --- | --- | --- | --- | --- |
-| _type_ _a_ | declaration | int a; | 0 | 1 |
-| _type_ _a_ = _v_ | declaration with assignment | int a = 2; | 0 | 1 + v |
-| if (_c_) _a_ else _b_ | conditional execution | if (c) { ... } else { ... }  | 0 | c + a + 1, or c + b + 2 |
-| if (_c_) _a_ | conditional execution | if (c) { ... }  | 0 | c + a + 1, or c + 2 |
-| {s<sub>0</sub> ... s<sub>n</sub>} | A contained series of statements. | { ... } | 0 | s<sub>0</sub> + ... + s<sub>n</sub> |
-| repeat(_x_) _s_ | Compile a statement 'x' times | repeat (2) ... | 0 | x * s |
-| _a_ = _e_ | Assign a value to a variable. | a = a + 1; a += 1; | 0 | e + 2 |
-| _type_ [ _a_ ] = _e_ | Assign a value to the global _type_ array | int[4] = 2 + 2; | 0 | a + e + 2 |
-| label: | Marks a location in the directive | loop: | 0 | 0 |
-| move _d_ | Move the player 1 space in some direction. | move [N,S]; | 0 | d + 1 |
-| shoot _d_ | Shoot in some direction, from the players current position. Any player in that direction, not in a trench will die. | shoot S; | 1 | d + 1 |
-| bomb _d_ _p_ | Throw a bomb in some direct, some number of spaces. It explodes after 1 round, killing any player hit, unless they are in a fortified trench. Fortified trenches become unfortifed, unfortified trenches are destroyed. | bomb N (2+1); | 1 | d + p + 1 |
-| mine _d_ | Place a mine in some direct. It explodes if anyone steps of it, killing that player. | mine N; | 1 | d + 1 |
-| fortify | Fortify the trench here, if there is a trench. | fortify; | 1 | 2 |
-| fortify _d_ | Fortify the trench in some direction, if there is a trench. | fortify N; | 1 | d + 1 |
-| trench | Dig a trench here. | trench; | 1 | 2 |
-| trench _d_ | Dig a trench in some direction. | trench W; trench; | 1 | d + 1 |
-| wait | Use an action on nothing. | wait; | 1 | 1 |
-| pass | End the current turn. | pass; | 0 | 1 |
-| goto | Jump to a location in the directive. | goto loop; | 0 | 1 |
-
 ## Game file
 The game file specifies the players and rules of a particular game. It consists of key value pairs, seperated by semi-colons, defining a set of values. Pairs can be left out, in which case a default will be used.
 
@@ -110,7 +109,7 @@ global_array: 10;
 board_x:20;
 board_y:20;
 
-player:1,5,5,./player1.tr;
-player:2,8,9,./player2.tr;
+player:1,(5,5),./player1.tr;
+player:2,(8,9),./player2.tr;
 
 ```
