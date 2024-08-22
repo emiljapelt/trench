@@ -142,30 +142,35 @@ void shoot(const direction d, player_state* ps) {
     print_board();
 }
 
+static inline int use_resource(int amount, int* avail) {
+    if (amount > *avail) return 0;
+    *avail -= amount;
+}
+
 void player_turn(player_state* ps) {
     update_bomb_chain(ps);
     _gs->remaining_actions = _gr->actions;
     _gs->remaining_steps = _gr->steps;
-    while(_gs->remaining_actions && _gs->remaining_steps) {
+    while(1) {
         if (ps->dp >= ps->directive_len) { return; }
+        if (!use_resource(1,&_gs->remaining_steps)) return;
         //fprintf(stderr,"%c", ps->directive[ps->dp]); sleep(500);
         switch (ps->directive[ps->dp++]) {
             case 'W': {
-                _gs->remaining_actions--;
+                if(!use_resource(1,&_gs->remaining_actions)) {ps->dp--;return;}
                 break;
             }
             case 'P': {
-                _gs->remaining_actions = 0;
-                break;
+                return;
             }
             case 'S': {
+                if(!use_resource(1,&_gs->remaining_actions)) {ps->dp--;return;}
                 if (ps->shots) {
                     direction d = (direction)ps->stack[--ps->sp];
                     shoot(d,ps);
                     print_board();
                     ps->shots--;
                 }
-                _gs->remaining_actions--;
                 break;
             }
             case 'l': {
@@ -180,17 +185,17 @@ void player_turn(player_state* ps) {
                 break;
             }
             case 'M': {
-                if (ps->bombs) {
-                    ps->bombs--;
-                    int x, y;
-                    direction d = (direction)ps->stack[--ps->sp];
-                    move_coord(ps->x, ps->y, d, &x, &y);
-                    char kill = 0;
-                    for(int i = 0; i < _gs->player_count; i++) 
-                        if (_gs->players[i].x == x && _gs->players[i].y == y) { kill_player(_gs->players+i); kill = 1; }
-                    if (!kill) mine(x,y);
-                    _gs->remaining_steps--;
-                }
+                if(!use_resource(1,&_gs->remaining_actions)) {ps->dp--;return;}
+                if(!use_resource(1,&ps->bombs)) break;
+            
+                ps->bombs--;
+                int x, y;
+                direction d = (direction)ps->stack[--ps->sp];
+                move_coord(ps->x, ps->y, d, &x, &y);
+                char kill = 0;
+                for(int i = 0; i < _gs->player_count; i++) 
+                    if (_gs->players[i].x == x && _gs->players[i].y == y) { kill_player(_gs->players+i); kill = 1; }
+                if (!kill) mine(x,y);
                 break;
             }
             case 'm': {
@@ -201,26 +206,27 @@ void player_turn(player_state* ps) {
                 break;
             }
             case 'A': {
+                if(!use_resource(1,&_gs->remaining_actions)) {ps->dp--; return;}
                 int x, y;
                 direction d = (direction)ps->stack[--ps->sp];
                 move_coord(ps->x, ps->y, d, &x, &y);
                 for(int i = 0; i < _gs->player_count; i++)
                     if (_gs->players[i].x == x && _gs->players[i].y == y) kill_player(_gs->players+i);
                 move(d,ps);
-                _gs->remaining_actions--;
                 break;
             }
             case 'T': {
+                if(!use_resource(1,&_gs->remaining_actions)) {ps->dp--; return;}
                 int x, y;
                 direction d = (direction)ps->stack[--ps->sp];
                 move_coord(ps->x, ps->y, d, &x, &y);
                 trench(x, y);
                 print_board();
                 sleep(500);
-                _gs->remaining_actions--;
                 break;
             }
             case 'F': {
+                if(!use_resource(1,&_gs->remaining_actions)) {ps->dp--; return;}
                 int x, y;
                 direction d = (direction)ps->stack[--ps->sp];
                 move_coord(ps->x, ps->y, d, &x, &y);
@@ -228,7 +234,6 @@ void player_turn(player_state* ps) {
                     fortify_field(x,y);
                 print_board();
                 sleep(500);
-                _gs->remaining_actions--;
                 break;
             }
             case 'r': {
@@ -236,8 +241,6 @@ void player_turn(player_state* ps) {
                 break;
             }
             case 'R': {
-                //int num_size = numeric_size(ps->directive,ps->dp);
-                //int num = sub_str_to_int(ps->directive,ps->dp,num_size);
                 int num = *(int*)((ps->directive)+(ps->dp));
                 int pick = ps->stack[ps->sp - ((rand() % num)+1)];
                 ps->sp -= num;
@@ -246,35 +249,27 @@ void player_turn(player_state* ps) {
                 break;
             }
             case 'p': {
-                //int num_size = numeric_size(ps->directive,ps->dp);
-                //int num = sub_str_to_int(ps->directive,ps->dp,num_size);
                 int num = *(int*)((ps->directive)+(ps->dp));
                 ps->stack[ps->sp++] = num;
                 ps->dp += 4;
                 break;
             }
-            case 'd': {
-                ps->sp--;
-                ps->dp++;
-                break;
-            }
             case 'B': {
+                if(!use_resource(1,&_gs->remaining_actions)) {ps->dp--; return;}
                 int p = ps->stack[--ps->sp];
                 direction d = (direction)ps->stack[--ps->sp];
-                if (ps->bombs) {
-                    int x = ps->x;
-                    int y = ps->y;
-                    for (int i = p; i > 0; i--)
-                        move_coord(x,y,d,&x,&y);
-                    set_visual(x,y,TARGET);
-                    add_bomb(x, y, ps);
-                    print_board();
-                    sleep(500);
-                    unset_visual(x,y);
-                    sleep(250);
-                    ps->bombs--;
-                }
-                _gs->remaining_actions--;
+                if(!use_resource(1,&ps->bombs)) break;
+            
+                int x = ps->x;
+                int y = ps->y;
+                for (int i = p; i > 0; i--)
+                    move_coord(x,y,d,&x,&y);
+                set_visual(x,y,TARGET);
+                add_bomb(x, y, ps);
+                print_board();
+                sleep(500);
+                unset_visual(x,y);
+                sleep(250);
                 break;
             }
             case '@': {
@@ -323,8 +318,6 @@ void player_turn(player_state* ps) {
                         break;
                     }
                     default: {
-                        //int num_size = numeric_size(ps->directive,ps->dp);
-                        //int num = sub_str_to_int(ps->directive,ps->dp,num_size);
                         int num = *(int*)((ps->directive)+(ps->dp));
                         ps->stack[ps->sp++] = ps->stack[num];
                         ps->dp += 4;
@@ -333,17 +326,13 @@ void player_turn(player_state* ps) {
                 break;
             }
             case '!': {
-                //int num_size = numeric_size(ps->directive,ps->dp);
-                //int num = sub_str_to_int(ps->directive,ps->dp,num_size);
                 int num = *(int*)((ps->directive)+(ps->dp));
                 ps->dp = num;
                 break;
             }
             case '?': {
                 int v = ps->stack[--ps->sp];
-                //int num_size = numeric_size(ps->directive,ps->dp);
                 if (v) { 
-                    //int num = sub_str_to_int(ps->directive,ps->dp,num_size);
                     int num = *(int*)((ps->directive)+(ps->dp));
                     ps->dp = num; 
                 }
@@ -429,8 +418,6 @@ void player_turn(player_state* ps) {
             }
             case '\'': {
                 int v = ps->stack[--ps->sp];
-                //int num_size = numeric_size(ps->directive,ps->dp);
-                //int num = sub_str_to_int(ps->directive,ps->dp,num_size);
                 int num = *(int*)((ps->directive)+(ps->dp));
                 ps->stack[ps->sp++] = num;
                 ps->dp += 4;
@@ -439,7 +426,6 @@ void player_turn(player_state* ps) {
             }
             default: return;;
         }
-        _gs->remaining_steps--;
     }
 }
 
