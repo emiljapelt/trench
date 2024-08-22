@@ -79,12 +79,17 @@ and compile_stmt (Stmt(stmt,ln)) regs acc =
   | Block (stmt_list) -> (
     List.fold_left (fun acc stmt -> compile_stmt stmt regs acc) acc (List.rev stmt_list) 
   )
-  | Repeat (count, stmt) -> (
-    let rec aux c s acc = 
-      if c = 0 then acc else aux (c-1) s (compile_stmt s regs acc)
-    in
-    aux count stmt acc
-  )
+  | While(v,s,None) -> 
+    let label_cond = Helpers.new_label () in
+    let label_start = Helpers.new_label () in
+    let label_stop = Helpers.new_label () in
+    CGoTo(label_cond,None) :: CLabel(label_start) :: (compile_stmt s regs (CLabel(label_cond) :: compile_value v regs (IfTrue(label_start,None) ::CLabel(label_stop)::acc)))
+  | While(v,s,Some si) -> 
+    let label_cond = Helpers.new_label () in
+    let label_start = Helpers.new_label () in
+    let label_stop = Helpers.new_label () in
+    let label_incr = Helpers.new_label () in
+    CGoTo(label_cond,None) :: CLabel(label_start) :: (compile_stmt s regs (CLabel(label_incr) :: (compile_stmt si regs (CLabel(label_cond) :: (compile_value v regs (IfTrue(label_start,None) :: CLabel(label_stop) :: acc))))))
   | Assign (Local target, aexpr) -> 
     Instruction ("p"^string_of_int (fetch_var_index target regs)) :: compile_value aexpr regs (Instruction "a_" :: acc)
   | Assign (Global(typ,v), aexpr) -> 

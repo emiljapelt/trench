@@ -9,6 +9,7 @@ typedef struct game_rules {
     int mode;
     int nuke;
     int array;
+    int feature_level;
 } game_rules;
 
 #endif

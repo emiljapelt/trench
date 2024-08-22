@@ -16,6 +16,7 @@
    toProgramRep
    typing
    transform
+   flags
    compile
  )
 )

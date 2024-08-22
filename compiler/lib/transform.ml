@@ -6,6 +6,17 @@ let rec pull_out_declarations stmt = match stmt with
       List.fold_left (fun acc stmt -> pull_out_declarations stmt::acc) [] stmts |> List.split in
     (regs |> List.rev |> List.flatten, Stmt(Block(List.rev stmts),ln))
   )
+  | Stmt(If(v,s0,s1),ln) ->
+    let (regs0,s0) = pull_out_declarations s0 in
+    let (regs1,s1) = pull_out_declarations s1 in
+    (regs0@regs1,Stmt(If(v,s0,s1),ln))
+  | Stmt(While(v,s,None),ln) ->
+    let (regs,s) = pull_out_declarations s in
+    (regs,Stmt(While(v,s,None),ln))
+  | Stmt(While(v,s,Some si),ln) ->
+    let (regs,s) = pull_out_declarations s in
+    let (regsi,si) = pull_out_declarations si in
+    (regs@regsi,Stmt(While(v,s,Some si),ln))
   | Stmt(Declare(typ,n),ln) -> ([Register(typ,n)], Stmt(Assign(Local n,Int 0),ln))
   | Stmt(DeclareAssign(typ,n,v),ln) -> ([Register(typ,n)], Stmt(Assign(Local n, v),ln))
   | _ -> ([], stmt)
@@ -39,7 +50,13 @@ let rec rename_variables_of_stmt i map (Stmt(stmt,ln)) = match stmt with
       (i,map,stmt'::acc)
     ) (i,map,[]) stmts in
     (i,map,Stmt(Block(List.rev stmts),ln))
-  | Repeat _ -> failwith "nope"
+  | While(v,s,None) -> 
+    let (i,_,s) = rename_variables_of_stmt i map s in
+    (i,map,Stmt(While(rename_variables_of_value map v,s,None),ln))
+  | While(v,s,Some si) -> 
+    let (i,_,s) = rename_variables_of_stmt i map s in
+    let (i,_,si) = rename_variables_of_stmt i map si in
+    (i,map,Stmt(While(rename_variables_of_value map v,s,Some si),ln))
   | Assign(Local n,v) -> 
     (i,map,Stmt(Assign(Local(StringMap.find n map), rename_variables_of_value map v),ln))
   | Assign(Global(t,v),nv) -> (i,map,Stmt(Assign(Global(t,rename_variables_of_value map v),rename_variables_of_value map nv),ln))

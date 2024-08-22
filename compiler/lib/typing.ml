@@ -72,7 +72,10 @@ and type_meta m = match m with
 let rec type_check_stmt_inner regs stmt : register list = match stmt with
   | If(c,a,b) -> require T_Int (type_value regs c) (fun () -> type_check_stmt regs a |> ignore ; type_check_stmt regs b |> ignore ; regs)
   | Block stmts -> type_check_stmts regs stmts
-  | Repeat(_,_) -> failwith "Repeater remaining"
+  | While(v,s,None) -> 
+    require T_Int (type_value regs v) (fun () -> type_check_stmt regs s |> ignore ; regs)
+  | While(v,s,Some si) -> 
+    require T_Int (type_value regs v) (fun () -> type_check_stmt regs s |> ignore ; type_check_stmt regs si |> ignore ; regs)
   | Assign(Local n,e) -> require (var_type regs n) (type_value regs e) (fun () -> regs)
   | Assign(Global(t,_),e) -> require t (type_value regs e) (fun () -> regs)
   | Move e 

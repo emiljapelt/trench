@@ -7,6 +7,7 @@
                         "if", IF;
                         "else", ELSE;
                         "repeat", REPEAT;
+                        "while", WHILE;
                         "move", MOVE;
                         "trench", TRENCH;
                         "fortify", FORTIFY;

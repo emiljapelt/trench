@@ -13,6 +13,7 @@
                         "board", BOARD;
                         "nuke", NUKE;
                         "global_array", GLOBAL_ARRAY;
+                        "feature_level", FEATURE_LEVEL;
                       ]
   
   let char_of_string s lexbuf = match s with

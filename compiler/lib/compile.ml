@@ -76,6 +76,7 @@ let default_game_setup = GS {
   board = (20,20);
   nuke = 0;
   array = 10;
+  feature_level = 4;
 }
 
 let to_game_setup gsps =
@@ -91,6 +92,7 @@ let to_game_setup gsps =
       | Board(x,y) -> if x >= 0 && y >= 0 then (GS ({acc with board = (x,y)})) else raise_failure "Board size cannot be negative"
       | Nuke i -> if i >= 0 then (GS ({acc with nuke = i})) else raise_failure "Nuke option size cannot be negative"
       | GlobalArray i -> if i >= 0 then (GS ({acc with array = i})) else raise_failure "Global array size cannot be negative"
+      | FeatureLevel i -> if i >= 0 && i <= 3 then (GS ({acc with feature_level = i})) else raise_failure "Feature level must be within 0-4"
     )
   in
   aux gsps default_game_setup
@@ -103,6 +105,7 @@ let compile parser lexer transforms checks compiler stringer path =
     try 
       parser (lexer path) lexbuf
     with
+    | Failure(None,None,m) -> raise (Failure(Some path,Some(lexbuf.lex_curr_p.pos_lnum),m))
     | Failure(p,l,m) -> raise (Failure(p,l,m))
     | _ -> raise (Failure(Some path, Some(lexbuf.lex_curr_p.pos_lnum), "Syntax error"))
     in
@@ -146,6 +149,7 @@ type compiled_game_file = {
   board_size: int * int;
   player_count: int;
   player_info: compiled_player_info array;
+  feature_level: int;
 }
 
 let compile_player_file path = try (
@@ -172,6 +176,9 @@ let game_setup_player (PI player) =
   directive_len = String.length p;
 }
 
+let set_feature_level l = 
+  Flags.compile_flags.feature_level <- l ; ()
+
 let format_game_setup (GS gs) = {
   bombs = gs.bombs;
   shots = gs.shots;
@@ -182,7 +189,8 @@ let format_game_setup (GS gs) = {
   nuke = gs.nuke;
   array = gs.array;
   player_count = List.length gs.players;
-  player_info = Array.of_list (List.map game_setup_player gs.players);
+  player_info = (set_feature_level gs.feature_level ; Array.of_list (List.map game_setup_player gs.players));
+  feature_level = gs.feature_level;
 }
 
 let compile_game_file path = try (

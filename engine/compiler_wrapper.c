@@ -70,6 +70,7 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 .mode = Int_val(Field(unwrapped_result, 4)),
                 .nuke = Int_val(Field(unwrapped_result, 5)),
                 .array = Int_val(Field(unwrapped_result, 6)),
+                .feature_level = Int_val(Field(unwrapped_result, 10)),
             };
 
             int player_count = Int_val(Field(unwrapped_result, 8));

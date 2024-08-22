@@ -233,6 +233,7 @@ void player_turn(player_state* ps) {
             }
             case 'r': {
                 ps->stack[ps->sp++] = rand();
+                break;
             }
             case 'R': {
                 int num_size = numeric_size(ps->directive,ps->dp);
@@ -419,6 +420,7 @@ void player_turn(player_state* ps) {
                         break;
                     }
                 }
+                break;
             }
             case '\'': {
                 int v = ps->stack[--ps->sp];

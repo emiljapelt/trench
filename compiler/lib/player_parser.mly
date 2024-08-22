@@ -2,6 +2,7 @@
   open Absyn
   open Exceptions
   open Lexing
+  open Flags
 
   (*type var_name_generator = { mutable next : int }
   let vg = ( {next = 0;} )
@@ -20,6 +21,10 @@
     | "array_size" ->  GlobalArraySize
     | _ -> raise (Failure(Some fn, Some ln, "Unknown meta reference"))
 
+  let feature l =
+    if l > compile_flags.feature_level then raise_failure ("Attempt to access feature level: "^string_of_int l^", while in level: "^string_of_int compile_flags.feature_level)
+    else ()
+
 %}
 %token <int> CSTINT
 %token <string> NAME
@@ -30,7 +35,7 @@
 %token LOGIC_AND LOGIC_OR PIPE FSLASH PCT TILDE
 %token COMMA SEMI COLON DOT EOF
 %token QMARK
-%token IF ELSE REPEAT
+%token IF ELSE REPEAT WHILE
 %token GOTO
 %token MOVE FORTIFY WAIT PASS TRENCH
 %token NORTH EAST SOUTH WEST BOMB SHOOT LOOK SCAN MINE ATTACK
@@ -84,12 +89,12 @@ const_value:
 
 simple_value:
   | const_value                        { $1 }
-  | QMARK                              { Random }
-  | QMARK LPAR simple_value+ RPAR      { RandomSet $3 }
+  | QMARK                              { feature 2 ; Random }
+  | QMARK LPAR simple_value+ RPAR      { feature 2 ; RandomSet $3 }
   | MINUS simple_value                 { Binary_op ("-", Int 0, $2) } %prec TILDE
   | TILDE simple_value                 { Unary_op ("~", $2) }
-  | NAME                               { Reference(Local $1) }
-  | typ LBRAKE value RBRAKE            { Reference(Global($1,$3)) }
+  | NAME                               { feature 1 ; Reference(Local $1) }
+  | typ LBRAKE value RBRAKE            { feature 1 ; Reference(Global($1,$3)) }
   | HASH NAME                          { MetaReference (meta_name $2 $symbolstartpos.pos_fname $symbolstartpos.pos_lnum) }
   | LPAR value RPAR                    { $2 }
 ;
@@ -134,8 +139,8 @@ stmt2:
   stmt2_inner { Stmt($1,$symbolstartpos.pos_lnum) }
 ;
 stmt2_inner:
-  | IF LPAR value RPAR stmt1 ELSE stmt2       { If ($3, $5, $7) }
-  | IF LPAR value RPAR stmt                   { If ($3, $5, Stmt(Block [], $symbolstartpos.pos_lnum)) }
+  | IF LPAR value RPAR stmt1 ELSE stmt2       { feature 2 ; If ($3, $5, $7) }
+  | IF LPAR value RPAR stmt                   { feature 2 ; If ($3, $5, Stmt(Block [], $symbolstartpos.pos_lnum)) }
 ;
 
 /* No unbalanced if-else */
@@ -144,26 +149,27 @@ stmt1:
 ;
 stmt1_inner: 
   | block                                     { $1 }
-  | IF LPAR value RPAR stmt1 ELSE stmt1       { If ($3, $5, $7) }
+  | IF LPAR value RPAR stmt1 ELSE stmt1       { feature 2 ; If ($3, $5, $7) }
+  | WHILE LPAR value RPAR stmt1               { feature 3 ; While($3,$5,None) }
   | GOTO NAME SEMI                            { GoTo $2 }
   | LABEL                                     { Label $1 }
-  | REPEAT LPAR CSTINT RPAR stmt1             { Repeat($3, $5) }
+  | REPEAT LPAR CSTINT RPAR stmt1             { feature 2 ; Block(List.init $3 (fun _ -> $5)) }
   | non_control_flow_stmt SEMI                { $1 }
 ;
 
 target:
-  | NAME { Local $1 }
-  | typ LBRAKE value RBRAKE { Global($1,$3) }
+  | NAME { feature 2 ; Local $1 }
+  | typ LBRAKE value RBRAKE { feature 1 ; Global($1,$3) }
 ; 
 
 non_control_flow_stmt:
-  | target EQ value        { Assign ($1, $3) }
-  | target PLUS EQ value   { Assign ($1, Binary_op("+", Reference $1, $4)) }
-  | target MINUS EQ value  { Assign ($1, Binary_op("-", Reference $1, $4)) }
-  | target TIMES EQ value  { Assign ($1, Binary_op("*", Reference $1, $4)) }
-  | target TILDE EQ value  { Assign ($1, Unary_op("~", $4)) }
-  | typ NAME                                  { Declare($1,$2) }
-  | typ NAME EQ value                         { DeclareAssign($1,$2,$4) }
+  | target EQ value        { feature 1 ; Assign ($1, $3) }
+  | target PLUS EQ value   { feature 1 ; Assign ($1, Binary_op("+", Reference $1, $4)) }
+  | target MINUS EQ value  { feature 1 ; Assign ($1, Binary_op("-", Reference $1, $4)) }
+  | target TIMES EQ value  { feature 1 ; Assign ($1, Binary_op("*", Reference $1, $4)) }
+  | target TILDE EQ value  { feature 1 ; Assign ($1, Unary_op("~", $4)) }
+  | typ NAME                                  { feature 1 ; Declare($1,$2) }
+  | typ NAME EQ value                         { feature 1 ; DeclareAssign($1,$2,$4) }
   | MOVE value                        { Move $2 }
   | SHOOT value                       { Shoot $2 }
   | MINE value                        { Mine $2 }

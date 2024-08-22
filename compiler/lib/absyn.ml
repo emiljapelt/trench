@@ -27,7 +27,7 @@ and target =
 and statement_inner =
     | If of value * statement * statement
     | Block of statement list
-    | Repeat of int * statement
+    | While of value * statement * statement option
     | Assign of target * value
     | Label of string
     | Move of value
@@ -94,6 +94,7 @@ type game_setup_part =
     | Board of int * int
     | Nuke of int
     | GlobalArray of int
+    | FeatureLevel of int
 
 type game_setup = GS of {
     players: player_info list;
@@ -105,4 +106,5 @@ type game_setup = GS of {
     board: int * int;
     nuke: int;
     array: int;
+    feature_level: int;
 }

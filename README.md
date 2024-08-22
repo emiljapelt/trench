@@ -19,6 +19,13 @@
 
 The code written for a player character is called a directive and it consist of a series of statements, which will be interpreted from the top. Each statement takes some steps to execute, and a limit to how many steps can be taken in a turn, is set in the game rules. Additonally, some statements will use an action, the number of actions available per turn is also defined by the game rules. 
 
+## Feature levels
+The features of the trench language are split into 4 levels. Lower levels means a more restricted set of features. 
+- Level 0: Core features (move, shoot, trench, labels, goto, ...)
+- Level 1: Memory features (variables, assignments, global array, ...)
+- Level 2: Basic features (if-else, repeat, random, ...)
+- Level 3: Advanced features (loops, switches, ...)
+
 ## Statements
 | statement | explaination | examples | actions | steps |
 | --- | --- | --- | --- | --- |
@@ -95,6 +102,7 @@ The game file specifies the players and rules of a particular game. It consists 
 | board_y | the board height |
 | nuke | how many rounds must pass, between every space on the board being blow up. 0 meaning never. |
 | global_array | the size of each global array | 
+| feature_level | set the maximum allowed feature level |
 
 In the following, every value is set to its default, except the player:
 ```
@@ -105,6 +113,7 @@ steps:100;
 mode:0;
 nuke:0;
 global_array: 10;
+feature_level: 3;
 
 board_x:20;
 board_y:20;
