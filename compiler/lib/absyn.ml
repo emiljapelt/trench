@@ -28,6 +28,8 @@ and statement_inner =
     | If of value * statement * statement
     | Block of statement list
     | While of value * statement * statement option
+    | Continue
+    | Break
     | Assign of target * value
     | Label of string
     | Move of value
@@ -65,17 +67,29 @@ and meta_data =
     | BoardY      (* #board_y *)
     | GlobalArraySize (* #array_size  *)
 
-and register =
-    | Register of typ * string
+and variable =
+    | Var of typ * string
 
 and file = 
-    | File of register list * statement list
+    | File of variable list * statement list
+
+type compile_state = {
+    vars: variable list;
+    break: string option;
+    continue: string option;
+}
 
 let string_of_dir d = match d with
     | North -> "0"
     | East -> "1"
     | South -> "2"
     | West -> "3"
+
+let int_of_dir d = match d with
+    | North -> 0
+    | East -> 1
+    | South -> 2
+    | West -> 3
 
 let type_index t = match t with
     | T_Int -> 0

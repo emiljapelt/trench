@@ -236,19 +236,21 @@ void player_turn(player_state* ps) {
                 break;
             }
             case 'R': {
-                int num_size = numeric_size(ps->directive,ps->dp);
-                int num = sub_str_to_int(ps->directive,ps->dp,num_size);
+                //int num_size = numeric_size(ps->directive,ps->dp);
+                //int num = sub_str_to_int(ps->directive,ps->dp,num_size);
+                int num = *(int*)((ps->directive)+(ps->dp));
                 int pick = ps->stack[ps->sp - ((rand() % num)+1)];
                 ps->sp -= num;
                 ps->stack[ps->sp++] = pick;
-                ps->dp += num_size;
+                ps->dp += 4;
                 break;
             }
             case 'p': {
-                int num_size = numeric_size(ps->directive,ps->dp);
-                int num = sub_str_to_int(ps->directive,ps->dp,num_size);
+                //int num_size = numeric_size(ps->directive,ps->dp);
+                //int num = sub_str_to_int(ps->directive,ps->dp,num_size);
+                int num = *(int*)((ps->directive)+(ps->dp));
                 ps->stack[ps->sp++] = num;
-                ps->dp += num_size;
+                ps->dp += 4;
                 break;
             }
             case 'd': {
@@ -321,28 +323,31 @@ void player_turn(player_state* ps) {
                         break;
                     }
                     default: {
-                        int num_size = numeric_size(ps->directive,ps->dp);
-                        int num = sub_str_to_int(ps->directive,ps->dp,num_size);
+                        //int num_size = numeric_size(ps->directive,ps->dp);
+                        //int num = sub_str_to_int(ps->directive,ps->dp,num_size);
+                        int num = *(int*)((ps->directive)+(ps->dp));
                         ps->stack[ps->sp++] = ps->stack[num];
-                        ps->dp += num_size;
+                        ps->dp += 4;
                     }
                 }
                 break;
             }
             case '!': {
-                int num_size = numeric_size(ps->directive,ps->dp);
-                int num = sub_str_to_int(ps->directive,ps->dp,num_size);
+                //int num_size = numeric_size(ps->directive,ps->dp);
+                //int num = sub_str_to_int(ps->directive,ps->dp,num_size);
+                int num = *(int*)((ps->directive)+(ps->dp));
                 ps->dp = num;
                 break;
             }
             case '?': {
                 int v = ps->stack[--ps->sp];
-                int num_size = numeric_size(ps->directive,ps->dp);
+                //int num_size = numeric_size(ps->directive,ps->dp);
                 if (v) { 
-                    int num = sub_str_to_int(ps->directive,ps->dp,num_size);
+                    //int num = sub_str_to_int(ps->directive,ps->dp,num_size);
+                    int num = *(int*)((ps->directive)+(ps->dp));
                     ps->dp = num; 
                 }
-                else ps->dp += num_size;
+                else ps->dp += 4;
                 break;
             }
             case '=': {
@@ -424,10 +429,11 @@ void player_turn(player_state* ps) {
             }
             case '\'': {
                 int v = ps->stack[--ps->sp];
-                int num_size = numeric_size(ps->directive,ps->dp);
-                int num = sub_str_to_int(ps->directive,ps->dp,num_size);
+                //int num_size = numeric_size(ps->directive,ps->dp);
+                //int num = sub_str_to_int(ps->directive,ps->dp,num_size);
+                int num = *(int*)((ps->directive)+(ps->dp));
                 ps->stack[ps->sp++] = num;
-                ps->dp += num_size;
+                ps->dp += 4;
                 ps->stack[ps->sp++] = v & num;
                 break;
             }

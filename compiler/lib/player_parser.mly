@@ -35,7 +35,7 @@
 %token LOGIC_AND LOGIC_OR PIPE FSLASH PCT TILDE
 %token COMMA SEMI COLON DOT EOF
 %token QMARK
-%token IF ELSE REPEAT WHILE
+%token IF ELSE REPEAT WHILE CONTINUE BREAK
 %token GOTO
 %token MOVE FORTIFY WAIT PASS TRENCH
 %token NORTH EAST SOUTH WEST BOMB SHOOT LOOK SCAN MINE ATTACK
@@ -151,6 +151,8 @@ stmt1_inner:
   | block                                     { $1 }
   | IF LPAR value RPAR stmt1 ELSE stmt1       { feature 2 ; If ($3, $5, $7) }
   | WHILE LPAR value RPAR stmt1               { feature 3 ; While($3,$5,None) }
+  | BREAK SEMI                                { feature 3 ; Break }
+  | CONTINUE SEMI                             { feature 3 ; Continue }
   | GOTO NAME SEMI                            { GoTo $2 }
   | LABEL                                     { Label $1 }
   | REPEAT LPAR CSTINT RPAR stmt1             { feature 2 ; Block(List.init $3 (fun _ -> $5)) }

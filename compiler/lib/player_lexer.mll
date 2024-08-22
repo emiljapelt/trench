@@ -8,6 +8,8 @@
                         "else", ELSE;
                         "repeat", REPEAT;
                         "while", WHILE;
+                        "break", BREAK;
+                        "continue", CONTINUE;
                         "move", MOVE;
                         "trench", TRENCH;
                         "fortify", FORTIFY;

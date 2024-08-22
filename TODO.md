@@ -7,4 +7,6 @@
 - Direction operators
     - Fix subtraction/counter-clockwise
 
+- Implement cost checking, with "rollback" in engine
+
 - Update README.md

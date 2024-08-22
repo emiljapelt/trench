@@ -91,6 +91,7 @@ let rec resolve_labels pps : program_part list =
       )
       | CGoTo(n,None)
       | IfTrue(n,None) -> (
+        Printf.printf "comp %s %!" n;
         let reconstruct = reconstruct_with_label_index pp in
         match StringMap.find_opt n labels with
         | Some label_idx -> ( 
@@ -118,17 +119,29 @@ let rec resolve_labels pps : program_part list =
   | true -> resolve_labels pps
   | false -> pps
 
+let pp_size' pp = match pp with
+  | CLabel _ -> 0
+  | Instruction s -> String.length s
+  | IfTrue _ -> 5
+  | CGoTo _ -> 5
+
+let extract_label_indecies pps =
+  let rec aux pps i map = match pps with
+    | [] -> map
+    | CLabel n :: t -> aux t i (StringMap.add n i map)
+    | h::t -> aux t (i + pp_size' h) map
+  in
+  aux pps 0 StringMap.empty
+
 let program_to_string pp =
   check_labels_exist pp (label_set pp);
-  let pp = resolve_labels pp in
-  (*string_of_int start ^*) (List.map (
+  let map = extract_label_indecies pp in
+  (List.map (
     fun p -> match p with
     | CLabel _ -> ""
-    | CGoTo(_,Some idx) -> "!"^string_of_int idx
-    | IfTrue(_,Some idx) -> "?"^string_of_int idx
+    | CGoTo(n,_) -> "!"^(Helpers.binary_int_string (StringMap.find n map))
+    | IfTrue(n,_) -> "?"^(Helpers.binary_int_string (StringMap.find n map))
     | Instruction i -> i
-    | CGoTo(n,None)
-    | IfTrue(n,None) -> failwith ("Unresolved label: "^n)
   ) pp
   |> String.concat "")
 

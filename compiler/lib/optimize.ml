@@ -93,6 +93,8 @@ let rec optimize_stmt (Stmt(stmt_i,ln) as stmt) = match stmt_i with
   | Wait
   | GoTo _
   | Label _
+  | Continue
+  | Break
   | Pass -> stmt
 
 and optimize_stmts stmts =

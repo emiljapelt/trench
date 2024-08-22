@@ -10,16 +10,16 @@ let require req_typ expr_t res =
   if req_typ = expr_t then res ()
   else raise_failure ("required type: '" ^type_string req_typ ^"'")
 
-let var_type regs name = 
-  match List.find_opt (fun (Register(_,rn)) -> rn = name) regs with
-  | Some Register(t,_) -> t
+let var_type vars name = 
+  match List.find_opt (fun (Var(_,vn)) -> vn = name) vars with
+  | Some Var(t,_) -> t
   | None -> raise_failure ("No such variable: "^name)
 
-let rec type_value regs v = match v with
-    | Reference Local n -> var_type regs n  
+let rec type_value (state:compile_state) v = match v with
+    | Reference Local n -> var_type state.vars n  
     | Reference Global (t,_) -> t
     | MetaReference m -> type_meta m
-    | Binary_op(op,v0,v1) -> (match op, type_value regs v0, type_value regs v1 with
+    | Binary_op(op,v0,v1) -> (match op, type_value state v0, type_value state v1 with
       | "+", T_Int, T_Int 
       | "-", T_Int, T_Int 
       | "*", T_Int, T_Int 
@@ -44,18 +44,18 @@ let rec type_value regs v = match v with
     | Unary_op _
     | Random
     | Int _ -> T_Int
-    | Flag(v,_) -> require T_Field (type_value regs v) (fun () -> T_Int)
+    | Flag(v,_) -> require T_Field (type_value state v) (fun () -> T_Int)
     | Scan(d,p)  ->
-      require T_Dir (type_value regs d) (fun () -> ()) ;
-      require T_Int (type_value regs p) (fun () -> ()) ;
+      require T_Dir (type_value state d) (fun () -> ()) ;
+      require T_Int (type_value state p) (fun () -> ()) ;
       T_Field
-    | Look e -> require T_Dir (type_value regs e) (fun () -> T_Int)
+    | Look e -> require T_Dir (type_value state e) (fun () -> T_Int)
     | Direction _ -> T_Dir
     | RandomSet vals -> (match vals with
       | [] -> raise_failure "Empty random set"
       | h::t -> 
-        let ty = type_value regs h in
-        List.iter (fun h -> require ty (type_value regs h) (fun () -> ())) t ;
+        let ty = type_value state h in
+        List.iter (fun h -> require ty (type_value state h) (fun () -> ())) t ;
         ty
     )
 
@@ -69,33 +69,35 @@ and type_meta m = match m with
     | GlobalArraySize -> T_Int     
 
 
-let rec type_check_stmt_inner regs stmt : register list = match stmt with
-  | If(c,a,b) -> require T_Int (type_value regs c) (fun () -> type_check_stmt regs a |> ignore ; type_check_stmt regs b |> ignore ; regs)
-  | Block stmts -> type_check_stmts regs stmts
+let rec type_check_stmt_inner state stmt = match stmt with
+  | If(c,a,b) -> require T_Int (type_value state c) (fun () -> type_check_stmt state a |> ignore ; type_check_stmt state b |> ignore ; state)
+  | Block stmts -> type_check_stmts state stmts
   | While(v,s,None) -> 
-    require T_Int (type_value regs v) (fun () -> type_check_stmt regs s |> ignore ; regs)
+    require T_Int (type_value state v) (fun () -> type_check_stmt state s |> ignore ; state)
   | While(v,s,Some si) -> 
-    require T_Int (type_value regs v) (fun () -> type_check_stmt regs s |> ignore ; type_check_stmt regs si |> ignore ; regs)
-  | Assign(Local n,e) -> require (var_type regs n) (type_value regs e) (fun () -> regs)
-  | Assign(Global(t,_),e) -> require t (type_value regs e) (fun () -> regs)
+    require T_Int (type_value state v) (fun () -> type_check_stmt state s |> ignore ; type_check_stmt state si |> ignore ; state)
+  | Assign(Local n,e) -> require (var_type state.vars n) (type_value state e) (fun () -> state)
+  | Assign(Global(t,_),e) -> require t (type_value state e) (fun () -> state)
   | Move e 
-  | Shoot e -> require T_Dir (type_value regs e) (fun () -> regs)
+  | Shoot e -> require T_Dir (type_value state e) (fun () -> state)
   | Bomb(d,p) -> 
-    require T_Dir (type_value regs d) (fun () -> regs) |> ignore ;
-    require T_Int (type_value regs p) (fun () -> regs)
+    require T_Dir (type_value state d) (fun () -> state) |> ignore ;
+    require T_Int (type_value state p) (fun () -> state)
   | Attack d
-  | Mine d -> require T_Dir (type_value regs d) (fun () -> regs)
+  | Mine d -> require T_Dir (type_value state d) (fun () -> state)
   | Fortify o
   | Trench o -> (match o with
-    | Some e -> require T_Dir (type_value regs e) (fun () -> regs)
-    | None -> regs
+    | Some e -> require T_Dir (type_value state e) (fun () -> state)
+    | None -> state
   )
-  | DeclareAssign(t,n,v) -> require t (type_value regs v) (fun () -> Register(t,n)::regs)
-  | Declare(t,n) -> Register(t,n)::regs
+  | DeclareAssign(t,n,v) -> require t (type_value state v) (fun () -> {state with vars = Var(t,n)::state.vars})
+  | Declare(t,n) -> {state with vars = Var(t,n)::state.vars}
   | Wait
   | GoTo _
   | Label _
-  | Pass -> regs
+  | Continue
+  | Break
+  | Pass -> state
 
 and type_check_stmt regs (Stmt(stmt,ln)) = 
   try 
@@ -107,5 +109,5 @@ and type_check_stmt regs (Stmt(stmt,ln)) =
 and type_check_stmts regs stmts =
   List.fold_left (fun regs stmt -> type_check_stmt regs stmt) regs stmts |> ignore ; regs
 
-let type_check_program (File(regs,prog)) =
-  type_check_stmts regs prog |> ignore ; File(regs,prog)
+let type_check_program (File(vars,prog)) =
+  type_check_stmts {vars = vars; break = None; continue = None} prog |> ignore ; File(vars,prog)

@@ -92,7 +92,7 @@ let to_game_setup gsps =
       | Board(x,y) -> if x >= 0 && y >= 0 then (GS ({acc with board = (x,y)})) else raise_failure "Board size cannot be negative"
       | Nuke i -> if i >= 0 then (GS ({acc with nuke = i})) else raise_failure "Nuke option size cannot be negative"
       | GlobalArray i -> if i >= 0 then (GS ({acc with array = i})) else raise_failure "Global array size cannot be negative"
-      | FeatureLevel i -> if i >= 0 && i <= 3 then (GS ({acc with feature_level = i})) else raise_failure "Feature level must be within 0-4"
+      | FeatureLevel i -> if i >= 0 && i <= 3 then (GS ({acc with feature_level = i})) else raise_failure "Feature level must be within 0-3"
     )
   in
   aux gsps default_game_setup
@@ -117,10 +117,10 @@ let compile parser lexer transforms checks compiler stringer path =
   | _ -> raise (Failure(Some path, None, "Parser error"))
   
 
-let check_registers_unique (File(regs,_)) =
+let check_vars_unique (File(regs,_)) =
   let rec aux regs set = match regs with
   | [] -> ()
-  | Register(_,n)::t -> 
+  | Var(_,n)::t -> 
     if StringSet.mem n set 
     then raise_failure ("Duplicate register name: "^n) 
     else aux t (StringSet.add n set)
@@ -128,7 +128,8 @@ let check_registers_unique (File(regs,_)) =
   aux regs StringSet.empty
 
 let player_to_string (regs,program) = 
-  string_of_int(List.length regs)^":"^program_to_string program
+  let program_string = program_to_string program in
+  string_of_int(String.length program_string)^":"^string_of_int(List.length regs)^":"^program_string
 
 type compiled_player_info = {
   id: int;
@@ -159,7 +160,7 @@ let compile_player_file path = try (
     rename_variables_of_file;
     optimize_program;
     pull_out_declarations_of_file
-  ] [check_registers_unique] compile_player player_to_string path)
+  ] [check_vars_unique] compile_player player_to_string path)
 ) with
 | Failure _ as f -> Error(format_failure path f)
 

@@ -17,8 +17,8 @@ let rec pull_out_declarations stmt = match stmt with
     let (regs,s) = pull_out_declarations s in
     let (regsi,si) = pull_out_declarations si in
     (regs@regsi,Stmt(While(v,s,Some si),ln))
-  | Stmt(Declare(typ,n),ln) -> ([Register(typ,n)], Stmt(Assign(Local n,Int 0),ln))
-  | Stmt(DeclareAssign(typ,n,v),ln) -> ([Register(typ,n)], Stmt(Assign(Local n, v),ln))
+  | Stmt(Declare(typ,n),ln) -> ([Var(typ,n)], Stmt(Assign(Local n,Int 0),ln))
+  | Stmt(DeclareAssign(typ,n,v),ln) -> ([Var(typ,n)], Stmt(Assign(Local n, v),ln))
   | _ -> ([], stmt)
 
 let pull_out_declarations_of_file (File(_,stmts)) = 
