@@ -8,6 +8,7 @@
                         "else", ELSE;
                         "repeat", REPEAT;
                         "while", WHILE;
+                        "for", FOR;
                         "break", BREAK;
                         "continue", CONTINUE;
                         "move", MOVE;

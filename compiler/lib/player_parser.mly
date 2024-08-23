@@ -35,7 +35,7 @@
 %token LOGIC_AND LOGIC_OR PIPE FSLASH PCT TILDE
 %token COMMA SEMI COLON DOT EOF
 %token QMARK
-%token IF ELSE REPEAT WHILE CONTINUE BREAK
+%token IF ELSE REPEAT WHILE FOR CONTINUE BREAK
 %token GOTO
 %token MOVE FORTIFY WAIT PASS TRENCH
 %token NORTH EAST SOUTH WEST BOMB SHOOT LOOK SCAN MINE ATTACK
@@ -151,6 +151,10 @@ stmt1_inner:
   | block                                     { $1 }
   | IF LPAR value RPAR stmt1 ELSE stmt1       { feature 2 ; If ($3, $5, $7) }
   | WHILE LPAR value RPAR stmt1               { feature 3 ; While($3,$5,None) }
+  | FOR LPAR non_control_flow_stmt SEMI value SEMI non_control_flow_stmt RPAR stmt1      
+      { feature 3 ; Block[
+        Stmt($3,$symbolstartpos.pos_lnum);
+        Stmt(While($5,$9,Some(Stmt($7,$symbolstartpos.pos_lnum))),$symbolstartpos.pos_lnum)] }
   | BREAK SEMI                                { feature 3 ; Break }
   | CONTINUE SEMI                             { feature 3 ; Continue }
   | GOTO NAME SEMI                            { GoTo $2 }
