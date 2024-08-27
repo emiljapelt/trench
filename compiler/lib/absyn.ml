@@ -26,6 +26,7 @@ and target =
 
 and statement_inner =
     | If of value * statement * statement
+    | IfIs of value * (value * statement) list * statement option
     | Block of statement list
     | While of value * statement * statement option
     | Continue
@@ -48,6 +49,8 @@ and statement_inner =
 and value =
     | Reference of target
     | MetaReference of meta_data
+    | Increment of target * bool
+    | Decrement of target * bool
     | Binary_op of string * value * value
     | Unary_op of string * value
     | Int of int

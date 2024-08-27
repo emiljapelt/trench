@@ -9,7 +9,7 @@ module StringSet = Set.Make(String)
 
 let fetch_var_index name vars = 
   let rec aux vars i = match vars with
-    | [] -> failwith ("No such register: "^name)
+    | [] -> raise_failure ("No such register: "^name)
     | Var(_,n)::t ->
       if n = name then i else aux t (i+1)
   in
@@ -17,7 +17,7 @@ let fetch_var_index name vars =
 
 let rec compile_value val_expr (state:compile_state) acc =
   match val_expr with
-  | Reference Local name -> Instruction ("#"^(Helpers.binary_int_string(fetch_var_index name state.vars))) :: acc
+  | Reference Local name -> Instruction ("p"^(Helpers.binary_int_string(fetch_var_index name state.vars))^"#v") :: acc
   | Reference Global (t,v) -> Instruction ("p"^Helpers.binary_int_string (type_index t)) :: (compile_value v state (Instruction "@" :: acc))
   | MetaReference md -> ( match md with
     | PlayerX -> Instruction ("#x") 
@@ -37,7 +37,7 @@ let rec compile_value val_expr (state:compile_state) acc =
   | Scan(d,p) -> compile_value d state (compile_value p state (Instruction "s" :: acc))
   | Binary_op (op, e1, e2) -> ( match op, type_value state e1, type_value state e2 with
     | "+", T_Int, T_Int -> compile_value e1 state (compile_value e2 state (Instruction "+" :: acc))
-    | "-", T_Int, T_Int -> compile_value e2 state (compile_value e1 state (Instruction "-" :: acc))
+    | "-", T_Int, T_Int -> compile_value e1 state (compile_value e2 state (Instruction "-" :: acc))
     | "*", T_Int, T_Int -> compile_value e1 state (compile_value e2 state (Instruction "*" :: acc))
     | "&", T_Int, T_Int -> compile_value e1 state (compile_value e2 state (Instruction "&" :: acc))
     | "|", T_Int, T_Int -> compile_value e1 state (compile_value e2 state (Instruction "|" :: acc))
@@ -68,6 +68,15 @@ let rec compile_value val_expr (state:compile_state) acc =
     | MINE -> compile_value v state (Instruction ("'"^Helpers.binary_int_string 4) :: acc)
     | DESTROYED -> compile_value v state (Instruction ("'"^Helpers.binary_int_string 8) :: acc)
   )
+  (* true = pre*)
+  | Increment(Local n, true)  -> Instruction ("p"^(Helpers.binary_int_string(fetch_var_index n state.vars))) :: Instruction ("cc#vp"^(Helpers.binary_int_string 1)) :: Instruction "+a_#v" :: acc
+  | Increment(Local n, false) -> Instruction ("p"^(Helpers.binary_int_string(fetch_var_index n state.vars))) :: Instruction ("c#v^c#vp"^(Helpers.binary_int_string 1)) :: Instruction "+a_" :: acc
+  | Increment(Global (_,_), true) -> failwith "Global incrementing not implemented"
+  | Increment(Global (_,_), false) -> failwith "Global incrementing not implemented"
+  | Decrement(Local n, true)  -> Instruction ("p"^(Helpers.binary_int_string(fetch_var_index n state.vars))) :: Instruction ("cc#vp"^(Helpers.binary_int_string 1)) :: Instruction "-a_#v" :: acc
+  | Decrement(Local n, false) -> Instruction ("p"^(Helpers.binary_int_string(fetch_var_index n state.vars))) :: Instruction ("c#v^c#vp"^(Helpers.binary_int_string 1)) :: Instruction "-a_" :: acc
+  | Decrement(Global (_,_), true) -> failwith "Global decrementing not implemented"
+  | Decrement(Global (_,_), false) -> failwith "Global decrementing not implemented"
 
 and compile_stmt (Stmt(stmt,ln)) (state:compile_state) acc =
   try match stmt with
@@ -75,6 +84,16 @@ and compile_stmt (Stmt(stmt,ln)) (state:compile_state) acc =
     let label_true = Helpers.new_label () in
     let label_stop = Helpers.new_label () in
     compile_value expr state (IfTrue(label_true,None) :: (compile_stmt s2 state (CGoTo(label_stop, None) :: CLabel label_true :: (compile_stmt s1 state (CLabel label_stop :: acc)))))
+  )
+  | IfIs(v,alts,opt) -> (
+    let label_end = Helpers.new_label () in
+    let rec comp_alts alts next acc = match alts with
+      | [] -> acc
+      | (alt_v,alt_s)::t -> Instruction("c") :: compile_value alt_v state (Instruction("=~") :: IfTrue(next, None) :: compile_stmt alt_s state (CGoTo(label_end,None) :: CLabel(next) :: (comp_alts t (Helpers.new_label ()) acc)))
+    in
+    match opt with
+    | None -> compile_value v state (comp_alts alts (Helpers.new_label ()) (CLabel(label_end) :: acc))
+    | Some other -> compile_value v state (comp_alts alts (Helpers.new_label ()) (Instruction "d" :: compile_stmt other state (CLabel(label_end) :: acc)))
   )
   | Block (stmt_list) -> (
     List.fold_left (fun acc stmt -> compile_stmt stmt state acc) acc (List.rev stmt_list) 
@@ -126,3 +145,4 @@ and compile_stmt (Stmt(stmt,ln)) (state:compile_state) acc =
 let compile_player absyn =
   let File(vars,program) = absyn in
   (vars,List.fold_right (fun stmt acc -> compile_stmt stmt {vars = vars; break = None; continue = None} acc) program [])
+

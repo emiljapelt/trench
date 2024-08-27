@@ -24,7 +24,7 @@ directive_info load_directive_to_struct(const char* directive) {
     dir_len = sub_str_to_int(directive,0,dl);
 
     while(directive[dl+1+rl] != ':') rl++;
-    regs = sub_str_to_int(directive,0,rl);
+    regs = sub_str_to_int(directive+dl+1,0,rl);
     memset(stack,0,sizeof(int)*regs);
 
     char* dir = malloc(dir_len+1); dir[dir_len] = 0;

@@ -63,6 +63,8 @@ let rec optimize_value expr =
   | Int _ -> expr
   | MetaReference _
   | Flag _ 
+  | Decrement _ 
+  | Increment _
   | Reference Local _ -> expr
   | Reference Global(t,v) -> Reference(Global(t,optimize_value v))
 
@@ -77,6 +79,7 @@ let rec optimize_stmt (Stmt(stmt_i,ln) as stmt) = match stmt_i with
     | Int _ -> optimize_stmt a
     | o -> Stmt(If(o, optimize_stmt a, optimize_stmt b),ln)
   )
+  | IfIs(v,alts,opt) -> Stmt(IfIs(optimize_value v, List.map (fun (v,s) -> (optimize_value v, optimize_stmt s)) alts, Option.map optimize_stmt opt),ln)
   | Block stmts -> Stmt(Block(optimize_stmts stmts),ln)
   | While(v,s,None) -> Stmt(While(optimize_value v,optimize_stmt s,None),ln)
   | While(v,s,Some si) -> Stmt(While(optimize_value v,optimize_stmt s,Some(optimize_stmt si)),ln)

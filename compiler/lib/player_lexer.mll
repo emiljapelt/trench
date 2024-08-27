@@ -6,6 +6,7 @@
                       [ 
                         "if", IF;
                         "else", ELSE;
+                        "is", IS;
                         "repeat", REPEAT;
                         "while", WHILE;
                         "for", FOR;
@@ -68,6 +69,8 @@ rule lex = parse
                     Hashtbl.find keyword_table id
                   with Not_found -> NAME id }
     |   '+'           { PLUS }
+    |   "++"          { PLUSPLUS }
+    |   "--"          { MINUSMINUS }
     |   '*'           { TIMES }
     |   '-'           { MINUS }
     |   '/'           { FSLASH }

@@ -10,6 +10,15 @@ let rec pull_out_declarations stmt = match stmt with
     let (regs0,s0) = pull_out_declarations s0 in
     let (regs1,s1) = pull_out_declarations s1 in
     (regs0@regs1,Stmt(If(v,s0,s1),ln))
+  | Stmt(IfIs(v,alts,opt),ln) ->
+    let (alts_vs,alts_stmts) = List.split alts in
+    let (vars_alts,alts_stmts) = 
+      List.fold_left (fun acc stmt -> pull_out_declarations stmt::acc) [] alts_stmts |> List.split in
+    let (opt_vars, opt) = match opt with
+    | Some s -> (fun (a,b) -> (a,Some b)) (pull_out_declarations s)
+    | None -> ([],opt)
+    in
+    ((vars_alts |> List.rev |> List.flatten) @ opt_vars, Stmt(IfIs(v,List.combine alts_vs (List.rev alts_stmts),opt),ln))
   | Stmt(While(v,s,None),ln) ->
     let (regs,s) = pull_out_declarations s in
     (regs,Stmt(While(v,s,None),ln))
@@ -37,6 +46,8 @@ let rec rename_variables_of_value map v = match v with
   | Look v -> Look(rename_variables_of_value map v)
   | RandomSet vs -> RandomSet(List.map (rename_variables_of_value map) vs)
   | Flag(v,f) -> Flag(rename_variables_of_value map v, f)
+  | Decrement(Local n,pre) -> Decrement(Local(StringMap.find n map), pre)
+  | Increment(Local n,pre) -> Increment(Local(StringMap.find n map), pre)
   | _ -> v
 
 let rec rename_variables_of_stmt i map (Stmt(stmt,ln)) = match stmt with
@@ -44,6 +55,19 @@ let rec rename_variables_of_stmt i map (Stmt(stmt,ln)) = match stmt with
     let (i,_,s0) = rename_variables_of_stmt i map s0 in
     let (i,_,s1) = rename_variables_of_stmt i map s1 in
     (i, map, Stmt(If(rename_variables_of_value map v, s0, s1),ln))
+  | IfIs(v,alts,opt) -> 
+    let v = rename_variables_of_value map v in
+    let (alt_vs, alt_stmts) = List.split alts in
+    let alt_vs = List.map (rename_variables_of_value map) alt_vs in
+    let (i,alt_stmts) = List.fold_left (fun (i,acc) s -> 
+      let (i,_,s) = rename_variables_of_stmt i map s in (i,(s::acc))
+    ) (i,[]) alt_stmts in
+    let alts = List.combine alt_vs (List.rev alt_stmts) in
+    (match opt with
+      | Some s -> 
+        let (i,_,s) = rename_variables_of_stmt i map s in (i,map,Stmt(IfIs(v,alts,Some s),ln))
+      | None -> (i,map,Stmt(IfIs(v,alts,None),ln))
+    )
   | Block stmts -> 
     let (i,_,stmts) = List.fold_left (fun (i,map,acc) stmt -> 
       let (i,map,stmt') = rename_variables_of_stmt i map stmt in

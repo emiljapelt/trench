@@ -147,23 +147,31 @@ static inline int use_resource(int amount, int* avail) {
     *avail -= amount;
 }
 
+void debug_print(player_state* ps) {
+    for(int i = 0; i < ps->sp; i++) {
+        fprintf(stderr,"%i, ", ps->stack[i]); sleep(100);
+    }
+    fprintf(stderr,"\n%c\n", ps->directive[ps->dp]); sleep(500);
+}
+
 void player_turn(player_state* ps) {
     update_bomb_chain(ps);
     _gs->remaining_actions = _gr->actions;
     _gs->remaining_steps = _gr->steps;
+    
     while(1) {
         if (ps->dp >= ps->directive_len) { return; }
         if (!use_resource(1,&_gs->remaining_steps)) return;
-        //fprintf(stderr,"%c", ps->directive[ps->dp]); sleep(500);
+        //debug_print(ps);
         switch (ps->directive[ps->dp++]) {
-            case 'W': {
+            case 'W': { // Wait 
                 if(!use_resource(1,&_gs->remaining_actions)) {ps->dp--;return;}
                 break;
             }
-            case 'P': {
+            case 'P': { // Pass turn
                 return;
             }
-            case 'S': {
+            case 'S': { // Shot in direction
                 if(!use_resource(1,&_gs->remaining_actions)) {ps->dp--;return;}
                 if (ps->shots) {
                     direction d = (direction)ps->stack[--ps->sp];
@@ -173,18 +181,18 @@ void player_turn(player_state* ps) {
                 }
                 break;
             }
-            case 'l': {
+            case 'l': { // Look in direction
                 direction d = (direction)ps->stack[--ps->sp];
                 ps->stack[ps->sp++] = look(d,ps->x,ps->y);
                 break;
             }
-            case 's': {
+            case 's': { // Scan field
                 direction p = (direction)ps->stack[--ps->sp];
                 direction d = (direction)ps->stack[--ps->sp];
                 ps->stack[ps->sp++] = scan(d,ps->x,ps->y,p);
                 break;
             }
-            case 'M': {
+            case 'M': { // Place mine
                 if(!use_resource(1,&_gs->remaining_actions)) {ps->dp--;return;}
                 if(!use_resource(1,&ps->bombs)) break;
             
@@ -198,14 +206,14 @@ void player_turn(player_state* ps) {
                 if (!kill) mine(x,y);
                 break;
             }
-            case 'm': {
+            case 'm': { // Move
                 direction d = (direction)ps->stack[--ps->sp];
                 move(d,ps);
                 print_board();
                 sleep(250);
                 break;
             }
-            case 'A': {
+            case 'A': { // Melee attack
                 if(!use_resource(1,&_gs->remaining_actions)) {ps->dp--; return;}
                 int x, y;
                 direction d = (direction)ps->stack[--ps->sp];
@@ -215,7 +223,7 @@ void player_turn(player_state* ps) {
                 move(d,ps);
                 break;
             }
-            case 'T': {
+            case 'T': { // Trench
                 if(!use_resource(1,&_gs->remaining_actions)) {ps->dp--; return;}
                 int x, y;
                 direction d = (direction)ps->stack[--ps->sp];
@@ -225,7 +233,7 @@ void player_turn(player_state* ps) {
                 sleep(500);
                 break;
             }
-            case 'F': {
+            case 'F': { // Fortify
                 if(!use_resource(1,&_gs->remaining_actions)) {ps->dp--; return;}
                 int x, y;
                 direction d = (direction)ps->stack[--ps->sp];
@@ -236,11 +244,11 @@ void player_turn(player_state* ps) {
                 sleep(500);
                 break;
             }
-            case 'r': {
+            case 'r': { // PLace random int
                 ps->stack[ps->sp++] = rand();
                 break;
             }
-            case 'R': {
+            case 'R': { // Select random from stack
                 int num = *(int*)((ps->directive)+(ps->dp));
                 int pick = ps->stack[ps->sp - ((rand() % num)+1)];
                 ps->sp -= num;
@@ -248,13 +256,13 @@ void player_turn(player_state* ps) {
                 ps->dp += 4;
                 break;
             }
-            case 'p': {
+            case 'p': { // Place value
                 int num = *(int*)((ps->directive)+(ps->dp));
                 ps->stack[ps->sp++] = num;
                 ps->dp += 4;
                 break;
             }
-            case 'B': {
+            case 'B': { // Throw bomb
                 if(!use_resource(1,&_gs->remaining_actions)) {ps->dp--; return;}
                 int p = ps->stack[--ps->sp];
                 direction d = (direction)ps->stack[--ps->sp];
@@ -272,7 +280,7 @@ void player_turn(player_state* ps) {
                 sleep(250);
                 break;
             }
-            case '@': {
+            case '@': { // Global array access
                 int i = ps->stack[--ps->sp];
                 int t = ps->stack[--ps->sp];
                 if (i > 0 && i < _gr->array) {
@@ -280,57 +288,58 @@ void player_turn(player_state* ps) {
                 } else ps->stack[ps->sp++] = 0;
                 break;
             }
-            case '#': {
+            case '#': { // Access
                 switch (ps->directive[ps->dp]) {
-                    case 'x': {
+                    case 'x': { // Player x position
                         ps->stack[ps->sp++] = ps->x;
                         ps->dp++;
                         break;
                     }
-                    case 'y': {
+                    case 'y': { // Player y position
                         ps->stack[ps->sp++] = ps->y;
                         ps->dp++;
                         break;
                     }
-                    case 'b': {
+                    case 'b': { // Player remaining bombs
                         ps->stack[ps->sp++] = ps->bombs;
                         ps->dp++;
                         break;
                     }
-                    case 's': {
+                    case 's': { // Player remaining shots
                         ps->stack[ps->sp++] = ps->shots;
                         ps->dp++;
                         break;
                     }
-                    case '_': {
+                    case '_': { // Board x size
                         ps->stack[ps->sp++] = _gs->board_x;
                         ps->dp++;
                         break;
                     }
-                    case '|': {
+                    case '|': { // Board y size
                         ps->stack[ps->sp++] = _gs->board_y;
                         ps->dp++;
                         break;
                     }
-                    case 'g': {
+                    case 'g': { // Global array size
                         ps->stack[ps->sp++] = _gr->array;
                         ps->dp++;
                         break;
                     }
-                    default: {
-                        int num = *(int*)((ps->directive)+(ps->dp));
+                    case 'v': { // Variable access
+                        ps->dp++;
+                        int num = ps->stack[ps->sp--];
                         ps->stack[ps->sp++] = ps->stack[num];
-                        ps->dp += 4;
+                        break;
                     }
                 }
                 break;
             }
-            case '!': {
+            case '!': { // Unconditional go-to
                 int num = *(int*)((ps->directive)+(ps->dp));
                 ps->dp = num;
                 break;
             }
-            case '?': {
+            case '?': { // Conditonal go-to
                 int v = ps->stack[--ps->sp];
                 if (v) { 
                     int num = *(int*)((ps->directive)+(ps->dp));
@@ -339,74 +348,74 @@ void player_turn(player_state* ps) {
                 else ps->dp += 4;
                 break;
             }
-            case '=': {
+            case '=': { // Equal
                 int v0 = ps->stack[--ps->sp];
                 int v1 = ps->stack[--ps->sp];
                 ps->stack[ps->sp++] = v0 == v1;
                 break;
             }
-            case '<': {
+            case '<': { // Less-than
                 int v0 = ps->stack[--ps->sp];
                 int v1 = ps->stack[--ps->sp];
                 ps->stack[ps->sp++] = v0 < v1;
                 break;
             }
-            case '-': {
+            case '-': { // Subtract
                 int v0 = ps->stack[--ps->sp];
                 int v1 = ps->stack[--ps->sp];
-                ps->stack[ps->sp++] = v0 - v1;
+                ps->stack[ps->sp++] = v1 - v0;
                 break;
             }
-            case '+': {
+            case '+': { // Addition
                 int v0 = ps->stack[--ps->sp];
                 int v1 = ps->stack[--ps->sp];
                 ps->stack[ps->sp++] = v0 + v1;
                 break;
             }
-            case '*': {
+            case '*': { // Multiply
                 int v0 = ps->stack[--ps->sp];
                 int v1 = ps->stack[--ps->sp];
                 ps->stack[ps->sp++] = v0 * v1;
                 break;
             }
-            case '/': {
+            case '/': { // Divide
                 int v0 = ps->stack[--ps->sp];
                 int v1 = ps->stack[--ps->sp];
                 ps->stack[ps->sp++] = v0 / v1;
                 break;
             }
-            case '%': {
+            case '%': { // Modulo
                 int v0 = ps->stack[--ps->sp];
                 int v1 = ps->stack[--ps->sp];
                 ps->stack[ps->sp++] = ((v0%v1) + v1)%v1;
                 break;
             }
-            case '~': {
+            case '~': { // Not
                 int v = ps->stack[--ps->sp];
                 ps->stack[ps->sp++] = !v;
                 break;
             }
-            case '|': {
+            case '|': { // Logical OR
                 int v0 = ps->stack[--ps->sp];
                 int v1 = ps->stack[--ps->sp];
                 ps->stack[ps->sp++] = v0 || v1;
                 break;
             }
-            case '&': {
+            case '&': { // Logical AND
                 int v0 = ps->stack[--ps->sp];
                 int v1 = ps->stack[--ps->sp];
                 ps->stack[ps->sp++] = v0 && v1;
                 break;
             }
-            case 'a': {
+            case 'a': { // Assignment
                 switch (ps->directive[ps->dp++]) {
-                    case '_': {
+                    case '_': { // Local
                         int v = ps->stack[--ps->sp];
                         int target = ps->stack[--ps->sp];
                         ps->stack[target] = v;
                         break;
                     }
-                    case '@': {
+                    case '@': { // Global
                         int v = ps->stack[--ps->sp];
                         int i = ps->stack[--ps->sp];
                         int t = ps->stack[--ps->sp];
@@ -416,13 +425,26 @@ void player_turn(player_state* ps) {
                 }
                 break;
             }
-            case '\'': {
+            case '\'': {  // Flag access
                 int v = ps->stack[--ps->sp];
                 int num = *(int*)((ps->directive)+(ps->dp));
-                ps->stack[ps->sp++] = num;
+                //ps->stack[ps->sp++] = num;
                 ps->dp += 4;
                 ps->stack[ps->sp++] = v & num;
                 break;
+            }
+            case 'd': { // Decrease stack
+                ps->sp--;
+            }
+            case 'c': { // Clone top of stack
+                ps->stack[ps->sp] = ps->stack[ps->sp - 1];
+                ps->sp++;
+            }
+            case '^': { // Swap
+                int v0 = ps->stack[--ps->sp];
+                int v1 = ps->stack[--ps->sp];
+                ps->stack[ps->sp++] = v0;
+                ps->stack[ps->sp++] = v1;
             }
             default: return;;
         }

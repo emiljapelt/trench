@@ -34,8 +34,8 @@
 %token PLUS MINUS TIMES EQ NEQ LT GT LTEQ GTEQ
 %token LOGIC_AND LOGIC_OR PIPE FSLASH PCT TILDE
 %token COMMA SEMI COLON DOT EOF
-%token QMARK
-%token IF ELSE REPEAT WHILE FOR CONTINUE BREAK
+%token QMARK PLUSPLUS MINUSMINUS
+%token IF ELSE IS REPEAT WHILE FOR CONTINUE BREAK
 %token GOTO
 %token MOVE FORTIFY WAIT PASS TRENCH
 %token NORTH EAST SOUTH WEST BOMB SHOOT LOOK SCAN MINE ATTACK
@@ -83,7 +83,7 @@ block:
 
 const_value:
   | CSTINT      { Int $1 }
-  | direction   { Direction $1}
+  | direction   { Direction $1 }
   | error { raise (Failure(Some $symbolstartpos.pos_fname, Some $symbolstartpos.pos_lnum, "Expected a constant value")) }
 ;
 
@@ -112,6 +112,10 @@ value:
   | LOOK simple_value         { Look $2 }
   | value binop value         { Binary_op ($2, $1, $3) }
   | simple_value DOT flag     { Flag($1, $3) }
+  | PLUSPLUS target                    { feature 3 ; Increment($2, true)}
+  | target PLUSPLUS                    { feature 3 ; Increment($1, false)}
+  | MINUSMINUS target                  { feature 3 ; Decrement($2, true)}
+  | target MINUSMINUS                  { feature 3 ; Decrement($1, false)}
 ;
 
 %inline binop:
@@ -141,6 +145,8 @@ stmt2:
 stmt2_inner:
   | IF LPAR value RPAR stmt1 ELSE stmt2       { feature 2 ; If ($3, $5, $7) }
   | IF LPAR value RPAR stmt                   { feature 2 ; If ($3, $5, Stmt(Block [], $symbolstartpos.pos_lnum)) }
+  | IF value alt+                        { feature 3 ; IfIs($2, $3, None)}
+  | IF value alt+ ELSE stmt2             { feature 3 ; IfIs($2, $3, Some $5) }
 ;
 
 /* No unbalanced if-else */
@@ -150,6 +156,7 @@ stmt1:
 stmt1_inner: 
   | block                                     { $1 }
   | IF LPAR value RPAR stmt1 ELSE stmt1       { feature 2 ; If ($3, $5, $7) }
+  | IF value alt+ ELSE stmt1                  { feature 3 ; IfIs($2, $3, Some $5) }
   | WHILE LPAR value RPAR stmt1               { feature 3 ; While($3,$5,None) }
   | FOR LPAR non_control_flow_stmt SEMI value SEMI non_control_flow_stmt RPAR stmt1      
       { feature 3 ; Block[
@@ -163,6 +170,10 @@ stmt1_inner:
   | non_control_flow_stmt SEMI                { $1 }
 ;
 
+alt:
+  | IS const_value stmt1   { ($2,$3) }
+;
+
 target:
   | NAME { feature 2 ; Local $1 }
   | typ LBRAKE value RBRAKE { feature 1 ; Global($1,$3) }
@@ -174,6 +185,10 @@ non_control_flow_stmt:
   | target MINUS EQ value  { feature 1 ; Assign ($1, Binary_op("-", Reference $1, $4)) }
   | target TIMES EQ value  { feature 1 ; Assign ($1, Binary_op("*", Reference $1, $4)) }
   | target TILDE EQ value  { feature 1 ; Assign ($1, Unary_op("~", $4)) }
+  | target PLUSPLUS        { feature 3 ; Assign ($1, Binary_op("+", Reference $1, Int 1)) }
+  | PLUSPLUS target        { feature 3 ; Assign ($2, Binary_op("+", Reference $2, Int 1)) }
+  | target MINUSMINUS      { feature 3 ; Assign ($1, Binary_op("-", Reference $1, Int 1)) }
+  | MINUSMINUS target      { feature 3 ; Assign ($2, Binary_op("-", Reference $2, Int 1)) }
   | typ NAME                                  { feature 1 ; Declare($1,$2) }
   | typ NAME EQ value                         { feature 1 ; DeclareAssign($1,$2,$4) }
   | MOVE value                        { Move $2 }

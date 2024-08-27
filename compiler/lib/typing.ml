@@ -39,11 +39,27 @@ let rec type_value (state:compile_state) v = match v with
       | "+", T_Int, T_Dir
       | "-", T_Dir, T_Int 
       | "-", T_Int, T_Dir -> T_Dir
-      | _,t0,t1 -> failwith ("Unknown binary operation: "^type_string t0^op^type_string t1)
+      | _,t0,t1 -> raise_failure ("Unknown binary operation: "^type_string t0^op^type_string t1)
     )
     | Unary_op _
     | Random
     | Int _ -> T_Int
+    | Decrement(Local n,_) -> (match var_type state.vars n with 
+      | T_Int -> T_Int
+      | T_Dir -> T_Dir
+      | _ -> raise_failure ("Only int and dir can be decremented")
+    )
+    | Decrement(Global(T_Int,_),_) -> T_Int
+    | Decrement(Global(T_Dir,_),_) -> T_Dir
+    | Decrement(Global(_,_),_) -> raise_failure ("Only int and dir can be decremented") 
+    | Increment(Local n,_) -> (match var_type state.vars n with 
+      | T_Int -> T_Int
+      | T_Dir -> T_Dir
+      | _ -> raise_failure ("Only int and dir can be incremented")
+    )
+    | Increment(Global(T_Int,_),_) -> T_Int
+    | Increment(Global(T_Dir,_),_) -> T_Dir
+    | Increment(Global(_,_),_) -> raise_failure ("Only int and dir can be decremented") 
     | Flag(v,_) -> require T_Field (type_value state v) (fun () -> T_Int)
     | Scan(d,p)  ->
       require T_Dir (type_value state d) (fun () -> ()) ;
@@ -71,6 +87,13 @@ and type_meta m = match m with
 
 let rec type_check_stmt_inner state stmt = match stmt with
   | If(c,a,b) -> require T_Int (type_value state c) (fun () -> type_check_stmt state a |> ignore ; type_check_stmt state b |> ignore ; state)
+  | IfIs(v,alts,opt) -> 
+    let v_typ = type_value state v in
+    let (alt_vs, alt_stmts) = List.split alts in
+    let _ = List.iter (fun v -> require v_typ (type_value state v) (fun _ -> state) |> ignore) alt_vs in
+    type_check_stmts state alt_stmts |> ignore ;
+    Option.map (type_check_stmt state) opt |> ignore ;
+    state
   | Block stmts -> type_check_stmts state stmts
   | While(v,s,None) -> 
     require T_Int (type_value state v) (fun () -> type_check_stmt state s |> ignore ; state)
