@@ -22,6 +22,4 @@ typedef struct player_state {
     int shots;
 } player_state;
 
-void kill_player(player_state* ps);
-
 #endif

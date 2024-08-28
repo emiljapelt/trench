@@ -58,22 +58,24 @@ typedef struct game_state {
 extern game_state* _gs;
 extern game_rules* _gr;
 
-field_state* get_field(int x, int y);
-void set_field(int x, int y, field_state* f);
-void fortify_field(int x, int y);
-void destroy_field(int x, int y);
-void build_field(int x, int y);
-void explode_field(int x, int y);
-void bomb_field(int x, int y);
-void unexplode_field(int x, int y);
+field_state* get_field(const int x, const int y);
+void set_field(const int x, const int y, field_state* f);
+void fortify_field(const int x, const int y);
+void destroy_field(const int x, const int y);
+void build_field(const int x, const int y);
+void explode_field(const int x, const int y);
+void bomb_field(const int x, const int y);
+void unexplode_field(const int x, const int y);
 
-void set_visual(int x, int y, const char* visual);
-void unset_visual(int x, int y);
+void kill_player(player_state* ps);
 
-void add_bomb(int x, int y, player_state* ps);
-void update_bomb_chain(player_state* ps);
+void set_visual(const int x, const int y, const char* visual);
+void unset_visual(const int x, const int y);
 
-static inline char in_bounds(int x, int y) {
+void add_bomb(const int x, const int y, const player_state* ps);
+void update_bomb_chain(const player_state* ps);
+
+static inline char in_bounds(const int x, const int y) {
     return (0 <= x && x < _gs->board_x && 0 <= y && y < _gs->board_y);
 }
 

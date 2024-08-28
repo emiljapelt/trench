@@ -54,7 +54,7 @@ const char* f_char_lookup[] = {
     F_ALL, // 0x1111
 };
 
-const char* get_field_char(int x, int y) {
+const char* get_field_char(const int x, const int y) {
     field_state *fld = get_field(x,y);
 
     if(fld->vset) return fld->visual;

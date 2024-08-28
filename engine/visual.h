@@ -43,6 +43,8 @@
 #define EXPLOSION "\u2311"
 #define TARGET "\u2316"
 #define MINE "\u2313"
+#define SKULL "\u2620"
+#define COFFIN "\u26b0"
 
 #define BULLETS_NS "\u22ee"
 #define BULLETS_EW "\u2026"
@@ -51,7 +53,7 @@
 
 
 static inline void clear_screen(void);
-const char* get_field_char(int x, int y);
+const char* get_field_char(const int x, const int y);
 void print_board();
 
 #endif
