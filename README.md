@@ -31,10 +31,13 @@ The features of the trench language are split into 4 levels. Lower levels means 
 | --- | --- | --- | --- | --- |
 | _type_ _a_ | declaration | int a; | 0 | 1 |
 | _type_ _a_ = _v_ | declaration with assignment | int a = 2; | 0 | 1 + v |
-| if (_c_) _a_ else _b_ | conditional execution | if (c) { ... } else { ... }  | 0 | c + a + 1, or c + b + 2 |
-| if (_c_) _a_ | conditional execution | if (c) { ... }  | 0 | c + a + 1, or c + 2 |
+| if _c_ _a_ else _b_ | conditional execution | if x { ... } else { ... }  | 0 | c + a + 1, or c + b + 2 |
+| if _c_ _a_ | conditional execution | if (? % 2) { ... }  | 0 | c + a + 1, or c + 2 |
 | {s<sub>0</sub> ... s<sub>n</sub>} | A contained series of statements. | { ... } | 0 | s<sub>0</sub> + ... + s<sub>n</sub> |
-| repeat(_x_) _s_ | Compile a statement 'x' times | repeat (2) ... | 0 | x * s |
+| repeat _x_ _s_ | Compile a statement 'x' times | repeat 2 move N; | 0 | x * s |
+| while _c_ _s_ | Execute _s_ as long as _c_ is non-zero | while 1 move E; | 0 | _ |
+| break | Break out of the current loop | break; | 0 | 1 |
+| continue | Start the next iteration of the current loop | continue; | 0 | 1 |
 | _a_ = _e_ | Assign a value to a variable. | a = a + 1; a += 1; | 0 | e + 2 |
 | _type_ [ _a_ ] = _e_ | Assign a value to the global _type_ array | int[4] = 2 + 2; | 0 | a + e + 2 |
 | label: | Marks a location in the directive | loop: | 0 | 0 |
