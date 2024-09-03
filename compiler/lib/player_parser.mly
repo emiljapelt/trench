@@ -29,7 +29,6 @@
 %token <int> CSTINT
 %token <string> NAME
 %token <string> LABEL
-%token <string> PATH
 %token LPAR RPAR LBRACE RBRACE LBRAKE RBRAKE
 %token PLUS MINUS TIMES EQ NEQ LT GT LTEQ GTEQ
 %token LOGIC_AND LOGIC_OR PIPE FSLASH PCT TILDE
@@ -39,7 +38,7 @@
 %token GOTO
 %token MOVE FORTIFY WAIT PASS TRENCH
 %token NORTH EAST SOUTH WEST BOMB SHOOT LOOK SCAN MINE ATTACK
-%token HASH INT DIR FIELD FLAGS
+%token HASH INT DIR FIELD
 %token PLAYER_CAP TRENCH_CAP MINE_CAP DESTROYED_CAP
 
 /*Low precedence*/
@@ -48,8 +47,6 @@
 %left GT LT GTEQ LTEQ
 %left PLUS MINUS
 %left TIMES FSLASH PCT
-%nonassoc TILDE HASH 
-%nonassoc SCAN CHECK
 /*High precedence*/
 
 %start main
@@ -107,11 +104,11 @@ flag:
 ;
 
 value:
-  | simple_value        { $1 }
-  | SCAN simple_value simple_value          { Scan($2,$3) }
-  | LOOK simple_value         { Look $2 }
-  | value binop value         { Binary_op ($2, $1, $3) }
-  | simple_value DOT flag     { Flag($1, $3) }
+  | simple_value                       { $1 }
+  | SCAN simple_value simple_value     { Scan($2,$3) }
+  | LOOK simple_value                  { Look $2 }
+  | value binop value                  { Binary_op ($2, $1, $3) }
+  | simple_value DOT flag              { Flag($1, $3) }
   | PLUSPLUS target                    { feature 3 ; Increment($2, true)}
   | target PLUSPLUS                    { feature 3 ; Increment($1, false)}
   | MINUSMINUS target                  { feature 3 ; Decrement($2, true)}
@@ -143,10 +140,10 @@ stmt2:
   stmt2_inner { Stmt($1,$symbolstartpos.pos_lnum) }
 ;
 stmt2_inner:
-  | IF LPAR value RPAR stmt1 ELSE stmt2       { feature 2 ; If ($3, $5, $7) }
-  | IF LPAR value RPAR stmt                   { feature 2 ; If ($3, $5, Stmt(Block [], $symbolstartpos.pos_lnum)) }
-  | IF value alt+                        { feature 3 ; IfIs($2, $3, None)}
-  | IF value alt+ ELSE stmt2             { feature 3 ; IfIs($2, $3, Some $5) }
+  | IF simple_value stmt1 ELSE stmt2         { feature 2 ; If ($2, $3, $5) }
+  | IF simple_value stmt1                     { feature 2 ; If ($2, $3, Stmt(Block [], $symbolstartpos.pos_lnum)) }
+  | IF simple_value alt+                        { feature 3 ; IfIs($2, $3, None)}
+  | IF simple_value alt+ ELSE stmt2             { feature 3 ; IfIs($2, $3, Some $5) }
 ;
 
 /* No unbalanced if-else */
@@ -155,9 +152,9 @@ stmt1:
 ;
 stmt1_inner: 
   | block                                     { $1 }
-  | IF LPAR value RPAR stmt1 ELSE stmt1       { feature 2 ; If ($3, $5, $7) }
-  | IF value alt+ ELSE stmt1                  { feature 3 ; IfIs($2, $3, Some $5) }
-  | WHILE LPAR value RPAR stmt1               { feature 3 ; While($3,$5,None) }
+  | IF simple_value stmt1 ELSE stmt1          { feature 2 ; If ($2, $3, $5) }
+  | IF simple_value alt+ ELSE stmt1           { feature 3 ; IfIs($2, $3, Some $5) }
+  | WHILE simple_value stmt1                  { feature 3 ; While($2,$3,None) }
   | FOR LPAR non_control_flow_stmt SEMI value SEMI non_control_flow_stmt RPAR stmt1      
       { feature 3 ; Block[
         Stmt($3,$symbolstartpos.pos_lnum);
@@ -166,7 +163,7 @@ stmt1_inner:
   | CONTINUE SEMI                             { feature 3 ; Continue }
   | GOTO NAME SEMI                            { GoTo $2 }
   | LABEL                                     { Label $1 }
-  | REPEAT LPAR CSTINT RPAR stmt1             { feature 2 ; Block(List.init $3 (fun _ -> $5)) }
+  | REPEAT CSTINT stmt1                       { feature 2 ; Block(List.init $2 (fun _ -> $3)) }
   | non_control_flow_stmt SEMI                { $1 }
 ;
 
