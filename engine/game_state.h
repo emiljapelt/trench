@@ -67,7 +67,7 @@ void explode_field(const int x, const int y);
 void bomb_field(const int x, const int y);
 void unexplode_field(const int x, const int y);
 
-void kill_player(player_state* ps);
+void kill_player(player_state* ps, const char* reason);
 
 void set_visual(const int x, const int y, const char* visual);
 void unset_visual(const int x, const int y);

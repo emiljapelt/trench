@@ -42,9 +42,10 @@ void unset_visual(const int x, const int y) {
 }
 
 
-void kill_player(player_state* ps) {
+void kill_player(player_state* ps, const char* msg) {
     set_visual(ps->x,ps->y,COFFIN);
     print_board();
+    printf("Player %i died: %s\n", ps->id, msg);
     sleep(500);
     ps->alive = 0;
     unset_visual(ps->x,ps->y);
@@ -62,7 +63,7 @@ void explode_field(const int x, const int y) {
         fld->destroyed = 1;
         for(int p = 0; p < _gs->player_count; p++) {
             if (_gs->players[p].x == x && _gs->players[p].y == y) {
-                kill_player(_gs->players+p);
+                kill_player(_gs->players+p, "Got blown up");
             }
         }
     }

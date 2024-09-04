@@ -73,7 +73,8 @@ let optimize_assign_target tar = match tar with
       | Local _ -> tar
       | Global(t,v) -> Global(t,optimize_value v)
 
-let rec optimize_stmt (Stmt(stmt_i,ln) as stmt) = match stmt_i with
+let rec optimize_stmt (Stmt(stmt_i,ln) as stmt) = 
+  try (match stmt_i with
   | If(c,a,b) -> ( match optimize_value c with
     | Int 0 -> optimize_stmt b
     | Int _ -> optimize_stmt a
@@ -98,7 +99,10 @@ let rec optimize_stmt (Stmt(stmt_i,ln) as stmt) = match stmt_i with
   | Label _
   | Continue
   | Break
-  | Pass -> stmt
+  | Pass -> stmt)
+  with
+  | Failure (f, None, msg) -> raise (Failure(f,Some ln,msg))
+  | e -> raise e
 
 and optimize_stmts stmts =
   List.map optimize_stmt stmts

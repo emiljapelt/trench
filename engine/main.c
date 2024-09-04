@@ -72,7 +72,7 @@ void charge(int x, int y, player_state* ps) {
     for(int i = 0; i < _gs->player_count; i++) {
         if (!_gs->players[i].alive) continue; 
         if (_gs->players[i].x == x && _gs->players[i].y == y)
-            kill_player(_gs->players+i);
+            kill_player(_gs->players+i, "Lost a fist fight");
     }
     ps->x = x;
     ps->y = y;
@@ -94,7 +94,7 @@ void move(direction d, player_state* ps) {
     if (!in_bounds(x, y)) return;
     if (get_field(x,y)->destroyed) return;
     if (get_field(x,y)->mine) {
-        kill_player(ps);
+        kill_player(ps, "Stepped on a mine");
         get_field(x,y)->mine = 0;
         _gs->remaining_actions = 0;
         set_visual(x,y,EXPLOSION);
@@ -125,7 +125,7 @@ void shoot(const direction d, player_state* ps) {
         set_visual(x,y,visual);
         for(int p = 0; p < _gs->player_count; p++) {
             if (_gs->players[p].x == x && _gs->players[p].y == y && !get_field(x,y)->trenched) {
-                kill_player(_gs->players+p);
+                kill_player(_gs->players+p, "Was gunned down");
             }
         }
         move_coord(x, y, d, &x, &y);
@@ -202,7 +202,7 @@ void player_turn(player_state* ps) {
                 move_coord(ps->x, ps->y, d, &x, &y);
                 char kill = 0;
                 for(int i = 0; i < _gs->player_count; i++) 
-                    if (_gs->players[i].x == x && _gs->players[i].y == y) { kill_player(_gs->players+i); kill = 1; }
+                    if (_gs->players[i].x == x && _gs->players[i].y == y) { kill_player(_gs->players+i, "Hit by a thrown mine"); kill = 1; }
                 if (!kill) mine(x,y);
                 break;
             }
@@ -219,7 +219,7 @@ void player_turn(player_state* ps) {
                 direction d = (direction)ps->stack[--ps->sp];
                 move_coord(ps->x, ps->y, d, &x, &y);
                 for(int i = 0; i < _gs->player_count; i++)
-                    if (_gs->players[i].x == x && _gs->players[i].y == y) kill_player(_gs->players+i);
+                    if (_gs->players[i].x == x && _gs->players[i].y == y) kill_player(_gs->players+i, "Lost a fist fight");
                 move(d,ps);
                 break;
             }
@@ -381,12 +381,14 @@ void player_turn(player_state* ps) {
             case '/': { // Divide
                 int v0 = ps->stack[--ps->sp];
                 int v1 = ps->stack[--ps->sp];
+                if (v1 == 0) { kill_player(ps, "Mental break down (div by 0)"); return; }
                 ps->stack[ps->sp++] = v0 / v1;
                 break;
             }
             case '%': { // Modulo
                 int v0 = ps->stack[--ps->sp];
                 int v1 = ps->stack[--ps->sp];
+                if (v1 == 0) { kill_player(ps, "Mental break down (div by 0)"); return; }
                 ps->stack[ps->sp++] = ((v0%v1) + v1)%v1;
                 break;
             }

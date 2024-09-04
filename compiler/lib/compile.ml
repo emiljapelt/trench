@@ -25,21 +25,21 @@ let read_file path =
   let () = close_in_noerr file in
   content
 
-let format_failure path f = match f with
-  | Failure(file_opt, line_opt, expl) -> (
-    let msg = Printf.sprintf "%s %s" expl (Option.value file_opt ~default:"") in
-    let details = if Option.is_some line_opt then (
-        let line_msg = Printf.sprintf ", line %i: \n" (Option.get line_opt) in
-        let line = Option.get line_opt in
+let format_failure f = match f with
+  | Failure(Some path,None,msg) -> Printf.sprintf "In %s: %s\n" path msg
+  | Failure(Some path, Some line, msg) -> (
+    let msg = Printf.sprintf "%s in %s" msg path in
+    let details = 
+        let line_msg = Printf.sprintf ", line %i: \n" line in
         let lines = String.split_on_char '\n' (read_file path) in
         let printer =  get_line lines in match line with
         | 1 -> line_msg ^ printer 0 ^ printer 1
-        | n when n = (List.length lines)-1 -> line_msg ^  printer (n-2) ^ printer (n-1)
+        | n when n = (List.length lines) -> line_msg ^  printer (n-2) ^ printer (n-1)
         | _ ->  line_msg ^ printer (line-2) ^ printer (line-1) ^ printer line
-      )
-      else "\n" in
+      in
       msg ^ details
-  )
+  ) 
+  | Failure(_,_,msg) -> msg ^ "\n"
   | _ -> "Uncaught error!"
 
 let compress_path path =
@@ -113,6 +113,7 @@ let compile parser lexer transforms checks compiler stringer path =
     List.fold_left (fun acc trans -> trans acc) result transforms |> compiler |> stringer
   )
   with 
+  | Failure(None,ln,msg) -> raise (Failure(Some path,ln,msg))
   | Failure _ as f -> raise f
   | _ -> raise (Failure(Some path, None, "Parser error"))
   
@@ -162,7 +163,8 @@ let compile_player_file path = try (
     pull_out_declarations_of_file
   ] [check_vars_unique] compile_player player_to_string path)
 ) with
-| Failure _ as f -> Error(format_failure path f)
+| Failure(None,ln,msg) -> Error(format_failure (Failure(Some path, ln, msg)))
+| Failure _ as f -> Error(format_failure f)
 
 let game_setup_player (PI player) = 
   let p = match compile_player_file player.path with
@@ -198,7 +200,8 @@ let compile_game_file path = try (
   let _ = check_input path in
   Ok(compile Game_parser.main Game_lexer.start [] [] to_game_setup format_game_setup path)
 ) with
-| Failure _ as f -> Error(format_failure path f)
+| Failure(None,ln,msg) -> Error(format_failure (Failure(Some path, ln, msg)))
+| Failure _ as f -> Error(format_failure f)
 
 
 let _ = Callback.register "compile_game_file" compile_game_file

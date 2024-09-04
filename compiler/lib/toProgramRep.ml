@@ -83,13 +83,13 @@ and compile_stmt (Stmt(stmt,ln)) (state:compile_state) acc =
   | If (expr, s1, s2) -> (
     let label_true = Helpers.new_label () in
     let label_stop = Helpers.new_label () in
-    compile_value expr state (IfTrue(label_true,None) :: (compile_stmt s2 state (CGoTo(label_stop, None) :: CLabel label_true :: (compile_stmt s1 state (CLabel label_stop :: acc)))))
+    compile_value expr state (IfTrue label_true :: (compile_stmt s2 state (CGoTo label_stop :: CLabel label_true :: (compile_stmt s1 state (CLabel label_stop :: acc)))))
   )
   | IfIs(v,alts,opt) -> (
     let label_end = Helpers.new_label () in
     let rec comp_alts alts next acc = match alts with
       | [] -> acc
-      | (alt_v,alt_s)::t -> Instruction("c") :: compile_value alt_v state (Instruction("=~") :: IfTrue(next, None) :: compile_stmt alt_s state (CGoTo(label_end,None) :: CLabel(next) :: (comp_alts t (Helpers.new_label ()) acc)))
+      | (alt_v,alt_s)::t -> Instruction("c") :: compile_value alt_v state (Instruction("=~") :: IfTrue next :: compile_stmt alt_s state (CGoTo label_end :: CLabel(next) :: (comp_alts t (Helpers.new_label ()) acc)))
     in
     match opt with
     | None -> compile_value v state (comp_alts alts (Helpers.new_label ()) (CLabel(label_end) :: acc))
@@ -103,20 +103,20 @@ and compile_stmt (Stmt(stmt,ln)) (state:compile_state) acc =
     let label_start = Helpers.new_label () in
     let label_stop = Helpers.new_label () in
     let state' = {state with break = Some label_stop; continue = Some label_cond } in
-    CGoTo(label_cond,None) :: CLabel(label_start) :: (compile_stmt s state' (CLabel(label_cond) :: compile_value v state (IfTrue(label_start,None) :: CLabel(label_stop)::acc)))
+    CGoTo label_cond :: CLabel(label_start) :: (compile_stmt s state' (CLabel(label_cond) :: compile_value v state (IfTrue label_start :: CLabel(label_stop)::acc)))
   | While(v,s,Some si) -> 
     let label_cond = Helpers.new_label () in
     let label_start = Helpers.new_label () in
     let label_stop = Helpers.new_label () in
     let label_incr = Helpers.new_label () in
     let state' = {state with break = Some label_stop; continue = Some label_incr } in
-    CGoTo(label_cond,None) :: CLabel(label_start) :: (compile_stmt s state' (CLabel(label_incr) :: (compile_stmt si state (CLabel(label_cond) :: (compile_value v state (IfTrue(label_start,None) :: CLabel(label_stop) :: acc))))))
+    CGoTo label_cond :: CLabel(label_start) :: (compile_stmt s state' (CLabel(label_incr) :: (compile_stmt si state (CLabel(label_cond) :: (compile_value v state (IfTrue label_start :: CLabel(label_stop) :: acc))))))
   | Continue -> (match state.continue with
-    | Some label -> CGoTo(label,None) :: acc
+    | Some label -> CGoTo label :: acc
     | None -> raise_failure "Nothing to continue"
   )
   | Break -> (match state.break with
-    | Some label -> CGoTo(label,None) :: acc
+    | Some label -> CGoTo label :: acc
     | None -> raise_failure "Nothing to break out of"
   )
   | Assign (Local target, aexpr) -> 
@@ -132,7 +132,7 @@ and compile_stmt (Stmt(stmt,ln)) (state:compile_state) acc =
   | Trench None -> Instruction ("p"^Helpers.binary_int_string 4^"T") :: acc
   | Wait -> Instruction "W" :: acc
   | Pass -> Instruction "P" :: acc
-  | GoTo n -> CGoTo(n, None) :: acc
+  | GoTo n -> CGoTo n :: acc
   | Bomb(d,i) -> compile_value d state (compile_value i state (Instruction "B" :: acc))
   | Mine d -> compile_value d state (Instruction "M" :: acc)
   | Attack d -> compile_value d state (Instruction "A" :: acc)
