@@ -244,7 +244,7 @@ void player_turn(player_state* ps) {
                 sleep(500);
                 break;
             }
-            case 'r': { // PLace random int
+            case 'r': { // Place random int
                 ps->stack[ps->sp++] = rand();
                 break;
             }
@@ -458,7 +458,7 @@ void get_new_directive(player_state* ps) {
         char* path;
         char option;
         //print_board();
-        printf("Player %i, change directive?:\n0: No change\n1: Reload file\n2: New file\n", ps->id);
+        printf("Player %s, change directive?:\n0: No change\n1: Reload file\n2: New file\n", ps->name);
         scanf(" %c",&option);
         switch (option) {
             case '0': return;
@@ -495,25 +495,25 @@ void nuke_board() {
         explode_field(x, y);
 }
 
-int players_alive() {
+int teams_alive() {
     int alive = 0;
-    for(int i = 0; i < _gs->player_count; i++) if (_gs->players[i].alive) alive++;
+    for(int i = 0; i < _gs->team_count; i++) if (_gs->team_states[i].members_alive) alive++;
     return alive;
 }
 
-int first_player_alive() {
-    for(int i = 0; i < _gs->player_count; i++) if (_gs->players[i].alive) return _gs->players[i].id;
+int first_team_alive() {
+    for(int i = 0; i < _gs->player_count; i++) if (_gs->players[i].alive) return _gs->players[i].team;
     printf("No player is alive\n");
     exit(1);
 }
 
 void check_win_condition() {
-    switch (players_alive(_gs)) {
+    switch (teams_alive(_gs)) {
         case 0:
             printf("GAME OVER: Everyone is dead...\n"); exit(0);
         case 1:
-            if (_gs->player_count == 1) break;
-            else printf("Player %i won!\n", first_player_alive()); exit(0);
+            if (_gs->team_count == 1) break;
+            else printf("Team %i won!\n", first_team_alive()); exit(0);
         default: break;
     }
 }
@@ -522,9 +522,9 @@ void play_round() {
     for(int i = 0; i < _gs->player_count; i++) {
         if (!_gs->players[i].alive) continue; 
         player_turn(_gs->players+i);
+        check_win_condition();
     }
     if (_gr->nuke > 0 && _gs->round % _gr->nuke == 0) nuke_board();
-    check_win_condition();
 }
 
 // Mode: 0
@@ -562,9 +562,9 @@ void manual_mode() {
             get_new_directive(_gs->players+i);
             print_board();
             player_turn(_gs->players+i);
+            check_win_condition();
         }
         if (_gr->nuke > 0 && _gs->round % _gr->nuke == 0) nuke_board();
-        check_win_condition();
         _gs->round++;
     }
 }

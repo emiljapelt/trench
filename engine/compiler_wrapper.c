@@ -83,6 +83,7 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
             };
 
             int player_count = Int_val(Field(unwrapped_result, 8));
+            int team_count = Int_val(Field(unwrapped_result, 11));
             int global_arrays_size = 3*(sizeof(int)*Int_val(Field(unwrapped_result, 6)));
 
             *gs = (game_state) {
@@ -96,25 +97,35 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                     Int_val(Field(Field(unwrapped_result, 7),1))
                 ),
                 .global_arrays = malloc(global_arrays_size),
+                .team_count = team_count,
+                .team_states = malloc(sizeof(team_state) * team_count),
             };
+
+            for(int i = 0; i < team_count; i++) {
+                value team_info = Field(Field(unwrapped_result, 12),i);
+                gs->team_states[i].team_id = Int_val(Field(team_info, 0));
+                gs->team_states[i].members_alive = Int_val(Field(team_info, 1));
+            }
 
             for(int i = 0; i < player_count; i++) {
                 value player_info = Field(Field(unwrapped_result, 9),i);
-                directive_info di = load_directive_to_struct(String_val(Field(player_info, 3)));
+                directive_info di = load_directive_to_struct(String_val(Field(player_info, 4)));
                 gs->players[i].alive = 1;
-                gs->players[i].id = Int_val(Field(player_info, 0));
+                gs->players[i].team = Int_val(Field(player_info, 0));
+                gs->players[i].name = String_val(Field(player_info, 1));
                 gs->players[i].stack = di.stack;
                 gs->players[i].sp = di.regs;
-                gs->players[i].path = strdup(String_val(Field(player_info, 2)));
+                gs->players[i].path = strdup(String_val(Field(player_info, 3)));
                 gs->players[i].directive = di.directive;
                 gs->players[i].directive_len = di.dir_len ;//(Field(player_info, 4))-(di.regs_len+1);
                 gs->players[i].dp = 0;
-                gs->players[i].x = Int_val(Field(Field(player_info, 1), 0));
-                gs->players[i].y = Int_val(Field(Field(player_info, 1), 1));;
+                gs->players[i].x = Int_val(Field(Field(player_info, 2), 0));
+                gs->players[i].y = Int_val(Field(Field(player_info, 2), 1));;
                 gs->players[i].bombs = bombs;
                 gs->players[i].shots = shots;
             }
             memset(gs->global_arrays, 0, global_arrays_size);
+
             return 1;
         }
         case 1: { // Error

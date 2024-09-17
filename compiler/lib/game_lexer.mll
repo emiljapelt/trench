@@ -12,6 +12,10 @@
                         "mode", MODE;
                         "board", BOARD;
                         "nuke", NUKE;
+                        "team", TEAM;
+                        "name", NAME;
+                        "position", POSITION;
+                        "file", FILE;
                         "global_array", GLOBAL_ARRAY;
                         "feature_level", FEATURE_LEVEL;
                       ]
@@ -45,12 +49,14 @@ rule lex = parse
     |   ['A'-'Z' 'a'-'z' '/' '.']['A'-'Z' 'a'-'z' '0'-'9' '/' '_' '.']* as id
                 { try
                     Hashtbl.find keyword_table id
-                  with Not_found -> PATH id }
+                  with Not_found -> WORD id }
     |   ','           { COMMA }
     |   ':'           { COLON }
     |   ';'           { SEMI }
     |   '('           { LPAR }
     |   ')'           { RPAR }
+    |   '{'           { LBRACE }
+    |   '}'           { RBRACE }
     |   _             { raise (Failure(Some((Lexing.lexeme_start_p lexbuf).pos_fname), Some((Lexing.lexeme_start_p lexbuf).pos_lnum), ("Unknown token"))) }
     |   eof           { EOF }
 

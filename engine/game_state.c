@@ -45,9 +45,14 @@ void unset_visual(const int x, const int y) {
 void kill_player(player_state* ps, const char* msg) {
     set_visual(ps->x,ps->y,COFFIN);
     print_board();
-    printf("Player %i died: %s\n", ps->id, msg);
-    sleep(500);
+    printf("Player %s died: %s\n", ps->name, msg);
+    sleep(1000);
     ps->alive = 0;
+    for(int i = 0; i < _gs->team_count; i++) {
+        if (_gs->team_states[i].team_id != ps->team) continue;
+        _gs->team_states[i].members_alive--;
+        break;
+    }
     unset_visual(ps->x,ps->y);
     print_board();
     sleep(250);
@@ -81,7 +86,7 @@ void bomb_field(const int x, const int y) {
 
 void add_bomb(const int x, const int y, const player_state* ps) {
     bomb_chain* link = malloc(sizeof(bomb_chain));
-    link->player_id = ps->id;
+    link->player = ps->name;
     link->next = _gs->bomb_chain;
     link->x = x;
     link->y = y;
@@ -93,7 +98,7 @@ void update_bomb_chain(const player_state* ps) {
     bomb_chain** prev = &_gs->bomb_chain;
     
     while(bc != NULL) {
-        if(bc->player_id == ps->id) {
+        if(strcmp(bc->player, ps->name) == 0) {
             bomb_field(bc->x, bc->y);
             bomb_chain* link = bc;
             (*prev)->next = bc->next;

@@ -133,9 +133,10 @@ let player_to_string (regs,program) =
   string_of_int(String.length program_string)^":"^string_of_int(List.length regs)^":"^program_string
 
 type compiled_player_info = {
-  id: int;
+  team: int;
+  name: string;
   position: int * int;
-  path: string;
+  file: string;
   directive: string;
   directive_len: int;
 }
@@ -152,6 +153,8 @@ type compiled_game_file = {
   player_count: int;
   player_info: compiled_player_info array;
   feature_level: int;
+  team_count: int;
+  teams: (int * int) array;
 }
 
 let compile_player_file path = try (
@@ -167,14 +170,15 @@ let compile_player_file path = try (
 | Failure _ as f -> Error(format_failure f)
 
 let game_setup_player (PI player) = 
-  let p = match compile_player_file player.path with
+  let p = match compile_player_file player.file with
     | Ok p -> p
     | Error msg -> raise_failure msg
   in
   {
-  id = player.id;
+  team = player.team;
+  name = player.name;
   position = player.position;
-  path = player.path;
+  file = player.file;
   directive = p;
   directive_len = String.length p;
 }
@@ -182,19 +186,33 @@ let game_setup_player (PI player) =
 let set_feature_level l = 
   Flags.compile_flags.feature_level <- l ; ()
 
-let format_game_setup (GS gs) = {
-  bombs = gs.bombs;
-  shots = gs.shots;
-  actions = gs.actions;
-  steps = gs.steps;
-  mode = gs.mode;
-  board_size = gs.board;
-  nuke = gs.nuke;
-  array = gs.array;
-  player_count = List.length gs.players;
-  player_info = (set_feature_level gs.feature_level ; Array.of_list (List.map game_setup_player gs.players));
-  feature_level = gs.feature_level;
-}
+module IntSet = Set.Make(Int)
+
+let compute_team_list (GS gs) =
+  List.map (fun (PI p) -> p.team) gs.players |>
+  IntSet.of_list |>
+  IntSet.to_list |>
+  List.map (fun team -> (team, List.filter (fun (PI p) -> p.team = team) gs.players |> List.length)) |>
+  Array.of_list
+  
+
+let format_game_setup (GS gs) = 
+  let teams = compute_team_list (GS gs) in
+  {
+    bombs = gs.bombs;
+    shots = gs.shots;
+    actions = gs.actions;
+    steps = gs.steps;
+    mode = gs.mode;
+    board_size = gs.board;
+    nuke = gs.nuke;
+    array = gs.array;
+    player_count = List.length gs.players;
+    player_info = (set_feature_level gs.feature_level ; Array.of_list (List.map game_setup_player gs.players));
+    feature_level = gs.feature_level;
+    team_count = Array.length teams;
+    teams = teams
+  }
 
 let compile_game_file path = try (
   let _ = check_input path in

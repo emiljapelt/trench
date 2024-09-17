@@ -1,12 +1,17 @@
 
-- Implement switch-statement
-    - sugar for if-else
-- Implement loops (for)
 - Implement functions?
 
 - Direction operators
     - Fix subtraction/counter-clockwise
 
-- Implement cost checking, with "rollback" in engine
+- Consider new inter directive comms (current: global arrays)
+    - Private arrays
+    - Field data
 
-- Update README.md
+- Consider if synchrouns directive execution makes sense
+    - Maybe 'move' is an action, or its own resource?
+    - Execution phases
+        - Step all players until an action is reached
+        - Execute all defending actions
+        - Execute all attacking actions
+        - Execute all moves

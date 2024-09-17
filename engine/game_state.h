@@ -27,7 +27,7 @@ typedef enum field_state_flags {
 } field_state_flags;
 
 typedef struct bomb_chain {
-    unsigned char player_id: 4;
+    char* player;
     int x;
     int y;
     struct bomb_chain* next;
@@ -42,6 +42,11 @@ typedef struct field_state {
     const char* visual;
 } field_state;
 
+typedef struct team_state {
+    int team_id;
+    int members_alive;
+} team_state;
+
 typedef struct game_state {
     int round;
     int remaining_steps;
@@ -53,6 +58,8 @@ typedef struct game_state {
     field_state* board;
     bomb_chain* bomb_chain;
     int* global_arrays;
+    int team_count;
+    team_state* team_states;
 } game_state;
 
 extern game_state* _gs;

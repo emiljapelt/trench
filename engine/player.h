@@ -9,7 +9,8 @@ typedef struct player_init {
 
 typedef struct player_state {
     unsigned char alive: 1;
-    unsigned char id: 4;
+    int team;
+    char* name;
     int* stack;
     int sp;
     char* path;

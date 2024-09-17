@@ -100,7 +100,7 @@ let rec rename_variables_of_stmt i map (Stmt(stmt,ln)) = match stmt with
     (i+1,StringMap.add n new_name map,Stmt(DeclareAssign(t,new_name,rename_variables_of_value map v),ln))
   | _ -> (i,map,Stmt(stmt,ln))
 
-  let rename_variables_of_file (File(regs,stmts)) =
+let rename_variables_of_file (File(regs,stmts)) =
   match rename_variables_of_stmt 0 StringMap.empty (Stmt(Block stmts,0)) with
   | (_,_,Stmt(Block stmts,_)) -> File(regs,stmts)
   | _ -> failwith "Renaming failed"
