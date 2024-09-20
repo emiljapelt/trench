@@ -57,7 +57,8 @@ const char* f_char_lookup[] = {
 const char* get_field_char(const int x, const int y) {
     field_state *fld = get_field(x,y);
 
-    if(fld->vset) return fld->visual;
+    if (_gs->overlay[(y * _gs->board_x) + x]) return _gs->overlay[(y * _gs->board_x) + x];
+    //if(fld->vset) return fld->visual;
 
     if(!fld->trenched) { 
         for(int i = 0; i < _gs->player_count; i++) {
@@ -89,4 +90,7 @@ void print_board() {
     }
     for(int i = 0; i < _gs->board_x+2; i++) putchar('.');
     putchar('\n');
+    for(int i = 0; i < _gs->feed_point; i++) putchar(_gs->feed_buffer[i]);
+    clear_feed();
+    unset_overlay();
 }

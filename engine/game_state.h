@@ -38,8 +38,6 @@ typedef struct field_state {
     unsigned char fortified : 1;
     unsigned char trenched : 1;
     unsigned char mine : 1;
-    unsigned char vset : 1;
-    const char* visual;
 } field_state;
 
 typedef struct team_state {
@@ -56,6 +54,9 @@ typedef struct game_state {
     player_state* players;
     int player_count;
     field_state* board;
+    const char** overlay;
+    int feed_point;
+    char* feed_buffer;
     bomb_chain* bomb_chain;
     int* global_arrays;
     int team_count;
@@ -74,10 +75,15 @@ void explode_field(const int x, const int y);
 void bomb_field(const int x, const int y);
 void unexplode_field(const int x, const int y);
 
-void kill_player(player_state* ps, const char* reason);
+void death_mark_player(player_state* ps, const char* reason);
+void kill_player(player_state* ps);
 
-void set_visual(const int x, const int y, const char* visual);
-void unset_visual(const int x, const int y);
+void set_overlay(const int x, const int y, const char* visual);
+void unset_overlay_field(const int x, const int y);
+void unset_overlay();
+
+void print_to_feed(const char* msg);
+void clear_feed();
 
 void add_bomb(const int x, const int y, const player_state* ps);
 void update_bomb_chain(const player_state* ps);
@@ -85,5 +91,7 @@ void update_bomb_chain(const player_state* ps);
 static inline char in_bounds(const int x, const int y) {
     return (0 <= x && x < _gs->board_x && 0 <= y && y < _gs->board_y);
 }
+
+void move_coord(int x, int y, direction d, int* _x, int* _y);
 
 #endif

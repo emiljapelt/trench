@@ -45,7 +45,7 @@ int compile_player(const char* path, directive_info* result) {
 
     switch (Tag_val(callback_result)) {
         case 0: { // Ok
-            char* string_result = String_val(Field(callback_result, 0));
+            const char* string_result = String_val(Field(callback_result, 0));
             *result = load_directive_to_struct(string_result);
             char* dir = result->directive;
             char* dir_dup = malloc(result->dir_len);
@@ -85,21 +85,25 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
             int player_count = Int_val(Field(unwrapped_result, 8));
             int team_count = Int_val(Field(unwrapped_result, 11));
             int global_arrays_size = 3*(sizeof(int)*Int_val(Field(unwrapped_result, 6)));
+            int board_x = Int_val(Field(Field(unwrapped_result, 7),0));
+            int board_y = Int_val(Field(Field(unwrapped_result, 7),1));
+            int feed_size = 200;
 
             *gs = (game_state) {
                 .round = 1,
-                .board_x = Int_val(Field(Field(unwrapped_result, 7),0)),
-                .board_y = Int_val(Field(Field(unwrapped_result, 7),1)),
+                .board_x = board_x,
+                .board_y = board_y,
                 .player_count = player_count,
                 .players = malloc(sizeof(player_state)*player_count),
-                .board = empty_board(
-                    Int_val(Field(Field(unwrapped_result, 7),0)),
-                    Int_val(Field(Field(unwrapped_result, 7),1))
-                ),
+                .board = empty_board(board_x, board_y),
+                .overlay = malloc(sizeof(char*) * (board_x*board_y)),
+                .feed_point = 0,
+                .feed_buffer = malloc(feed_size+1),
                 .global_arrays = malloc(global_arrays_size),
                 .team_count = team_count,
                 .team_states = malloc(sizeof(team_state) * team_count),
             };
+
 
             for(int i = 0; i < team_count; i++) {
                 value team_info = Field(Field(unwrapped_result, 12),i);
@@ -111,13 +115,14 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 value player_info = Field(Field(unwrapped_result, 9),i);
                 directive_info di = load_directive_to_struct(String_val(Field(player_info, 4)));
                 gs->players[i].alive = 1;
+                gs->players[i].death_msg = NULL;
                 gs->players[i].team = Int_val(Field(player_info, 0));
-                gs->players[i].name = String_val(Field(player_info, 1));
+                gs->players[i].name = strdup(String_val(Field(player_info, 1)));
                 gs->players[i].stack = di.stack;
                 gs->players[i].sp = di.regs;
                 gs->players[i].path = strdup(String_val(Field(player_info, 3)));
                 gs->players[i].directive = di.directive;
-                gs->players[i].directive_len = di.dir_len ;//(Field(player_info, 4))-(di.regs_len+1);
+                gs->players[i].directive_len = di.dir_len;//(Field(player_info, 4))-(di.regs_len+1);
                 gs->players[i].dp = 0;
                 gs->players[i].x = Int_val(Field(Field(player_info, 2), 0));
                 gs->players[i].y = Int_val(Field(Field(player_info, 2), 1));;
@@ -125,6 +130,8 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 gs->players[i].shots = shots;
             }
             memset(gs->global_arrays, 0, global_arrays_size);
+            memset(gs->overlay, 0, sizeof(char*) * (board_x*board_y));
+            memset(gs->feed_buffer, 0, feed_size+1);
 
             return 1;
         }
