@@ -107,6 +107,10 @@ type player_info_field =
 
 type player_info = PI of { team: int; name: string; position: int * int; file: string }
 
+type exec_mode =
+    | AsyncExec
+    | SyncExec
+
 type game_setup_part =
     | Player of player_info
     | Bombs of int
@@ -118,6 +122,7 @@ type game_setup_part =
     | Nuke of int
     | GlobalArray of int
     | FeatureLevel of int
+    | ExecMode of exec_mode
 
 type game_setup = GS of {
     players: player_info list;
@@ -130,4 +135,5 @@ type game_setup = GS of {
     nuke: int;
     array: int;
     feature_level: int;
+    exec_mode: exec_mode;
 }

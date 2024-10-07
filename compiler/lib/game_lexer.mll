@@ -18,6 +18,9 @@
                         "file", FILE;
                         "global_array", GLOBAL_ARRAY;
                         "feature_level", FEATURE_LEVEL;
+                        "exec_mode", EXEC_MODE;
+                        "sync", SYNC;
+                        "async", ASYNC;
                       ]
   
   let char_of_string s lexbuf = match s with

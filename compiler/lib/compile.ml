@@ -77,6 +77,7 @@ let default_game_setup = GS {
   nuke = 0;
   array = 10;
   feature_level = 4;
+  exec_mode = AsyncExec;
 }
 
 let to_game_setup gsps =
@@ -93,6 +94,7 @@ let to_game_setup gsps =
       | Nuke i -> if i >= 0 then (GS ({acc with nuke = i})) else raise_failure "Nuke option size cannot be negative"
       | GlobalArray i -> if i >= 0 then (GS ({acc with array = i})) else raise_failure "Global array size cannot be negative"
       | FeatureLevel i -> if i >= 0 && i <= 3 then (GS ({acc with feature_level = i})) else raise_failure "Feature level must be within 0-3"
+      | ExecMode em -> GS ({acc with exec_mode = em})
     )
   in
   aux gsps default_game_setup
@@ -155,6 +157,7 @@ type compiled_game_file = {
   feature_level: int;
   team_count: int;
   teams: (int * int) array;
+  exec_mode: exec_mode;
 }
 
 let compile_player_file path = try (
@@ -211,7 +214,8 @@ let format_game_setup (GS gs) =
     player_info = (set_feature_level gs.feature_level ; Array.of_list (List.map game_setup_player gs.players));
     feature_level = gs.feature_level;
     team_count = Array.length teams;
-    teams = teams
+    teams = teams;
+    exec_mode = gs.exec_mode;
   }
 
 let compile_game_file path = try (

@@ -338,7 +338,14 @@ void play_round_async() {
 }
 
 void play_round() {
-    play_round_async();
+    switch (_gr->exec_mode) {
+        case 0:
+            play_round_async();
+            break;
+        case 1:
+            play_round_sync();
+            break;
+    }
 }
 
 // Mode: 0
