@@ -284,7 +284,6 @@ void play_round_sync() {
         if (change || _gs->feed_point) { print_board(); sleep(1000); }
 
     // Attack phase
-        char* ks = malloc(_gs->player_count);
         change = 0;
         for(int i = 0; i < _gs->player_count; i++) 
             if (_gs->players[i].alive && acts->action_type == ATTACK) {

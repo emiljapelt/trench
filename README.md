@@ -12,12 +12,31 @@
 | | |
 | --- | --- |
 | .tr | Source code for a players behavior |
-| .trc | Compiled .tr file |
-| .trg | A game file |
+| .trg | A trench game setup file |
 
 # The Trench Language
 
-The code written for a player character is called a directive and it consist of a series of statements, which will be interpreted from the top. Each statement takes some steps to execute, and a limit to how many steps can be taken in a turn, is set in the game rules. Additonally, some statements will use an action, the number of actions available per turn is also defined by the game rules. 
+The code written for a player character is called a directive and it consist of a series of statements, which will be executed from the top. Each statement takes some 'steps' to execute and some also requires some 'actions' to execute. A limit to how many 'steps' and 'actions' can be taken in a turn, is set in the game rules. 
+
+## Execution mode
+
+The execution mode defines how the game is executed, how a round progress and when what happens. There currently exists 2 modes.
+
+### Async execution
+
+In this mode each player takes turns executing their directive. Once every player has had a chance to execute, a round has completed. During a turn a player will have a predefined number of steps and actions they are allowed to take, and their turn end when they try to take a step/action but cannot.
+
+### Sync execution
+
+In this mode player effectivly take turns at the same time. This is done by splitting the round into phases:
+
+- Step phase: Player execute their program, until they reach an action/move.
+- Defensive phase: Players that reached a defensive action take their action.
+- Offensive phase: Players that reached an offensive action take their action.
+- Movement phase: Players that reached a move take their action.
+
+After all phases are complete, a round has passed. The number of actions available is ignored in the mode.
+
 
 ## Feature levels
 The features of the trench language are split into 4 levels. Lower levels means a more restricted set of features. 
@@ -90,7 +109,7 @@ unary operators: ~ (not)
 | MINE | The field has a mine |
 | DESTROYED | The field is destroyed |
 
-## Game file
+# Game setup files
 The game file specifies the players and rules of a particular game. It consists of key value pairs, seperated by semi-colons, defining a set of values. Pairs can be left out, in which case a default will be used.
 
 | key | explaination |
@@ -106,6 +125,7 @@ The game file specifies the players and rules of a particular game. It consists 
 | nuke | how many rounds must pass, between every space on the board being blow up. 0 meaning never. |
 | global_array | the size of each global array | 
 | feature_level | set the maximum allowed feature level |
+| exec_mode | Can be either async or sync |
 
 In the following, every value is set to its default, except the player:
 ```
@@ -117,6 +137,7 @@ mode:0;
 nuke:0;
 global_array: 10;
 feature_level: 3;
+exec_mode: async;
 
 board_x:20;
 board_y:20;
