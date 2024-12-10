@@ -5,6 +5,7 @@
 
 #include "util.h"
 #include "game_state.h"
+#include "resource_registry.h"
 
 field_state* empty_board(int x, int y) {
     int size = sizeof(field_state)*x*y;
@@ -68,26 +69,23 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
     switch (Tag_val(callback_result)) {
         case 0: { // Ok
             value unwrapped_result = Field(callback_result, 0);
-            int bombs = Int_val(Field(unwrapped_result, 0));
-            int shots = Int_val(Field(unwrapped_result, 1));
 
             *gr = (game_rules) {
-                .actions = Int_val(Field(unwrapped_result, 2)),
-                .steps = Int_val(Field(unwrapped_result, 3)),
-                .bombs = bombs,
-                .shots = shots,
-                .mode = Int_val(Field(unwrapped_result, 4)),
-                .nuke = Int_val(Field(unwrapped_result, 5)),
-                .array = Int_val(Field(unwrapped_result, 6)),
-                .feature_level = Int_val(Field(unwrapped_result, 10)),
-                .exec_mode = Int_val(Field(unwrapped_result, 13)),
+                .actions = Int_val(Field(unwrapped_result, 0)),
+                .steps = Int_val(Field(unwrapped_result, 1)),
+                .mode = Int_val(Field(unwrapped_result, 2)),
+                .nuke = Int_val(Field(unwrapped_result, 3)),
+                .array = Int_val(Field(unwrapped_result, 4)),
+                .feature_level = Int_val(Field(unwrapped_result, 8)),
+                .exec_mode = Int_val(Field(unwrapped_result, 11)),
             };
 
-            int player_count = Int_val(Field(unwrapped_result, 8));
-            int team_count = Int_val(Field(unwrapped_result, 11));
-            int global_arrays_size = 3*(sizeof(int)*Int_val(Field(unwrapped_result, 6)));
-            int board_x = Int_val(Field(Field(unwrapped_result, 7),0));
-            int board_y = Int_val(Field(Field(unwrapped_result, 7),1));
+            int player_count = Int_val(Field(unwrapped_result, 6));
+            int team_count = Int_val(Field(unwrapped_result, 9));
+            int global_arrays_size = 3*(sizeof(int)*Int_val(Field(unwrapped_result, 4)));
+            int board_x = Int_val(Field(Field(unwrapped_result, 5),0));
+            int board_y = Int_val(Field(Field(unwrapped_result, 5),1));
+            int resource_count = Int_val(Field(unwrapped_result, 12));
             int feed_size = 200;
 
             *gs = (game_state) {
@@ -103,22 +101,29 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 .global_arrays = malloc(global_arrays_size),
                 .team_count = team_count,
                 .team_states = malloc(sizeof(team_state) * team_count),
+                .resource_registry = create_resource_registry(player_count, 10)
             };
+
+            for(int i = 0; i < resource_count; i++) {
+                value resource = Field(Field(unwrapped_result, 13), i);
+                init_resource(gs->resource_registry, String_val(Field(resource, 0)), Int_val(Field(resource, 1)), player_count);
+            }
 
 
             for(int i = 0; i < team_count; i++) {
-                value team_info = Field(Field(unwrapped_result, 12),i);
+                value team_info = Field(Field(unwrapped_result, 10),i);
                 gs->team_states[i].team_id = Int_val(Field(team_info, 0));
                 gs->team_states[i].members_alive = Int_val(Field(team_info, 1));
             }
 
             for(int i = 0; i < player_count; i++) {
-                value player_info = Field(Field(unwrapped_result, 9),i);
+                value player_info = Field(Field(unwrapped_result, 7),i);
                 directive_info di = load_directive_to_struct(String_val(Field(player_info, 4)));
                 gs->players[i].alive = 1;
                 gs->players[i].death_msg = NULL;
                 gs->players[i].team = Int_val(Field(player_info, 0));
                 gs->players[i].name = strdup(String_val(Field(player_info, 1)));
+                gs->players[i].id = i;
                 gs->players[i].stack = di.stack;
                 gs->players[i].sp = di.regs;
                 gs->players[i].path = strdup(String_val(Field(player_info, 3)));
@@ -127,8 +132,6 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 gs->players[i].dp = 0;
                 gs->players[i].x = Int_val(Field(Field(player_info, 2), 0));
                 gs->players[i].y = Int_val(Field(Field(player_info, 2), 1));;
-                gs->players[i].bombs = bombs;
-                gs->players[i].shots = shots;
             }
             memset(gs->global_arrays, 0, global_arrays_size);
             memset(gs->overlay, 0, sizeof(char*) * (board_x*board_y));

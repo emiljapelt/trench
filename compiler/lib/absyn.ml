@@ -107,14 +107,16 @@ type player_info_field =
 
 type player_info = PI of { team: int; name: string; position: int * int; file: string }
 
+type resource = string * int
+
 type exec_mode =
     | AsyncExec
     | SyncExec
 
 type game_setup_part =
     | Player of player_info
-    | Bombs of int
-    | Shots of int
+    | Resources of resource list
+    | Themes of string list
     | Actions of int
     | Steps of int
     | Mode of int
@@ -126,8 +128,8 @@ type game_setup_part =
 
 type game_setup = GS of {
     players: player_info list;
-    bombs: int;
-    shots: int;
+    resources: resource list;
+    themes: string list;
     actions: int;
     steps: int;
     mode: int;

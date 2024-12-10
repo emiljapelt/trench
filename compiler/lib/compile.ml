@@ -5,6 +5,7 @@ open ToProgramRep
 open ProgramRep
 open Absyn
 open Transform
+open Themes
 
 let check_input input =
   try (
@@ -68,8 +69,8 @@ let int_to_binary i : string =
 
 let default_game_setup = GS {
   players = [];
-  bombs = 3;
-  shots = 10;
+  themes = [];
+  resources = [];
   actions = 1;
   steps = 100;
   mode = 0;
@@ -85,8 +86,8 @@ let to_game_setup gsps =
     | [] -> (GS acc)
     | h::t -> aux t (match h with
       | Player pi -> (GS ({acc with players = pi :: acc.players}))
-      | Bombs i -> if i >= 0 then (GS ({acc with bombs = i})) else raise_failure "Cannot have a negative amount of bombs"
-      | Shots i -> if i >= 0 then (GS ({acc with shots = i})) else raise_failure "Cannot have a negative amount of shots"
+      | Resources rs -> (GS ({acc with resources = rs}))
+      | Themes ts -> (GS ({acc with themes = ts}))
       | Actions i -> if i > 0 then (GS ({acc with actions = i})) else raise_failure "Must have some actions per trun"
       | Steps i -> if i > 0 then (GS ({acc with steps = i})) else raise_failure "Must have some steps per trun"
       | Mode i -> (GS ({acc with mode = i}))
@@ -144,8 +145,6 @@ type compiled_player_info = {
 }
 
 type compiled_game_file = {
-  bombs: int;
-  shots: int;
   actions: int;
   steps: int;
   mode: int;
@@ -158,6 +157,8 @@ type compiled_game_file = {
   team_count: int;
   teams: (int * int) array;
   exec_mode: exec_mode;
+  resources_count: int;
+  resources: (string * int) array;
 }
 
 let compile_player_file path = try (
@@ -189,6 +190,9 @@ let game_setup_player (PI player) =
 let set_feature_level l = 
   Flags.compile_flags.feature_level <- l ; ()
 
+let set_themes ts =
+  Flags.compile_flags.themes <- ts ; ()
+
 module IntSet = Set.Make(Int)
 
 let compute_team_list (GS gs) =
@@ -202,8 +206,6 @@ let compute_team_list (GS gs) =
 let format_game_setup (GS gs) = 
   let teams = compute_team_list (GS gs) in
   {
-    bombs = gs.bombs;
-    shots = gs.shots;
     actions = gs.actions;
     steps = gs.steps;
     mode = gs.mode;
@@ -211,16 +213,25 @@ let format_game_setup (GS gs) =
     nuke = gs.nuke;
     array = gs.array;
     player_count = List.length gs.players;
-    player_info = (set_feature_level gs.feature_level ; Array.of_list (List.map game_setup_player gs.players));
+    player_info = (set_themes gs.themes ; set_feature_level gs.feature_level ; Array.of_list (List.map game_setup_player gs.players));
     feature_level = gs.feature_level;
     team_count = Array.length teams;
     teams = teams;
     exec_mode = gs.exec_mode;
+    resources_count = List.length gs.resources;
+    resources = Array.of_list gs.resources;
   }
+
+let check_resources (GS gs) = 
+  let required = all_required_resources gs.themes in
+  let given = List.map fst gs.resources in
+  if (not (StringSet.for_all (fun req -> List.mem req given) required)) 
+  then raise_failure "Missing some required resource"
+  else (GS gs)
 
 let compile_game_file path = try (
   let _ = check_input path in
-  Ok(compile Game_parser.main Game_lexer.start [] [] to_game_setup format_game_setup path)
+  Ok(compile Game_parser.main Game_lexer.start [] [] (fun gsp -> gsp |> to_game_setup |> check_resources) format_game_setup path)
 ) with
 | Failure(None,ln,msg) -> Error(format_failure (Failure(Some path, ln, msg)))
 | Failure _ as f -> Error(format_failure f)

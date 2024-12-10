@@ -7,9 +7,11 @@
 #include "player.h"
 #include "visual.h"
 #include "util.h"
+#include "resource_registry.h"
 
 void instr_shoot(player_state* ps) {
-    if(!use_resource(1,&ps->shots)) return;
+    if(!spend_resource("shots", ps->id, 1)) return;
+    //if(!use_resource(1,&ps->shots)) return;
     direction d = (direction)ps->stack[--ps->sp];
     int x = ps->x;
     int y = ps->y;
@@ -90,7 +92,8 @@ void instr_scan(player_state* ps) {
 }
 
 void instr_mine(player_state* ps) {
-    if(!use_resource(1,&ps->bombs)) return;
+    if(!spend_resource("bomb", ps->id, 1)) return;
+    //if(!use_resource(1,&ps->bombs)) return;
 
     int x, y;
     direction d = (direction)ps->stack[--ps->sp];
@@ -183,7 +186,7 @@ void instr_place(player_state* ps) {
 void instr_bomb(player_state* ps) {
     int p = ps->stack[--ps->sp];
     direction d = (direction)ps->stack[--ps->sp];
-    if(!use_resource(1,&ps->bombs)) return;
+    if(!spend_resource("bomb", ps->id, 1)) return;
 
     int x = ps->x;
     int y = ps->y;
@@ -219,12 +222,12 @@ void instr_access(player_state* ps) {
             break;
         }
         case 'b': { // Player remaining bombs
-            ps->stack[ps->sp++] = ps->bombs;
+            ps->stack[ps->sp++] = peek_resource("bomb", ps->id);
             ps->dp++;
             break;
         }
         case 's': { // Player remaining shots
-            ps->stack[ps->sp++] = ps->shots;
+            ps->stack[ps->sp++] = peek_resource("shots", ps->id);
             ps->dp++;
             break;
         }
@@ -244,9 +247,9 @@ void instr_access(player_state* ps) {
             break;
         }
         case 'v': { // Variable access
+            int num = ps->stack[ps->sp-1];
+            ps->stack[ps->sp-1] = ps->stack[num];
             ps->dp++;
-            int num = ps->stack[ps->sp--];
-            ps->stack[ps->sp++] = ps->stack[num];
             break;
         }
     }

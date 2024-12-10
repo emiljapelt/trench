@@ -4,9 +4,7 @@
   let keyword_table = Hashtbl.create 53
   let () = List.iter (fun (kwd, tok) -> Hashtbl.add keyword_table kwd tok)
                       [ 
-                        "bombs", BOMBS;
                         "player", PLAYER; 
-                        "shots", SHOTS; 
                         "actions", ACTIONS;
                         "steps", STEPS;
                         "mode", MODE;
@@ -21,6 +19,8 @@
                         "exec_mode", EXEC_MODE;
                         "sync", SYNC;
                         "async", ASYNC;
+                        "themes", THEMES;
+                        "resources", RESOURCES;
                       ]
   
   let char_of_string s lexbuf = match s with

@@ -3,6 +3,7 @@
 
 #include "player.h"
 #include "game_rules.h"
+#include "resource_registry.h"
 
 typedef enum direction {
     NORTH,
@@ -61,6 +62,7 @@ typedef struct game_state {
     int* global_arrays;
     int team_count;
     team_state* team_states;
+    resource_registry* resource_registry; 
 } game_state;
 
 extern game_state* _gs;

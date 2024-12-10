@@ -11,19 +11,26 @@
     let () = vg.next <- vg.next+1 in
     Int.to_string number*)
 
+  let feature l =
+    if l > compile_flags.feature_level then raise_failure ("Attempt to access feature level: "^string_of_int l^", while in level: "^string_of_int compile_flags.feature_level)
+    else ()
+
+  let themeing ts =
+    if List.exists (fun t -> List.mem t compile_flags.themes) ts 
+    then ()
+    else raise_failure ("Attempt to access a feature of an inactive theme")
+
   let meta_name n fn ln = match n with
     | "x" -> PlayerX
     | "y" -> PlayerY
-    | "bombs" -> PlayerBombs
-    | "shots" -> PlayerShots
+    | "bombs" -> themeing ["basic"] ; PlayerBombs
+    | "shots" -> themeing ["basic"] ; PlayerShots
     | "board_x" -> BoardX
     | "board_y" -> BoardY
     | "array_size" ->  GlobalArraySize
     | _ -> raise (Failure(Some fn, Some ln, "Unknown meta reference"))
 
-  let feature l =
-    if l > compile_flags.feature_level then raise_failure ("Attempt to access feature level: "^string_of_int l^", while in level: "^string_of_int compile_flags.feature_level)
-    else ()
+  
 
 %}
 %token <int> CSTINT
@@ -189,8 +196,8 @@ non_control_flow_stmt:
   | typ NAME                                  { feature 1 ; Declare($1,$2) }
   | typ NAME EQ value                         { feature 1 ; DeclareAssign($1,$2,$4) }
   | MOVE value                        { Move $2 }
-  | SHOOT value                       { Shoot $2 }
-  | MINE value                        { Mine $2 }
+  | SHOOT value                       { themeing ["basic"] ; Shoot $2 }
+  | MINE value                        { themeing ["basic"] ; Mine $2 }
   | ATTACK value                      { Attack $2 }
   | FORTIFY                           { Fortify None }
   | FORTIFY value                     { Fortify (Some $2) }
@@ -198,7 +205,7 @@ non_control_flow_stmt:
   | TRENCH value                      { Trench (Some $2) }
   | WAIT                              { Wait }
   | PASS                              { Pass }
-  | BOMB simple_value simple_value    { Bomb($2, $3) }
+  | BOMB simple_value simple_value    { themeing ["basic"] ; Bomb($2, $3) }
 ;
 
 direction:

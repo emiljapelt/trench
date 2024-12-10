@@ -13,6 +13,7 @@
    player_parser
    game_lexer
    game_parser
+   themes
    toProgramRep
    typing
    transform
