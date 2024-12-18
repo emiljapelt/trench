@@ -79,6 +79,7 @@ let default_game_setup = GS {
   array = 10;
   feature_level = 4;
   exec_mode = AsyncExec;
+  seed = None;
 }
 
 let to_game_setup gsps =
@@ -96,6 +97,7 @@ let to_game_setup gsps =
       | GlobalArray i -> if i >= 0 then (GS ({acc with array = i})) else raise_failure "Global array size cannot be negative"
       | FeatureLevel i -> if i >= 0 && i <= 3 then (GS ({acc with feature_level = i})) else raise_failure "Feature level must be within 0-3"
       | ExecMode em -> GS ({acc with exec_mode = em})
+      | Seed s -> GS ({acc with seed = s})
     )
   in
   aux gsps default_game_setup
@@ -159,6 +161,7 @@ type compiled_game_file = {
   exec_mode: exec_mode;
   resources_count: int;
   resources: (string * int) array;
+  seed: int option;
 }
 
 let compile_player_file path = try (
@@ -220,14 +223,16 @@ let format_game_setup (GS gs) =
     exec_mode = gs.exec_mode;
     resources_count = List.length gs.resources;
     resources = Array.of_list gs.resources;
+    seed = gs.seed;
   }
 
 let check_resources (GS gs) = 
   let required = all_required_resources gs.themes in
   let given = List.map fst gs.resources in
-  if (not (StringSet.for_all (fun req -> List.mem req given) required)) 
-  then raise_failure "Missing some required resource"
-  else (GS gs)
+  if (List.for_all (fun g -> StringSet.mem g required) given 
+    && StringSet.cardinal required = List.length given)
+  then (GS gs)
+  else raise_failure ("Defined resources does not match required resource. \nRequired:\n\t" ^ (String.concat "\n\t" (StringSet.to_list required)) ^ "\nGiven:\n\t" ^ (String.concat "\n\t" given))
 
 let compile_game_file path = try (
   let _ = check_input path in

@@ -21,6 +21,7 @@
                         "async", ASYNC;
                         "themes", THEMES;
                         "resources", RESOURCES;
+                        "seed", SEED;
                       ]
   
   let char_of_string s lexbuf = match s with

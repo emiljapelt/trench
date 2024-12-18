@@ -1,4 +1,6 @@
 #include <string.h>
+#include <time.h>
+
 #include <caml/mlvalues.h>
 #include <caml/callback.h>
 #include <caml/alloc.h>
@@ -69,6 +71,17 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
     switch (Tag_val(callback_result)) {
         case 0: { // Ok
             value unwrapped_result = Field(callback_result, 0);
+            
+            int seed;
+            if (Is_some(Field(unwrapped_result, 14)) ) {
+                seed = Int_val(Some_val(Field(unwrapped_result, 14)));
+                srand(seed);
+            }
+            else {
+                srand((unsigned) time(NULL));
+                seed = rand();
+                srand(seed);
+            }
 
             *gr = (game_rules) {
                 .actions = Int_val(Field(unwrapped_result, 0)),
@@ -78,6 +91,7 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 .array = Int_val(Field(unwrapped_result, 4)),
                 .feature_level = Int_val(Field(unwrapped_result, 8)),
                 .exec_mode = Int_val(Field(unwrapped_result, 11)),
+                .seed = seed,
             };
 
             int player_count = Int_val(Field(unwrapped_result, 6));

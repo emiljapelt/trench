@@ -11,6 +11,7 @@ typedef struct game_rules {
     int array;
     int feature_level;
     int exec_mode;
+    int seed;
 } game_rules;
 
 #endif

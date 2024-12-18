@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <time.h>
 
 #include <caml/callback.h>
 
@@ -392,7 +391,7 @@ void manual_mode() {
 
 int main(int argc, char** argv) {
 
-    srand((unsigned) time(NULL));
+    // srand((unsigned) time(NULL));
 
     if (argc < 2) {
         printf("Too few arguments given, needs: <game_file_path>\n");

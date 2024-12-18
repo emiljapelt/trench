@@ -125,6 +125,7 @@ type game_setup_part =
     | GlobalArray of int
     | FeatureLevel of int
     | ExecMode of exec_mode
+    | Seed of int option
 
 type game_setup = GS of {
     players: player_info list;
@@ -138,4 +139,5 @@ type game_setup = GS of {
     array: int;
     feature_level: int;
     exec_mode: exec_mode;
+    seed: int option;
 }
