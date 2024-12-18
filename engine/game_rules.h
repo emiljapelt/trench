@@ -4,8 +4,6 @@
 typedef struct game_rules {
     int actions;
     int steps;
-    int bombs;
-    int shots;
     int mode;
     int nuke;
     int array;

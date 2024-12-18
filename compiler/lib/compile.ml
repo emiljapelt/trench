@@ -196,6 +196,9 @@ let set_feature_level l =
 let set_themes ts =
   Flags.compile_flags.themes <- ts ; ()
 
+let set_resources rs =
+  Flags.compile_flags.resources <- List.map fst rs ; ()
+
 module IntSet = Set.Make(Int)
 
 let compute_team_list (GS gs) =
@@ -216,7 +219,7 @@ let format_game_setup (GS gs) =
     nuke = gs.nuke;
     array = gs.array;
     player_count = List.length gs.players;
-    player_info = (set_themes gs.themes ; set_feature_level gs.feature_level ; Array.of_list (List.map game_setup_player gs.players));
+    player_info = (set_themes gs.themes ; set_resources gs.resources ; set_feature_level gs.feature_level ; Array.of_list (List.map game_setup_player gs.players));
     feature_level = gs.feature_level;
     team_count = Array.length teams;
     teams = teams;

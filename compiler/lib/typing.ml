@@ -78,10 +78,9 @@ let rec type_value (state:compile_state) v = match v with
 and type_meta m = match m with
     | PlayerX     
     | PlayerY     
-    | PlayerBombs 
-    | PlayerShots 
     | BoardX      
     | BoardY 
+    | PlayerResource _
     | GlobalArraySize -> T_Int     
 
 

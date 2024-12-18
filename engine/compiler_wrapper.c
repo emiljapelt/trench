@@ -115,7 +115,7 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 .global_arrays = malloc(global_arrays_size),
                 .team_count = team_count,
                 .team_states = malloc(sizeof(team_state) * team_count),
-                .resource_registry = create_resource_registry(player_count, 10)
+                .resource_registry = create_resource_registry(player_count, 10, resource_count)
             };
 
             for(int i = 0; i < resource_count; i++) {

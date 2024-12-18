@@ -221,14 +221,11 @@ void instr_access(player_state* ps) {
             ps->dp++;
             break;
         }
-        case 'b': { // Player remaining bombs
-            ps->stack[ps->sp++] = peek_resource("bomb", ps->id);
+        case 'r': { // Player resources
             ps->dp++;
-            break;
-        }
-        case 's': { // Player remaining shots
-            ps->stack[ps->sp++] = peek_resource("shots", ps->id);
-            ps->dp++;
+            int index = *(int*)((ps->directive)+(ps->dp));
+            ps->dp += 4;
+            ps->stack[ps->sp++] = peek_resource_index(index, ps->id);
             break;
         }
         case '_': { // Board x size

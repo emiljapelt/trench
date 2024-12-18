@@ -22,11 +22,13 @@ let rec compile_value val_expr (state:compile_state) acc =
   | MetaReference md -> ( match md with
     | PlayerX -> Instruction ("#x") 
     | PlayerY -> Instruction ("#y") 
-    | PlayerBombs -> Instruction ("#b")
-    | PlayerShots -> Instruction ("#s")
     | BoardX -> Instruction ("#_")
     | BoardY -> Instruction ("#|")
     | GlobalArraySize -> Instruction ("#g")
+    | PlayerResource n -> ( match List.find_index (fun name -> n = name) Flags.compile_flags.resources with
+      | Some i -> Instruction("#r"^Helpers.binary_int_string(i))
+      | None -> raise_failure ("Unknown resource lookup: "^n)
+    )
   ) :: acc
   | Int i -> Instruction("p"^Helpers.binary_int_string i) :: acc
   | Random -> Instruction("r") :: acc

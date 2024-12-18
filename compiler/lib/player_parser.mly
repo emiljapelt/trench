@@ -20,15 +20,14 @@
     then ()
     else raise_failure ("Attempt to access a feature of an inactive theme")
 
-  let meta_name n fn ln = match n with
+  let meta_name n (*fn ln*) = match n with
     | "x" -> PlayerX
     | "y" -> PlayerY
-    | "bombs" -> themeing ["basic"] ; PlayerBombs
-    | "shots" -> themeing ["basic"] ; PlayerShots
     | "board_x" -> BoardX
     | "board_y" -> BoardY
     | "array_size" ->  GlobalArraySize
-    | _ -> raise (Failure(Some fn, Some ln, "Unknown meta reference"))
+    | _ -> PlayerResource(n)
+    (*| _ -> raise (Failure(Some fn, Some ln, "Unknown meta reference"))*)
 
   
 
@@ -99,7 +98,7 @@ simple_value:
   | TILDE simple_value                 { Unary_op ("~", $2) }
   | NAME                               { feature 1 ; Reference(Local $1) }
   | typ LBRAKE value RBRAKE            { feature 1 ; Reference(Global($1,$3)) }
-  | HASH NAME                          { MetaReference (meta_name $2 $symbolstartpos.pos_fname $symbolstartpos.pos_lnum) }
+  | HASH NAME                          { MetaReference (meta_name $2) }
   | LPAR value RPAR                    { $2 }
 ;
 
@@ -189,15 +188,13 @@ non_control_flow_stmt:
   | target MINUS EQ value  { feature 1 ; Assign ($1, Binary_op("-", Reference $1, $4)) }
   | target TIMES EQ value  { feature 1 ; Assign ($1, Binary_op("*", Reference $1, $4)) }
   | target TILDE EQ value  { feature 1 ; Assign ($1, Unary_op("~", $4)) }
+  | typ NAME               { feature 1 ; Declare($1,$2) }
+  | typ NAME EQ value      { feature 1 ; DeclareAssign($1,$2,$4) }
   | target PLUSPLUS        { feature 3 ; Assign ($1, Binary_op("+", Reference $1, Int 1)) }
   | PLUSPLUS target        { feature 3 ; Assign ($2, Binary_op("+", Reference $2, Int 1)) }
   | target MINUSMINUS      { feature 3 ; Assign ($1, Binary_op("-", Reference $1, Int 1)) }
   | MINUSMINUS target      { feature 3 ; Assign ($2, Binary_op("-", Reference $2, Int 1)) }
-  | typ NAME                                  { feature 1 ; Declare($1,$2) }
-  | typ NAME EQ value                         { feature 1 ; DeclareAssign($1,$2,$4) }
   | MOVE value                        { Move $2 }
-  | SHOOT value                       { themeing ["basic"] ; Shoot $2 }
-  | MINE value                        { themeing ["basic"] ; Mine $2 }
   | ATTACK value                      { Attack $2 }
   | FORTIFY                           { Fortify None }
   | FORTIFY value                     { Fortify (Some $2) }
@@ -205,6 +202,8 @@ non_control_flow_stmt:
   | TRENCH value                      { Trench (Some $2) }
   | WAIT                              { Wait }
   | PASS                              { Pass }
+  | SHOOT value                       { themeing ["basic"] ; Shoot $2 }
+  | MINE value                        { themeing ["basic"] ; Mine $2 }
   | BOMB simple_value simple_value    { themeing ["basic"] ; Bomb($2, $3) }
 ;
 

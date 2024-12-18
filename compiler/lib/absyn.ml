@@ -64,8 +64,7 @@ and value =
 and meta_data =
     | PlayerX     (* #x *)
     | PlayerY     (* #y *)  
-    | PlayerBombs (* #bombs *)
-    | PlayerShots (* #shots *)
+    | PlayerResource of string
     | BoardX      (* #board_x *)  
     | BoardY      (* #board_y *)
     | GlobalArraySize (* #array_size  *)

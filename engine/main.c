@@ -249,10 +249,16 @@ int first_team_alive() {
 void check_win_condition() {
     switch (teams_alive(_gs)) {
         case 0:
-            printf("GAME OVER: Everyone is dead...\n"); exit(0);
+            printf("GAME OVER: Everyone is dead...\n"); 
+            printf("seed: %i\n", _gr->seed);
+            exit(0);
         case 1:
             if (_gs->team_count == 1) break;
-            else printf("Team %i won!\n", first_team_alive()); exit(0);
+            else {
+                printf("Team %i won!\n", first_team_alive()); 
+                printf("seed: %i\n", _gr->seed);
+                exit(0);
+            }
         default: break;
     }
 }
