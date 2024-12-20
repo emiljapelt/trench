@@ -186,7 +186,7 @@ void instr_place(player_state* ps) {
 void instr_bomb(player_state* ps) {
     int p = ps->stack[--ps->sp];
     direction d = (direction)ps->stack[--ps->sp];
-    if(!spend_resource("bomb", ps->id, 1)) return;
+    if(!spend_resource("bombs", ps->id, 1)) return;
 
     int x = ps->x;
     int y = ps->y;

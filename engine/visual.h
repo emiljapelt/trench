@@ -51,7 +51,54 @@
 
 // ****
 
+typedef enum {
+    BLACK = 0,
+    RED = 1,
+    GREEN = 2,
+    YELLOW = 3,
+    BLUE = 4,
+    PURPLE = 5,
+    CYAN = 6,
+    WHITE = 7,
+} pre_color_def;
 
+typedef struct rgb_def {
+    unsigned int r : 8;
+    unsigned int g : 8;
+    unsigned int b : 8;
+} rgb_def;
+
+typedef enum {
+    HIDE,
+    RGB,
+    PREDEF_COLOR,
+} color_mode;
+
+typedef struct color_def {
+    color_mode mode : 2;
+    union {
+        pre_color_def predef;
+        rgb_def rgb;
+    } color;  
+} color_def;
+
+typedef enum {
+    FORE,
+    BACK,
+} color_target;
+
+typedef enum {
+    BOLD = 1,
+    SLIM = 2,
+    ITALIC = 3,
+    UNDERLINE = 4, 
+    SLOW_BLINK = 5,
+    FAST_BLINK = 6,
+    CROSS_OUT = 9,
+} print_mod;
+
+color_def predef_color(pre_color_def pc);
+color_def rgb_color(int r, int g, int b);
 static inline void clear_screen(void);
 const char* get_field_char(const int x, const int y);
 void print_board();

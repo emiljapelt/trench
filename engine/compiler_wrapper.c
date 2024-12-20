@@ -7,6 +7,7 @@
 
 #include "util.h"
 #include "game_state.h"
+#include "visual.h"
 #include "resource_registry.h"
 
 field_state* empty_board(int x, int y) {
@@ -110,6 +111,7 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 .players = malloc(sizeof(player_state)*player_count),
                 .board = empty_board(board_x, board_y),
                 .overlay = malloc(sizeof(char*) * (board_x*board_y)),
+                .color_overlay = malloc(sizeof(color_def) * (board_x*board_y)),
                 .feed_point = 0,
                 .feed_buffer = malloc(feed_size+1),
                 .global_arrays = malloc(global_arrays_size),

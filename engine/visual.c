@@ -54,6 +54,42 @@ const char* f_char_lookup[] = {
     F_ALL, // 0x1111
 };
 
+
+color_def predef_color(pre_color_def pc) {
+    return (color_def) { .mode = PREDEF_COLOR, .color.predef = pc };
+}
+
+color_def rgb_color(int r, int g, int b) {
+    return (color_def) { .mode = RGB, .color.rgb = {r,g,b} };
+}
+
+void set_color(color_def c, color_target ct) {
+    char target;
+    switch (ct) {
+        case FORE: target = '3'; break;
+        case BACK: target = '4'; break;
+    }
+
+    switch (c.mode) {
+        case PREDEF_COLOR: {
+            printf("\033[%c%im", target, c.color.predef);
+            break;
+        }
+        case RGB: {
+            printf("\033[%c8;2;%i;%i;%im", target, c.color.rgb.r, c.color.rgb.g, c.color.rgb.b);
+            break;
+        }
+    }
+}
+
+void set_print_mod(print_mod m) {
+    printf("\033[%im", m);
+}
+
+void reset_print() {
+    printf("\033[0m");
+}
+
 const char* get_field_char(const int x, const int y) {
     field_state *fld = get_field(x,y);
 
@@ -84,7 +120,10 @@ void print_board() {
     for(int y = 0; y < _gs->board_y; (putchar('\n'), y++)) {
         putchar('.');
         for(int x = 0; x < _gs->board_x; x++) {
+            if (_gs->color_overlay[(y * _gs->board_x) + x].mode) 
+                set_color(_gs->color_overlay[(y * _gs->board_x) + x], FORE);
             printf("%s", get_field_char(x, y));
+            reset_print();
         }
         putchar('.');
     }

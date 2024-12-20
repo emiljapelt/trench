@@ -4,6 +4,7 @@
 #include "player.h"
 #include "game_rules.h"
 #include "resource_registry.h"
+#include "visual.h"
 
 typedef enum direction {
     NORTH,
@@ -56,6 +57,7 @@ typedef struct game_state {
     int player_count;
     field_state* board;
     const char** overlay;
+    color_def* color_overlay;
     int feed_point;
     char* feed_buffer;
     bomb_chain* bomb_chain;

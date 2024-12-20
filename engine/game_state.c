@@ -32,17 +32,21 @@ void build_field(const int x, const int y) {
     _gs->board[(y * _gs->board_x) + x].trenched = 1;
 }
 
+void set_color_overlay(const int x, const int y, const color_def c) {
+    _gs->color_overlay[(y * _gs->board_x) + x] = c;
+}
+void unset_color_overlay_field(const int x, const int y) {
+    _gs->color_overlay[(y * _gs->board_x) + x].mode = HIDE;
+}
+
 void set_overlay(const int x, const int y, const char* visual) {
     _gs->overlay[(y * _gs->board_x) + x] = visual;
-    //_gs->board[(y * _gs->board_x) + x].visual = visual;
-    //_gs->board[(y * _gs->board_x) + x].vset = 1;
 }
 void unset_overlay() {
     memset(_gs->overlay, 0, sizeof(char*) * (_gs->board_x*_gs->board_y));
 }
 void unset_overlay_field(const int x, const int y) {
     _gs->overlay[(y * _gs->board_x) + x] = NULL;
-    //_gs->board[(y * _gs->board_x) + x].vset = 0;
 }
 
 void print_to_feed(const char* msg) {
@@ -97,6 +101,7 @@ void explode_field(const int x, const int y) {
 
 void bomb_field(const int x, const int y) {
     set_overlay(x,y,EXPLOSION);
+    set_color_overlay(x,y,predef_color(RED));
     //print_board();
     //sleep(500);
     explode_field(x,y);
