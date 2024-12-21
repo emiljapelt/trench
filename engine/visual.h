@@ -67,14 +67,6 @@ typedef struct color_predef {
     color black;
 } color_predef;
 
-const color_predef color_predefs = {
-    .red = {.r = 255, .g = 0, .b = 0, .predef = 1},
-    .green = {.r = 0, .g = 255, .b = 0, .predef = 1},
-    .blue = {.r = 0, .g = 0, .b = 255, .predef = 1},
-    .white = {.r = 255, .g = 255, .b = 255, .predef = 1},
-    .black = {.r = 0, .g = 0, .b = 0, .predef = 1},
-};
-
 typedef enum {
     FORE,
     BACK,
@@ -94,5 +86,6 @@ color rgb_color(int r, int g, int b);
 static inline void clear_screen(void);
 const char* get_field_char(const int x, const int y);
 void print_board();
+extern const color_predef color_predefs;
 
 #endif

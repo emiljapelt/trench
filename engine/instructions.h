@@ -29,7 +29,7 @@ void instr_shoot(player_state* ps) {
     while (in_bounds(x,y)) { 
         set_overlay(x,y,visual);
         for(int p = 0; p < _gs->player_count; p++) {
-            if (_gs->players[p].x == x && _gs->players[p].y == y && !get_field(x,y)->trenched) {
+            if (_gs->players[p].x == x && _gs->players[p].y == y && !get_field(x,y)->type == TRENCH) {
                 death_mark_player(_gs->players+p, "Was gunned down");
             }
         }
@@ -62,7 +62,7 @@ void instr_look(player_state* ps) {
         case WEST: x--; break;
     }
     if (!in_bounds(x,y)) { ps->stack[ps->sp++] = 0; return; }
-    if (get_field(x,y)->trenched) { ps->stack[ps->sp++] = i; return; }
+    if (get_field(x,y)->type == TRENCH) { ps->stack[ps->sp++] = i; return; }
     goto incr;
 }
 
@@ -80,9 +80,9 @@ void instr_scan(player_state* ps) {
         case WEST: x -= power; break;
     }
     if (!in_bounds(x, y)) goto end;
-    if (get_field(x,y)->trenched) result |= TRENCH_FLAG;
-    if (get_field(x,y)->destroyed) result |= DESTORYED_FLAG;
-    if (get_field(x,y)->mine) result |= MINE_FLAG;
+    // if (get_field(x,y)->trenched) result |= TRENCH_FLAG;
+    // if (get_field(x,y)->destroyed) result |= DESTORYED_FLAG;
+    // if (get_field(x,y)->mine) result |= MINE_FLAG;
     for(int i = 0; i < _gs->player_count; i++) 
         if (_gs->players[i].x == x && _gs->players[i].y == y) result |= PLAYER_FLAG;
 
@@ -92,24 +92,20 @@ void instr_scan(player_state* ps) {
 }
 
 void instr_mine(player_state* ps) {
-    if(!spend_resource("bomb", ps->id, 1)) return;
-    //if(!use_resource(1,&ps->bombs)) return;
+    if(!spend_resource("bombs", ps->id, 1)) return;
 
-    int x, y;
-    direction d = (direction)ps->stack[--ps->sp];
-    move_coord(ps->x, ps->y, d, &x, &y);
-    char kill = 0;
-    for(int i = 0; i < _gs->player_count; i++) 
-        if (_gs->players[i].x == x && _gs->players[i].y == y) { death_mark_player(_gs->players+i, "Hit by a thrown mine"); kill = 1; }
-    if (!kill) {
-        if (!in_bounds(x,y)) return;
-        if (get_field(x,y)->destroyed) return;
-        set_overlay(x,y,MINE);
-        get_field(x,y)->mine = 1;
-        //print_board();
-        //sleep(500);
-        //unset_overlay(x,y);
-    }
+    // int x, y;
+    // direction d = (direction)ps->stack[--ps->sp];
+    // move_coord(ps->x, ps->y, d, &x, &y);
+    // char kill = 0;
+    // for(int i = 0; i < _gs->player_count; i++) 
+    //     if (_gs->players[i].x == x && _gs->players[i].y == y) { death_mark_player(_gs->players+i, "Hit by a thrown mine"); kill = 1; }
+    // if (!kill) {
+    //     if (!in_bounds(x,y)) return;
+    //     if (get_field(x,y)->destroyed) return;
+    //     set_overlay(x,y,MINE);
+    //     get_field(x,y)->mine = 1;
+    // }
 }
 
 void instr_move(player_state* ps) { 
@@ -118,22 +114,19 @@ void instr_move(player_state* ps) {
     int x, y;
     move_coord(ps->x, ps->y, d, &x, &y);
     if (!in_bounds(x, y)) return;
-    if (get_field(x,y)->destroyed) return;
-    if (get_field(x,y)->mine) {
-        death_mark_player(ps, "Stepped on a mine");
-        get_field(x,y)->mine = 0;
-        _gs->remaining_actions = 0;
-        set_overlay(x,y,EXPLOSION);
-        //print_board();
-        //sleep(250);
-        //unset_overlay(x,y);
-        return;
-    }
+    //if (get_field(x,y)->destroyed) return;
+    // if (get_field(x,y)->mine) {
+    //     death_mark_player(ps, "Stepped on a mine");
+    //     get_field(x,y)->mine = 0;
+    //     _gs->remaining_actions = 0;
+    //     set_overlay(x,y,EXPLOSION);
+    //     //print_board();
+    //     //sleep(250);
+    //     //unset_overlay(x,y);
+    //     return;
+    // }
     ps->x = x;
     ps->y = y;
-
-    //print_board();
-    //sleep(250);
 }
 
 void instr_melee(player_state* ps) {
@@ -141,7 +134,8 @@ void instr_melee(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
     move_coord(ps->x, ps->y, d, &x, &y);
     for(int i = 0; i < _gs->player_count; i++)
-        if (_gs->players[i].x == x && _gs->players[i].y == y) death_mark_player(_gs->players+i, "Lost a fist fight");
+        if (_gs->players[i].x == x && _gs->players[i].y == y) 
+            death_mark_player(_gs->players+i, "Lost a fist fight");
     //move(d,ps);
 }
 
@@ -150,19 +144,20 @@ void instr_trench(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
     move_coord(ps->x, ps->y, d, &x, &y);
     if (!in_bounds(x, y)) return;
-    if (!get_field(x,y)->trenched) build_field(x,y);
-    //print_board();
-    //sleep(500);
+
+    field_state* field = get_field(x,y);
+    switch (field->type) {
+        case EMPTY: {
+            build_field(x,y);
+        }
+    }
 }
 
 void instr_fortify(player_state* ps) {
     int x, y;
     direction d = (direction)ps->stack[--ps->sp];
     move_coord(ps->x, ps->y, d, &x, &y);
-    if (get_field(x,y)->trenched) 
-        fortify_field(x,y);
-    //print_board();
-    //sleep(500);
+    fortify_field(x,y);
 }
 
 void instr_random_int(player_state* ps) { 

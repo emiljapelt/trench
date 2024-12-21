@@ -5,6 +5,14 @@
 #include "player.h"
 #include "visual.h"
 
+const color_predef color_predefs = {
+    .red = {.r = 255, .g = 0, .b = 0, .predef = 1},
+    .green = {.r = 0, .g = 255, .b = 0, .predef = 1},
+    .blue = {.r = 0, .g = 0, .b = 255, .predef = 1},
+    .white = {.r = 255, .g = 255, .b = 255, .predef = 1},
+    .black = {.r = 0, .g = 0, .b = 0, .predef = 1},
+};
+
 static inline void clear_screen(void) {
     // use cursor movements instead, avoids flickering
     // https://stackoverflow.com/questions/26423537/how-to-position-the-input-text-cursor-in-c
@@ -14,7 +22,14 @@ static inline void clear_screen(void) {
 }
 
 static inline char trench_connects(int x, int y) {
-    return (in_bounds(x,y) ? get_field(x,y)->trenched : 0);
+    if (!in_bounds(x,y)) return 0;
+
+    field_state* field = get_field(x,y);
+
+    switch (field->type) {
+        case TRENCH: return 1;
+        default: return 0;
+    }
 }
 
 // 0xNESW
@@ -78,26 +93,32 @@ void reset_print() {
     printf("\033[0m");
 }
 
-const char* get_field_char(const int x, const int y) {
-    field_state *fld = get_field(x,y);
+const char* get_field_symbol(const int x, const int y) {
+    field_state* fld = get_field(x,y);
 
-    if (_gs->overlay[(y * _gs->board_x) + x]) return _gs->overlay[(y * _gs->board_x) + x];
-    //if(fld->vset) return fld->visual;
-
-    if(!fld->trenched) { 
-        for(int i = 0; i < _gs->player_count; i++) {
-            if (_gs->players[i].x == x && _gs->players[i].y == y && _gs->players[i].alive) return PERSON;
-        }
-        return " "; 
+    if (_gs->board[(y * _gs->board_x) + x].symbol_overlay) {
+        const char* symbol = _gs->board[(y * _gs->board_x) + x].symbol_overlay;
+        _gs->board[(y * _gs->board_x) + x].symbol_overlay = NULL;
+        return symbol;
     }
 
-    int char_idx = 
-        (trench_connects(x,y-1) << 3) | // N
-        (trench_connects(x+1,y) << 2) | // E
-        (trench_connects(x,y+1) << 1) | // S
-        trench_connects(x-1,y);         // W 
+    switch (fld->type) {
+        case TRENCH: {
+            int char_idx = 
+                (trench_connects(x,y-1) << 3) | // N
+                (trench_connects(x+1,y) << 2) | // E
+                (trench_connects(x,y+1) << 1) | // S
+                trench_connects(x-1,y);         // W 
 
-    return (fld->fortified) ? f_char_lookup[char_idx] : char_lookup[char_idx];
+            return (fld->data->trench.fortified) ? f_char_lookup[char_idx] : char_lookup[char_idx];
+        }
+        case EMPTY: {
+            for(int i = 0; i < _gs->player_count; i++) {
+                if (_gs->players[i].x == x && _gs->players[i].y == y && _gs->players[i].alive) return PERSON;
+            }
+        }
+    }
+    return " "; 
 }
 
 void print_board() {
@@ -108,13 +129,13 @@ void print_board() {
     for(int y = 0; y < _gs->board_y; (putchar('\n'), y++)) {
         putchar('.');
         for(int x = 0; x < _gs->board_x; x++) {
-            if (_gs->color_overlay[(y * _gs->board_x) + x]) {
-                set_color(*_gs->color_overlay[(y * _gs->board_x) + x], FORE);
-                if (!_gs->color_overlay[(y * _gs->board_x) + x]->predef) 
-                    free(_gs->color_overlay[(y * _gs->board_x) + x]);
-                _gs->color_overlay[(y * _gs->board_x) + x] = NULL;
+            if (_gs->board[(y * _gs->board_x) + x].color_overlay) {
+                set_color(*_gs->board[(y * _gs->board_x) + x].color_overlay, FORE);
+                if (!_gs->board[(y * _gs->board_x) + x].color_overlay->predef) 
+                    free(_gs->board[(y * _gs->board_x) + x].color_overlay);
+                _gs->board[(y * _gs->board_x) + x].color_overlay = NULL;
             }
-            printf("%s", get_field_char(x, y));
+            printf("%s", get_field_symbol(x, y));
             reset_print();
         }
         putchar('.');
@@ -123,5 +144,4 @@ void print_board() {
     putchar('\n');
     for(int i = 0; i < _gs->feed_point; i++) putchar(_gs->feed_buffer[i]);
     clear_feed();
-    unset_overlay();
 }

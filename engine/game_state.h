@@ -35,11 +35,26 @@ typedef struct bomb_chain {
     struct bomb_chain* next;
 } bomb_chain;
 
-typedef struct field_state {
-    unsigned char destroyed : 1;
-    unsigned char fortified : 1;
-    unsigned char trenched : 1;
-    unsigned char mine : 1;
+typedef enum {
+    EMPTY,
+    TRENCH,
+} field_type;
+
+typedef struct {
+    unsigned int fortified : 1;
+} trench_field;
+
+typedef union {
+    trench_field trench;
+} field_data;
+
+typedef struct {
+    const color* color_overlay;
+    const char* symbol_overlay;
+    field_type type;
+    field_data* data;
+    // Add an event chain for when a player enters a field (mines and such)
+    // Add an event chain for when a player exits a field??
 } field_state;
 
 typedef struct team_state {
@@ -56,8 +71,6 @@ typedef struct game_state {
     player_state* players;
     int player_count;
     field_state* board;
-    const char** overlay;
-    const color** color_overlay;
     int feed_point;
     char* feed_buffer;
     bomb_chain* bomb_chain;

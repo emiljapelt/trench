@@ -110,8 +110,8 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 .player_count = player_count,
                 .players = malloc(sizeof(player_state)*player_count),
                 .board = empty_board(board_x, board_y),
-                .overlay = malloc(sizeof(char*) * (board_x*board_y)),
-                .color_overlay = malloc(sizeof(color*) * (board_x*board_y)),
+                //.overlay = malloc(sizeof(char*) * (board_x*board_y)),
+                //.color_overlay = malloc(sizeof(color*) * (board_x*board_y)),
                 .feed_point = 0,
                 .feed_buffer = malloc(feed_size+1),
                 .global_arrays = malloc(global_arrays_size),
@@ -150,7 +150,7 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 gs->players[i].y = Int_val(Field(Field(player_info, 2), 1));;
             }
             memset(gs->global_arrays, 0, global_arrays_size);
-            memset(gs->overlay, 0, sizeof(char*) * (board_x*board_y));
+            // memset(gs->overlay, 0, sizeof(char*) * (board_x*board_y));
             memset(gs->feed_buffer, 0, feed_size+1);
 
             return 1;

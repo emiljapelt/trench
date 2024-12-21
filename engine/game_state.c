@@ -20,34 +20,35 @@ void set_field(const int x, const int y, field_state* f) {
 }
 
 void fortify_field(const int x, const int y) {
-    _gs->board[(y * _gs->board_x) + x].fortified = 1;
+    switch (_gs->board[(y * _gs->board_x) + x].type) {
+        case TRENCH: {
+            _gs->board[(y * _gs->board_x) + x].data->trench.fortified = 1;
+            break;
+        }
+    }
 }
 
 void destroy_field(const int x, const int y) {
-    _gs->board[(y * _gs->board_x) + x].destroyed = 1;
+    _gs->board[(y * _gs->board_x) + x].type = EMPTY;
+    free(_gs->board[(y * _gs->board_x) + x].data);
 }
 
 void build_field(const int x, const int y) {
-    _gs->board[(y * _gs->board_x) + x].destroyed = 0;
-    _gs->board[(y * _gs->board_x) + x].trenched = 1;
+    trench_field* field = malloc(sizeof(trench_field));
+    field->fortified = 0;
+
+    _gs->board[(y * _gs->board_x) + x].type = TRENCH;
+    _gs->board[(y * _gs->board_x) + x].data = (field_data*)field;
 }
 
 void set_color_overlay(const int x, const int y, const color* c) {
-    _gs->color_overlay[(y * _gs->board_x) + x] = c;
+    _gs->board[(y * _gs->board_x) + x].color_overlay = c;
 }
-// void unset_color_overlay_field(const int x, const int y) {
-//     _gs->color_overlay[(y * _gs->board_x) + x].mode = HIDE;
-// }
 
-void set_overlay(const int x, const int y, const char* visual) {
-    _gs->overlay[(y * _gs->board_x) + x] = visual;
+void set_overlay(const int x, const int y, const char* symbol) {
+    _gs->board[(y * _gs->board_x) + x].symbol_overlay = symbol;
 }
-void unset_overlay() {
-    memset(_gs->overlay, 0, sizeof(char*) * (_gs->board_x*_gs->board_y));
-}
-void unset_overlay_field(const int x, const int y) {
-    _gs->overlay[(y * _gs->board_x) + x] = NULL;
-}
+
 
 void print_to_feed(const char* msg) {
     int msg_len = strlen(msg);
@@ -86,17 +87,22 @@ void death_mark_player(player_state* ps, const char* reason) {
 
 void explode_field(const int x, const int y) {
     field_state* fld = get_field(x,y);
-    if (fld->mine) fld->mine = 0;
-    if (fld->fortified) fld->fortified = 0;
-    else {
-        if (fld->trenched) fld->trenched = 0;
-        fld->destroyed = 1;
-        for(int p = 0; p < _gs->player_count; p++) {
-            if (_gs->players[p].x == x && _gs->players[p].y == y) {
-                death_mark_player(_gs->players+p, "Got blown up");
+    //if (fld->mine) fld->mine = 0;
+
+    switch (fld->type) {
+        case TRENCH: {
+            if(fld->data->trench.fortified) {
+                fld->data->trench.fortified = 0; 
+                return;
             }
+            fld->type = EMPTY;
+            free(fld->data);
         }
     }
+    
+    for(int p = 0; p < _gs->player_count; p++)
+        if (_gs->players[p].x == x && _gs->players[p].y == y) 
+            death_mark_player(_gs->players+p, "Got blown up");
 }
 
 void bomb_field(const int x, const int y) {
