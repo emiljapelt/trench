@@ -57,7 +57,7 @@ typedef struct game_state {
     int player_count;
     field_state* board;
     const char** overlay;
-    color_def* color_overlay;
+    const color** color_overlay;
     int feed_point;
     char* feed_buffer;
     bomb_chain* bomb_chain;

@@ -51,36 +51,29 @@
 
 // ****
 
-typedef enum {
-    BLACK = 0,
-    RED = 1,
-    GREEN = 2,
-    YELLOW = 3,
-    BLUE = 4,
-    PURPLE = 5,
-    CYAN = 6,
-    WHITE = 7,
-} pre_color_def;
 
-typedef struct rgb_def {
+typedef struct color {
     unsigned int r : 8;
     unsigned int g : 8;
     unsigned int b : 8;
-} rgb_def;
+    unsigned int predef: 1;
+} color;
 
-typedef enum {
-    HIDE,
-    RGB,
-    PREDEF_COLOR,
-} color_mode;
+typedef struct color_predef {
+    color red;
+    color green;
+    color blue;
+    color white;
+    color black;
+} color_predef;
 
-typedef struct color_def {
-    color_mode mode : 2;
-    union {
-        pre_color_def predef;
-        rgb_def rgb;
-    } color;  
-} color_def;
+const color_predef color_predefs = {
+    .red = {.r = 255, .g = 0, .b = 0, .predef = 1},
+    .green = {.r = 0, .g = 255, .b = 0, .predef = 1},
+    .blue = {.r = 0, .g = 0, .b = 255, .predef = 1},
+    .white = {.r = 255, .g = 255, .b = 255, .predef = 1},
+    .black = {.r = 0, .g = 0, .b = 0, .predef = 1},
+};
 
 typedef enum {
     FORE,
@@ -97,8 +90,7 @@ typedef enum {
     CROSS_OUT = 9,
 } print_mod;
 
-color_def predef_color(pre_color_def pc);
-color_def rgb_color(int r, int g, int b);
+color rgb_color(int r, int g, int b);
 static inline void clear_screen(void);
 const char* get_field_char(const int x, const int y);
 void print_board();

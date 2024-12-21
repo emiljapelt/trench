@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "game_state.h"
 #include "player.h"
@@ -55,31 +56,18 @@ const char* f_char_lookup[] = {
 };
 
 
-color_def predef_color(pre_color_def pc) {
-    return (color_def) { .mode = PREDEF_COLOR, .color.predef = pc };
+color rgb_color(int r, int g, int b) {
+    return (color) { .r = r, .g = g, .b = b, .predef = 0 };
 }
 
-color_def rgb_color(int r, int g, int b) {
-    return (color_def) { .mode = RGB, .color.rgb = {r,g,b} };
-}
-
-void set_color(color_def c, color_target ct) {
+void set_color(color c, color_target ct) {
     char target;
     switch (ct) {
         case FORE: target = '3'; break;
         case BACK: target = '4'; break;
     }
 
-    switch (c.mode) {
-        case PREDEF_COLOR: {
-            printf("\033[%c%im", target, c.color.predef);
-            break;
-        }
-        case RGB: {
-            printf("\033[%c8;2;%i;%i;%im", target, c.color.rgb.r, c.color.rgb.g, c.color.rgb.b);
-            break;
-        }
-    }
+    printf("\033[%c8;2;%i;%i;%im", target, c.r, c.g, c.b);
 }
 
 void set_print_mod(print_mod m) {
@@ -120,8 +108,12 @@ void print_board() {
     for(int y = 0; y < _gs->board_y; (putchar('\n'), y++)) {
         putchar('.');
         for(int x = 0; x < _gs->board_x; x++) {
-            if (_gs->color_overlay[(y * _gs->board_x) + x].mode) 
-                set_color(_gs->color_overlay[(y * _gs->board_x) + x], FORE);
+            if (_gs->color_overlay[(y * _gs->board_x) + x]) {
+                set_color(*_gs->color_overlay[(y * _gs->board_x) + x], FORE);
+                if (!_gs->color_overlay[(y * _gs->board_x) + x]->predef) 
+                    free(_gs->color_overlay[(y * _gs->board_x) + x]);
+                _gs->color_overlay[(y * _gs->board_x) + x] = NULL;
+            }
             printf("%s", get_field_char(x, y));
             reset_print();
         }
