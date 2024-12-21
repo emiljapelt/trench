@@ -3,6 +3,7 @@
 
 #include "player.h"
 #include "game_rules.h"
+#include "events.h"
 #include "resource_registry.h"
 #include "visual.h"
 
@@ -53,8 +54,8 @@ typedef struct {
     const char* symbol_overlay;
     field_type type;
     field_data* data;
-    // Add an event chain for when a player enters a field (mines and such)
-    // Add an event chain for when a player exits a field??
+    field_event_list enter_events;
+    field_event_list exit_events;
 } field_state;
 
 typedef struct team_state {

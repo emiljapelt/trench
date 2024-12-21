@@ -7,11 +7,12 @@
 #include "player.h"
 #include "visual.h"
 #include "util.h"
+#include "events.h"
 #include "resource_registry.h"
 
 void instr_shoot(player_state* ps) {
     if(!spend_resource("shots", ps->id, 1)) return;
-    //if(!use_resource(1,&ps->shots)) return;
+    
     direction d = (direction)ps->stack[--ps->sp];
     int x = ps->x;
     int y = ps->y;
@@ -91,21 +92,27 @@ void instr_scan(player_state* ps) {
     ps->stack[ps->sp++] = result;
 }
 
+void mine_event(player_state* ps, void* data) {
+    explode_field(ps->x,ps->y);
+}
+
 void instr_mine(player_state* ps) {
     if(!spend_resource("bombs", ps->id, 1)) return;
 
-    // int x, y;
-    // direction d = (direction)ps->stack[--ps->sp];
-    // move_coord(ps->x, ps->y, d, &x, &y);
-    // char kill = 0;
-    // for(int i = 0; i < _gs->player_count; i++) 
-    //     if (_gs->players[i].x == x && _gs->players[i].y == y) { death_mark_player(_gs->players+i, "Hit by a thrown mine"); kill = 1; }
-    // if (!kill) {
-    //     if (!in_bounds(x,y)) return;
-    //     if (get_field(x,y)->destroyed) return;
-    //     set_overlay(x,y,MINE);
-    //     get_field(x,y)->mine = 1;
-    // }
+    int x, y;
+    direction d = (direction)ps->stack[--ps->sp];
+    move_coord(ps->x, ps->y, d, &x, &y);
+    char kill = 0;
+    for(int i = 0; i < _gs->player_count; i++) 
+        if (_gs->players[i].x == x && _gs->players[i].y == y) { death_mark_player(_gs->players+i, "Hit by a thrown mine"); kill = 1; }
+    if (!kill) {
+        if (!in_bounds(x,y)) return;
+        set_overlay(x,y,MINE);
+        add_field_event(
+            &get_field(x,y)->exit_events,
+            1, &mine_event, NULL
+        );
+    }
 }
 
 void instr_move(player_state* ps) { 
@@ -125,8 +132,12 @@ void instr_move(player_state* ps) {
     //     //unset_overlay(x,y);
     //     return;
     // }
-    ps->x = x;
-    ps->y = y;
+    update_field_events(ps, &get_field(ps->x,ps->y)->exit_events);
+    if (!ps->death_msg) {
+        ps->x = x;
+        ps->y = y;
+        update_field_events(ps, &get_field(x,y)->enter_events);
+    }
 }
 
 void instr_melee(player_state* ps) {
