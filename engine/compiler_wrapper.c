@@ -10,10 +10,27 @@
 #include "visual.h"
 #include "resource_registry.h"
 
-field_state* empty_board(int x, int y) {
+field_state* empty_board(const int x, const int y) {
     int size = sizeof(field_state)*x*y;
     field_state* brd = malloc(size);
-    memset(brd,0,size);
+
+    for (int _x = 0; _x < x; _x++) 
+    for (int _y = 0; _y < y; _y++) {
+        event_list* enter_events = malloc(sizeof(event_list*));
+        event_list* exit_events = malloc(sizeof(event_list*));
+        enter_events->list = NULL;
+        exit_events->list = NULL;
+        brd[(_y * x) + _x] = (field_state) {
+            .color_overlay = 0,
+            .mod_overlay = 0,
+            .symbol_overlay = 0,
+            .type = EMPTY,
+            .enter_events = enter_events,
+            .exit_events = exit_events,
+        };
+    }
+
+    //memset(brd,0,size);
     return brd;
 }
 
@@ -110,8 +127,6 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 .player_count = player_count,
                 .players = malloc(sizeof(player_state)*player_count),
                 .board = empty_board(board_x, board_y),
-                //.overlay = malloc(sizeof(char*) * (board_x*board_y)),
-                //.color_overlay = malloc(sizeof(color*) * (board_x*board_y)),
                 .feed_point = 0,
                 .feed_buffer = malloc(feed_size+1),
                 .global_arrays = malloc(global_arrays_size),
@@ -135,6 +150,8 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
             for(int i = 0; i < player_count; i++) {
                 value player_info = Field(Field(unwrapped_result, 7),i);
                 directive_info di = load_directive_to_struct(String_val(Field(player_info, 4)));
+                event_list* death_events = malloc(sizeof(event_list*));
+                death_events->list = NULL;
                 gs->players[i].alive = 1;
                 gs->players[i].death_msg = NULL;
                 gs->players[i].team = Int_val(Field(player_info, 0));
@@ -147,7 +164,8 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 gs->players[i].directive_len = di.dir_len;//(Field(player_info, 4))-(di.regs_len+1);
                 gs->players[i].dp = 0;
                 gs->players[i].x = Int_val(Field(Field(player_info, 2), 0));
-                gs->players[i].y = Int_val(Field(Field(player_info, 2), 1));;
+                gs->players[i].y = Int_val(Field(Field(player_info, 2), 1));
+                gs->players[i].death_events = death_events;
             }
             memset(gs->global_arrays, 0, global_arrays_size);
             // memset(gs->overlay, 0, sizeof(char*) * (board_x*board_y));

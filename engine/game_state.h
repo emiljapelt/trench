@@ -29,13 +29,6 @@ typedef enum field_state_flags {
     DESTORYED_FLAG = 0b1000
 } field_state_flags;
 
-typedef struct bomb_chain {
-    char* player;
-    int x;
-    int y;
-    struct bomb_chain* next;
-} bomb_chain;
-
 typedef enum {
     EMPTY,
     TRENCH,
@@ -51,11 +44,12 @@ typedef union {
 
 typedef struct {
     const color* color_overlay;
+    print_mod mod_overlay;
     const char* symbol_overlay;
     field_type type;
     field_data* data;
-    field_event_list enter_events;
-    field_event_list exit_events;
+    event_list* enter_events;
+    event_list* exit_events;
 } field_state;
 
 typedef struct team_state {
@@ -74,7 +68,6 @@ typedef struct game_state {
     field_state* board;
     int feed_point;
     char* feed_buffer;
-    bomb_chain* bomb_chain;
     int* global_arrays;
     int team_count;
     team_state* team_states;
@@ -96,15 +89,14 @@ void unexplode_field(const int x, const int y);
 void death_mark_player(player_state* ps, const char* reason);
 void kill_player(player_state* ps);
 
+void set_color_overlay(const int x, const int y, const color* c);
+void set_mod_overlay(const int x, const int y, const print_mod m);
 void set_overlay(const int x, const int y, const char* visual);
 void unset_overlay_field(const int x, const int y);
 void unset_overlay();
 
 void print_to_feed(const char* msg);
 void clear_feed();
-
-void add_bomb(const int x, const int y, const player_state* ps);
-void update_bomb_chain(const player_state* ps);
 
 static inline char in_bounds(const int x, const int y) {
     return (0 <= x && x < _gs->board_x && 0 <= y && y < _gs->board_y);

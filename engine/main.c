@@ -6,6 +6,7 @@
 #include <caml/callback.h>
 
 #include "player.h"
+#include "events.h"
 #include "game_rules.h"
 #include "game_state.h"
 #include "visual.h"
@@ -21,6 +22,15 @@ void debug_print(player_state* ps) {
         fprintf(stderr,"%i, ", ps->stack[i]); sleep(100);
     }
     fprintf(stderr,"\n%c\n", ps->directive[ps->dp]); sleep(500);
+}
+
+void kill_players() {
+    for(int i = 0; i < _gs->player_count; i++)
+        if (_gs->players[i].death_msg != NULL) {
+            update_events(&_gs->players[i], _gs->players[i].death_events);
+            if (_gs->players[i].death_msg != NULL)
+                kill_player(_gs->players+i);
+        }
 }
 
 void player_turn_async(player_state* ps) {
@@ -107,9 +117,10 @@ void player_turn_async(player_state* ps) {
 
         if (change || _gs->feed_point) { print_board(); sleep(1000); }
 
-        for(int i = 0; i < _gs->player_count; i++)
-            if (_gs->players[i].death_msg != NULL)
-                kill_player(_gs->players+i);
+        //for(int i = 0; i < _gs->player_count; i++)
+        //    if (_gs->players[i].death_msg != NULL)
+        //        kill_player(_gs->players+i);
+        kill_players();
         if (_gs->feed_point) { print_board(); sleep(1000); }
 
     }
@@ -264,15 +275,7 @@ void check_win_condition() {
 }
 
 
-void play_round_sync() {
-    // Bomb chain update
-        //for(int i = 0; i < _gs->player_count; i++) 
-        //    update_bomb_chain(_gs->players+i);
-
-        //for(int i = 0; i < _gs->player_count; i++)
-        //    if (_gs->players[i].death_msg != NULL)
-        //        kill_player(_gs->players+i);
-    
+void play_round_sync() {    
         int change;
     // Step phase
         turn_action* acts = malloc(sizeof(turn_action)*_gs->player_count);
@@ -297,9 +300,10 @@ void play_round_sync() {
             }
         if (change || _gs->feed_point) { print_board(); sleep(1000); }
 
-        for(int i = 0; i < _gs->player_count; i++)
-            if (_gs->players[i].death_msg != NULL)
-                kill_player(_gs->players+i);
+        //for(int i = 0; i < _gs->player_count; i++)
+        //    if (_gs->players[i].death_msg != NULL)
+        //        kill_player(_gs->players+i);
+        kill_players();
         if (_gs->feed_point) { print_board(); sleep(1000); }
 
     // Move phase
@@ -317,9 +321,10 @@ void play_round_sync() {
             sleep(1000);
         }
 
-        for(int i = 0; i < _gs->player_count; i++)
-            if (_gs->players[i].death_msg != NULL)
-                kill_player(_gs->players+i);
+        // for(int i = 0; i < _gs->player_count; i++)
+        //     if (_gs->players[i].death_msg != NULL)
+        //         kill_player(_gs->players+i);
+        kill_players();
         if (_gs->feed_point) { print_board(); sleep(1000); }
 
     // Check win condition

@@ -129,12 +129,19 @@ void print_board() {
     for(int y = 0; y < _gs->board_y; (putchar('\n'), y++)) {
         putchar('.');
         for(int x = 0; x < _gs->board_x; x++) {
+
             if (_gs->board[(y * _gs->board_x) + x].color_overlay) {
                 set_color(*_gs->board[(y * _gs->board_x) + x].color_overlay, FORE);
                 if (!_gs->board[(y * _gs->board_x) + x].color_overlay->predef) 
                     free(_gs->board[(y * _gs->board_x) + x].color_overlay);
                 _gs->board[(y * _gs->board_x) + x].color_overlay = NULL;
             }
+
+            if (_gs->board[(y * _gs->board_x) + x].mod_overlay) {
+                set_print_mod(_gs->board[(y * _gs->board_x) + x].mod_overlay);
+                _gs->board[(y * _gs->board_x) + x].color_overlay = 0;
+            }
+
             printf("%s", get_field_symbol(x, y));
             reset_print();
         }

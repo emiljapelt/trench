@@ -45,6 +45,10 @@ void set_color_overlay(const int x, const int y, const color* c) {
     _gs->board[(y * _gs->board_x) + x].color_overlay = c;
 }
 
+void set_mod_overlay(const int x, const int y, const print_mod m) {
+    _gs->board[(y * _gs->board_x) + x].mod_overlay = m;
+}
+
 void set_overlay(const int x, const int y, const char* symbol) {
     _gs->board[(y * _gs->board_x) + x].symbol_overlay = symbol;
 }
@@ -63,11 +67,9 @@ void clear_feed() {
 
 void kill_player(player_state* ps) {
     set_overlay(ps->x,ps->y,COFFIN);
-    //print_board();
     char msg[100];
     sprintf(msg, "Player %s died: %s\n", ps->name, (ps->death_msg) ? ps->death_msg : "Unknown reason");
     print_to_feed(msg);
-    //sleep(1000);
     ps->alive = 0;
     ps->death_msg = NULL;
     for(int i = 0; i < _gs->team_count; i++) {
@@ -75,9 +77,6 @@ void kill_player(player_state* ps) {
         _gs->team_states[i].members_alive--;
         break;
     }
-    //unset_visual(ps->x,ps->y);
-    //print_board();
-    //sleep(250);
 }
 
 void death_mark_player(player_state* ps, const char* reason) {
@@ -114,33 +113,6 @@ void bomb_field(const int x, const int y) {
     //unset_visual(x,y);
     //print_board();
     //sleep(250);
-}
-
-void add_bomb(const int x, const int y, const player_state* ps) {
-    bomb_chain* link = malloc(sizeof(bomb_chain));
-    link->player = ps->name;
-    link->next = _gs->bomb_chain;
-    link->x = x;
-    link->y = y;
-    _gs->bomb_chain = link;
-}
-
-void update_bomb_chain(const player_state* ps) {
-    bomb_chain* bc = _gs->bomb_chain;
-    bomb_chain** prev = &_gs->bomb_chain;
-    
-    while(bc != NULL) {
-        if(strcmp(bc->player, ps->name) == 0) {
-            bomb_field(bc->x, bc->y);
-            bomb_chain* link = bc;
-            (*prev)->next = bc->next;
-            bc = bc->next;
-            free(link);
-        } else {
-            prev = &bc->next;
-            bc = bc->next;
-        }
-    }
 }
 
 void move_coord(int x, int y, direction d, int* _x, int* _y) {

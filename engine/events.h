@@ -3,22 +3,22 @@
 
 #include "player.h"
 
-typedef void (*field_event_function)(player_state* ps, void* data);
+// Return 1 if the event is finished, otherwise return 0.
+typedef int (*event_function)(player_state* ps, void* data);
 
-typedef struct field_event_list_node {
-    field_event_function func;
-    int clock;
+typedef struct event_list_node {
+    event_function func;
     void* data;
-    struct field_event_list_node* next;
+    struct event_list_node* next;
 }
-field_event_list_node;
+event_list_node;
 
-typedef struct field_event_list {
-    field_event_list_node* list;
-} field_event_list;
+typedef struct event_list {
+    event_list_node* list;
+} event_list;
 
-void add_field_event(field_event_list* list, int clock, field_event_function func, void* data);
-void update_field_events(player_state* ps, field_event_list* list);
+void add_event(event_list* list, event_function func, void* data);
+void update_events(player_state* ps, event_list* list);
 
 
 #endif

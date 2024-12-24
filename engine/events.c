@@ -6,35 +6,34 @@
 #include <stdio.h>
 
 
-void add_field_event(field_event_list* list, int clock, field_event_function func, void* data) {
-    field_event_list_node* node = malloc(sizeof(field_event_list_node));
+void add_event(event_list* list, event_function func, void* data) {
+    event_list_node* node = malloc(sizeof(event_list_node));
 
-    field_event_list_node node_value = {
-        .clock = clock,
+    event_list_node node_value = {
         .data = data,
         .func = func,
         .next = list->list
     };
 
-    memcpy(node, &node_value, sizeof(field_event_list_node));
+    memcpy(node, &node_value, sizeof(event_list_node));
 
     list->list = node;
 }
 
-void update_field_events(player_state* ps, field_event_list* list) {
-    field_event_list_node* node = list->list;
+void update_events(player_state* ps, event_list* list) {
+    event_list_node* node = list->list;
     while (node) {
-        node->clock--;
-        if (!node->clock) node->func(ps, node->data);
+        int finished = node->func(ps, node->data);
+        if (finished) node->func = NULL;
         node = node->next;
     }
 
-    field_event_list filtered = { .list = NULL };
+    event_list filtered = { .list = NULL };
     node = list->list;
     while(node) {
-        field_event_list_node* temp = node;
+        event_list_node* temp = node;
         node = node->next;
-        if (temp->clock > 0) {
+        if (temp->func) {
             temp->next = filtered.list;
             filtered.list = temp;
         }
@@ -44,10 +43,10 @@ void update_field_events(player_state* ps, field_event_list* list) {
         }
     }
 
-    field_event_list reversed = { .list = NULL};
+    event_list reversed = { .list = NULL};
     node = filtered.list;
     while (node) {
-        field_event_list_node* temp = node;
+        event_list_node* temp = node;
         node = node->next;
         temp->next = reversed.list;
         reversed.list = temp;

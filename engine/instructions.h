@@ -92,8 +92,17 @@ void instr_scan(player_state* ps) {
     ps->stack[ps->sp++] = result;
 }
 
-void mine_event(player_state* ps, void* data) {
+int mine_event(player_state* ps, void* data) {
     explode_field(ps->x,ps->y);
+    set_overlay(ps->x,ps->y,EXPLOSION);
+    set_color_overlay(ps->x, ps->y, &color_predefs.red);
+    set_mod_overlay(ps->x, ps->y, BOLD);
+    return 1;
+}
+
+int remove_death_mark(player_state* ps, void* data) {
+    ps->death_msg = NULL;
+    return 1;
 }
 
 void instr_mine(player_state* ps) {
@@ -108,9 +117,9 @@ void instr_mine(player_state* ps) {
     if (!kill) {
         if (!in_bounds(x,y)) return;
         set_overlay(x,y,MINE);
-        add_field_event(
-            &get_field(x,y)->exit_events,
-            1, &mine_event, NULL
+        add_event(
+            get_field(x,y)->exit_events,
+            &mine_event, NULL
         );
     }
 }
@@ -132,11 +141,11 @@ void instr_move(player_state* ps) {
     //     //unset_overlay(x,y);
     //     return;
     // }
-    update_field_events(ps, &get_field(ps->x,ps->y)->exit_events);
+    update_events(ps, get_field(ps->x,ps->y)->exit_events);
     if (!ps->death_msg) {
         ps->x = x;
         ps->y = y;
-        update_field_events(ps, &get_field(x,y)->enter_events);
+        update_events(ps, get_field(x,y)->enter_events);
     }
 }
 
