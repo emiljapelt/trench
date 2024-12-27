@@ -11,7 +11,7 @@
 #include "resource_registry.h"
 
 void instr_shoot(player_state* ps) {
-    if(!spend_resource("shots", ps->id, 1)) return;
+    if(!spend_resource("shot", ps->id, 1)) return;
     
     direction d = (direction)ps->stack[--ps->sp];
     int x = ps->x;
@@ -107,7 +107,7 @@ int remove_death_mark(player_state* ps, void* data) {
 }
 
 void instr_mine(player_state* ps) {
-    if(!spend_resource("bombs", ps->id, 1)) return;
+    if(!spend_resource("bomb", ps->id, 1)) return;
 
     int x, y;
     direction d = (direction)ps->stack[--ps->sp];
@@ -215,7 +215,7 @@ int bomb_event(player_state* ps, void* data) {
 void instr_bomb(player_state* ps) {
     int p = ps->stack[--ps->sp];
     direction d = (direction)ps->stack[--ps->sp];
-    if(!spend_resource("bombs", ps->id, 1)) return;
+    if(!spend_resource("bomb", ps->id, 1)) return;
 
     int x = ps->x;
     int y = ps->y;

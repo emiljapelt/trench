@@ -34,6 +34,7 @@
 %}
 %token <int> CSTINT
 %token <string> NAME
+%token <string> META_NAME
 %token <string> LABEL
 %token LPAR RPAR LBRACE RBRACE LBRAKE RBRAKE
 %token PLUS MINUS TIMES EQ NEQ LT GT LTEQ GTEQ
@@ -44,7 +45,7 @@
 %token GOTO
 %token MOVE FORTIFY WAIT PASS TRENCH
 %token NORTH EAST SOUTH WEST BOMB SHOOT LOOK SCAN MINE ATTACK
-%token HASH INT DIR FIELD
+%token INT DIR FIELD
 %token PLAYER_CAP TRENCH_CAP MINE_CAP DESTROYED_CAP
 
 /*Low precedence*/
@@ -98,7 +99,7 @@ simple_value:
   | TILDE simple_value                 { Unary_op ("~", $2) }
   | NAME                               { feature 1 ; Reference(Local $1) }
   | typ LBRAKE value RBRAKE            { feature 1 ; Reference(Global($1,$3)) }
-  | HASH NAME                          { MetaReference (meta_name $2) }
+  | META_NAME                          { MetaReference (meta_name $1) }
   | LPAR value RPAR                    { $2 }
 ;
 

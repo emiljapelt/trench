@@ -64,6 +64,7 @@ rule lex = parse
     |   "//" [^ '\n' '\r']* ('\r''\n' | '\n' | eof)       { incr_linenum lexbuf ; lex lexbuf }
     |   ['0'-'9']+ as lxm { CSTINT (int_of_string lxm) }
     |   ['A'-'Z' 'a'-'z' '''] ['A'-'Z' 'a'-'z' '0'-'9' '_'] * ':' as id { LABEL (String.sub id 0 (String.length id - 1)) }
+    |   '#' ['A'-'Z' 'a'-'z' '''] ['A'-'Z' 'a'-'z' '0'-'9' '_'] * as id { META_NAME (String.sub id 1 (String.length id - 1)) }
     |   ['A'-'Z' 'a'-'z' '''] ['A'-'Z' 'a'-'z' '0'-'9' '_'] * as id
                 { try
                     Hashtbl.find keyword_table id
@@ -94,7 +95,6 @@ rule lex = parse
     |   '.'           { DOT }
     |   ','           { COMMA }
     |   ';'           { SEMI }
-    |   '#'           { HASH }
     |   _             { raise (Failure(Some((Lexing.lexeme_start_p lexbuf).pos_fname), Some((Lexing.lexeme_start_p lexbuf).pos_lnum), ("Unknown token"))) }
     |   eof           { EOF }
 
