@@ -170,6 +170,7 @@ stmt1_inner:
   | GOTO NAME SEMI                            { GoTo $2 }
   | LABEL                                     { Label $1 }
   | REPEAT CSTINT stmt1                       { feature 2 ; Block(List.init $2 (fun _ -> $3)) }
+  | REPEAT LPAR CSTINT RPAR stmt1             { feature 2 ; Block(List.init $3 (fun _ -> $5)) }
   | non_control_flow_stmt SEMI                { $1 }
 ;
 
