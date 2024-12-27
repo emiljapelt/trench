@@ -65,6 +65,7 @@ typedef struct color_predef {
     color blue;
     color white;
     color black;
+    color yellow;
 } color_predef;
 
 typedef enum {
@@ -82,9 +83,16 @@ typedef enum {
     CROSS_OUT = 9,
 } print_mod;
 
+typedef struct field_visual {
+    color* foreground_color;
+    color* background_color;
+    char* symbol;
+    print_mod mod;
+} field_visual;
+
 color rgb_color(int r, int g, int b);
 static inline void clear_screen(void);
-const char* get_field_char(const int x, const int y);
+field_visual get_field_visual(const int x, const int y);
 void print_board();
 extern const color_predef color_predefs;
 

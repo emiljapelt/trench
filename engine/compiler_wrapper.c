@@ -21,7 +21,8 @@ field_state* empty_board(const int x, const int y) {
         enter_events->list = NULL;
         exit_events->list = NULL;
         brd[(_y * x) + _x] = (field_state) {
-            .color_overlay = 0,
+            .foreground_color_overlay = 0,
+            .background_color_overlay = 0,
             .mod_overlay = 0,
             .symbol_overlay = 0,
             .type = EMPTY,
@@ -132,8 +133,10 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 .global_arrays = malloc(global_arrays_size),
                 .team_count = team_count,
                 .team_states = malloc(sizeof(team_state) * team_count),
-                .resource_registry = create_resource_registry(player_count, 10, resource_count)
+                .resource_registry = create_resource_registry(player_count, 10, resource_count),
+                .events = malloc(sizeof(event_list*))
             };
+            gs->events->list = NULL;
 
             for(int i = 0; i < resource_count; i++) {
                 value resource = Field(Field(unwrapped_result, 13), i);

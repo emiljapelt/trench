@@ -279,8 +279,10 @@ void play_round_sync() {
         int change;
     // Step phase
         turn_action* acts = malloc(sizeof(turn_action)*_gs->player_count);
-        for(int i = 0; i < _gs->player_count; i++) 
+        for(int i = 0; i < _gs->player_count; i++)  {
+            update_events(_gs->players+i, _gs->events);
             if (_gs->players[i].alive) acts[i] = player_turn_sync(_gs->players+i);
+        }
 
     // Defend phase
         change = 0;
@@ -340,6 +342,7 @@ void play_round_async() {
     for(int i = 0; i < _gs->player_count; i++) if (_gs->players[i].alive) {
         //update_bomb_chain(_gs->players+i);
         //check_win_condition();
+        update_events(_gs->players+i, _gs->events);
         player_turn_async(_gs->players+i);
         check_win_condition();
     }

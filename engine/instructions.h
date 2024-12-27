@@ -29,6 +29,7 @@ void instr_shoot(player_state* ps) {
     move_coord(x, y, d, &x, &y);
     while (in_bounds(x,y)) { 
         set_overlay(x,y,visual);
+        set_color_overlay(x,y,FORE,&color_predefs.yellow);
         for(int p = 0; p < _gs->player_count; p++) {
             if (_gs->players[p].x == x && _gs->players[p].y == y && !get_field(x,y)->type == TRENCH) {
                 death_mark_player(_gs->players+p, "Was gunned down");
@@ -95,7 +96,7 @@ void instr_scan(player_state* ps) {
 int mine_event(player_state* ps, void* data) {
     explode_field(ps->x,ps->y);
     set_overlay(ps->x,ps->y,EXPLOSION);
-    set_color_overlay(ps->x, ps->y, &color_predefs.red);
+    set_color_overlay(ps->x, ps->y, FORE, &color_predefs.red);
     set_mod_overlay(ps->x, ps->y, BOLD);
     return 1;
 }
@@ -198,6 +199,19 @@ void instr_place(player_state* ps) {
     ps->dp += 4;
 }
 
+typedef struct bomb_event_args {
+    int x;
+    int y;
+    int player_id;
+} bomb_event_args;
+
+int bomb_event(player_state* ps, void* data) {
+    bomb_event_args* args = (bomb_event_args*)data;
+    if (args->player_id != ps->id) return 0;
+    bomb_field(args->x,args->y);
+    return 1;
+}
+
 void instr_bomb(player_state* ps) {
     int p = ps->stack[--ps->sp];
     direction d = (direction)ps->stack[--ps->sp];
@@ -207,9 +221,17 @@ void instr_bomb(player_state* ps) {
     int y = ps->y;
     for (int i = p; i > 0; i--)
         move_coord(x,y,d,&x,&y);
+
+    bomb_event_args* args = malloc(sizeof(bomb_event_args));
+    args->x = x;
+    args->y = y;
+    args->player_id = ps->id;
+    add_event(_gs->events, &bomb_event, args);
+    set_color_overlay(x,y,FORE,&color_predefs.red);
+    set_overlay(x,y,TARGET);
     //set_overlay(x,y,TARGET);
     //add_bomb(x, y, ps);
-    bomb_field(x,y);
+    // bomb_field(x,y);
     //print_board();
     //sleep(500);
     //unset_overlay(x,y);

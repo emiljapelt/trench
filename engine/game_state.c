@@ -41,8 +41,11 @@ void build_field(const int x, const int y) {
     _gs->board[(y * _gs->board_x) + x].data = (field_data*)field;
 }
 
-void set_color_overlay(const int x, const int y, const color* c) {
-    _gs->board[(y * _gs->board_x) + x].color_overlay = c;
+void set_color_overlay(const int x, const int y, color_target ct, const color* c) {
+    switch (ct) {
+        case FORE: _gs->board[(y * _gs->board_x) + x].foreground_color_overlay = c; break;
+        case BACK: _gs->board[(y * _gs->board_x) + x].background_color_overlay = c; break;
+    }
 }
 
 void set_mod_overlay(const int x, const int y, const print_mod m) {
@@ -86,7 +89,6 @@ void death_mark_player(player_state* ps, const char* reason) {
 
 void explode_field(const int x, const int y) {
     field_state* fld = get_field(x,y);
-    //if (fld->mine) fld->mine = 0;
 
     switch (fld->type) {
         case TRENCH: {
@@ -106,7 +108,7 @@ void explode_field(const int x, const int y) {
 
 void bomb_field(const int x, const int y) {
     set_overlay(x,y,EXPLOSION);
-    set_color_overlay(x,y,&color_predefs.red);
+    set_color_overlay(x,y,FORE,&color_predefs.red);
     //print_board();
     //sleep(500);
     explode_field(x,y);

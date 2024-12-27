@@ -43,7 +43,8 @@ typedef union {
 } field_data;
 
 typedef struct {
-    const color* color_overlay;
+    const color* foreground_color_overlay;
+    const color* background_color_overlay;
     print_mod mod_overlay;
     const char* symbol_overlay;
     field_type type;
@@ -70,6 +71,7 @@ typedef struct game_state {
     char* feed_buffer;
     int* global_arrays;
     int team_count;
+    event_list* events;
     team_state* team_states;
     resource_registry* resource_registry; 
 } game_state;
@@ -89,7 +91,7 @@ void unexplode_field(const int x, const int y);
 void death_mark_player(player_state* ps, const char* reason);
 void kill_player(player_state* ps);
 
-void set_color_overlay(const int x, const int y, const color* c);
+void set_color_overlay(const int x, const int y, color_target ct, const color* c);
 void set_mod_overlay(const int x, const int y, const print_mod m);
 void set_overlay(const int x, const int y, const char* visual);
 void unset_overlay_field(const int x, const int y);

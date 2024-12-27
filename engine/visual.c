@@ -11,6 +11,7 @@ const color_predef color_predefs = {
     .blue = {.r = 0, .g = 0, .b = 255, .predef = 1},
     .white = {.r = 255, .g = 255, .b = 255, .predef = 1},
     .black = {.r = 0, .g = 0, .b = 0, .predef = 1},
+    .yellow = {.r = 255, .g = 255, .b = 0, .predef = 1},
 };
 
 static inline void clear_screen(void) {
@@ -93,14 +94,15 @@ void reset_print() {
     printf("\033[0m");
 }
 
-const char* get_field_symbol(const int x, const int y) {
-    field_state* fld = get_field(x,y);
+field_visual get_field_visual(const int x, const int y) {
+    field_visual result = {
+        .background_color = NULL,
+        .foreground_color = NULL,
+        .mod = 0,
+        .symbol = " "
+    };
 
-    if (_gs->board[(y * _gs->board_x) + x].symbol_overlay) {
-        const char* symbol = _gs->board[(y * _gs->board_x) + x].symbol_overlay;
-        _gs->board[(y * _gs->board_x) + x].symbol_overlay = NULL;
-        return symbol;
-    }
+    field_state* fld = get_field(x,y);
 
     switch (fld->type) {
         case TRENCH: {
@@ -110,15 +112,33 @@ const char* get_field_symbol(const int x, const int y) {
                 (trench_connects(x,y+1) << 1) | // S
                 trench_connects(x-1,y);         // W 
 
-            return (fld->data->trench.fortified) ? f_char_lookup[char_idx] : char_lookup[char_idx];
+            result.symbol = (fld->data->trench.fortified) ? f_char_lookup[char_idx] : char_lookup[char_idx];
         }
         case EMPTY: {
             for(int i = 0; i < _gs->player_count; i++) {
-                if (_gs->players[i].x == x && _gs->players[i].y == y && _gs->players[i].alive) return PERSON;
+                if (_gs->players[i].x == x && _gs->players[i].y == y && _gs->players[i].alive) 
+                    result.symbol = PERSON;
             }
         }
     }
-    return " "; 
+
+    if (_gs->board[(y * _gs->board_x) + x].symbol_overlay) {
+        const char* symbol = _gs->board[(y * _gs->board_x) + x].symbol_overlay;
+        _gs->board[(y * _gs->board_x) + x].symbol_overlay = NULL;
+        result.symbol = symbol;
+    }
+    if (_gs->board[(y * _gs->board_x) + x].foreground_color_overlay) {
+        const color* color = _gs->board[(y * _gs->board_x) + x].foreground_color_overlay;
+        _gs->board[(y * _gs->board_x) + x].foreground_color_overlay = NULL;
+        result.foreground_color = color;
+    }
+    if (_gs->board[(y * _gs->board_x) + x].background_color_overlay) {
+        const color* color = _gs->board[(y * _gs->board_x) + x].background_color_overlay;
+        _gs->board[(y * _gs->board_x) + x].background_color_overlay = NULL;
+        result.background_color = color;
+    }
+
+    return result; 
 }
 
 void print_board() {
@@ -129,20 +149,23 @@ void print_board() {
     for(int y = 0; y < _gs->board_y; (putchar('\n'), y++)) {
         putchar('.');
         for(int x = 0; x < _gs->board_x; x++) {
-
-            if (_gs->board[(y * _gs->board_x) + x].color_overlay) {
-                set_color(*_gs->board[(y * _gs->board_x) + x].color_overlay, FORE);
-                if (!_gs->board[(y * _gs->board_x) + x].color_overlay->predef) 
-                    free(_gs->board[(y * _gs->board_x) + x].color_overlay);
-                _gs->board[(y * _gs->board_x) + x].color_overlay = NULL;
+            field_visual visual = get_field_visual(x,y);
+            if (visual.foreground_color) {
+                set_color(*visual.foreground_color, FORE);
+                if (!visual.foreground_color->predef) 
+                    free(visual.foreground_color);
             }
 
-            if (_gs->board[(y * _gs->board_x) + x].mod_overlay) {
-                set_print_mod(_gs->board[(y * _gs->board_x) + x].mod_overlay);
-                _gs->board[(y * _gs->board_x) + x].color_overlay = 0;
+            if (visual.background_color) {
+                set_color(*visual.background_color, BACK);
+                if (!visual.background_color->predef) 
+                    free(visual.background_color);
             }
 
-            printf("%s", get_field_symbol(x, y));
+            if (visual.mod)
+                set_print_mod(visual.mod);
+
+            printf("%s", visual.symbol);
             reset_print();
         }
         putchar('.');
