@@ -113,3 +113,16 @@ int peek_resource_index(const int index, int id) {
 
     return node->player_registry[id];
 }
+
+void add_resource(const char* name, int id, unsigned int amount) {
+    int bucket_index = get_bucket_index(name, _gs->resource_registry->size);
+
+    resource_node* node = _gs->resource_registry->buckets[bucket_index];
+
+    while(node && strcmp(name, node->name) != 0) 
+        node = node->next;
+
+    if (!node) return;
+    
+    node->player_registry[id] += amount;
+}

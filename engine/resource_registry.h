@@ -26,5 +26,6 @@ void init_resource(resource_registry* registry, const char* name, int init_amoun
 char spend_resource(const char* name, int id, int amount);
 int peek_resource(const char* name, int id);
 int peek_resource_index(const int index, int id);
+void add_resource(const char* name, int id, unsigned int amount);
 
 #endif
