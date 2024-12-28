@@ -113,12 +113,14 @@ field_visual get_field_visual(const int x, const int y) {
                 trench_connects(x-1,y);         // W 
 
             result.symbol = (fld->data->trench.fortified) ? f_char_lookup[char_idx] : char_lookup[char_idx];
+            break;
         }
         case EMPTY: {
             for(int i = 0; i < _gs->player_count; i++) {
                 if (_gs->players[i].x == x && _gs->players[i].y == y && _gs->players[i].alive) 
                     result.symbol = PERSON;
             }
+            break;
         }
     }
 

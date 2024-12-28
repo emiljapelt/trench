@@ -117,12 +117,8 @@ void player_turn_async(player_state* ps) {
 
         if (change || _gs->feed_point) { print_board(); sleep(1000); }
 
-        //for(int i = 0; i < _gs->player_count; i++)
-        //    if (_gs->players[i].death_msg != NULL)
-        //        kill_player(_gs->players+i);
         kill_players();
         if (_gs->feed_point) { print_board(); sleep(1000); }
-
     }
 }
 
@@ -276,11 +272,21 @@ void check_win_condition() {
 
 
 void play_round_sync() {    
-        int change;
+        int change = 0;
+
+    // Pre phase
+        for(int i = 0; i < _gs->player_count; i++) {
+            int finished_events = update_events(_gs->players+i, _gs->events);
+            if (finished_events) change++;
+        }
+        if (change || _gs->feed_point) { print_board(); sleep(1000); }
+
+        kill_players();
+        if (_gs->feed_point) { print_board(); sleep(1000); }
+
     // Step phase
         turn_action* acts = malloc(sizeof(turn_action)*_gs->player_count);
         for(int i = 0; i < _gs->player_count; i++)  {
-            update_events(_gs->players+i, _gs->events);
             if (_gs->players[i].alive) acts[i] = player_turn_sync(_gs->players+i);
         }
 
@@ -302,9 +308,6 @@ void play_round_sync() {
             }
         if (change || _gs->feed_point) { print_board(); sleep(1000); }
 
-        //for(int i = 0; i < _gs->player_count; i++)
-        //    if (_gs->players[i].death_msg != NULL)
-        //        kill_player(_gs->players+i);
         kill_players();
         if (_gs->feed_point) { print_board(); sleep(1000); }
 
@@ -323,9 +326,6 @@ void play_round_sync() {
             sleep(1000);
         }
 
-        // for(int i = 0; i < _gs->player_count; i++)
-        //     if (_gs->players[i].death_msg != NULL)
-        //         kill_player(_gs->players+i);
         kill_players();
         if (_gs->feed_point) { print_board(); sleep(1000); }
 
@@ -339,12 +339,15 @@ void play_round_sync() {
     Once each player has taken a turn, a round has passed.
 */
 void play_round_async() {
-    for(int i = 0; i < _gs->player_count; i++) if (_gs->players[i].alive) {
-        //update_bomb_chain(_gs->players+i);
-        //check_win_condition();
-        update_events(_gs->players+i, _gs->events);
-        player_turn_async(_gs->players+i);
-        check_win_condition();
+    for(int i = 0; i < _gs->player_count; i++) {
+        int finished_events = update_events(_gs->players+i, _gs->events);
+        if (finished_events) { print_board(); sleep(1000); }
+        kill_players();
+        if (_gs->feed_point) { print_board(); sleep(1000); }
+        if (_gs->players[i].alive) {
+            player_turn_async(_gs->players+i);
+            check_win_condition();
+        }
     }
     if (_gr->nuke > 0 && _gs->round % _gr->nuke == 0) nuke_board();
 }

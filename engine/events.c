@@ -20,11 +20,15 @@ void add_event(event_list* list, event_function func, void* data) {
     list->list = node;
 }
 
-void update_events(player_state* ps, event_list* list) {
+int update_events(player_state* ps, event_list* list) {
+    int finished_count = 0;
     event_list_node* node = list->list;
     while (node) {
         int finished = node->func(ps, node->data);
-        if (finished) node->func = NULL;
+        if (finished) { 
+            node->func = NULL;
+            finished_count++;
+        }
         node = node->next;
     }
 
@@ -53,5 +57,5 @@ void update_events(player_state* ps, event_list* list) {
     }
 
     list->list = reversed.list;
-    
+    return finished_count;
 }

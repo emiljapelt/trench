@@ -18,7 +18,7 @@ typedef struct event_list {
 } event_list;
 
 void add_event(event_list* list, event_function func, void* data);
-void update_events(player_state* ps, event_list* list);
+int update_events(player_state* ps, event_list* list);
 
 
 #endif
