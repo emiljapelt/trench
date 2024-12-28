@@ -199,7 +199,7 @@ non_control_flow_stmt:
   | target MINUSMINUS      { feature 3 ; Assign ($1, Binary_op("-", Reference $1, Int 1)) }
   | MINUSMINUS target      { feature 3 ; Assign ($2, Binary_op("-", Reference $2, Int 1)) }
   | MOVE value                        { Move $2 }
-  | ATTACK value                      { Attack $2 }
+  | ATTACK value                      { themeing ["basic"] ; Attack $2 }
   | FORTIFY                           { Fortify None }
   | FORTIFY value                     { Fortify (Some $2) }
   | TRENCH                            { Trench None }
