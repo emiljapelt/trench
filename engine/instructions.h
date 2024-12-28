@@ -37,16 +37,6 @@ void instr_shoot(player_state* ps) {
         }
         move_coord(x, y, d, &x, &y);
     }
-    
-    //print_board();    
-    //sleep(500);
-    //x = ps->x;
-    //y = ps->y;
-    //while (in_bounds(x,y)) {
-    //    unset_overlay(x,y);   
-    //    move_coord(x, y, d, &x, &y);
-    //}
-    //print_board();
 }
 
 void instr_look(player_state* ps) {
@@ -131,17 +121,7 @@ void instr_move(player_state* ps) {
     int x, y;
     move_coord(ps->x, ps->y, d, &x, &y);
     if (!in_bounds(x, y)) return;
-    //if (get_field(x,y)->destroyed) return;
-    // if (get_field(x,y)->mine) {
-    //     death_mark_player(ps, "Stepped on a mine");
-    //     get_field(x,y)->mine = 0;
-    //     _gs->remaining_actions = 0;
-    //     set_overlay(x,y,EXPLOSION);
-    //     //print_board();
-    //     //sleep(250);
-    //     //unset_overlay(x,y);
-    //     return;
-    // }
+
     update_events(ps, get_field(ps->x,ps->y)->exit_events);
     if (!ps->death_msg) {
         ps->x = x;
@@ -229,13 +209,6 @@ void instr_bomb(player_state* ps) {
     add_event(_gs->events, &bomb_event, args);
     set_color_overlay(x,y,FORE,&color_predefs.red);
     set_overlay(x,y,TARGET);
-    //set_overlay(x,y,TARGET);
-    //add_bomb(x, y, ps);
-    // bomb_field(x,y);
-    //print_board();
-    //sleep(500);
-    //unset_overlay(x,y);
-    //sleep(250);
 }
 
 void instr_global_access(player_state* ps) {

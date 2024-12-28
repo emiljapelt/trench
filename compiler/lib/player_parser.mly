@@ -162,10 +162,12 @@ stmt1_inner:
   | IF simple_value stmt1 ELSE stmt1          { feature 2 ; If ($2, $3, $5) }
   | IF simple_value alt+ ELSE stmt1           { feature 3 ; IfIs($2, $3, Some $5) }
   | WHILE simple_value stmt1                  { feature 3 ; While($2,$3,None) }
-  | FOR LPAR non_control_flow_stmt SEMI value SEMI non_control_flow_stmt RPAR stmt1      
+  | WHILE simple_value LPAR non_control_flow_stmt RPAR stmt1                  { feature 3 ; While($2,$6,Some(Stmt($4, $symbolstartpos.pos_lnum))) }
+  (*| FOR LPAR non_control_flow_stmt SEMI value SEMI non_control_flow_stmt RPAR stmt1      
       { feature 3 ; Block[
         Stmt($3,$symbolstartpos.pos_lnum);
         Stmt(While($5,$9,Some(Stmt($7,$symbolstartpos.pos_lnum))),$symbolstartpos.pos_lnum)] }
+        *)
   | BREAK SEMI                                { feature 3 ; Break }
   | CONTINUE SEMI                             { feature 3 ; Continue }
   | GOTO NAME SEMI                            { GoTo $2 }
