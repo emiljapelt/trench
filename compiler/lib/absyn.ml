@@ -131,6 +131,7 @@ type game_setup_part =
     | FeatureLevel of int
     | ExecMode of exec_mode
     | Seed of int option
+    | TimeScale of float
 
 type game_setup = GS of {
     players: player_info list;
@@ -145,4 +146,5 @@ type game_setup = GS of {
     feature_level: int;
     exec_mode: exec_mode;
     seed: int option;
+    time_scale: float;
 }

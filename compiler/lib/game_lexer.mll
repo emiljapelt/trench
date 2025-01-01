@@ -22,6 +22,7 @@
                         "themes", THEMES;
                         "resources", RESOURCES;
                         "seed", SEED;
+                        "time_scale", TIME_SCALE;
                       ]
   
   let char_of_string s lexbuf = match s with
@@ -50,6 +51,7 @@ rule lex = parse
     |   ('\r''\n' | '\n')        { incr_linenum lexbuf ; lex lexbuf }
     |   "//" [^ '\n' '\r']* ('\r''\n' | '\n' | eof)       { incr_linenum lexbuf ; lex lexbuf }
     |  '-'? ['0'-'9']+ as lxm { CSTINT (int_of_string lxm) }
+    |  '-'? ['0'-'9']+ '.' ['0'-'9']+ as lxm { CSTFLOAT (Float.of_string lxm) }
     |   ['A'-'Z' 'a'-'z' '/' '.']['A'-'Z' 'a'-'z' '0'-'9' '/' '_' '.']* as id
                 { try
                     Hashtbl.find keyword_table id

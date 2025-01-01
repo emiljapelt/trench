@@ -19,9 +19,9 @@ extern int compile_player(const char* path, directive_info* result);
 
 void debug_print(player_state* ps) {
     for(int i = 0; i < ps->sp; i++) {
-        fprintf(stderr,"%i, ", ps->stack[i]); sleep(100);
+        fprintf(stderr,"%i, ", ps->stack[i]); wait(100);
     }
-    fprintf(stderr,"\n%c\n", ps->directive[ps->dp]); sleep(500);
+    fprintf(stderr,"\n%c\n", ps->directive[ps->dp]); wait(500);
 }
 
 void kill_players() {
@@ -115,10 +115,10 @@ void player_turn_async(player_state* ps) {
             default: return;
         }
 
-        if (change || _gs->feed_point) { print_board(); sleep(1000); }
+        if (change || _gs->feed_point) { print_board(); wait(1); }
 
         kill_players();
-        if (_gs->feed_point) { print_board(); sleep(1000); }
+        if (_gs->feed_point) { print_board(); wait(1); }
     }
 }
 
@@ -279,10 +279,10 @@ void play_round_sync() {
             int finished_events = update_events(_gs->players+i, _gs->events);
             if (finished_events) change++;
         }
-        if (change || _gs->feed_point) { print_board(); sleep(1000); }
+        if (change || _gs->feed_point) { print_board(); wait(1); }
 
         kill_players();
-        if (_gs->feed_point) { print_board(); sleep(1000); }
+        if (_gs->feed_point) { print_board(); wait(1); }
 
     // Step phase
         turn_action* acts = malloc(sizeof(turn_action)*_gs->player_count);
@@ -297,7 +297,7 @@ void play_round_sync() {
                 acts[i].action.instr(_gs->players+i);
                 change++;
             }
-        if (change || _gs->feed_point) { print_board(); sleep(1000); }
+        if (change || _gs->feed_point) { print_board(); wait(1); }
 
     // Attack phase
         change = 0;
@@ -306,10 +306,10 @@ void play_round_sync() {
                 acts[i].action.instr(_gs->players+i);
                 change++;
             }
-        if (change || _gs->feed_point) { print_board(); sleep(1000); }
+        if (change || _gs->feed_point) { print_board(); wait(1); }
 
         kill_players();
-        if (_gs->feed_point) { print_board(); sleep(1000); }
+        if (_gs->feed_point) { print_board(); wait(1); }
 
     // Move phase
         change = 0;
@@ -318,16 +318,16 @@ void play_round_sync() {
                 instr_move(_gs->players+i);
                 change++;
             }
-        if (change || _gs->feed_point) { print_board(); sleep(1000); }
+        if (change || _gs->feed_point) { print_board(); wait(1); }
 
         if (_gr->nuke > 0 && _gs->round % _gr->nuke == 0) { 
             nuke_board();
             print_board();
-            sleep(1000);
+            wait(1);
         }
 
         kill_players();
-        if (_gs->feed_point) { print_board(); sleep(1000); }
+        if (_gs->feed_point) { print_board(); wait(1); }
 
     // Check win condition
         check_win_condition();
@@ -341,9 +341,9 @@ void play_round_sync() {
 void play_round_async() {
     for(int i = 0; i < _gs->player_count; i++) {
         int finished_events = update_events(_gs->players+i, _gs->events);
-        if (finished_events) { print_board(); sleep(1000); }
+        if (finished_events) { print_board(); wait(1); }
         kill_players();
-        if (_gs->feed_point) { print_board(); sleep(1000); }
+        if (_gs->feed_point) { print_board(); wait(1); }
         if (_gs->players[i].alive) {
             player_turn_async(_gs->players+i);
             check_win_condition();
@@ -421,7 +421,7 @@ int main(int argc, char** argv) {
     if(!compile_game(argv[1], _gr, _gs)) return 1;
 
     print_board();
-    sleep(1000);
+    wait(1);
 
     if (_gr->mode == 0) static_mode();
     else if (_gr->mode < 0) manual_mode();

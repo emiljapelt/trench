@@ -10,6 +10,7 @@ typedef struct game_rules {
     int feature_level;
     int exec_mode;
     int seed;
+    float time_scale;
 } game_rules;
 
 #endif

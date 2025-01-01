@@ -80,6 +80,7 @@ let default_game_setup = GS {
   feature_level = 4;
   exec_mode = AsyncExec;
   seed = None;
+  time_scale = 1.0;
 }
 
 let to_game_setup gsps =
@@ -98,6 +99,7 @@ let to_game_setup gsps =
       | FeatureLevel i -> if i >= 0 && i <= 3 then (GS ({acc with feature_level = i})) else raise_failure "Feature level must be within 0-3"
       | ExecMode em -> GS ({acc with exec_mode = em})
       | Seed s -> GS ({acc with seed = s})
+      | TimeScale f -> if (f >= 0.0) then GS ({acc with time_scale = f}) else raise_failure "Time scale option cannot be negative"
     )
   in
   aux gsps default_game_setup
@@ -162,6 +164,7 @@ type compiled_game_file = {
   resources_count: int;
   resources: (string * int) array;
   seed: int option;
+  time_scale: float;
 }
 
 let compile_player_file path = try (
@@ -227,6 +230,7 @@ let format_game_setup (GS gs) =
     resources_count = List.length gs.resources;
     resources = Array.of_list gs.resources;
     seed = gs.seed;
+    time_scale = gs.time_scale;
   }
 
 let check_resources (GS gs) = 

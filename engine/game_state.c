@@ -110,11 +110,11 @@ void bomb_field(const int x, const int y) {
     set_overlay(x,y,EXPLOSION);
     set_color_overlay(x,y,FORE,color_predefs.red);
     //print_board();
-    //sleep(500);
+    //wait(500);
     explode_field(x,y);
     //unset_visual(x,y);
     //print_board();
-    //sleep(250);
+    //wait(250);
 }
 
 void move_coord(int x, int y, direction d, int* _x, int* _y) {

@@ -111,6 +111,7 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 .feature_level = Int_val(Field(unwrapped_result, 8)),
                 .exec_mode = Int_val(Field(unwrapped_result, 11)),
                 .seed = seed,
+                .time_scale = (float)Double_val(Field(unwrapped_result, 15)),
             };
 
             int player_count = Int_val(Field(unwrapped_result, 6));
