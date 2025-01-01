@@ -6,6 +6,7 @@
 #include "event_list.h"
 #include "resource_registry.h"
 #include "visual.h"
+#include "fields.h"
 
 typedef enum direction {
     NORTH,
@@ -21,19 +22,6 @@ typedef struct directive_info {
     int* stack;
     char* directive;
 } directive_info;
-
-typedef enum {
-    EMPTY,
-    TRENCH,
-} field_type;
-
-typedef struct {
-    unsigned int fortified : 1;
-} trench_field;
-
-typedef union {
-    trench_field trench;
-} field_data;
 
 typedef struct {
     const color* foreground_color_overlay;
