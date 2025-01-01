@@ -1,1 +1,0 @@
-gcc ./resource_map.c ./event_list.c ./program.c -o ./program.exe
