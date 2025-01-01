@@ -33,8 +33,8 @@
                         "field", FIELD;
                         "PLAYER", PLAYER_CAP;
                         "TRENCH", TRENCH_CAP;
-                        "MINE", MINE_CAP;
-                        "DESTROYED", DESTROYED_CAP;
+                        "TRAPPED", TRAPPED_CAP;
+                        "OBSTRUCTION", OBSTRUCTION_CAP;
                       ] 
   
   let char_of_string s lexbuf = match s with

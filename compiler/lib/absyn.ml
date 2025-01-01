@@ -9,8 +9,8 @@ type direction =
 and flag =
     | PLAYER
     | TRENCH
-    | MINE
-    | DESTROYED
+    | TRAPPED
+    | OBSTRUCTION
 
 and typ =
     | T_Int
@@ -55,7 +55,7 @@ and value =
     | Unary_op of string * value
     | Int of int
     | Scan of value * value
-    | Look of value
+    | Look of value * flag
     | Direction of direction
     | Random
     | RandomSet of value list
@@ -80,6 +80,12 @@ type compile_state = {
     break: string option;
     continue: string option;
 }
+
+let flag_index f = match f with
+    | OBSTRUCTION -> 0
+    | TRENCH -> 1
+    | PLAYER -> 2
+    | TRAPPED -> 3
 
 let string_of_dir d = match d with
     | North -> "0"

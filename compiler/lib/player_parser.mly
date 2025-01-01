@@ -46,7 +46,7 @@
 %token MOVE FORTIFY WAIT PASS TRENCH
 %token NORTH EAST SOUTH WEST BOMB SHOOT LOOK SCAN MINE ATTACK
 %token INT DIR FIELD
-%token PLAYER_CAP TRENCH_CAP MINE_CAP DESTROYED_CAP
+%token PLAYER_CAP TRENCH_CAP TRAPPED_CAP OBSTRUCTION_CAP
 
 /*Low precedence*/
 %left LOGIC_AND LOGIC_OR
@@ -106,14 +106,14 @@ simple_value:
 flag:
   | PLAYER_CAP { PLAYER }
   | TRENCH_CAP { TRENCH }
-  | MINE_CAP   { MINE }
-  | DESTROYED_CAP { DESTROYED }
+  | TRAPPED_CAP   { TRAPPED }
+  | OBSTRUCTION_CAP   { OBSTRUCTION }
 ;
 
 value:
   | simple_value                       { $1 }
   | SCAN simple_value simple_value     { Scan($2,$3) }
-  | LOOK simple_value                  { Look $2 }
+  | LOOK simple_value flag             { Look($2,$3) }
   | value binop value                  { Binary_op ($2, $1, $3) }
   | simple_value DOT flag              { Flag($1, $3) }
   | PLUSPLUS target                    { feature 3 ; Increment($2, true)}

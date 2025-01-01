@@ -35,7 +35,7 @@ let rec compile_value val_expr (state:compile_state) acc =
   | RandomSet vals -> 
     List.fold_left (fun acc v -> compile_value v state acc) (Instruction("R"^(Helpers.binary_int_string (List.length vals))) ::acc) vals
   | Direction d -> Instruction ("p"^Helpers.binary_int_string(int_of_dir d)) :: acc
-  | Look d -> compile_value d state (Instruction "l" :: acc)
+  | Look(d,f) -> compile_value d state (Instruction ("l"^Helpers.binary_int_string (flag_index f)) :: acc)
   | Scan(d,p) -> compile_value d state (compile_value p state (Instruction "s" :: acc))
   | Binary_op (op, e1, e2) -> ( match op, type_value state e1, type_value state e2 with
     | "+", T_Int, T_Int -> compile_value e1 state (compile_value e2 state (Instruction "+" :: acc))
@@ -64,12 +64,14 @@ let rec compile_value val_expr (state:compile_state) acc =
       | "~" -> compile_value e state (Instruction "~" :: acc)
       | _ -> raise_failure "Unknown unary operation"
   )
-  | Flag(v,f) -> ( match f with 
-    | PLAYER -> compile_value v state (Instruction ("'"^Helpers.binary_int_string 1) :: acc)
-    | TRENCH -> compile_value v state (Instruction ("'"^Helpers.binary_int_string 2) :: acc)
-    | MINE -> compile_value v state (Instruction ("'"^Helpers.binary_int_string 4) :: acc)
-    | DESTROYED -> compile_value v state (Instruction ("'"^Helpers.binary_int_string 8) :: acc)
-  )
+  | Flag(v,f) ->  
+    compile_value v state (Instruction ("'"^Helpers.binary_int_string (flag_index f)) :: acc)
+    (*( match f with 
+    | OBSTRUCTION -> compile_value v state (Instruction ("'"^Helpers.binary_int_string 0) :: acc)
+    | TRENCH -> compile_value v state (Instruction ("'"^Helpers.binary_int_string 1) :: acc)
+    | PLAYER -> compile_value v state (Instruction ("'"^Helpers.binary_int_string 2) :: acc)
+    | TRAPPED -> compile_value v state (Instruction ("'"^Helpers.binary_int_string 3) :: acc)
+  )*)
   (* true = pre*)
   | Increment(Local n, true)  -> Instruction ("p"^(Helpers.binary_int_string(fetch_var_index n state.vars))) :: Instruction ("cc#vp"^(Helpers.binary_int_string 1)) :: Instruction "+a_#v" :: acc
   | Increment(Local n, false) -> Instruction ("p"^(Helpers.binary_int_string(fetch_var_index n state.vars))) :: Instruction ("c#v^c#vp"^(Helpers.binary_int_string 1)) :: Instruction "+a_" :: acc

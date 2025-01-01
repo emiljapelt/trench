@@ -9,6 +9,7 @@
 #include "util.h"
 #include "events.h"
 #include "resource_registry.h"
+#include "field_scan.h"
 
 void instr_shoot(player_state* ps) {
     if(!spend_resource("shot", ps->id, 1)) return;
@@ -41,6 +42,8 @@ void instr_shoot(player_state* ps) {
 
 void instr_look(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
+    int offset = *(int*)((ps->directive)+(ps->dp));
+    ps->dp += 4;
 
     int x = ps->x;
     int y = ps->y;
@@ -54,7 +57,9 @@ void instr_look(player_state* ps) {
         case WEST: x--; break;
     }
     if (!in_bounds(x,y)) { ps->stack[ps->sp++] = 0; return; }
-    if (get_field(x,y)->type == TRENCH) { ps->stack[ps->sp++] = i; return; }
+    field_scan scan = scan_field(x,y);
+    field_scan* bypass = &scan;
+    if ((*(int*)bypass) & (1 << offset)) { ps->stack[ps->sp++] = i; return; }
     goto incr;
 }
 
@@ -72,14 +77,12 @@ void instr_scan(player_state* ps) {
         case WEST: x -= power; break;
     }
     if (!in_bounds(x, y)) goto end;
-    // if (get_field(x,y)->trenched) result |= TRENCH_FLAG;
-    // if (get_field(x,y)->destroyed) result |= DESTORYED_FLAG;
-    // if (get_field(x,y)->mine) result |= MINE_FLAG;
-    for(int i = 0; i < _gs->player_count; i++) 
-        if (_gs->players[i].x == x && _gs->players[i].y == y) result |= PLAYER_FLAG;
+
+    field_scan scan = scan_field(x,y);
+    field_scan* bypass = &scan;
+    result = *(int*)bypass;
 
     end:
-
     ps->stack[ps->sp++] = result;
 }
 
@@ -357,10 +360,9 @@ void instr_assign(player_state* ps) {
 
 void instr_flag_access(player_state* ps) { 
     int v = ps->stack[--ps->sp];
-    int num = *(int*)((ps->directive)+(ps->dp));
-    //ps->stack[ps->sp++] = num;
+    int offset = *(int*)((ps->directive)+(ps->dp));
     ps->dp += 4;
-    ps->stack[ps->sp++] = v & num;
+    ps->stack[ps->sp++] = v & (1 << offset);
 }
 
 void instr_dec_stack(player_state* ps) {

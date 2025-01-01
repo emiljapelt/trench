@@ -65,7 +65,7 @@ let rec type_value (state:compile_state) v = match v with
       require T_Dir (type_value state d) (fun () -> ()) ;
       require T_Int (type_value state p) (fun () -> ()) ;
       T_Field
-    | Look e -> require T_Dir (type_value state e) (fun () -> T_Int)
+    | Look(e,_) -> require T_Dir (type_value state e) (fun () -> T_Int)
     | Direction _ -> T_Dir
     | RandomSet vals -> (match vals with
       | [] -> raise_failure "Empty random set"

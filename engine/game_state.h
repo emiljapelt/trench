@@ -22,13 +22,6 @@ typedef struct directive_info {
     char* directive;
 } directive_info;
 
-typedef enum field_state_flags {
-    PLAYER_FLAG = 0b0001,
-    TRENCH_FLAG = 0b0010,
-    MINE_FLAG = 0b0100,
-    DESTORYED_FLAG = 0b1000
-} field_state_flags;
-
 typedef enum {
     EMPTY,
     TRENCH,

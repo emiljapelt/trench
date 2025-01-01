@@ -43,7 +43,7 @@ let rec rename_variables_of_value map v = match v with
   | Binary_op(op,v0,v1) -> Binary_op(op,rename_variables_of_value map v0, rename_variables_of_value map v1)
   | Unary_op(op,v) -> Unary_op(op, rename_variables_of_value map v)
   | Scan(v0,v1) -> Scan(rename_variables_of_value map v0, rename_variables_of_value map v1)
-  | Look v -> Look(rename_variables_of_value map v)
+  | Look(v,f) -> Look(rename_variables_of_value map v,f)
   | RandomSet vs -> RandomSet(List.map (rename_variables_of_value map) vs)
   | Flag(v,f) -> Flag(rename_variables_of_value map v, f)
   | Decrement(Local n,pre) -> Decrement(Local(StringMap.find n map), pre)
