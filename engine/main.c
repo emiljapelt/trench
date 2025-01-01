@@ -6,7 +6,7 @@
 #include <caml/callback.h>
 
 #include "player.h"
-#include "events.h"
+#include "event_list.h"
 #include "game_rules.h"
 #include "game_state.h"
 #include "visual.h"

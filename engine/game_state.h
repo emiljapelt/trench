@@ -3,7 +3,7 @@
 
 #include "player.h"
 #include "game_rules.h"
-#include "events.h"
+#include "event_list.h"
 #include "resource_registry.h"
 #include "visual.h"
 

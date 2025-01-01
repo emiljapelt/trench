@@ -7,6 +7,7 @@
 #include "player.h"
 #include "visual.h"
 #include "util.h"
+#include "event_list.h"
 #include "events.h"
 #include "resource_registry.h"
 #include "field_scan.h"
@@ -84,19 +85,6 @@ void instr_scan(player_state* ps) {
 
     end:
     ps->stack[ps->sp++] = result;
-}
-
-int mine_event(player_state* ps, void* data) {
-    explode_field(ps->x,ps->y);
-    set_overlay(ps->x,ps->y,EXPLOSION);
-    set_color_overlay(ps->x, ps->y, FORE, color_predefs.red);
-    set_mod_overlay(ps->x, ps->y, BOLD);
-    return 1;
-}
-
-int remove_death_mark(player_state* ps, void* data) {
-    ps->death_msg = NULL;
-    return 1;
 }
 
 void instr_mine(player_state* ps) {
@@ -180,19 +168,6 @@ void instr_place(player_state* ps) {
     int num = *(int*)((ps->directive)+(ps->dp));
     ps->stack[ps->sp++] = num;
     ps->dp += 4;
-}
-
-typedef struct bomb_event_args {
-    int x;
-    int y;
-    int player_id;
-} bomb_event_args;
-
-int bomb_event(player_state* ps, void* data) {
-    bomb_event_args* args = (bomb_event_args*)data;
-    if (args->player_id != ps->id) return 0;
-    bomb_field(args->x,args->y);
-    return 1;
 }
 
 void instr_bomb(player_state* ps) {

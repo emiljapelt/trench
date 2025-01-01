@@ -1,7 +1,7 @@
 #ifndef PLAYER_H
 #define PLAYER_H
 
-//#include "events.h"
+//#include "event_list.h"
 
 typedef struct event_list event_list;
 
