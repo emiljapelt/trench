@@ -108,7 +108,7 @@ void explode_field(const int x, const int y) {
 
 void bomb_field(const int x, const int y) {
     set_overlay(x,y,EXPLOSION);
-    set_color_overlay(x,y,FORE,&color_predefs.red);
+    set_color_overlay(x,y,FORE,color_predefs.red);
     //print_board();
     //sleep(500);
     explode_field(x,y);

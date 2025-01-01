@@ -29,9 +29,9 @@ void instr_shoot(player_state* ps) {
     move_coord(x, y, d, &x, &y);
     while (in_bounds(x,y)) { 
         set_overlay(x,y,visual);
-        set_color_overlay(x,y,FORE,&color_predefs.yellow);
+        set_color_overlay(x,y,FORE,color_predefs.yellow);
         for(int p = 0; p < _gs->player_count; p++) {
-            if (_gs->players[p].x == x && _gs->players[p].y == y && !get_field(x,y)->type == TRENCH) {
+            if (_gs->players[p].x == x && _gs->players[p].y == y && get_field(x,y)->type != TRENCH) {
                 death_mark_player(_gs->players+p, "Was gunned down");
             }
         }
@@ -86,7 +86,7 @@ void instr_scan(player_state* ps) {
 int mine_event(player_state* ps, void* data) {
     explode_field(ps->x,ps->y);
     set_overlay(ps->x,ps->y,EXPLOSION);
-    set_color_overlay(ps->x, ps->y, FORE, &color_predefs.red);
+    set_color_overlay(ps->x, ps->y, FORE, color_predefs.red);
     set_mod_overlay(ps->x, ps->y, BOLD);
     return 1;
 }
@@ -207,7 +207,7 @@ void instr_bomb(player_state* ps) {
     args->y = y;
     args->player_id = ps->id;
     add_event(_gs->events, &bomb_event, args);
-    set_color_overlay(x,y,FORE,&color_predefs.red);
+    set_color_overlay(x,y,FORE,color_predefs.red);
     set_overlay(x,y,TARGET);
 }
 

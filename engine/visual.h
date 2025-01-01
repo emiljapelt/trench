@@ -60,12 +60,12 @@ typedef struct color {
 } color;
 
 typedef struct color_predef {
-    color red;
-    color green;
-    color blue;
-    color white;
-    color black;
-    color yellow;
+    color* red;
+    color* green;
+    color* blue;
+    color* white;
+    color* black;
+    color* yellow;
 } color_predef;
 
 typedef enum {
