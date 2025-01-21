@@ -12,6 +12,50 @@
 #include "resource_registry.h"
 #include "field_scan.h"
 
+typedef enum {
+  Meta_PlayerX,
+  Meta_PlayerY,
+  Meta_BoardX,
+  Meta_BoardY,
+  Meta_GlobalArraySize,
+  Meta_Resource,
+  Instr_Add,
+  Instr_Sub,
+  Instr_Mul,
+  Instr_And,
+  Instr_Or,
+  Instr_Eq,
+  Instr_Not,
+  Instr_Lt,
+  Instr_Div,
+  Instr_Mod,
+  Instr_Scan,
+  Instr_Random,
+  Instr_RandomSet,
+  Instr_Place,
+  Instr_Access,
+  Instr_GlobalAccess,
+  Instr_Swap,
+  Instr_Copy,
+  Instr_DecStack,
+  Instr_FieldFlag,
+  Instr_Assign,
+  Instr_AssignGlobal,
+  Instr_GoToIf,
+  Instr_GoTo,
+  Instr_Move,
+  Instr_Attack,
+  Instr_Trench,
+  Instr_Fortify,
+  Instr_Bomb,
+  Instr_Shoot,
+  Instr_Wait,
+  Instr_Pass,
+  Instr_Look,
+  Instr_Mine,
+  Instr_Melee,
+} instruction;
+
 void instr_shoot(player_state* ps) {
     if(!spend_resource("shot", ps->id, 1)) return;
     
@@ -197,47 +241,38 @@ void instr_global_access(player_state* ps) {
     } else ps->stack[ps->sp++] = 0;
 }
 
+void meta_player_x(player_state* ps) {
+    ps->stack[ps->sp++] = ps->x;
+    ps->dp++;
+}
+void meta_player_y(player_state* ps) {
+    ps->stack[ps->sp++] = ps->y;
+    ps->dp++;
+}
+void meta_board_x(player_state* ps) {
+    ps->stack[ps->sp++] = _gs->board_x;
+    ps->dp++;
+}
+void meta_board_y(player_state* ps) {
+    ps->stack[ps->sp++] = _gs->board_y;
+    ps->dp++;
+}
+void meta_global_array_size(player_state* ps) {
+    ps->stack[ps->sp++] = _gr->array;
+    ps->dp++;
+}
+void meta_resource(player_state* ps) {
+    ps->dp++;
+    int index = *(int*)((ps->directive)+(ps->dp));
+    ps->dp++
+    ps->stack[ps->sp++] = peek_resource_index(index, ps->id);
+}
+
 void instr_access(player_state* ps) {
-    switch (ps->directive[ps->dp]) {
-        case 'x': { // Player x position
-            ps->stack[ps->sp++] = ps->x;
-            ps->dp++;
-            break;
-        }
-        case 'y': { // Player y position
-            ps->stack[ps->sp++] = ps->y;
-            ps->dp++;
-            break;
-        }
-        case 'r': { // Player resources
-            ps->dp++;
-            int index = *(int*)((ps->directive)+(ps->dp));
-            ps->dp += 4;
-            ps->stack[ps->sp++] = peek_resource_index(index, ps->id);
-            break;
-        }
-        case '_': { // Board x size
-            ps->stack[ps->sp++] = _gs->board_x;
-            ps->dp++;
-            break;
-        }
-        case '|': { // Board y size
-            ps->stack[ps->sp++] = _gs->board_y;
-            ps->dp++;
-            break;
-        }
-        case 'g': { // Global array size
-            ps->stack[ps->sp++] = _gr->array;
-            ps->dp++;
-            break;
-        }
-        case 'v': { // Variable access
-            int num = ps->stack[ps->sp-1];
-            ps->stack[ps->sp-1] = ps->stack[num];
-            ps->dp++;
-            break;
-        }
-    }
+    int num = ps->stack[ps->sp-1];
+    ps->stack[ps->sp-1] = ps->stack[num];
+    ps->dp++;
+    break;
 }
 
 void instr_goto(player_state* ps) {

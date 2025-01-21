@@ -6,7 +6,7 @@
 typedef struct event_list event_list;
 
 typedef struct player_init {
-    char* directive;
+    int* directive;
     int x;
     int y;
 } player_init;
@@ -20,7 +20,7 @@ typedef struct player_state {
     int* stack;
     int sp;
     char* path;
-    char* directive;
+    int* directive;
     int directive_len;
     int dp;
     int x;

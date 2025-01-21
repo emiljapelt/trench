@@ -135,16 +135,16 @@ let check_vars_unique (File(regs,_)) =
   in
   aux regs StringSet.empty
 
-let player_to_string (regs,program) = 
-  let program_string = program_to_string program in
-  string_of_int(String.length program_string)^":"^string_of_int(List.length regs)^":"^program_string
+let player_to_program (regs,program) = 
+  let program_list = program_to_int_list program in
+  List.length program_list :: List.length regs :: program_list
 
 type compiled_player_info = {
   team: int;
   name: string;
   position: int * int;
   file: string;
-  directive: string;
+  directive: int array;
   directive_len: int;
 }
 
@@ -174,7 +174,7 @@ let compile_player_file path = try (
     rename_variables_of_file;
     optimize_program;
     pull_out_declarations_of_file
-  ] [check_vars_unique] compile_player player_to_string path)
+  ] [check_vars_unique] compile_player player_to_program path)
 ) with
 | Failure(None,ln,msg) -> Error(format_failure (Failure(Some path, ln, msg)))
 | Failure _ as f -> Error(format_failure f)
@@ -189,8 +189,8 @@ let game_setup_player (PI player) =
   name = player.name;
   position = player.position;
   file = player.file;
-  directive = p;
-  directive_len = String.length p;
+  directive = Array.of_list p;
+  directive_len = List.length p;
 }
 
 let set_feature_level l = 

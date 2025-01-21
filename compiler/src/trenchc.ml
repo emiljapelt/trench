@@ -21,6 +21,6 @@ let () = match handle_cmd_line Sys.argv with
       | Error msg -> Printf.printf "%s\n" msg
     else if String.ends_with ~suffix:"r" path then
       match Trenchclib.Compile.compile_player_file path with
-      | Ok p -> Printf.printf "%s\n" p
+      | Ok p -> List.iter (Printf.printf "%i ") p
       | Error msg -> Printf.printf "%s\n" msg
     else Printf.printf "Dont know what to do with: %s\n" path

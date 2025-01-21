@@ -43,75 +43,82 @@ void player_turn_async(player_state* ps) {
         if (!use_resource(1,&_gs->remaining_steps)) return;
         //debug_print(ps);
         switch (ps->directive[ps->dp++]) {
-            case 'W': { // Wait 
+            case Meta_PlayerX: meta_player_x(ps);break;
+            case Meta_PlayerY: meta_player_y(ps);break;
+            case Meta_BoardX: meta_board_x(ps);break;
+            case Meta_BoardY: meta_board_y(ps);break;
+            case Meta_GlobalArraySize: meta_global_array_size(ps);break;
+            case Meta_Resource: meta_resource(ps);break;
+            case Instr_Wait: {
                 if(!use_resource(1,&_gs->remaining_actions)) {ps->dp--;return;}
                 break;
             }
-            case 'P': return;
-            case 'S': { // Shot in direction
+            case Instr_Pass: return;
+            case Instr_Shoot: { // Shot in direction
                 if(!use_resource(1,&_gs->remaining_actions)) {ps->dp--;return;}
                 instr_shoot(ps);
                 change = 1;
                 break;
             }
-            case 'l': instr_look(ps); break;
-            case 's': instr_scan(ps); break;
-            case 'M': { // Place mine
+            case Instr_Look: instr_look(ps); break;
+            case Instr_Scan: instr_scan(ps); break;
+            case Instr_Mine: { // Place mine
                 if(!use_resource(1,&_gs->remaining_actions)) {ps->dp--;return;}
                 instr_mine(ps);
                 change = 1;
                 break;
             }
-            case 'm': { // Move
+            case Instr_Move: { // Move
                 instr_move(ps);
                 change = 1;
                 break;
             }
-            case 'A': { // Melee attack
+            case Instr_Melee: { // Melee attack
                 if(!use_resource(1,&_gs->remaining_actions)) {ps->dp--; return;}
                 instr_melee(ps);
                 break;
             }
-            case 'T': { // Trench
+            case Instr_Trench: { // Trench
                 if(!use_resource(1,&_gs->remaining_actions)) {ps->dp--; return;}
                 instr_trench(ps);
                 change = 1;
                 break;
             }
-            case 'F': { // Fortify
+            case Instr_Fortify: { // Fortify
                 if(!use_resource(1,&_gs->remaining_actions)) {ps->dp--; return;}
                 instr_fortify(ps);
                 change = 1;
                 break;
             }
-            case 'r': instr_random_int(ps); break; 
-            case 'R': instr_random_range(ps); break;
-            case 'p': instr_place(ps); break;
-            case 'B': { 
+            case Instr_Random: instr_random_int(ps); break; 
+            case Instr_RandomSet: instr_random_range(ps); break;
+            case Instr_Place: instr_place(ps); break;
+            case Instr_Bomb: { 
                 if(!use_resource(1,&_gs->remaining_actions)) {ps->dp--; return;}
                 instr_bomb(ps);
                 change = 1;
                 break;
             }
-            case '@': instr_global_access(ps); break;
-            case '#': instr_access(ps); break;
-            case '!': instr_goto(ps); break;
-            case '?': instr_goto_if(ps); break;
-            case '=': instr_eq(ps); break;
-            case '<': instr_lt(ps); break;
-            case '-': instr_sub(ps); break;
-            case '+': instr_add(ps); break;
-            case '*': instr_mul(ps); break;
-            case '/': instr_div(ps); break;
-            case '%': instr_mod(ps); break;
-            case '~': instr_not(ps); break;
-            case '|': instr_or(ps); break;
-            case '&': instr_and(ps); break;
-            case 'a': instr_assign(ps); break;
-            case '\'': instr_flag_access(ps); break;
-            case 'd': instr_dec_stack(ps); break;
-            case 'c': instr_clone(ps); break;
-            case '^': instr_swap(ps); break;
+            case Instr_GlobalAccess: instr_global_access(ps); break;
+            case Instr_Access: instr_access(ps); break;
+            case Instr_GoTo: instr_goto(ps); break;
+            case Instr_GoToIf: instr_goto_if(ps); break;
+            case Instr_Eq: instr_eq(ps); break;
+            case Instr_Lt: instr_lt(ps); break;
+            case Instr_Sub: instr_sub(ps); break;
+            case Instr_Add: instr_add(ps); break;
+            case Instr_Mul: instr_mul(ps); break;
+            case Instr_Div: instr_div(ps); break;
+            case Instr_Mod: instr_mod(ps); break;
+            case Instr_Not: instr_not(ps); break;
+            case Instr_Or: instr_or(ps); break;
+            case Instr_And: instr_and(ps); break;
+            case Instr_Assign: instr_assign(ps); break;
+            case Instr_AssignGlobal: break;
+            case Instr_FieldFlag: instr_flag_access(ps); break;
+            case Instr_DecStack: instr_dec_stack(ps); break;
+            case Instr_Copy: instr_clone(ps); break;
+            case Instr_Swap: instr_swap(ps); break;
             default: return;
         }
 
