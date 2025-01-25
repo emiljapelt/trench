@@ -51,6 +51,8 @@ typedef enum {
   Instr_Look = 36,
   Instr_Mine = 37,
   Instr_Melee = 38,
+  Instr_Read = 39,
+  Instr_Write = 40,
 } instruction;
 
 void instr_shoot(player_state* ps) {
@@ -356,6 +358,14 @@ void instr_swap(player_state* ps) {
     int v1 = ps->stack[--ps->sp];
     ps->stack[ps->sp++] = v0;
     ps->stack[ps->sp++] = v1;
+}
+
+void instr_write(player_state* ps) {
+    get_field(ps->x, ps->y)->player_data = ps->stack[--ps->sp];
+}
+
+void instr_read(player_state* ps) {
+    ps->stack[ps->sp++] = get_field(ps->x, ps->y)->player_data;
 }
 
 #endif

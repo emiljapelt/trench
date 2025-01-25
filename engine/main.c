@@ -116,6 +116,8 @@ void player_turn_async(player_state* ps) {
             case Instr_DecStack: instr_dec_stack(ps); break;
             case Instr_Copy: instr_copy(ps); break;
             case Instr_Swap: instr_swap(ps); break;
+            case Instr_Read: instr_read(ps); break;
+            case Instr_Write: instr_write(ps); break;
             default: return;
         }
 
@@ -202,6 +204,8 @@ turn_action player_turn_sync(player_state* ps) {
             case Instr_DecStack: instr_dec_stack(ps); break;
             case Instr_Copy: instr_copy(ps); break;
             case Instr_Swap: instr_swap(ps); break;
+            case Instr_Read: instr_read(ps); break;
+            case Instr_Write: instr_write(ps); break;
             default: return inactive();
         }
     }

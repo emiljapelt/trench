@@ -30,6 +30,7 @@ typedef struct {
     const char* symbol_overlay;
     field_type type;
     field_data* data;
+    int player_data; // Players can read and write here
     event_list* enter_events;
     event_list* exit_events;
 } field_state;

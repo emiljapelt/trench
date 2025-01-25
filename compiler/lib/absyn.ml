@@ -44,6 +44,7 @@ and statement_inner =
     | GoTo of string
     | Declare of typ * string
     | DeclareAssign of typ * string * value
+    | Write of value
 
 and value =
     | Reference of target
@@ -59,6 +60,7 @@ and value =
     | Random
     | RandomSet of value list
     | Flag of value * flag
+    | Read
 
 and meta_data =
     | PlayerX     (* #x *)

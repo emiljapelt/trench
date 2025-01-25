@@ -68,6 +68,7 @@ let rec compile_value val_expr (state:compile_state) acc =
   | Increment(Local n, false) -> Instr_Place :: I(fetch_var_index n state.vars) :: Instr_Copy :: Instr_Access :: Instr_Swap :: Instr_Copy :: Instr_Access :: Instr_Place :: I(1) :: Instr_Add :: Instr_Assign :: acc
   | Decrement(Local n, true)  -> Instr_Place :: I(fetch_var_index n state.vars) :: Instr_Copy :: Instr_Copy :: Instr_Access :: Instr_Place :: I(1) :: Instr_Sub :: Instr_Assign :: Instr_Access :: acc
   | Decrement(Local n, false) -> Instr_Place :: I(fetch_var_index n state.vars) :: Instr_Copy :: Instr_Access :: Instr_Swap :: Instr_Copy :: Instr_Access :: Instr_Place :: I(1) :: Instr_Sub :: Instr_Assign :: acc
+  | Read -> Instr_Read :: acc
 
 
 and compile_stmt (Stmt(stmt,ln)) (state:compile_state) acc =
@@ -127,6 +128,7 @@ and compile_stmt (Stmt(stmt,ln)) (state:compile_state) acc =
   | Mine d -> compile_value d state (Instr_Mine :: acc)
   | Attack d -> compile_value d state (Instr_Melee :: acc)
   | Declare _ -> Instr_Place :: I(0) :: acc
+  | Write v -> compile_value v state (Instr_Write :: acc)
   | DeclareAssign _ -> failwith "DeclareAssign still present"
   with 
   | Failure(p,None,msg) -> raise (Failure(p,Some ln, msg))

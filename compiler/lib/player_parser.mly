@@ -46,6 +46,7 @@
 %token NORTH EAST SOUTH WEST BOMB SHOOT LOOK SCAN MINE ATTACK
 %token INT DIR FIELD
 %token PLAYER_CAP TRENCH_CAP TRAPPED_CAP OBSTRUCTION_CAP
+%token READ WRITE
 
 /*Low precedence*/
 %left LOGIC_AND LOGIC_OR
@@ -98,6 +99,7 @@ simple_value:
   | TILDE simple_value                 { Unary_op ("~", $2) }
   | NAME                               { feature 1 ; Reference(Local $1) }
   | META_NAME                          { MetaReference (meta_name $1) }
+  | READ                               { Read }
   | LPAR value RPAR                    { $2 }
 ;
 
@@ -206,6 +208,7 @@ non_control_flow_stmt:
   | SHOOT value                       { themeing ["basic"] ; Shoot $2 }
   | MINE value                        { themeing ["basic"] ; Mine $2 }
   | BOMB simple_value simple_value    { themeing ["basic"] ; Bomb($2, $3) }
+  | WRITE value                       { Write $2 }
 ;
 
 direction:

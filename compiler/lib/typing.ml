@@ -67,6 +67,7 @@ let rec type_value (state:compile_state) v = match v with
         List.iter (fun h -> require ty (type_value state h) (fun () -> ())) t ;
         ty
     )
+    | Read -> T_Int
 
 and type_meta m = match m with
     | PlayerX     
@@ -111,6 +112,7 @@ let rec type_check_stmt_inner state stmt = match stmt with
   | Continue
   | Break
   | Pass -> state
+  | Write v -> require T_Int (type_value state v) (fun () -> state)
 
 and type_check_stmt regs (Stmt(stmt,ln)) = 
   try 

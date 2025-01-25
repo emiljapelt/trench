@@ -26,6 +26,7 @@ field_state* empty_board(const int x, const int y) {
             .mod_overlay = 0,
             .symbol_overlay = 0,
             .type = EMPTY,
+            .player_data = 0,
             .enter_events = enter_events,
             .exit_events = exit_events,
         };

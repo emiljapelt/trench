@@ -31,6 +31,8 @@
                         "int", INT;
                         "dir", DIR;
                         "field", FIELD;
+                        "read", READ;
+                        "write", WRITE;
                         "PLAYER", PLAYER_CAP;
                         "TRENCH", TRENCH_CAP;
                         "TRAPPED", TRAPPED_CAP;

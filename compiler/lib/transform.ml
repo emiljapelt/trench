@@ -91,6 +91,7 @@ let rec rename_variables_of_stmt i map (Stmt(stmt,ln)) = match stmt with
   | Attack d -> (i,map,Stmt(Attack(rename_variables_of_value map d),ln))
   | Fortify v_o -> (i,map,Stmt(Fortify(Option.map (rename_variables_of_value map) v_o),ln))
   | Trench v_o -> (i,map,Stmt(Trench(Option.map (rename_variables_of_value map) v_o),ln))
+  | Write v -> (i,map,Stmt(Write(rename_variables_of_value map v),ln))
   | Declare(t,n) -> 
     let new_name = n^"_"^string_of_int i in
     (i+1,StringMap.add n new_name map,Stmt(Declare(t,new_name),ln))

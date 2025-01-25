@@ -65,6 +65,7 @@ let rec optimize_value expr =
   | Flag _ 
   | Decrement _ 
   | Increment _
+  | Read
   | Reference Local _ -> expr
 
 
@@ -91,6 +92,7 @@ let rec optimize_stmt (Stmt(stmt_i,ln) as stmt) =
   | Fortify o -> Stmt(Fortify(Option.map optimize_value o),ln)
   | Trench o -> Stmt(Trench(Option.map optimize_value o),ln)
   | DeclareAssign(ty,n,v) -> Stmt(DeclareAssign(ty,n,optimize_value v), ln)
+  | Write v -> Stmt(Write(optimize_value v),ln)
   | Declare _
   | Wait
   | GoTo _
