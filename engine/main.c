@@ -426,10 +426,10 @@ int main(int argc, char** argv) {
         printf("Too few arguments given, needs: <game_file_path>\n");
         exit(1);
     }
-
     caml_startup(argv);
     _gr = malloc(sizeof(game_rules));
     _gs = malloc(sizeof(game_state));
+
     if(!compile_game(argv[1], _gr, _gs)) return 1;
 
     print_board();

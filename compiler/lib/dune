@@ -14,6 +14,7 @@
    game_lexer
    game_parser
    themes
+   features
    toProgramRep
    typing
    transform

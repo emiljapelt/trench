@@ -69,14 +69,14 @@ let int_to_binary i : string =
 
 let default_game_setup = GS {
   players = [];
-  themes = [];
+  themes = StringSet.empty;
+  features = StringSet.empty;
   resources = [];
   actions = 1;
   steps = 100;
   mode = 0;
   board = (20,20);
   nuke = 0;
-  feature_level = 4;
   exec_mode = AsyncExec;
   seed = None;
   time_scale = 1.0;
@@ -89,12 +89,12 @@ let to_game_setup gsps =
       | Player pi -> (GS ({acc with players = pi :: acc.players}))
       | Resources rs -> (GS ({acc with resources = rs}))
       | Themes ts -> (GS ({acc with themes = ts}))
+      | Features fs -> (GS ({acc with features = fs}))
       | Actions i -> if i > 0 then (GS ({acc with actions = i})) else raise_failure "Must have some actions per trun"
       | Steps i -> if i > 0 then (GS ({acc with steps = i})) else raise_failure "Must have some steps per trun"
       | Mode i -> (GS ({acc with mode = i}))
       | Board(x,y) -> if x >= 0 && y >= 0 then (GS ({acc with board = (x,y)})) else raise_failure "Board size cannot be negative"
       | Nuke i -> if i >= 0 then (GS ({acc with nuke = i})) else raise_failure "Nuke option size cannot be negative"
-      | FeatureLevel i -> if i >= 0 && i <= 3 then (GS ({acc with feature_level = i})) else raise_failure "Feature level must be within 0-3"
       | ExecMode em -> GS ({acc with exec_mode = em})
       | Seed s -> GS ({acc with seed = s})
       | TimeScale f -> if (f >= 0.0) then GS ({acc with time_scale = f}) else raise_failure "Time scale option cannot be negative"
@@ -154,7 +154,6 @@ type compiled_game_file = {
   board_size: int * int;
   player_count: int;
   player_info: compiled_player_info array;
-  feature_level: int;
   team_count: int;
   teams: (int * int) array;
   exec_mode: exec_mode;
@@ -189,12 +188,11 @@ let game_setup_player (PI player) =
   directive = Array.of_list p;
   directive_len = List.length p;
 }
-
-let set_feature_level l = 
-  Flags.compile_flags.feature_level <- l ; ()
-
 let set_themes ts =
   Flags.compile_flags.themes <- ts ; ()
+
+let set_features fs =
+  Flags.compile_flags.features <- fs ; ()
 
 let set_resources rs =
   Flags.compile_flags.resources <- List.map fst rs ; ()
@@ -218,8 +216,7 @@ let format_game_setup (GS gs) =
     board_size = gs.board;
     nuke = gs.nuke;
     player_count = List.length gs.players;
-    player_info = (set_themes gs.themes ; set_resources gs.resources ; set_feature_level gs.feature_level ; Array.of_list (List.map game_setup_player gs.players));
-    feature_level = gs.feature_level;
+    player_info = (set_features gs.features ; set_themes gs.themes ; set_resources gs.resources ; Array.of_list (List.map game_setup_player gs.players));
     team_count = Array.length teams;
     teams = teams;
     exec_mode = gs.exec_mode;

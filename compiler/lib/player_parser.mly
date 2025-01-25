@@ -11,14 +11,15 @@
     let () = vg.next <- vg.next+1 in
     Int.to_string number*)
 
-  let feature l =
-    if l > compile_flags.feature_level then raise_failure ("Attempt to access feature level: "^string_of_int l^", while in level: "^string_of_int compile_flags.feature_level)
-    else ()
-
   let themeing ts =
-    if List.exists (fun t -> List.mem t compile_flags.themes) ts 
+    if List.exists (fun t -> StringSet.mem t compile_flags.themes) ts 
     then ()
-    else raise_failure ("Attempt to access a feature of an inactive theme")
+    else raise_failure ("Attempt to access a feature of an inactive theme: " ^ (String.concat ", " ts))
+
+  let features fs = 
+    if List.for_all (fun f -> StringSet.mem f compile_flags.features) fs
+    then ()
+    else raise_failure ("Attempt to access an inactive feature: " ^ (String.concat ", " fs))
 
   let meta_name n (*fn ln*) = match n with
     | "x" -> PlayerX
@@ -93,13 +94,13 @@ const_value:
 
 simple_value:
   | const_value                        { $1 }
-  | QMARK                              { feature 2 ; Random }
-  | QMARK LPAR simple_value+ RPAR      { feature 2 ; RandomSet $3 }
+  | QMARK                              { features ["random"] ; Random }
+  | QMARK LPAR simple_value+ RPAR      { features ["random"] ; RandomSet $3 }
   | MINUS simple_value                 { Binary_op ("-", Int 0, $2) } %prec TILDE
   | TILDE simple_value                 { Unary_op ("~", $2) }
-  | NAME                               { feature 1 ; Reference(Local $1) }
+  | NAME                               { features ["memory"] ; Reference(Local $1) }
   | META_NAME                          { MetaReference (meta_name $1) }
-  | READ                               { Read }
+  | READ                               { features ["comms"] ; Read }
   | LPAR value RPAR                    { $2 }
 ;
 
@@ -116,10 +117,10 @@ value:
   | LOOK simple_value flag             { Look($2,$3) }
   | value binop value                  { Binary_op ($2, $1, $3) }
   | simple_value DOT flag              { Flag($1, $3) }
-  | PLUSPLUS target                    { feature 3 ; Increment($2, true)}
-  | target PLUSPLUS                    { feature 3 ; Increment($1, false)}
-  | MINUSMINUS target                  { feature 3 ; Decrement($2, true)}
-  | target MINUSMINUS                  { feature 3 ; Decrement($1, false)}
+  | PLUSPLUS target                    { features ["sugar"] ; Increment($2, true)}
+  | target PLUSPLUS                    { features ["sugar"] ; Increment($1, false)}
+  | MINUSMINUS target                  { features ["sugar"] ; Decrement($2, true)}
+  | target MINUSMINUS                  { features ["sugar"] ; Decrement($1, false)}
 ;
 
 %inline binop:
@@ -147,10 +148,10 @@ stmt2:
   stmt2_inner { Stmt($1,$symbolstartpos.pos_lnum) }
 ;
 stmt2_inner:
-  | IF simple_value stmt1 ELSE stmt2         { feature 2 ; If ($2, $3, $5) }
-  | IF simple_value stmt1                     { feature 2 ; If ($2, $3, Stmt(Block [], $symbolstartpos.pos_lnum)) }
-  | IF simple_value alt+                        { feature 3 ; IfIs($2, $3, None)}
-  | IF simple_value alt+ ELSE stmt2             { feature 3 ; IfIs($2, $3, Some $5) }
+  | IF simple_value stmt1 ELSE stmt2         { features ["control"] ; If ($2, $3, $5) }
+  | IF simple_value stmt1                     { features ["control"] ; If ($2, $3, Stmt(Block [], $symbolstartpos.pos_lnum)) }
+  | IF simple_value alt+                        { features ["control"; "sugar"] ; IfIs($2, $3, None)}
+  | IF simple_value alt+ ELSE stmt2             { features ["control"; "sugar"] ; IfIs($2, $3, Some $5) }
 ;
 
 /* No unbalanced if-else */
@@ -159,21 +160,21 @@ stmt1:
 ;
 stmt1_inner: 
   | block                                     { $1 }
-  | IF simple_value stmt1 ELSE stmt1          { feature 2 ; If ($2, $3, $5) }
-  | IF simple_value alt+ ELSE stmt1           { feature 3 ; IfIs($2, $3, Some $5) }
-  | WHILE simple_value stmt1                  { feature 3 ; While($2,$3,None) }
-  | WHILE simple_value LPAR non_control_flow_stmt RPAR stmt1                  { feature 3 ; While($2,$6,Some(Stmt($4, $symbolstartpos.pos_lnum))) }
+  | IF simple_value stmt1 ELSE stmt1          { features ["control"] ; If ($2, $3, $5) }
+  | IF simple_value alt+ ELSE stmt1           { features ["control"; "sugar"] ; IfIs($2, $3, Some $5) }
+  | WHILE simple_value stmt1                  { features ["loops"] ; While($2,$3,None) }
+  | WHILE simple_value LPAR non_control_flow_stmt RPAR stmt1     { features ["loops"; "sugar"] ; While($2,$6,Some(Stmt($4, $symbolstartpos.pos_lnum))) }
   (*| FOR LPAR non_control_flow_stmt SEMI value SEMI non_control_flow_stmt RPAR stmt1      
       { feature 3 ; Block[
         Stmt($3,$symbolstartpos.pos_lnum);
         Stmt(While($5,$9,Some(Stmt($7,$symbolstartpos.pos_lnum))),$symbolstartpos.pos_lnum)] }
         *)
-  | BREAK SEMI                                { feature 3 ; Break }
-  | CONTINUE SEMI                             { feature 3 ; Continue }
+  | BREAK SEMI                                { features ["loops"] ; Break }
+  | CONTINUE SEMI                             { features ["loops"] ; Continue }
   | GOTO NAME SEMI                            { GoTo $2 }
   | LABEL                                     { Label $1 }
-  | REPEAT CSTINT stmt1                       { feature 2 ; Block(List.init $2 (fun _ -> $3)) }
-  | REPEAT LPAR CSTINT RPAR stmt1             { feature 2 ; Block(List.init $3 (fun _ -> $5)) }
+  | REPEAT CSTINT stmt1                       { features ["loops"] ; Block(List.init $2 (fun _ -> $3)) }
+  | REPEAT LPAR CSTINT RPAR stmt1             { features ["loops"] ; Block(List.init $3 (fun _ -> $5)) }
   | non_control_flow_stmt SEMI                { $1 }
 ;
 
@@ -182,21 +183,21 @@ alt:
 ;
 
 target:
-  | NAME { feature 2 ; Local $1 }
+  | NAME { features ["memory"] ; Local $1 }
 ; 
 
 non_control_flow_stmt:
-  | target EQ value        { feature 1 ; Assign ($1, $3) }
-  | target PLUS EQ value   { feature 1 ; Assign ($1, Binary_op("+", Reference $1, $4)) }
-  | target MINUS EQ value  { feature 1 ; Assign ($1, Binary_op("-", Reference $1, $4)) }
-  | target TIMES EQ value  { feature 1 ; Assign ($1, Binary_op("*", Reference $1, $4)) }
-  | target TILDE EQ value  { feature 1 ; Assign ($1, Unary_op("~", $4)) }
-  | typ NAME               { feature 1 ; Declare($1,$2) }
-  | typ NAME EQ value      { feature 1 ; DeclareAssign($1,$2,$4) }
-  | target PLUSPLUS        { feature 3 ; Assign ($1, Binary_op("+", Reference $1, Int 1)) }
-  | PLUSPLUS target        { feature 3 ; Assign ($2, Binary_op("+", Reference $2, Int 1)) }
-  | target MINUSMINUS      { feature 3 ; Assign ($1, Binary_op("-", Reference $1, Int 1)) }
-  | MINUSMINUS target      { feature 3 ; Assign ($2, Binary_op("-", Reference $2, Int 1)) }
+  | target EQ value        { features ["memory"] ; Assign ($1, $3) }
+  | target PLUS EQ value   { features ["memory"; "sugar"] ; Assign ($1, Binary_op("+", Reference $1, $4)) }
+  | target MINUS EQ value  { features ["memory"; "sugar"] ; Assign ($1, Binary_op("-", Reference $1, $4)) }
+  | target TIMES EQ value  { features ["memory"; "sugar"] ; Assign ($1, Binary_op("*", Reference $1, $4)) }
+  | target TILDE EQ value  { features ["memory"; "sugar"] ; Assign ($1, Unary_op("~", $4)) }
+  | typ NAME               { features ["memory"] ; Declare($1,$2) }
+  | typ NAME EQ value      { features ["memory"] ; DeclareAssign($1,$2,$4) }
+  | target PLUSPLUS        { features ["memory"; "sugar"] ; Assign ($1, Binary_op("+", Reference $1, Int 1)) }
+  | PLUSPLUS target        { features ["memory"; "sugar"] ; Assign ($2, Binary_op("+", Reference $2, Int 1)) }
+  | target MINUSMINUS      { features ["memory"; "sugar"] ; Assign ($1, Binary_op("-", Reference $1, Int 1)) }
+  | MINUSMINUS target      { features ["memory"; "sugar"] ; Assign ($2, Binary_op("-", Reference $2, Int 1)) }
   | MOVE value                        { Move $2 }
   | ATTACK value                      { themeing ["basic"] ; Attack $2 }
   | FORTIFY                           { Fortify None }
@@ -208,7 +209,7 @@ non_control_flow_stmt:
   | SHOOT value                       { themeing ["basic"] ; Shoot $2 }
   | MINE value                        { themeing ["basic"] ; Mine $2 }
   | BOMB simple_value simple_value    { themeing ["basic"] ; Bomb($2, $3) }
-  | WRITE value                       { Write $2 }
+  | WRITE value                       { features ["comms"] ; Write $2 }
 ;
 
 direction:

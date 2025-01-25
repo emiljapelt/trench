@@ -6,7 +6,6 @@ typedef struct game_rules {
     int steps;
     int mode;
     int nuke;
-    int feature_level;
     int exec_mode;
     int seed;
     float time_scale;

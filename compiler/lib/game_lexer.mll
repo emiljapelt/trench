@@ -14,7 +14,7 @@
                         "name", NAME;
                         "position", POSITION;
                         "file", FILE;
-                        "feature_level", FEATURE_LEVEL;
+                        "features", FEATURES;
                         "exec_mode", EXEC_MODE;
                         "sync", SYNC;
                         "async", ASYNC;
@@ -60,6 +60,7 @@ rule lex = parse
     |   ';'           { SEMI }
     |   '('           { LPAR }
     |   ')'           { RPAR }
+    |   '*'           { STAR }
     |   '{'           { LBRACE }
     |   '}'           { RBRACE }
     |   _             { raise (Failure(Some((Lexing.lexeme_start_p lexbuf).pos_fname), Some((Lexing.lexeme_start_p lexbuf).pos_lnum), ("Unknown token"))) }

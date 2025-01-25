@@ -1,6 +1,8 @@
 %{
   open Absyn
   open Exceptions
+  open Themes
+  open Features
   
   let missing_info team name pos file =
     String.concat ", " ([
@@ -28,8 +30,8 @@
 %token <float> CSTFLOAT
 %token <string> WORD
 %token LPAR RPAR LBRACE RBRACE
-%token COMMA SEMI COLON EOF 
-%token PLAYER RESOURCES THEMES TIME_SCALE SEED ACTIONS STEPS MODE BOARD NUKE FEATURE_LEVEL NAME TEAM POSITION FILE EXEC_MODE SYNC ASYNC
+%token COMMA SEMI COLON EOF STAR FEATURES
+%token PLAYER RESOURCES THEMES TIME_SCALE SEED ACTIONS STEPS MODE BOARD NUKE NAME TEAM POSITION FILE EXEC_MODE SYNC ASYNC
 
 /*Low precedence*/
 
@@ -68,13 +70,15 @@ resource:
 game_setup_part:
   | PLAYER COLON LBRACE player_info+ RBRACE { player_info_fields_to_player_info $4 }
   | RESOURCES COLON LBRACE resource* RBRACE { Resources $4 }
-  | THEMES COLON seperated(COMMA, WORD) SEMI { Themes $3 }
+  | THEMES COLON seperated(COMMA, WORD) SEMI { Themes ($3 |> StringSet.of_list) }
+  | THEMES COLON STAR SEMI { Themes all_themes }
+  | FEATURES COLON seperated(COMMA, WORD) SEMI { Features ($3 |> StringSet.of_list) }
+  | FEATURES COLON STAR SEMI { Features all_features }
   | ACTIONS COLON CSTINT SEMI { Actions $3 }
   | STEPS COLON CSTINT SEMI { Steps $3 }
   | MODE COLON CSTINT SEMI { Mode $3 }
-  | BOARD COLON CSTINT COMMA CSTINT SEMI { Board ($3,$5)}
+  | BOARD COLON CSTINT COMMA CSTINT SEMI { Board ($3,$5) }
   | NUKE COLON CSTINT SEMI { Nuke $3 }
-  | FEATURE_LEVEL COLON CSTINT SEMI { FeatureLevel $3 }
   | EXEC_MODE COLON SYNC SEMI { ExecMode SyncExec }
   | EXEC_MODE COLON ASYNC SEMI { ExecMode AsyncExec }
   | SEED COLON CSTINT SEMI { Seed (Some $3) }

@@ -3,12 +3,7 @@ let () = Printexc.record_backtrace true
     
 
 let handle_cmd_line argv = 
-  Array.fold_left (fun acc arg -> match arg with 
-    | "-FL0" -> Trenchclib.Flags.compile_flags.feature_level <- 0 ; acc
-    | "-FL1" -> Trenchclib.Flags.compile_flags.feature_level <- 1 ; acc
-    | "-FL2" -> Trenchclib.Flags.compile_flags.feature_level <- 2 ; acc
-    | "-FL3" -> Trenchclib.Flags.compile_flags.feature_level <- 3 ; acc
-    | "-FL4" -> Trenchclib.Flags.compile_flags.feature_level <- 4 ; acc
+  Array.fold_left (fun _ arg -> match arg with 
     | _ -> Some arg
   ) None argv
 

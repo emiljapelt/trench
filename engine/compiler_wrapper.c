@@ -79,11 +79,12 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
 
     switch (Tag_val(callback_result)) {
         case 0: { // Ok
+
             value unwrapped_result = Field(callback_result, 0);
             
             int seed;
-            if (Is_some(Field(unwrapped_result, 13)) ) {
-                seed = Int_val(Some_val(Field(unwrapped_result, 13)));
+            if (Is_some(Field(unwrapped_result, 12)) ) {
+                seed = Int_val(Some_val(Field(unwrapped_result, 12)));
                 srand(seed);
             }
             else {
@@ -97,17 +98,16 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 .steps = Int_val(Field(unwrapped_result, 1)),
                 .mode = Int_val(Field(unwrapped_result, 2)),
                 .nuke = Int_val(Field(unwrapped_result, 3)),
-                .feature_level = Int_val(Field(unwrapped_result, 7)),
-                .exec_mode = Int_val(Field(unwrapped_result, 10)),
+                .exec_mode = Int_val(Field(unwrapped_result, 9)),
                 .seed = seed,
-                .time_scale = (float)Double_val(Field(unwrapped_result, 14)),
+                .time_scale = (float)Double_val(Field(unwrapped_result, 13)),
             };
 
             int player_count = Int_val(Field(unwrapped_result, 5));
-            int team_count = Int_val(Field(unwrapped_result, 8));
+            int team_count = Int_val(Field(unwrapped_result, 7));
             int board_x = Int_val(Field(Field(unwrapped_result, 4),0));
             int board_y = Int_val(Field(Field(unwrapped_result, 4),1));
-            int resource_count = Int_val(Field(unwrapped_result, 11));
+            int resource_count = Int_val(Field(unwrapped_result, 10));
             int feed_size = 200;
 
             *gs = (game_state) {
@@ -127,13 +127,12 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
             gs->events->list = NULL;
 
             for(int i = 0; i < resource_count; i++) {
-                value resource = Field(Field(unwrapped_result, 12), i);
+                value resource = Field(Field(unwrapped_result, 11), i);
                 init_resource(gs->resource_registry, String_val(Field(resource, 0)), Int_val(Field(resource, 1)), player_count);
             }
 
-
             for(int i = 0; i < team_count; i++) {
-                value team_info = Field(Field(unwrapped_result, 9),i);
+                value team_info = Field(Field(unwrapped_result, 8),i);
                 gs->team_states[i].team_id = Int_val(Field(team_info, 0));
                 gs->team_states[i].members_alive = Int_val(Field(team_info, 1));
             }
@@ -159,6 +158,7 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 gs->players[i].death_events = death_events;
             }
             memset(gs->feed_buffer, 0, feed_size+1);
+
             return 1;
         }
         case 1: { // Error

@@ -1,4 +1,4 @@
-
+module StringSet = Set.Make(String)
 
 type direction =
     | North
@@ -121,13 +121,13 @@ type exec_mode =
 type game_setup_part =
     | Player of player_info
     | Resources of resource list
-    | Themes of string list
+    | Themes of StringSet.t
+    | Features of StringSet.t
     | Actions of int
     | Steps of int
     | Mode of int
     | Board of int * int
     | Nuke of int
-    | FeatureLevel of int
     | ExecMode of exec_mode
     | Seed of int option
     | TimeScale of float
@@ -135,13 +135,13 @@ type game_setup_part =
 type game_setup = GS of {
     players: player_info list;
     resources: resource list;
-    themes: string list;
+    themes: StringSet.t;
+    features: StringSet.t;
     actions: int;
     steps: int;
     mode: int;
     board: int * int;
     nuke: int;
-    feature_level: int;
     exec_mode: exec_mode;
     seed: int option;
     time_scale: float;

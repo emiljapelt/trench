@@ -1,12 +1,14 @@
 
+module StringSet = Set.Make(String)
+
 type flag_record = {
-  mutable feature_level : int;
-  mutable themes : string list;
+  mutable features : StringSet.t;
+  mutable themes : StringSet.t;
   mutable resources : string list;
 }
 
 let compile_flags : flag_record = {
-  feature_level = 5;
-  themes = [];
+  features = StringSet.empty;
+  themes = StringSet.empty;
   resources = [];
 } 
