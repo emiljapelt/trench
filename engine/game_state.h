@@ -20,7 +20,7 @@ typedef struct directive_info {
     int regs;
     int dir_len;
     int* stack;
-    char* directive;
+    int* directive;
 } directive_info;
 
 typedef struct {
@@ -50,7 +50,6 @@ typedef struct game_state {
     field_state* board;
     int feed_point;
     char* feed_buffer;
-    int* global_arrays;
     int team_count;
     event_list* events;
     team_state* team_states;

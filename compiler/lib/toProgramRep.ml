@@ -18,13 +18,11 @@ let fetch_var_index name vars =
 let rec compile_value val_expr (state:compile_state) acc =
   match val_expr with
   | Reference Local name ->  Instr_Place :: I(fetch_var_index name state.vars) :: Instr_Access :: acc
-  | Reference Global (t,v) -> Instr_Place :: I(type_index t) :: (compile_value v state (Instr_GlobalAccess :: acc))
   | MetaReference md -> ( match md with
     | PlayerX -> Meta_PlayerX :: acc
     | PlayerY -> Meta_PlayerY :: acc
     | BoardX -> Meta_BoardX :: acc
     | BoardY -> Meta_BoardY :: acc
-    | GlobalArraySize -> Meta_GlobalArraySize :: acc
     | PlayerResource n -> ( match List.find_index (fun name -> n = name) Flags.compile_flags.resources with
       | Some i -> Meta_Resource :: I(i) :: acc
       | None -> raise_failure ("Unknown resource lookup: "^n)
@@ -34,7 +32,7 @@ let rec compile_value val_expr (state:compile_state) acc =
   | Random -> Instr_Random :: acc
   | RandomSet vals -> 
     List.fold_left (fun acc v -> compile_value v state acc) (Instr_RandomSet :: I(List.length vals) :: acc) vals
-  | Direction d -> I(int_of_dir d) :: acc
+  | Direction d -> Instr_Place :: I(int_of_dir d) :: acc
   | Look(d,f) -> compile_value d state (Instr_Look :: I(flag_index f) :: acc)
   | Scan(d,p) -> compile_value d state (compile_value p state (Instr_Scan :: acc))
   | Binary_op (op, e1, e2) -> ( match op, type_value state e1, type_value state e2 with
@@ -70,8 +68,6 @@ let rec compile_value val_expr (state:compile_state) acc =
   | Increment(Local n, false) -> Instr_Place :: I(fetch_var_index n state.vars) :: Instr_Copy :: Instr_Access :: Instr_Swap :: Instr_Copy :: Instr_Access :: Instr_Place :: I(1) :: Instr_Add :: Instr_Assign :: acc
   | Decrement(Local n, true)  -> Instr_Place :: I(fetch_var_index n state.vars) :: Instr_Copy :: Instr_Copy :: Instr_Access :: Instr_Place :: I(1) :: Instr_Sub :: Instr_Assign :: Instr_Access :: acc
   | Decrement(Local n, false) -> Instr_Place :: I(fetch_var_index n state.vars) :: Instr_Copy :: Instr_Access :: Instr_Swap :: Instr_Copy :: Instr_Access :: Instr_Place :: I(1) :: Instr_Sub :: Instr_Assign :: acc
-  | Increment(Global _, _) -> failwith "Global incrementing not implemented"
-  | Decrement(Global _, _) -> failwith "Global decrementing not implemented"
 
 
 and compile_stmt (Stmt(stmt,ln)) (state:compile_state) acc =
@@ -117,8 +113,6 @@ and compile_stmt (Stmt(stmt,ln)) (state:compile_state) acc =
   )
   | Assign (Local target, aexpr) -> 
     Instr_Place :: I(fetch_var_index target state.vars) :: compile_value aexpr state (Instr_Assign :: acc)
-  | Assign (Global(t,v), aexpr) -> 
-    Instr_Place :: I(type_index t) :: compile_value v state (compile_value aexpr state (Instr_AssignGlobal :: acc))
   | Label name -> Label name :: acc
   | Move e -> compile_value e state (Instr_Move :: acc)
   | Shoot e -> compile_value e state (Instr_Shoot :: acc)

@@ -76,7 +76,6 @@ let default_game_setup = GS {
   mode = 0;
   board = (20,20);
   nuke = 0;
-  array = 10;
   feature_level = 4;
   exec_mode = AsyncExec;
   seed = None;
@@ -95,7 +94,6 @@ let to_game_setup gsps =
       | Mode i -> (GS ({acc with mode = i}))
       | Board(x,y) -> if x >= 0 && y >= 0 then (GS ({acc with board = (x,y)})) else raise_failure "Board size cannot be negative"
       | Nuke i -> if i >= 0 then (GS ({acc with nuke = i})) else raise_failure "Nuke option size cannot be negative"
-      | GlobalArray i -> if i >= 0 then (GS ({acc with array = i})) else raise_failure "Global array size cannot be negative"
       | FeatureLevel i -> if i >= 0 && i <= 3 then (GS ({acc with feature_level = i})) else raise_failure "Feature level must be within 0-3"
       | ExecMode em -> GS ({acc with exec_mode = em})
       | Seed s -> GS ({acc with seed = s})
@@ -153,7 +151,6 @@ type compiled_game_file = {
   steps: int;
   mode: int;
   nuke: int;
-  array: int;
   board_size: int * int;
   player_count: int;
   player_info: compiled_player_info array;
@@ -220,7 +217,6 @@ let format_game_setup (GS gs) =
     mode = gs.mode;
     board_size = gs.board;
     nuke = gs.nuke;
-    array = gs.array;
     player_count = List.length gs.players;
     player_info = (set_themes gs.themes ; set_resources gs.resources ; set_feature_level gs.feature_level ; Array.of_list (List.map game_setup_player gs.players));
     feature_level = gs.feature_level;

@@ -14,7 +14,6 @@
                         "name", NAME;
                         "position", POSITION;
                         "file", FILE;
-                        "global_array", GLOBAL_ARRAY;
                         "feature_level", FEATURE_LEVEL;
                         "exec_mode", EXEC_MODE;
                         "sync", SYNC;

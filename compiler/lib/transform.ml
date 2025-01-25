@@ -83,7 +83,6 @@ let rec rename_variables_of_stmt i map (Stmt(stmt,ln)) = match stmt with
     (i,map,Stmt(While(rename_variables_of_value map v,s,Some si),ln))
   | Assign(Local n,v) -> 
     (i,map,Stmt(Assign(Local(StringMap.find n map), rename_variables_of_value map v),ln))
-  | Assign(Global(t,v),nv) -> (i,map,Stmt(Assign(Global(t,rename_variables_of_value map v),rename_variables_of_value map nv),ln))
   | Label s -> (i,map,Stmt(Label s,ln))
   | Move d -> (i,map,Stmt(Move(rename_variables_of_value map d),ln))
   | Shoot d -> (i,map,Stmt(Shoot(rename_variables_of_value map d),ln))

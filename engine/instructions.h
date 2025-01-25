@@ -13,47 +13,44 @@
 #include "field_scan.h"
 
 typedef enum {
-  Meta_PlayerX,
-  Meta_PlayerY,
-  Meta_BoardX,
-  Meta_BoardY,
-  Meta_GlobalArraySize,
-  Meta_Resource,
-  Instr_Add,
-  Instr_Sub,
-  Instr_Mul,
-  Instr_And,
-  Instr_Or,
-  Instr_Eq,
-  Instr_Not,
-  Instr_Lt,
-  Instr_Div,
-  Instr_Mod,
-  Instr_Scan,
-  Instr_Random,
-  Instr_RandomSet,
-  Instr_Place,
-  Instr_Access,
-  Instr_GlobalAccess,
-  Instr_Swap,
-  Instr_Copy,
-  Instr_DecStack,
-  Instr_FieldFlag,
-  Instr_Assign,
-  Instr_AssignGlobal,
-  Instr_GoToIf,
-  Instr_GoTo,
-  Instr_Move,
-  Instr_Attack,
-  Instr_Trench,
-  Instr_Fortify,
-  Instr_Bomb,
-  Instr_Shoot,
-  Instr_Wait,
-  Instr_Pass,
-  Instr_Look,
-  Instr_Mine,
-  Instr_Melee,
+  Meta_PlayerX = 0,
+  Meta_PlayerY = 1,
+  Meta_BoardX = 2,
+  Meta_BoardY = 3,
+  Meta_Resource = 4,
+  Instr_Add = 6,
+  Instr_Sub = 7,
+  Instr_Mul = 8,
+  Instr_And = 9,
+  Instr_Or = 10,
+  Instr_Eq = 11,
+  Instr_Not = 12,
+  Instr_Lt = 13,
+  Instr_Div = 14,
+  Instr_Mod = 15,
+  Instr_Scan = 16,
+  Instr_Random = 17,
+  Instr_RandomSet = 18,
+  Instr_Place = 19,
+  Instr_Access = 20,
+  Instr_Swap = 21,
+  Instr_Copy = 22,
+  Instr_DecStack = 23,
+  Instr_FieldFlag = 24,
+  Instr_Assign = 25,
+  Instr_GoToIf = 26,
+  Instr_GoTo = 27,
+  Instr_Move = 28,
+  Instr_Attack = 29,
+  Instr_Trench = 30,
+  Instr_Fortify = 31,
+  Instr_Bomb = 32,
+  Instr_Shoot = 33,
+  Instr_Wait = 34,
+  Instr_Pass = 35,
+  Instr_Look = 36,
+  Instr_Mine = 37,
+  Instr_Melee = 38,
 } instruction;
 
 void instr_shoot(player_state* ps) {
@@ -87,8 +84,8 @@ void instr_shoot(player_state* ps) {
 
 void instr_look(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
-    int offset = *(int*)((ps->directive)+(ps->dp));
-    ps->dp += 4;
+    int offset = ps->directive[ps->dp];
+    ps->dp++;
 
     int x = ps->x;
     int y = ps->y;
@@ -201,17 +198,16 @@ void instr_random_int(player_state* ps) {
 }
 
 void instr_random_range(player_state* ps) {
-    int num = *(int*)((ps->directive)+(ps->dp));
+    int num = ps->directive[ps->dp];
     int pick = ps->stack[ps->sp - ((rand() % num)+1)];
     ps->sp -= num;
     ps->stack[ps->sp++] = pick;
-    ps->dp += 4;
+    ps->dp++;
 }
 
 void instr_place(player_state* ps) {
-    int num = *(int*)((ps->directive)+(ps->dp));
-    ps->stack[ps->sp++] = num;
-    ps->dp += 4;
+    ps->stack[ps->sp++] = ps->directive[ps->dp];
+    ps->dp++;
 }
 
 void instr_bomb(player_state* ps) {
@@ -233,14 +229,6 @@ void instr_bomb(player_state* ps) {
     set_overlay(x,y,TARGET);
 }
 
-void instr_global_access(player_state* ps) {
-    int i = ps->stack[--ps->sp];
-    int t = ps->stack[--ps->sp];
-    if (i > 0 && i < _gr->array) {
-        ps->stack[ps->sp++] = _gs->global_arrays[(t*_gr->array)+i];
-    } else ps->stack[ps->sp++] = 0;
-}
-
 void meta_player_x(player_state* ps) {
     ps->stack[ps->sp++] = ps->x;
     ps->dp++;
@@ -257,36 +245,27 @@ void meta_board_y(player_state* ps) {
     ps->stack[ps->sp++] = _gs->board_y;
     ps->dp++;
 }
-void meta_global_array_size(player_state* ps) {
-    ps->stack[ps->sp++] = _gr->array;
-    ps->dp++;
-}
 void meta_resource(player_state* ps) {
     ps->dp++;
-    int index = *(int*)((ps->directive)+(ps->dp));
-    ps->dp++
+    int index = ps->directive[ps->dp];
+    ps->dp++;
     ps->stack[ps->sp++] = peek_resource_index(index, ps->id);
 }
 
 void instr_access(player_state* ps) {
     int num = ps->stack[ps->sp-1];
     ps->stack[ps->sp-1] = ps->stack[num];
-    ps->dp++;
-    break;
 }
 
 void instr_goto(player_state* ps) {
-    int num = *(int*)((ps->directive)+(ps->dp));
-    ps->dp = num;
+    ps->dp = ps->directive[ps->dp];;
 }
 
 void instr_goto_if(player_state* ps) {
     int v = ps->stack[--ps->sp];
-    if (v) { 
-        int num = *(int*)((ps->directive)+(ps->dp));
-        ps->dp = num; 
-    }
-    else ps->dp += 4;
+    if (v)
+        ps->dp = ps->directive[ps->dp];
+    else ps->dp++;
 }
 
 void instr_eq(player_state* ps) {
@@ -351,27 +330,15 @@ void instr_and(player_state* ps) {
 }
 
 void instr_assign(player_state* ps) { 
-    switch (ps->directive[ps->dp++]) {
-        case '_': { // Local
-            int v = ps->stack[--ps->sp];
-            int target = ps->stack[--ps->sp];
-            ps->stack[target] = v;
-            break;
-        }
-        case '@': { // Global
-            int v = ps->stack[--ps->sp];
-            int i = ps->stack[--ps->sp];
-            int t = ps->stack[--ps->sp];
-            if (i > 0 && i < _gr->array) _gs->global_arrays[(t*_gr->array)+i] = v;
-            break;
-        }
-    }
+    int v = ps->stack[--ps->sp];
+    int target = ps->stack[--ps->sp];
+    ps->stack[target] = v;
 }
 
 void instr_flag_access(player_state* ps) { 
     int v = ps->stack[--ps->sp];
-    int offset = *(int*)((ps->directive)+(ps->dp));
-    ps->dp += 4;
+    int offset = ps->directive[ps->dp];
+    ps->dp++;
     ps->stack[ps->sp++] = v & (1 << offset);
 }
 
@@ -379,7 +346,7 @@ void instr_dec_stack(player_state* ps) {
     ps->sp--;
 }
 
-void instr_clone(player_state* ps) {
+void instr_copy(player_state* ps) {
     ps->stack[ps->sp] = ps->stack[ps->sp - 1];
     ps->sp++;
 }

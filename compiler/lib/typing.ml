@@ -17,7 +17,6 @@ let var_type vars name =
 
 let rec type_value (state:compile_state) v = match v with
     | Reference Local n -> var_type state.vars n  
-    | Reference Global (t,_) -> t
     | MetaReference m -> type_meta m
     | Binary_op(op,v0,v1) -> (match op, type_value state v0, type_value state v1 with
       | "+", T_Int, T_Int 
@@ -49,17 +48,11 @@ let rec type_value (state:compile_state) v = match v with
       | T_Dir -> T_Dir
       | _ -> raise_failure ("Only int and dir can be decremented")
     )
-    | Decrement(Global(T_Int,_),_) -> T_Int
-    | Decrement(Global(T_Dir,_),_) -> T_Dir
-    | Decrement(Global(_,_),_) -> raise_failure ("Only int and dir can be decremented") 
     | Increment(Local n,_) -> (match var_type state.vars n with 
       | T_Int -> T_Int
       | T_Dir -> T_Dir
       | _ -> raise_failure ("Only int and dir can be incremented")
     )
-    | Increment(Global(T_Int,_),_) -> T_Int
-    | Increment(Global(T_Dir,_),_) -> T_Dir
-    | Increment(Global(_,_),_) -> raise_failure ("Only int and dir can be decremented") 
     | Flag(v,_) -> require T_Field (type_value state v) (fun () -> T_Int)
     | Scan(d,p)  ->
       require T_Dir (type_value state d) (fun () -> ()) ;
@@ -80,8 +73,7 @@ and type_meta m = match m with
     | PlayerY     
     | BoardX      
     | BoardY 
-    | PlayerResource _
-    | GlobalArraySize -> T_Int     
+    | PlayerResource _ -> T_Int     
 
 
 let rec type_check_stmt_inner state stmt = match stmt with
@@ -99,7 +91,6 @@ let rec type_check_stmt_inner state stmt = match stmt with
   | While(v,s,Some si) -> 
     require T_Int (type_value state v) (fun () -> type_check_stmt state s |> ignore ; type_check_stmt state si |> ignore ; state)
   | Assign(Local n,e) -> require (var_type state.vars n) (type_value state e) (fun () -> state)
-  | Assign(Global(t,_),e) -> require t (type_value state e) (fun () -> state)
   | Move e 
   | Shoot e -> require T_Dir (type_value state e) (fun () -> state)
   | Bomb(d,p) -> 

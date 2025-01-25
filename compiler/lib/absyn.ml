@@ -22,7 +22,6 @@ and statement =
 
 and target =
     | Local of string
-    | Global of typ * value
 
 and statement_inner =
     | If of value * statement * statement
@@ -67,7 +66,6 @@ and meta_data =
     | PlayerResource of string
     | BoardX      (* #board_x *)  
     | BoardY      (* #board_y *)
-    | GlobalArraySize (* #array_size  *)
 
 and variable =
     | Var of typ * string
@@ -127,7 +125,6 @@ type game_setup_part =
     | Mode of int
     | Board of int * int
     | Nuke of int
-    | GlobalArray of int
     | FeatureLevel of int
     | ExecMode of exec_mode
     | Seed of int option
@@ -142,7 +139,6 @@ type game_setup = GS of {
     mode: int;
     board: int * int;
     nuke: int;
-    array: int;
     feature_level: int;
     exec_mode: exec_mode;
     seed: int option;

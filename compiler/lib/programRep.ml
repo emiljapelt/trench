@@ -10,7 +10,6 @@ type instruction =
   | Meta_PlayerY
   | Meta_BoardX
   | Meta_BoardY
-  | Meta_GlobalArraySize
   | Meta_Resource
   | Instr_Add
   | Instr_Sub
@@ -27,13 +26,11 @@ type instruction =
   | Instr_RandomSet
   | Instr_Place
   | Instr_Access
-  | Instr_GlobalAccess
   | Instr_Swap
   | Instr_Copy
   | Instr_DecStack
   | Instr_FieldFlag
   | Instr_Assign
-  | Instr_AssignGlobal
   | Instr_GoToIf
   | Instr_GoTo
   | Instr_Move
@@ -56,7 +53,6 @@ let instruction_to_int label_map instr = match instr with
     | Meta_PlayerY -> Some 1
     | Meta_BoardX -> Some 2
     | Meta_BoardY -> Some 3
-    | Meta_GlobalArraySize -> Some 4
     | Meta_Resource -> Some 5
     | Instr_Add -> Some 6
     | Instr_Sub -> Some 7
@@ -73,26 +69,24 @@ let instruction_to_int label_map instr = match instr with
     | Instr_RandomSet -> Some 18
     | Instr_Place -> Some 19
     | Instr_Access -> Some 20
-    | Instr_GlobalAccess -> Some 21
-    | Instr_Swap -> Some 22
-    | Instr_Copy -> Some 23
-    | Instr_DecStack -> Some 24
-    | Instr_FieldFlag -> Some 25
-    | Instr_Assign -> Some 26
-    | Instr_AssignGlobal -> Some 27
-    | Instr_GoToIf -> Some 28
-    | Instr_GoTo -> Some 29
-    | Instr_Move -> Some 30
-    | Instr_Attack -> Some 31
-    | Instr_Trench -> Some 32
-    | Instr_Fortify -> Some 33
-    | Instr_Bomb -> Some 34
-    | Instr_Shoot -> Some 35
-    | Instr_Wait -> Some 36
-    | Instr_Pass -> Some 37
-    | Instr_Look -> Some 38
-    | Instr_Mine -> Some 39
-    | Instr_Melee -> Some 40
+    | Instr_Swap -> Some 21
+    | Instr_Copy -> Some 22
+    | Instr_DecStack -> Some 23
+    | Instr_FieldFlag -> Some 24
+    | Instr_Assign -> Some 25
+    | Instr_GoToIf -> Some 26
+    | Instr_GoTo -> Some 27
+    | Instr_Move -> Some 28
+    | Instr_Attack -> Some 29
+    | Instr_Trench -> Some 30
+    | Instr_Fortify -> Some 31
+    | Instr_Bomb -> Some 32
+    | Instr_Shoot -> Some 33
+    | Instr_Wait -> Some 34
+    | Instr_Pass -> Some 35
+    | Instr_Look -> Some 36
+    | Instr_Mine -> Some 37
+    | Instr_Melee -> Some 38
 
 let label_set pp =
   let rec aux pp set = match pp with

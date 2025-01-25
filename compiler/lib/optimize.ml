@@ -66,12 +66,10 @@ let rec optimize_value expr =
   | Decrement _ 
   | Increment _
   | Reference Local _ -> expr
-  | Reference Global(t,v) -> Reference(Global(t,optimize_value v))
 
 
 let optimize_assign_target tar = match tar with
       | Local _ -> tar
-      | Global(t,v) -> Global(t,optimize_value v)
 
 let rec optimize_stmt (Stmt(stmt_i,ln) as stmt) = 
   try (match stmt_i with

@@ -18,10 +18,10 @@ extern int compile_game(const char* path, game_rules* gr, game_state* gs);
 extern int compile_player(const char* path, directive_info* result);
 
 void debug_print(player_state* ps) {
+    fprintf(stderr,"\n%i\n", ps->directive[ps->dp]); wait(0.5);
     for(int i = 0; i < ps->sp; i++) {
-        fprintf(stderr,"%i, ", ps->stack[i]); wait(100);
+        fprintf(stderr,"%i, ", ps->stack[i]); wait(0.1);
     }
-    fprintf(stderr,"\n%c\n", ps->directive[ps->dp]); wait(500);
 }
 
 void kill_players() {
@@ -41,13 +41,12 @@ void player_turn_async(player_state* ps) {
         int change = 0;
         if (ps->dp >= ps->directive_len) { return; }
         if (!use_resource(1,&_gs->remaining_steps)) return;
-        //debug_print(ps);
+        // debug_print(ps);
         switch (ps->directive[ps->dp++]) {
             case Meta_PlayerX: meta_player_x(ps);break;
             case Meta_PlayerY: meta_player_y(ps);break;
             case Meta_BoardX: meta_board_x(ps);break;
             case Meta_BoardY: meta_board_y(ps);break;
-            case Meta_GlobalArraySize: meta_global_array_size(ps);break;
             case Meta_Resource: meta_resource(ps);break;
             case Instr_Wait: {
                 if(!use_resource(1,&_gs->remaining_actions)) {ps->dp--;return;}
@@ -99,7 +98,6 @@ void player_turn_async(player_state* ps) {
                 change = 1;
                 break;
             }
-            case Instr_GlobalAccess: instr_global_access(ps); break;
             case Instr_Access: instr_access(ps); break;
             case Instr_GoTo: instr_goto(ps); break;
             case Instr_GoToIf: instr_goto_if(ps); break;
@@ -114,10 +112,9 @@ void player_turn_async(player_state* ps) {
             case Instr_Or: instr_or(ps); break;
             case Instr_And: instr_and(ps); break;
             case Instr_Assign: instr_assign(ps); break;
-            case Instr_AssignGlobal: break;
             case Instr_FieldFlag: instr_flag_access(ps); break;
             case Instr_DecStack: instr_dec_stack(ps); break;
-            case Instr_Copy: instr_clone(ps); break;
+            case Instr_Copy: instr_copy(ps); break;
             case Instr_Swap: instr_swap(ps); break;
             default: return;
         }
@@ -168,39 +165,43 @@ turn_action player_turn_sync(player_state* ps) {
         if (!use_resource(1,&_gs->remaining_steps)) return inactive();
         //debug_print(ps);
         switch (ps->directive[ps->dp++]) {
-            case 'W': break;
-            case 'P': return inactive();
-            case 'S': return attack_action(&instr_shoot);
-            case 'l': instr_look(ps); break;
-            case 's': instr_scan(ps); break;
-            case 'M': return attack_action(&instr_mine);
-            case 'm': return move_action();
-            case 'A': return attack_action(&instr_melee);
-            case 'T': return defend_action(&instr_trench);
-            case 'F': return defend_action(&instr_fortify);
-            case 'r': instr_random_int(ps); break;
-            case 'R': instr_random_range(ps); break;
-            case 'p': instr_place(ps); break;
-            case 'B': return attack_action(&instr_bomb);
-            case '@': instr_global_access(ps); break;
-            case '#': instr_access(ps); break; 
-            case '!': instr_goto(ps); break;
-            case '?': instr_goto_if(ps); break;
-            case '=': instr_eq(ps); break;
-            case '<': instr_lt(ps); break;
-            case '-': instr_sub(ps); break;
-            case '+': instr_add(ps); break;
-            case '*': instr_mul(ps); break;
-            case '/': instr_div(ps); break;
-            case '%': instr_mod(ps); break;
-            case '~': instr_not(ps); break;
-            case '|': instr_or(ps); break;
-            case '&': instr_and(ps); break;
-            case 'a': instr_assign(ps); break;
-            case '\'': instr_flag_access(ps); break;
-            case 'd': instr_dec_stack(ps); break;
-            case 'c': instr_clone(ps); break;
-            case '^': instr_swap(ps); break;
+            case Meta_PlayerX: meta_player_x(ps);break;
+            case Meta_PlayerY: meta_player_y(ps);break;
+            case Meta_BoardX: meta_board_x(ps);break;
+            case Meta_BoardY: meta_board_y(ps);break;
+            case Meta_Resource: meta_resource(ps);break;
+            case Instr_Wait: break;
+            case Instr_Pass: return inactive();
+            case Instr_Shoot: return attack_action(&instr_shoot);
+            case Instr_Look: instr_look(ps); break;
+            case Instr_Scan: instr_scan(ps); break;
+            case Instr_Mine: return attack_action(&instr_mine);
+            case Instr_Move: return move_action();
+            case Instr_Melee: return attack_action(&instr_melee);
+            case Instr_Trench: return defend_action(&instr_trench);
+            case Instr_Fortify: return defend_action(&instr_fortify);
+            case Instr_Random: instr_random_int(ps); break;
+            case Instr_RandomSet: instr_random_range(ps); break;
+            case Instr_Place: instr_place(ps); break;
+            case Instr_Bomb: return attack_action(&instr_bomb);
+            case Instr_Access: instr_access(ps); break; 
+            case Instr_GoTo: instr_goto(ps); break;
+            case Instr_GoToIf: instr_goto_if(ps); break;
+            case Instr_Eq: instr_eq(ps); break;
+            case Instr_Lt: instr_lt(ps); break;
+            case Instr_Sub: instr_sub(ps); break;
+            case Instr_Add: instr_add(ps); break;
+            case Instr_Mul: instr_mul(ps); break;
+            case Instr_Div: instr_div(ps); break;
+            case Instr_Mod: instr_mod(ps); break;
+            case Instr_Not: instr_not(ps); break;
+            case Instr_Or: instr_or(ps); break;
+            case Instr_And: instr_and(ps); break;
+            case Instr_Assign: instr_assign(ps); break;
+            case Instr_FieldFlag: instr_flag_access(ps); break;
+            case Instr_DecStack: instr_dec_stack(ps); break;
+            case Instr_Copy: instr_copy(ps); break;
+            case Instr_Swap: instr_swap(ps); break;
             default: return inactive();
         }
     }

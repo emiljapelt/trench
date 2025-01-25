@@ -25,7 +25,6 @@
     | "y" -> PlayerY
     | "board_x" -> BoardX
     | "board_y" -> BoardY
-    | "array_size" ->  GlobalArraySize
     | _ -> PlayerResource(n)
     (*| _ -> raise (Failure(Some fn, Some ln, "Unknown meta reference"))*)
 
@@ -98,7 +97,6 @@ simple_value:
   | MINUS simple_value                 { Binary_op ("-", Int 0, $2) } %prec TILDE
   | TILDE simple_value                 { Unary_op ("~", $2) }
   | NAME                               { feature 1 ; Reference(Local $1) }
-  | typ LBRAKE value RBRAKE            { feature 1 ; Reference(Global($1,$3)) }
   | META_NAME                          { MetaReference (meta_name $1) }
   | LPAR value RPAR                    { $2 }
 ;
@@ -183,7 +181,6 @@ alt:
 
 target:
   | NAME { feature 2 ; Local $1 }
-  | typ LBRAKE value RBRAKE { feature 1 ; Global($1,$3) }
 ; 
 
 non_control_flow_stmt:
