@@ -105,12 +105,17 @@ let type_index t = match t with
     | T_Field -> 2
 
 type player_info_field =
-    | PlayerTeam of int
     | PlayerName of string
     | PlayerPosition of int * int
     | PlayerFile of string
 
-type player_info = PI of { team: int; name: string; position: int * int; file: string }
+type team_info_field =
+    | TeamName of string
+    | TeamColor of int * int * int
+    | TeamPlayer of player_info
+
+and player_info = PI of { team: int; name: string; position: int * int; file: string }
+type team_info = TI of { name: string; color: (int*int*int); players: player_info list }
 
 type resource = string * int
 
@@ -119,7 +124,7 @@ type exec_mode =
     | SyncExec
 
 type game_setup_part =
-    | Player of player_info
+    | Team of team_info
     | Resources of resource list
     | Themes of StringSet.t
     | Features of StringSet.t
@@ -133,7 +138,7 @@ type game_setup_part =
     | TimeScale of float
 
 type game_setup = GS of {
-    players: player_info list;
+    teams: team_info list;
     resources: resource list;
     themes: StringSet.t;
     features: StringSet.t;

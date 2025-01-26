@@ -59,16 +59,8 @@ let total_path path =
 
 let complete_path base path = compress_path (if path.[0] = '.' then (String.sub base 0 ((String.rindex base '/')+1) ^ path) else path)
 
-let int_to_binary i : string =
-  Printf.sprintf "%c%c%c%c"
-    (Char.chr (Int.logand 255 (Int.shift_right i (0*8))))
-    (Char.chr (Int.logand 255 (Int.shift_right i (1*8))))
-    (Char.chr (Int.logand 255 (Int.shift_right i (2*8))))
-    (Char.chr (Int.logand 255 (Int.shift_right i (3*8))))
-
-
 let default_game_setup = GS {
-  players = [];
+  teams = [];
   themes = StringSet.empty;
   features = StringSet.empty;
   resources = [];
@@ -86,7 +78,7 @@ let to_game_setup gsps =
   let rec aux gs (GS acc) = match gs with
     | [] -> (GS acc)
     | h::t -> aux t (match h with
-      | Player pi -> (GS ({acc with players = pi :: acc.players}))
+      | Team t -> (GS ({acc with teams = t :: acc.teams}))
       | Resources rs -> (GS ({acc with resources = rs}))
       | Themes ts -> (GS ({acc with themes = ts}))
       | Features fs -> (GS ({acc with features = fs}))
@@ -155,7 +147,7 @@ type compiled_game_file = {
   player_count: int;
   player_info: compiled_player_info array;
   team_count: int;
-  teams: (int * int) array;
+  teams: (string * (int*int*int) * int) array;
   exec_mode: exec_mode;
   resources_count: int;
   resources: (string * int) array;
@@ -199,24 +191,46 @@ let set_resources rs =
 
 module IntSet = Set.Make(Int)
 
-let compute_team_list (GS gs) =
-  List.map (fun (PI p) -> p.team) gs.players |>
-  IntSet.of_list |>
-  IntSet.to_list |>
-  List.map (fun team -> (team, List.filter (fun (PI p) -> p.team = team) gs.players |> List.length)) |>
-  Array.of_list
+let add_team_numbers (teams : team_info list) : team_info list =
+  List.mapi (
+    fun i (TI ti) -> (TI({
+      ti with players = List.map (fun (PI p) -> PI({p with team = i})) ti.players 
+    }))
+  ) teams
+
+let check_team_colors teams = 
+  let check_rgb_value v = 
+    if 0 <= v && v <= 255 then ()
+    else raise_failure "Not a valid RGB color"
+  in
+  teams |> List.iter (fun (TI team) -> match team.color with
+    | (r,g,b) -> 
+      check_rgb_value r ;
+      check_rgb_value g ;
+      check_rgb_value b ; 
+      ()
+  ) ; teams
+
+let team_list teams =
+  List.map (fun (TI ti) -> (ti.name, ti.color, List.length ti.players)) teams
   
+let player_list teams =
+  teams
+  |> List.map (fun (TI ti) -> ti.players)
+  |> List.flatten
 
 let format_game_setup (GS gs) = 
-  let teams = compute_team_list (GS gs) in
+  let checked_teams = gs.teams |> check_team_colors |> add_team_numbers in
+  let teams = checked_teams |> team_list |> Array.of_list in
+  let players = player_list checked_teams in
   {
     actions = gs.actions;
     steps = gs.steps;
     mode = gs.mode;
     board_size = gs.board;
     nuke = gs.nuke;
-    player_count = List.length gs.players;
-    player_info = (set_features gs.features ; set_themes gs.themes ; set_resources gs.resources ; Array.of_list (List.map game_setup_player gs.players));
+    player_count = List.length players;
+    player_info = (set_features gs.features ; set_themes gs.themes ; set_resources gs.resources ; Array.of_list (List.map game_setup_player players));
     team_count = Array.length teams;
     teams = teams;
     exec_mode = gs.exec_mode;

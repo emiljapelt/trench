@@ -5,6 +5,8 @@
 #include "player.h"
 #include "visual.h"
 
+#include "util.h"
+
 color _red = {.r = 255, .g = 0, .b = 0, .predef = 1};
 color _green = {.r = 0, .g = 255, .b = 0, .predef = 1};
 color _blue = {.r = 0, .g = 0, .b = 255, .predef = 1};
@@ -124,8 +126,10 @@ field_visual get_field_visual(const int x, const int y) {
         }
         case EMPTY: {
             for(int i = 0; i < _gs->player_count; i++) {
-                if (_gs->players[i].x == x && _gs->players[i].y == y && _gs->players[i].alive) 
+                if (_gs->players[i].x == x && _gs->players[i].y == y && _gs->players[i].alive) {
                     result.symbol = PERSON;
+                    result.foreground_color = _gs->team_states[_gs->players[i].team].color;
+                }
             }
             break;
         }
@@ -161,7 +165,7 @@ void print_board() {
             field_visual visual = get_field_visual(x,y);
             if (visual.foreground_color) {
                 set_color(*visual.foreground_color, FORE);
-                if (!visual.foreground_color->predef) 
+                if (!visual.foreground_color->predef)
                     free(visual.foreground_color);
             }
 

@@ -75,11 +75,7 @@ void kill_player(player_state* ps) {
     print_to_feed(msg);
     ps->alive = 0;
     ps->death_msg = NULL;
-    for(int i = 0; i < _gs->team_count; i++) {
-        if (_gs->team_states[i].team_id != ps->team) continue;
-        _gs->team_states[i].members_alive--;
-        break;
-    }
+    _gs->team_states[ps->team].members_alive--;
 }
 
 void death_mark_player(player_state* ps, const char* reason) {

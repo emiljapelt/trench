@@ -259,8 +259,10 @@ int teams_alive() {
     return alive;
 }
 
-int first_team_alive() {
-    for(int i = 0; i < _gs->player_count; i++) if (_gs->players[i].alive) return _gs->players[i].team;
+char* first_team_alive() {
+    for(int i = 0; i < _gs->player_count; i++) 
+        if (_gs->players[i].alive) 
+            return _gs->team_states[_gs->players[i].team].team_name;
     printf("No player is alive\n");
     exit(1);
 }
@@ -274,7 +276,7 @@ void check_win_condition() {
         case 1:
             if (_gs->team_count == 1) break;
             else {
-                printf("Team %i won!\n", first_team_alive()); 
+                printf("Team %s won!\n", first_team_alive()); 
                 printf("seed: %i\n", _gr->seed);
                 exit(0);
             }

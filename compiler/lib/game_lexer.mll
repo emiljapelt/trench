@@ -22,6 +22,7 @@
                         "resources", RESOURCES;
                         "seed", SEED;
                         "time_scale", TIME_SCALE;
+                        "color", COLOR;
                       ]
   
   let char_of_string s lexbuf = match s with

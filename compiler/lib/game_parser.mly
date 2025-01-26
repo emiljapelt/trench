@@ -4,33 +4,50 @@
   open Themes
   open Features
   
-  let missing_info team name pos file =
+  let missing_player_info name pos file =
     String.concat ", " ([
-      if Option.is_none team then Some "team" else None;
       if Option.is_none name then Some "name" else None;
       if Option.is_none pos then Some "position" else None;
       if Option.is_none file then Some "file" else None;
     ] |> List.filter Option.is_some |> List.map Option.get)
 
+  let missing_team_info name color players =
+    String.concat ", " ([
+      if Option.is_none name then Some "name" else None;
+      if Option.is_none color then Some "color" else None;
+      if List.is_empty players then Some "players" else None;
+    ] |> List.filter Option.is_some |> List.map Option.get)
+
   let player_info_fields_to_player_info pifs =
-    let rec aux pifs team name pos file = match pifs with
-      | [] -> ( match team, name, pos, file with
-        | Some team, Some name, Some pos, Some file -> Player(PI{team = team; name = name; position = pos; file = file;})
-        | _ -> raise_failure ("Player info missing: " ^ missing_info team name pos file)
+    let rec aux pifs name pos file = match pifs with
+      | [] -> ( match name, pos, file with
+        | Some name, Some pos, Some file -> (PI{team = -1; name = name; position = pos; file = file;})
+        | _ -> raise_failure ("Player info missing: " ^ missing_player_info name pos file)
       )
-      | PlayerTeam i :: t -> aux t (Some i) name pos file
-      | PlayerName n :: t -> aux t team (Some n) pos file
-      | PlayerPosition(x,y) :: t -> aux t team name (Some (x,y)) file
-      | PlayerFile f :: t -> aux t team name pos (Some f)
+      | PlayerName n :: t -> aux t (Some n) pos file
+      | PlayerPosition(x,y) :: t -> aux t name (Some (x,y)) file
+      | PlayerFile f :: t -> aux t name pos (Some f)
     in
-    aux pifs None None None None
+    aux pifs None None None
+
+  let team_info_fields_to_team_info tifs =
+    let rec aux tifs name color players = match tifs with
+      | [] -> ( match name, color, players with
+        | Some name, Some(r,g,b), players when not(List.is_empty players) -> Team(TI{name = name; color = (r,g,b); players = players;})
+        | _ -> raise_failure ("team info missing: " ^ missing_team_info name color players)
+      )
+      | TeamName n :: t -> aux t (Some n) color players
+      | TeamColor(r,g,b) :: t -> aux t name (Some (r,g,b)) players
+      | TeamPlayer p :: t -> aux t name color (p :: players)
+    in
+    aux tifs None None []
 
 %}
 %token <int> CSTINT
 %token <float> CSTFLOAT
 %token <string> WORD
 %token LPAR RPAR LBRACE RBRACE
-%token COMMA SEMI COLON EOF STAR FEATURES
+%token COMMA SEMI COLON EOF STAR FEATURES COLOR
 %token PLAYER RESOURCES THEMES TIME_SCALE SEED ACTIONS STEPS MODE BOARD NUKE NAME TEAM POSITION FILE EXEC_MODE SYNC ASYNC
 
 /*Low precedence*/
@@ -57,10 +74,15 @@ main:
 ;
 
 player_info:
-  | TEAM COLON CSTINT SEMI  { PlayerTeam $3 }
   | NAME COLON WORD SEMI { PlayerName $3 }
   | POSITION COLON CSTINT COMMA CSTINT SEMI { PlayerPosition($3, $5) }
   | FILE COLON WORD SEMI { PlayerFile $3 }
+;
+
+team_info:
+  | NAME COLON WORD SEMI { TeamName $3 }
+  | COLOR COLON CSTINT COMMA CSTINT COMMA CSTINT SEMI { TeamColor ($3,$5,$7) }
+  | PLAYER COLON LBRACE player_info+ RBRACE { TeamPlayer(player_info_fields_to_player_info $4) }
 ;
 
 resource:
@@ -68,7 +90,7 @@ resource:
 ;
 
 game_setup_part:
-  | PLAYER COLON LBRACE player_info+ RBRACE { player_info_fields_to_player_info $4 }
+  | TEAM COLON LBRACE team_info+ RBRACE { team_info_fields_to_team_info $4 }
   | RESOURCES COLON LBRACE resource* RBRACE { Resources $4 }
   | THEMES COLON seperated(COMMA, WORD) SEMI { Themes ($3 |> StringSet.of_list) }
   | THEMES COLON STAR SEMI { Themes all_themes }

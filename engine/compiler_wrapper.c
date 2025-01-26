@@ -21,8 +21,8 @@ field_state* empty_board(const int x, const int y) {
         enter_events->list = NULL;
         exit_events->list = NULL;
         brd[(_y * x) + _x] = (field_state) {
-            .foreground_color_overlay = 0,
-            .background_color_overlay = 0,
+            .foreground_color_overlay = NULL,
+            .background_color_overlay = NULL,
             .mod_overlay = 0,
             .symbol_overlay = 0,
             .type = EMPTY,
@@ -133,8 +133,15 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
 
             for(int i = 0; i < team_count; i++) {
                 value team_info = Field(Field(unwrapped_result, 8),i);
-                gs->team_states[i].team_id = Int_val(Field(team_info, 0));
-                gs->team_states[i].members_alive = Int_val(Field(team_info, 1));
+                gs->team_states[i].team_name = strdup(String_val(Field(team_info, 0)));
+                gs->team_states[i].color = malloc(sizeof(color));
+                *gs->team_states[i].color = (color) { 
+                    .r = (Int_val(Field(Field(team_info, 1), 0))),
+                    .g = (Int_val(Field(Field(team_info, 1), 1))),
+                    .b = (Int_val(Field(Field(team_info, 1), 2))),
+                    .predef = 1
+                };
+                gs->team_states[i].members_alive = Int_val(Field(team_info, 2));
             }
 
             for(int i = 0; i < player_count; i++) {

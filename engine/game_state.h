@@ -36,7 +36,8 @@ typedef struct {
 } field_state;
 
 typedef struct team_state {
-    int team_id;
+    char* team_name;
+    color* color;
     int members_alive;
 } team_state;
 
