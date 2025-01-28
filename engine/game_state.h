@@ -55,7 +55,6 @@ typedef struct game_state {
     int team_count;
     event_list* events;
     team_state* team_states;
-    resource_registry* resource_registry; 
 } game_state;
 
 extern game_state* _gs;

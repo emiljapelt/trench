@@ -4,7 +4,7 @@
 typedef struct resource_node
 {
     const char* name;
-    int* player_registry;
+    int amount;
     struct resource_node* next;
 }
 resource_node;
@@ -21,11 +21,11 @@ typedef struct resource_registry
 resource_registry;
 
 
-resource_registry* create_resource_registry(int player_count, int size, int max_count);
-void init_resource(resource_registry* registry, const char* name, int init_amount, int player_count);
-char spend_resource(const char* name, int id, int amount);
-int peek_resource(const char* name, int id);
-int peek_resource_index(const int index, int id);
-void add_resource(const char* name, int id, unsigned int amount);
+resource_registry* create_resource_registry(int size, int max_count);
+void init_resource(resource_registry* registry, const char* name, int init_amount);
+char spend_resource(resource_registry* registry, const char* name, int amount);
+int peek_resource(resource_registry* registry, const char* name);
+int peek_resource_index(resource_registry* registry, const int index);
+void add_resource(resource_registry* registry, const char* name, unsigned int amount);
 
 #endif

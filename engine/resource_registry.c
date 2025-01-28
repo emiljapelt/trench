@@ -5,15 +5,12 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 
-extern game_state* _gs;
-extern game_rules* _gr;
-
-resource_registry* create_resource_registry(int player_count, int size, int max_count) {
+resource_registry* create_resource_registry(int size, int max_count) {
     resource_registry* registry = malloc(sizeof(resource_registry));
 
     resource_node** buckets = malloc(sizeof(resource_node*) * size);
-
     resource_node** index_ref = malloc(sizeof(resource_node*) * max_count);
     
     resource_registry registry_value = {
@@ -29,7 +26,6 @@ resource_registry* create_resource_registry(int player_count, int size, int max_
     return registry;
 }
 
-
 int get_bucket_index(const char* name, int size) {
     int bucket_index = 0;
     {
@@ -40,20 +36,15 @@ int get_bucket_index(const char* name, int size) {
     return bucket_index;
 }
 
-void init_resource(resource_registry* registry, const char* name, int init_amount, int player_count) {
+void init_resource(resource_registry* registry, const char* name, int init_amount) {
     if (registry->count >= registry->max_count) return;
 
     resource_node* node = malloc(sizeof(resource_node));
-
-    int* player_registry = malloc(sizeof(int) * player_count);
-    for(int i = 0; i < _gs->player_count; i++)
-        player_registry[i] = init_amount;
-
     int bucket_index = get_bucket_index(name, registry->size);
 
     resource_node node_value = {
         .name = name,
-        .player_registry = player_registry,
+        .amount = init_amount,
         .next = registry->buckets[bucket_index]
     };
 
@@ -63,66 +54,88 @@ void init_resource(resource_registry* registry, const char* name, int init_amoun
     registry->buckets[bucket_index] = node;
 }
 
+resource_registry* copy_resource_registry(resource_registry* old_registry) {
+    resource_registry* new_registry = malloc(sizeof(resource_registry));
 
-char spend_resource(const char* name, int id, int amount) {
-    int bucket_index = get_bucket_index(name, _gs->resource_registry->size);
+    resource_node** buckets = malloc(sizeof(resource_node*) * old_registry->size);
+    resource_node** index_ref = malloc(sizeof(resource_node*) * old_registry->max_count);
 
-    resource_node* node = _gs->resource_registry->buckets[bucket_index];
+    resource_registry new_registry_value = {
+      .size = old_registry->size,
+      .max_count = old_registry->max_count,
+      .buckets = buckets,
+      .count = 0,
+      .index_ref = index_ref,
+    };
+
+    memcpy(new_registry, &new_registry_value, sizeof(resource_registry));
+
+    for(int i = 0; i < old_registry->count; i++)
+        init_resource(new_registry, old_registry->index_ref[i]->name, old_registry->index_ref[i]->amount);
+
+    return new_registry;
+}
+
+
+char spend_resource(resource_registry* registry, const char* name, int amount) {
+    int bucket_index = get_bucket_index(name, registry->size);
+
+    resource_node* node = registry->buckets[bucket_index];
 
     while(node && strcmp(name, node->name) != 0) 
         node = node->next;
 
     if (!node) return 0;
     
-    if (node->player_registry[id] < amount) return 0;
+    if (node->amount < amount) return 0;
 
-    node->player_registry[id] -= amount;
+    node->amount -= amount;
     return 1;
 }
 
-char spend_resource_index(const int index, const int id, const int amount) {
-    if (index >= _gs->resource_registry->count || index < 0) return 0;
+char spend_resource_index(resource_registry* registry, const int index, const int amount) {
+    if (index >= registry->count || index < 0) return 0;
 
-    resource_node* node = _gs->resource_registry->index_ref[index];
+    resource_node* node = registry->index_ref[index];
     
-    if (node->player_registry[id] < amount) return 0;
+    if (node->amount < amount) return 0;
 
-    node->player_registry[id] -= amount;
+    node->amount -= amount;
     return 1;
 }
 
-int peek_resource(const char* name, int id) {
-    int bucket_index = get_bucket_index(name, _gs->resource_registry->size);
+int peek_resource(resource_registry* registry, const char* name) {
+    int bucket_index = get_bucket_index(name, registry->size);
 
-    resource_node* node = _gs->resource_registry->buckets[bucket_index];
+    resource_node* node = registry->buckets[bucket_index];
 
     while(node && strcmp(name, node->name) != 0) 
         node = node->next;
 
     if (!node) return 0;
 
-    return node->player_registry[id];
+    return node->amount;
 }
 
-int peek_resource_index(const int index, int id) {
-    if (index >= _gs->resource_registry->count || index < 0) return 0;
+int peek_resource_index(resource_registry* registry, const int index) {
+    if (index >= registry->count || index < 0) return 0;
 
-    resource_node* node = _gs->resource_registry->index_ref[index];
+    resource_node* node = registry->index_ref[index];
 
     if (!node) return 0;
 
-    return node->player_registry[id];
+    return node->amount;
 }
 
-void add_resource(const char* name, int id, unsigned int amount) {
-    int bucket_index = get_bucket_index(name, _gs->resource_registry->size);
+void add_resource(resource_registry* registry, const char* name, unsigned int amount) {
+    int bucket_index = get_bucket_index(name, registry->size);
 
-    resource_node* node = _gs->resource_registry->buckets[bucket_index];
+    resource_node* node = registry->buckets[bucket_index];
 
     while(node && strcmp(name, node->name) != 0) 
         node = node->next;
 
     if (!node) return;
     
-    node->player_registry[id] += amount;
+    node->amount += amount;
 }

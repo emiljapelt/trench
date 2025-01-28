@@ -56,7 +56,7 @@ typedef enum {
 } instruction;
 
 void instr_shoot(player_state* ps) {
-    if(!spend_resource("shot", ps->id, 1)) return;
+    if(!spend_resource(ps->resources, "shot", 1)) return;
     
     direction d = (direction)ps->stack[--ps->sp];
     int x = ps->x;
@@ -131,7 +131,7 @@ void instr_scan(player_state* ps) {
 }
 
 void instr_mine(player_state* ps) {
-    if(!spend_resource("bomb", ps->id, 1)) return;
+    if(!spend_resource(ps->resources, "bomb", 1)) return;
 
     int x, y;
     direction d = (direction)ps->stack[--ps->sp];
@@ -215,7 +215,7 @@ void instr_place(player_state* ps) {
 void instr_bomb(player_state* ps) {
     int p = ps->stack[--ps->sp];
     direction d = (direction)ps->stack[--ps->sp];
-    if(!spend_resource("bomb", ps->id, 1)) return;
+    if(!spend_resource(ps->resources, "bomb", 1)) return;
 
     int x = ps->x;
     int y = ps->y;
@@ -251,7 +251,7 @@ void meta_resource(player_state* ps) {
     ps->dp++;
     int index = ps->directive[ps->dp];
     ps->dp++;
-    ps->stack[ps->sp++] = peek_resource_index(index, ps->id);
+    ps->stack[ps->sp++] = peek_resource_index(ps->resources, index);
 }
 
 void instr_access(player_state* ps) {

@@ -121,15 +121,9 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 .feed_buffer = malloc(feed_size+1),
                 .team_count = team_count,
                 .team_states = malloc(sizeof(team_state) * team_count),
-                .resource_registry = create_resource_registry(player_count, 10, resource_count),
                 .events = malloc(sizeof(event_list*))
             };
             gs->events->list = NULL;
-
-            for(int i = 0; i < resource_count; i++) {
-                value resource = Field(Field(unwrapped_result, 11), i);
-                init_resource(gs->resource_registry, String_val(Field(resource, 0)), Int_val(Field(resource, 1)), player_count);
-            }
 
             for(int i = 0; i < team_count; i++) {
                 value team_info = Field(Field(unwrapped_result, 8),i);
@@ -163,6 +157,11 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 gs->players[i].x = Int_val(Field(Field(player_info, 2), 0));
                 gs->players[i].y = Int_val(Field(Field(player_info, 2), 1));
                 gs->players[i].death_events = death_events;
+                gs->players[i].resources = create_resource_registry(10, resource_count);
+                for(int r = 0; r < resource_count; r++) {
+                    value resource = Field(Field(unwrapped_result, 11), r);
+                    init_resource(gs->players[i].resources, strdup(String_val(Field(resource, 0))), Int_val(Field(resource, 1)));
+                }
             }
             memset(gs->feed_buffer, 0, feed_size+1);
 

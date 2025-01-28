@@ -2,6 +2,7 @@
 #define PLAYER_H
 
 //#include "event_list.h"
+#include "resource_registry.h"
 
 typedef struct event_list event_list;
 
@@ -26,6 +27,7 @@ typedef struct player_state {
     int x;
     int y;
     event_list* death_events;
+    resource_registry* resources;
 } player_state;
 
 #endif
