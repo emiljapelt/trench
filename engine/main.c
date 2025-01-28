@@ -6,6 +6,7 @@
 #include <caml/callback.h>
 
 #include "player.h"
+#include "player_list.h"
 #include "event_list.h"
 #include "game_rules.h"
 #include "game_state.h"
@@ -24,13 +25,16 @@ void debug_print(player_state* ps) {
     }
 }
 
+void try_kill_player(player_state* ps) {
+    if (ps->death_msg != NULL) {
+        update_events(ps, ps->death_events);
+        if (ps->death_msg != NULL)
+            kill_player(ps);
+    }
+}
+
 void kill_players() {
-    for(int i = 0; i < _gs->player_count; i++)
-        if (_gs->players[i].death_msg != NULL) {
-            update_events(&_gs->players[i], _gs->players[i].death_events);
-            if (_gs->players[i].death_msg != NULL)
-                kill_player(_gs->players+i);
-        }
+    each_player(_gs->players, &try_kill_player);
 }
 
 void player_turn_async(player_state* ps) {
@@ -259,10 +263,14 @@ int teams_alive() {
     return alive;
 }
 
+int player_alive(player_state* ps) {
+    return ps->alive;
+}
+
 char* first_team_alive() {
-    for(int i = 0; i < _gs->player_count; i++) 
-        if (_gs->players[i].alive) 
-            return _gs->team_states[_gs->players[i].team].team_name;
+    player_state* ps = first_player(_gs->players, &player_alive);
+    if (ps)
+        return _gs->team_states[ps->team].team_name;
     printf("No player is alive\n");
     exit(1);
 }
@@ -287,11 +295,18 @@ void check_win_condition() {
 
 void play_round_sync() {    
         int change = 0;
+        int i = 0;
+        linked_list_node* player_node;
 
     // Pre phase
-        for(int i = 0; i < _gs->player_count; i++) {
-            int finished_events = update_events(_gs->players+i, _gs->events);
+        player_node = _gs->players->list;
+        change = 0;
+        i = 0;
+        while(player_node) {
+            player_state* player = (player_state*)player_node->data;
+            int finished_events = update_events(player, _gs->events);
             if (finished_events) change++;
+            player_node = player_node->next;
         }
         if (change || _gs->feed_point) { print_board(); wait(1); }
 
@@ -300,38 +315,59 @@ void play_round_sync() {
 
     // Step phase
         turn_action* acts = malloc(sizeof(turn_action)*_gs->player_count);
-        for(int i = 0; i < _gs->player_count; i++)  {
-            if (_gs->players[i].alive) acts[i] = player_turn_sync(_gs->players+i);
+        player_node = _gs->players->list;
+        change = 0;
+        i = 0;
+        while(player_node) {
+            player_state* player = (player_state*)player_node->data;
+            if (player->alive) 
+                acts[i] = player_turn_sync(player);
+            player_node = player_node->next;
         }
 
     // Defend phase
+        player_node = _gs->players->list;
         change = 0;
-        for(int i = 0; i < _gs->player_count; i++) 
-            if (_gs->players[i].alive && acts[i].action_type == DEFEND) {
-                acts[i].action.instr(_gs->players+i);
+        i = 0;
+        while(player_node) {
+            player_state* player = (player_state*)player_node->data;
+            if (player->alive && acts[i].action_type == DEFEND) {
+                acts[i].action.instr(player);
                 change++;
             }
+            player_node = player_node->next;
+        }
         if (change || _gs->feed_point) { print_board(); wait(1); }
 
     // Attack phase
+        player_node = _gs->players->list;
         change = 0;
-        for(int i = 0; i < _gs->player_count; i++) 
-            if (_gs->players[i].alive && acts->action_type == ATTACK) {
-                acts[i].action.instr(_gs->players+i);
+        i = 0;
+        while(player_node) {
+            player_state* player = (player_state*)player_node->data;
+            if (player->alive && acts[i].action_type == ATTACK) {
+                acts[i].action.instr(player);
                 change++;
             }
+            player_node = player_node->next;
+        }
         if (change || _gs->feed_point) { print_board(); wait(1); }
 
         kill_players();
         if (_gs->feed_point) { print_board(); wait(1); }
 
     // Move phase
+        player_node = _gs->players->list;
         change = 0;
-        for(int i = 0; i < _gs->player_count; i++) 
-            if (_gs->players[i].alive && acts[i].action_type == MOVE) {
-                instr_move(_gs->players+i);
+        i = 0;
+        while(player_node) {
+            player_state* player = (player_state*)player_node->data;
+            if (player->alive && acts[i].action_type == MOVE) {
+                instr_move(player);
                 change++;
             }
+            player_node = player_node->next;
+        }
         if (change || _gs->feed_point) { print_board(); wait(1); }
 
         if (_gr->nuke > 0 && _gs->round % _gr->nuke == 0) { 
@@ -353,16 +389,21 @@ void play_round_sync() {
     Once each player has taken a turn, a round has passed.
 */
 void play_round_async() {
-    for(int i = 0; i < _gs->player_count; i++) {
-        int finished_events = update_events(_gs->players+i, _gs->events);
+
+    linked_list_node* player_node = _gs->players->list;
+    while (player_node) {
+        player_state* player = (player_state*)player_node->data;
+        int finished_events = update_events(player, _gs->events);
         if (finished_events) { print_board(); wait(1); }
         kill_players();
         if (_gs->feed_point) { print_board(); wait(1); }
-        if (_gs->players[i].alive) {
-            player_turn_async(_gs->players+i);
+        if (player->alive) {
+            player_turn_async(player);
             check_win_condition();
         }
+        player_node = player_node->next;
     }
+    
     if (_gr->nuke > 0 && _gs->round % _gr->nuke == 0) nuke_board();
 }
 
@@ -392,11 +433,16 @@ void dynamic_mode() {
     while(1) {
         play_round(_gr);
         if (_gs->round % _gr->mode == 0) {
-            for(int i = 0; i < _gs->player_count; i++) {
-                if (!_gs->players[i].alive) continue; 
-                get_new_directive(_gs->players+i);
+
+            linked_list_node* player_node = _gs->players->list;
+            while(player_node) {
+                player_state* player = (player_state*)player_node->data;
+                if (!player->alive) continue; 
+                get_new_directive(player);
                 print_board();
+                player_node = player_node->next;
             }
+
         }
         _gs->round++;
     }
@@ -407,13 +453,18 @@ void dynamic_mode() {
 // Players can change directive before each of their turns
 void manual_mode() {
     while(1) {
-        for(int i = 0; i < _gs->player_count; i++) {
-            if (!_gs->players[i].alive) continue; 
-            get_new_directive(_gs->players+i);
+
+        linked_list_node* player_node = _gs->players->list;
+        while(player_node) {
+            player_state* player = (player_state*)player_node->data;
+            if (!player->alive) continue; 
+            get_new_directive(player);
             print_board();
-            player_turn_async(_gs->players+i);
+            player_turn_async(player);
             check_win_condition();
+            player_node = player_node->next;
         }
+
         if (_gr->nuke > 0 && _gs->round % _gr->nuke == 0) nuke_board();
         _gs->round++;
     }
@@ -431,9 +482,9 @@ int main(int argc, char** argv) {
     caml_startup(argv);
     _gr = malloc(sizeof(game_rules));
     _gs = malloc(sizeof(game_state));
-    
+printf("debug\n");    
     if(!compile_game(argv[1], _gr, _gs)) return 1;
-
+printf("debug\n");
     print_board();
     wait(1);
 

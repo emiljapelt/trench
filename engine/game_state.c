@@ -97,9 +97,14 @@ void explode_field(const int x, const int y) {
         }
     }
     
-    for(int p = 0; p < _gs->player_count; p++)
-        if (_gs->players[p].x == x && _gs->players[p].y == y) 
-            death_mark_player(_gs->players+p, "Got blown up");
+
+    linked_list_node* player_node = _gs->players->list;
+    while(player_node) {
+        player_state* player = (player_state*)player_node->data;
+        if (player->x == x && player->y == y) 
+            death_mark_player(player, "Got blown up");
+        player_node = player_node->next;
+    }
 }
 
 void bomb_field(const int x, const int y) {

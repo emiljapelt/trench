@@ -4,7 +4,7 @@
 //#include "event_list.h"
 #include "resource_registry.h"
 
-typedef struct event_list event_list;
+typedef struct linked_list linked_list;
 
 typedef struct player_init {
     int* directive;
@@ -26,7 +26,7 @@ typedef struct player_state {
     int dp;
     int x;
     int y;
-    event_list* death_events;
+    linked_list* death_events;
     resource_registry* resources;
 } player_state;
 

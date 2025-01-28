@@ -9,6 +9,7 @@
 #include "game_state.h"
 #include "visual.h"
 #include "resource_registry.h"
+#include "player_list.h"
 
 field_state* empty_board(const int x, const int y) {
     int size = sizeof(field_state)*x*y;
@@ -16,8 +17,8 @@ field_state* empty_board(const int x, const int y) {
 
     for (int _x = 0; _x < x; _x++) 
     for (int _y = 0; _y < y; _y++) {
-        event_list* enter_events = malloc(sizeof(event_list*));
-        event_list* exit_events = malloc(sizeof(event_list*));
+        linked_list* enter_events = malloc(sizeof(linked_list*));
+        linked_list* exit_events = malloc(sizeof(linked_list*));
         enter_events->list = NULL;
         exit_events->list = NULL;
         brd[(_y * x) + _x] = (field_state) {
@@ -115,15 +116,16 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 .board_x = board_x,
                 .board_y = board_y,
                 .player_count = player_count,
-                .players = malloc(sizeof(player_state)*player_count),
+                .players = malloc(sizeof(linked_list)),
                 .board = empty_board(board_x, board_y),
                 .feed_point = 0,
                 .feed_buffer = malloc(feed_size+1),
                 .team_count = team_count,
                 .team_states = malloc(sizeof(team_state) * team_count),
-                .events = malloc(sizeof(event_list*))
+                .events = malloc(sizeof(linked_list*))
             };
             gs->events->list = NULL;
+            gs->players->list = NULL;
 
             for(int i = 0; i < team_count; i++) {
                 value team_info = Field(Field(unwrapped_result, 8),i);
@@ -141,27 +143,29 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
             for(int i = 0; i < player_count; i++) {
                 value player_info = Field(Field(unwrapped_result, 6),i);
                 directive_info di = load_directive_to_struct(Field(player_info, 4));
-                event_list* death_events = malloc(sizeof(event_list*));
+                linked_list* death_events = malloc(sizeof(linked_list*));
                 death_events->list = NULL;
-                gs->players[i].alive = 1;
-                gs->players[i].death_msg = NULL;
-                gs->players[i].team = Int_val(Field(player_info, 0));
-                gs->players[i].name = strdup(String_val(Field(player_info, 1)));
-                gs->players[i].id = i;
-                gs->players[i].stack = di.stack;
-                gs->players[i].sp = di.regs;
-                gs->players[i].path = strdup(String_val(Field(player_info, 3)));
-                gs->players[i].directive = di.directive;
-                gs->players[i].directive_len = di.dir_len;//(Field(player_info, 4))-(di.regs_len+1);
-                gs->players[i].dp = 0;
-                gs->players[i].x = Int_val(Field(Field(player_info, 2), 0));
-                gs->players[i].y = Int_val(Field(Field(player_info, 2), 1));
-                gs->players[i].death_events = death_events;
-                gs->players[i].resources = create_resource_registry(10, resource_count);
+                player_state* player = malloc(sizeof(player_state));
+                player->alive = 1;
+                player->death_msg = NULL;
+                player->team = Int_val(Field(player_info, 0));
+                player->name = strdup(String_val(Field(player_info, 1)));
+                player->id = i;
+                player->stack = di.stack;
+                player->sp = di.regs;
+                player->path = strdup(String_val(Field(player_info, 3)));
+                player->directive = di.directive;
+                player->directive_len = di.dir_len;//(Field(player_info, 4))-(di.regs_len+1);
+                player->dp = 0;
+                player->x = Int_val(Field(Field(player_info, 2), 0));
+                player->y = Int_val(Field(Field(player_info, 2), 1));
+                player->death_events = death_events;
+                player->resources = create_resource_registry(10, resource_count);
                 for(int r = 0; r < resource_count; r++) {
                     value resource = Field(Field(unwrapped_result, 11), r);
-                    init_resource(gs->players[i].resources, strdup(String_val(Field(resource, 0))), Int_val(Field(resource, 1)));
+                    init_resource(player->resources, strdup(String_val(Field(resource, 0))), Int_val(Field(resource, 1)));
                 }
+                add_player(gs->players, player);
             }
             memset(gs->feed_buffer, 0, feed_size+1);
 

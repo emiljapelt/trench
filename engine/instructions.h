@@ -75,11 +75,16 @@ void instr_shoot(player_state* ps) {
     while (in_bounds(x,y)) { 
         set_overlay(x,y,visual);
         set_color_overlay(x,y,FORE,color_predefs.yellow);
-        for(int p = 0; p < _gs->player_count; p++) {
-            if (_gs->players[p].x == x && _gs->players[p].y == y && get_field(x,y)->type != TRENCH) {
-                death_mark_player(_gs->players+p, "Was gunned down");
+
+        linked_list_node* player_node = _gs->players->list;
+        while(player_node) {
+            player_state* player = (player_state*)player_node->data;
+            if (player->x == x && player->y == y && get_field(x,y)->type != TRENCH) {
+                death_mark_player(player, "Was gunned down");
             }
+            player_node = player_node->next;
         }
+
         move_coord(x, y, d, &x, &y);
     }
 }
@@ -137,8 +142,17 @@ void instr_mine(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
     move_coord(ps->x, ps->y, d, &x, &y);
     char kill = 0;
-    for(int i = 0; i < _gs->player_count; i++) 
-        if (_gs->players[i].x == x && _gs->players[i].y == y) { death_mark_player(_gs->players+i, "Hit by a thrown mine"); kill = 1; }
+
+    linked_list_node* player_node = _gs->players->list;
+    while(player_node) {
+        player_state* player = (player_state*)player_node->data;
+        if (player->x == x && player->y == y) { 
+            death_mark_player(player, "Hit by a thrown mine"); 
+            kill = 1; 
+        }
+        player_node = player_node->next;
+    }
+
     if (!kill) {
         if (!in_bounds(x,y)) return;
         set_overlay(x,y,MINE);
@@ -168,9 +182,15 @@ void instr_melee(player_state* ps) {
     int x, y;
     direction d = (direction)ps->stack[--ps->sp];
     move_coord(ps->x, ps->y, d, &x, &y);
-    for(int i = 0; i < _gs->player_count; i++)
-        if (_gs->players[i].x == x && _gs->players[i].y == y) 
-            death_mark_player(_gs->players+i, "Lost a fist fight");
+
+    linked_list_node* player_node = _gs->players->list;
+    while(player_node) {
+        player_state* player = (player_state*)player_node->data;
+        if (player->x == x && player->y == y) 
+            death_mark_player(player, "Lost a fist fight");
+        player_node = player_node->next;
+    }
+        
     //move(d,ps);
 }
 
