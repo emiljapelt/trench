@@ -45,6 +45,7 @@ and statement_inner =
     | Declare of typ * string
     | DeclareAssign of typ * string * value
     | Write of value
+    | Projection
 
 and value =
     | Reference of target
@@ -68,6 +69,7 @@ and meta_data =
     | PlayerResource of string
     | BoardX      (* #board_x *)  
     | BoardY      (* #board_y *)
+    | PlayerID
 
 and variable =
     | Var of typ * string

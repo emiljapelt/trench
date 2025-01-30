@@ -9,6 +9,7 @@ typedef struct game_rules {
     int exec_mode;
     int seed;
     float time_scale;
+    int stack_size;
 } game_rules;
 
 #endif

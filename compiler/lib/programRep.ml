@@ -11,6 +11,7 @@ type instruction =
   | Meta_BoardX
   | Meta_BoardY
   | Meta_Resource
+  | Meta_PlayerID
   | Instr_Add
   | Instr_Sub
   | Instr_Mul
@@ -46,6 +47,7 @@ type instruction =
   | Instr_Melee
   | Instr_Read
   | Instr_Write
+  | Instr_Projection
 
 let instruction_to_int label_map instr = match instr with
     | I i -> Some i
@@ -56,6 +58,7 @@ let instruction_to_int label_map instr = match instr with
     | Meta_BoardX -> Some 2
     | Meta_BoardY -> Some 3
     | Meta_Resource -> Some 5
+    | Meta_PlayerID -> Some 42
     | Instr_Add -> Some 6
     | Instr_Sub -> Some 7
     | Instr_Mul -> Some 8
@@ -91,6 +94,7 @@ let instruction_to_int label_map instr = match instr with
     | Instr_Melee -> Some 38
     | Instr_Read -> Some 39
     | Instr_Write -> Some 40
+    | Instr_Projection -> Some 41
 
 let label_set pp =
   let rec aux pp set = match pp with

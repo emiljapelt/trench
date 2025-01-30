@@ -2,6 +2,7 @@
 #define H_INSTRUCTIONS
 
 #include <stdlib.h>
+#include <string.h>
 
 #include "game_state.h"
 #include "player.h"
@@ -18,6 +19,7 @@ typedef enum {
   Meta_BoardX = 2,
   Meta_BoardY = 3,
   Meta_Resource = 4,
+  Meta_PlayerID = 42,
   Instr_Add = 6,
   Instr_Sub = 7,
   Instr_Mul = 8,
@@ -53,6 +55,7 @@ typedef enum {
   Instr_Melee = 38,
   Instr_Read = 39,
   Instr_Write = 40,
+  Instr_Projection = 41,
 } instruction;
 
 void instr_shoot(player_state* ps) {
@@ -253,25 +256,23 @@ void instr_bomb(player_state* ps) {
 
 void meta_player_x(player_state* ps) {
     ps->stack[ps->sp++] = ps->x;
-    ps->dp++;
 }
 void meta_player_y(player_state* ps) {
     ps->stack[ps->sp++] = ps->y;
-    ps->dp++;
 }
 void meta_board_x(player_state* ps) {
     ps->stack[ps->sp++] = _gs->board_x;
-    ps->dp++;
 }
 void meta_board_y(player_state* ps) {
     ps->stack[ps->sp++] = _gs->board_y;
-    ps->dp++;
 }
 void meta_resource(player_state* ps) {
-    ps->dp++;
     int index = ps->directive[ps->dp];
     ps->dp++;
     ps->stack[ps->sp++] = peek_resource_index(ps->resources, index);
+}
+void meta_player_id(player_state* ps) {
+    ps->stack[ps->sp++] = ps->id;
 }
 
 void instr_access(player_state* ps) {
@@ -386,6 +387,44 @@ void instr_write(player_state* ps) {
 
 void instr_read(player_state* ps) {
     ps->stack[ps->sp++] = get_field(ps->x, ps->y)->player_data;
+}
+
+void instr_projection(player_state* ps) {
+    if(!spend_resource(ps->resources, "mana", 100)) return;
+
+    resource_registry* projection_registry = copy_resource_registry(ps->resources);
+    player_state* projection = malloc(sizeof(player_state));
+    event_list* projection_death_events = malloc(sizeof(event_list*));
+    int dir_bytes = sizeof(int) * ps->directive_len;
+    int stack_bytes = sizeof(int) * ps->stack_len;
+    int* projection_directive = malloc(dir_bytes);
+    int* projection_stack = malloc(stack_bytes);
+    memcpy(projection_directive, ps->directive, dir_bytes);
+    memcpy(projection_stack, ps->stack, stack_bytes);
+    projection_death_events->list = NULL;
+    projection->alive = 1;
+    projection->death_msg = NULL;
+    projection->team = ps->team;
+    projection->name = ps->name;
+    projection->id = _gs->player_count++;
+    projection->stack = projection_stack;
+    projection->stack_len = ps->stack_len;
+    projection->sp = ps->sp;
+    projection->path = strdup(ps->path);
+    projection->directive = projection_directive;
+    projection->directive_len = ps->directive_len;
+    projection->dp = ps->dp;
+    projection->x = ps->x;
+    projection->y = ps->y;
+    projection->death_events = projection_death_events;
+    projection->resources = projection_registry;
+    add_player(_gs->players, projection);
+    _gs->team_states[projection->team].members_alive++;
+
+    projection_death_args* args = malloc(sizeof(projection_death_args));
+    args->player_id = projection->id;
+    args->remaining = 5;
+    add_event(_gs->events, &projection_death_event, args);
 }
 
 #endif

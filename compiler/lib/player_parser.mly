@@ -26,6 +26,7 @@
     | "y" -> PlayerY
     | "board_x" -> BoardX
     | "board_y" -> BoardY
+    | "id" -> PlayerID
     | _ -> PlayerResource(n)
     (*| _ -> raise (Failure(Some fn, Some ln, "Unknown meta reference"))*)
 
@@ -43,7 +44,7 @@
 %token QMARK PLUSPLUS MINUSMINUS
 %token IF ELSE IS REPEAT WHILE FOR CONTINUE BREAK
 %token GOTO
-%token MOVE FORTIFY WAIT PASS TRENCH
+%token MOVE FORTIFY WAIT PASS TRENCH PROJECTION
 %token NORTH EAST SOUTH WEST BOMB SHOOT LOOK SCAN MINE ATTACK
 %token INT DIR FIELD
 %token PLAYER_CAP TRENCH_CAP TRAPPED_CAP OBSTRUCTION_CAP
@@ -210,6 +211,7 @@ non_control_flow_stmt:
   | MINE value                        { themeing ["basic"] ; Mine $2 }
   | BOMB simple_value simple_value    { themeing ["basic"] ; Bomb($2, $3) }
   | WRITE value                       { features ["comms"] ; Write $2 }
+  | PROJECTION                        { themeing ["wizardry"] ; Projection }
 ;
 
 direction:

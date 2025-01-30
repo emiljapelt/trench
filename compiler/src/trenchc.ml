@@ -7,6 +7,9 @@ let handle_cmd_line argv =
     | _ -> Some arg
   ) None argv
 
+let () = Trenchclib.Compile.set_features Trenchclib.Features.all_features
+let () = Trenchclib.Compile.set_themes Trenchclib.Themes.all_themes
+
 let () = match handle_cmd_line Sys.argv with
   | None -> Printf.printf "No argument given"
   | Some path -> 

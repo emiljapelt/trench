@@ -22,6 +22,7 @@ resource_registry;
 
 
 resource_registry* create_resource_registry(int size, int max_count);
+resource_registry* copy_resource_registry(resource_registry* old_registry);
 void init_resource(resource_registry* registry, const char* name, int init_amount);
 char spend_resource(resource_registry* registry, const char* name, int amount);
 int peek_resource(resource_registry* registry, const char* name);

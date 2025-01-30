@@ -18,3 +18,16 @@ int bomb_event(player_state* ps, void* data) {
     bomb_field(args->x,args->y);
     return 1;
 }
+
+int projection_death_event(player_state* ps, void* data) {
+    projection_death_args* args = (projection_death_args*)data;
+    if (!ps->alive || !args->player_id == ps->id) return 0;
+    if (args->remaining <= 0) {
+        ps->death_msg = "Projection faded";
+        return 1;
+    }
+    else {
+        args->remaining--;
+        return 0;
+    }
+}

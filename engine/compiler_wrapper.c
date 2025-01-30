@@ -5,6 +5,8 @@
 #include <caml/callback.h>
 #include <caml/alloc.h>
 
+#include "compiler_wrapper.h"
+
 #include "util.h"
 #include "game_state.h"
 #include "visual.h"
@@ -37,10 +39,10 @@ field_state* empty_board(const int x, const int y) {
     return brd;
 }
 
-directive_info load_directive_to_struct(value comp) {
+directive_info load_directive_to_struct(value comp, int stack_size) {
     int dir_len = Int_val(Field(comp, 0));
     int regs = Int_val(Field(comp, 1));
-    int* stack = malloc(sizeof(int) * (regs + 1000));
+    int* stack = malloc(sizeof(int) * (regs + stack_size));
     memset(stack, 0, sizeof(int)*regs);
 
     int* dir = malloc(sizeof(int) * dir_len);
@@ -55,7 +57,7 @@ directive_info load_directive_to_struct(value comp) {
     };
 }
 
-int compile_player(const char* path, directive_info* result) {
+int compile_player(const char* path, int stack_size, directive_info* result) {
     static const value* compile_player_closure = NULL;
     if(compile_player_closure == NULL) compile_player_closure = caml_named_value("compile_player_file");
     value callback_result = caml_callback(*compile_player_closure, caml_copy_string(path));
@@ -63,7 +65,7 @@ int compile_player(const char* path, directive_info* result) {
     switch (Tag_val(callback_result)) {
         case 0: { // Ok
             value comp = Field(callback_result, 0);
-            *result = load_directive_to_struct(comp);
+            *result = load_directive_to_struct(comp, stack_size);
             return 1; 
         }
         case 1: { // Error
@@ -102,6 +104,7 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 .exec_mode = Int_val(Field(unwrapped_result, 9)),
                 .seed = seed,
                 .time_scale = (float)Double_val(Field(unwrapped_result, 13)),
+                .stack_size = 1000,
             };
 
             int player_count = Int_val(Field(unwrapped_result, 5));
@@ -142,7 +145,7 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
 
             for(int i = 0; i < player_count; i++) {
                 value player_info = Field(Field(unwrapped_result, 6),i);
-                directive_info di = load_directive_to_struct(Field(player_info, 4));
+                directive_info di = load_directive_to_struct(Field(player_info, 4), gr->stack_size);
                 event_list* death_events = malloc(sizeof(event_list*));
                 death_events->list = NULL;
                 player_state* player = malloc(sizeof(player_state));
@@ -152,6 +155,7 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 player->name = strdup(String_val(Field(player_info, 1)));
                 player->id = i;
                 player->stack = di.stack;
+                player->stack_len = di.regs + gr->stack_size;
                 player->sp = di.regs;
                 player->path = strdup(String_val(Field(player_info, 3)));
                 player->directive = di.directive;

@@ -10,6 +10,7 @@ let all_themes = [
 
 let required_resources theme = match theme with
   | "basic" -> ["bomb"; "shot";] |> StringSet.of_list
+  | "wizardry" -> ["mana";] |> StringSet.of_list
   | _ -> StringSet.empty
 
 let all_required_resources themes = 

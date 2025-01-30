@@ -13,16 +13,14 @@
 #include "visual.h"
 #include "util.h"
 #include "instructions.h"
-
-//"compiler_wrapper.h"
-extern int compile_game(const char* path, game_rules* gr, game_state* gs);
-extern int compile_player(const char* path, directive_info* result);
+#include "compiler_wrapper.h"
 
 void debug_print(player_state* ps) {
-    fprintf(stderr,"\n%i\n", ps->directive[ps->dp]); wait(0.5);
+    fprintf(stderr,"\nPlayer %s(%i)\n%i\n", ps->name, ps->id, ps->directive[ps->dp]); wait(0.5);
     for(int i = 0; i < ps->sp; i++) {
         fprintf(stderr,"%i, ", ps->stack[i]); wait(0.1);
     }
+    wait(1);
 }
 
 void try_kill_player(player_state* ps) {
@@ -52,6 +50,7 @@ void player_turn_async(player_state* ps) {
             case Meta_BoardX: meta_board_x(ps);break;
             case Meta_BoardY: meta_board_y(ps);break;
             case Meta_Resource: meta_resource(ps);break;
+            case Meta_PlayerID: meta_player_id(ps);break;
             case Instr_Wait: {
                 if(!use_resource(1,&_gs->remaining_actions)) {ps->dp--;return;}
                 break;
@@ -122,6 +121,7 @@ void player_turn_async(player_state* ps) {
             case Instr_Swap: instr_swap(ps); break;
             case Instr_Read: instr_read(ps); break;
             case Instr_Write: instr_write(ps); break;
+            case Instr_Projection: instr_projection(ps); break;
             default: return;
         }
 
@@ -169,13 +169,14 @@ turn_action player_turn_sync(player_state* ps) {
     while(1) {
         if (ps->dp >= ps->directive_len) return inactive();
         if (!use_resource(1,&_gs->remaining_steps)) return inactive();
-        debug_print(ps);
+        // debug_print(ps);
         switch (ps->directive[ps->dp++]) {
             case Meta_PlayerX: meta_player_x(ps);break;
             case Meta_PlayerY: meta_player_y(ps);break;
             case Meta_BoardX: meta_board_x(ps);break;
             case Meta_BoardY: meta_board_y(ps);break;
             case Meta_Resource: meta_resource(ps);break;
+            case Meta_PlayerID: meta_player_id(ps);break;
             case Instr_Wait: break;
             case Instr_Pass: return inactive();
             case Instr_Shoot: return attack_action(&instr_shoot);
@@ -210,6 +211,7 @@ turn_action player_turn_sync(player_state* ps) {
             case Instr_Swap: instr_swap(ps); break;
             case Instr_Read: instr_read(ps); break;
             case Instr_Write: instr_write(ps); break;
+            case Instr_Projection: defend_action(&instr_projection);
             default: return inactive();
         }
     }
@@ -238,7 +240,7 @@ void get_new_directive(player_state* ps) {
         }
 
         directive_info di;
-        if (compile_player(ps->path, &di)) {
+        if (compile_player(ps->path, _gr->stack_size, &di)) {
             free(ps->directive);
             free(ps->stack);
             ps->directive = di.directive;
@@ -259,7 +261,9 @@ void nuke_board() {
 
 int teams_alive() {
     int alive = 0;
-    for(int i = 0; i < _gs->team_count; i++) if (_gs->team_states[i].members_alive) alive++;
+    for(int i = 0; i < _gs->team_count; i++) 
+        if (_gs->team_states[i].members_alive) 
+            alive++;
     return alive;
 }
 

@@ -13,5 +13,11 @@ int bomb_event(player_state* ps, void* data);
 
 int mine_event(player_state* ps, void* data);
 
+typedef struct projection_death_args {
+    int player_id;
+    int remaining;
+} projection_death_args;
+
+int projection_death_event(player_state* ps, void* data);
 
 #endif

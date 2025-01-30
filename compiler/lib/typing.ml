@@ -74,6 +74,7 @@ and type_meta m = match m with
     | PlayerY     
     | BoardX      
     | BoardY 
+    | PlayerID
     | PlayerResource _ -> T_Int     
 
 
@@ -111,6 +112,7 @@ let rec type_check_stmt_inner state stmt = match stmt with
   | Label _
   | Continue
   | Break
+  | Projection
   | Pass -> state
   | Write v -> require T_Int (type_value state v) (fun () -> state)
 

@@ -99,6 +99,7 @@ let rec optimize_stmt (Stmt(stmt_i,ln) as stmt) =
   | Label _
   | Continue
   | Break
+  | Projection
   | Pass -> stmt)
   with
   | Failure (f, None, msg) -> raise (Failure(f,Some ln,msg))

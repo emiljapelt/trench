@@ -23,6 +23,7 @@ let rec compile_value val_expr (state:compile_state) acc =
     | PlayerY -> Meta_PlayerY :: acc
     | BoardX -> Meta_BoardX :: acc
     | BoardY -> Meta_BoardY :: acc
+    | PlayerID -> Meta_PlayerID :: acc
     | PlayerResource n -> ( match List.find_index (fun name -> n = name) Flags.compile_flags.resources with
       | Some i -> Meta_Resource :: I(i) :: acc
       | None -> raise_failure ("Unknown resource lookup: "^n)
@@ -129,6 +130,7 @@ and compile_stmt (Stmt(stmt,ln)) (state:compile_state) acc =
   | Attack d -> compile_value d state (Instr_Melee :: acc)
   | Declare _ -> Instr_Place :: I(0) :: acc
   | Write v -> compile_value v state (Instr_Write :: acc)
+  | Projection -> Instr_Projection :: acc
   | DeclareAssign _ -> failwith "DeclareAssign still present"
   with 
   | Failure(p,None,msg) -> raise (Failure(p,Some ln, msg))

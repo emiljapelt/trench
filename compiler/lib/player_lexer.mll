@@ -33,6 +33,7 @@
                         "field", FIELD;
                         "read", READ;
                         "write", WRITE;
+                        "projection", PROJECTION;
                         "PLAYER", PLAYER_CAP;
                         "TRENCH", TRENCH_CAP;
                         "TRAPPED", TRAPPED_CAP;
