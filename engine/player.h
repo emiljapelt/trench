@@ -26,7 +26,8 @@ typedef struct player_state {
     int dp;
     int x;
     int y;
-    event_list* death_events;
+    event_list* pre_death_events;
+    event_list* post_death_events;
     resource_registry* resources;
 } player_state;
 

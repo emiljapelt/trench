@@ -146,8 +146,10 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
             for(int i = 0; i < player_count; i++) {
                 value player_info = Field(Field(unwrapped_result, 6),i);
                 directive_info di = load_directive_to_struct(Field(player_info, 4), gr->stack_size);
-                event_list* death_events = malloc(sizeof(event_list*));
-                death_events->list = NULL;
+                event_list* pre_death_events = malloc(sizeof(event_list*));
+                event_list* post_death_events = malloc(sizeof(event_list*));
+                pre_death_events->list = NULL;
+                post_death_events->list = NULL;
                 player_state* player = malloc(sizeof(player_state));
                 player->alive = 1;
                 player->death_msg = NULL;
@@ -163,7 +165,8 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 player->dp = 0;
                 player->x = Int_val(Field(Field(player_info, 2), 0));
                 player->y = Int_val(Field(Field(player_info, 2), 1));
-                player->death_events = death_events;
+                player->pre_death_events = pre_death_events;
+                player->post_death_events = post_death_events;
                 player->resources = create_resource_registry(10, resource_count);
                 for(int r = 0; r < resource_count; r++) {
                     value resource = Field(Field(unwrapped_result, 11), r);

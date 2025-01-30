@@ -394,14 +394,17 @@ void instr_projection(player_state* ps) {
 
     resource_registry* projection_registry = copy_resource_registry(ps->resources);
     player_state* projection = malloc(sizeof(player_state));
-    event_list* projection_death_events = malloc(sizeof(event_list*));
+    event_list* projection_pre_death_events = malloc(sizeof(event_list*));
+    event_list* projection_post_death_events = malloc(sizeof(event_list*));
+    projection_pre_death_events->list = NULL;
+    projection_post_death_events->list = NULL;
     int dir_bytes = sizeof(int) * ps->directive_len;
     int stack_bytes = sizeof(int) * ps->stack_len;
     int* projection_directive = malloc(dir_bytes);
     int* projection_stack = malloc(stack_bytes);
     memcpy(projection_directive, ps->directive, dir_bytes);
     memcpy(projection_stack, ps->stack, stack_bytes);
-    projection_death_events->list = NULL;
+    
     projection->alive = 1;
     projection->death_msg = NULL;
     projection->team = ps->team;
@@ -416,7 +419,8 @@ void instr_projection(player_state* ps) {
     projection->dp = ps->dp;
     projection->x = ps->x;
     projection->y = ps->y;
-    projection->death_events = projection_death_events;
+    projection->pre_death_events = projection_pre_death_events;
+    projection->post_death_events = projection_post_death_events;
     projection->resources = projection_registry;
     add_player(_gs->players, projection);
     _gs->team_states[projection->team].members_alive++;
