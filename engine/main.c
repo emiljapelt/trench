@@ -276,7 +276,7 @@ int player_alive(player_state* ps) {
 char* first_team_alive() {
     player_state* ps = first_player(_gs->players, &player_alive);
     if (ps)
-        return _gs->team_states[ps->team].team_name;
+        return ps->team->team_name;
     printf("No player is alive\n");
     exit(1);
 }

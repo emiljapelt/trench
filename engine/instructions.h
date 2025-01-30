@@ -423,7 +423,7 @@ void instr_projection(player_state* ps) {
     projection->post_death_events = projection_post_death_events;
     projection->resources = projection_registry;
     add_player(_gs->players, projection);
-    _gs->team_states[projection->team].members_alive++;
+    projection->team->members_alive++;
 
     projection_death_args* args = malloc(sizeof(projection_death_args));
     args->player_id = projection->id;

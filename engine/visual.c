@@ -130,7 +130,8 @@ field_visual get_field_visual(const int x, const int y) {
                 player_state* player = (player_state*)player_node->data;
                 if (player->x == x && player->y == y && player->alive) {
                     result.symbol = PERSON;
-                    result.foreground_color = _gs->team_states[player->team].color;
+                    if (player->team) 
+                        result.foreground_color = player->team->color;
                 }
                 player_node = player_node->next;
             }

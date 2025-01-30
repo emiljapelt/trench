@@ -4,6 +4,7 @@
 #include "resource_registry.h"
 
 typedef struct event_list event_list;
+typedef struct team_state team_state;
 
 typedef struct player_init {
     int* directive;
@@ -15,7 +16,7 @@ typedef struct player_state {
     unsigned char alive: 1;
     const char* death_msg;
     int id;
-    int team;
+    team_state* team;
     char* name;
     int* stack;
     int stack_len;

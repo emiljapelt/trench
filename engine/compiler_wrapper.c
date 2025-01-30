@@ -153,7 +153,7 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 player_state* player = malloc(sizeof(player_state));
                 player->alive = 1;
                 player->death_msg = NULL;
-                player->team = Int_val(Field(player_info, 0));
+                player->team = &gs->team_states[Int_val(Field(player_info, 0))];
                 player->name = strdup(String_val(Field(player_info, 1)));
                 player->id = i;
                 player->stack = di.stack;
