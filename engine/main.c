@@ -24,9 +24,9 @@ void debug_print(player_state* ps) {
 }
 
 void try_kill_player(player_state* ps) {
-    if (ps->death_msg != NULL) {
+    if (ps->alive && ps->death_msg != NULL) {
         update_events(ps, ps->death_events);
-        if (ps->death_msg != NULL)
+        if (ps->alive && ps->death_msg != NULL)
             kill_player(ps);
     }
 }
