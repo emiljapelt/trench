@@ -6,11 +6,11 @@
 #include "linked_list.h"
 #include "player.h"
 
-void add_player(linked_list* list, player_state* ps) {
-    list_add(list, ps);
+void add_player(player_list* list, player_state* ps) {
+    list_add(&list->list, ps);
 }
 
-void each_player(linked_list* list, player_unit_function func) {
+void each_player(player_list* list, player_unit_function func) {
     linked_list_node* node = list->list;
     while(node) {
         player_state* ps = (player_state*)node->data;
@@ -19,7 +19,7 @@ void each_player(linked_list* list, player_unit_function func) {
     }
 }
 
-player_state* first_player(linked_list* list, player_bool_function func) {
+player_state* first_player(player_list* list, player_bool_function func) {
     linked_list_node* node = list->list;
     while(node) {
         player_state* ps = (player_state*)node->data;

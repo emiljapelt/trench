@@ -4,6 +4,7 @@
 #include "player.h"
 #include "game_rules.h"
 #include "event_list.h"
+#include "player_list.h"
 #include "resource_registry.h"
 #include "visual.h"
 #include "fields.h"
@@ -31,8 +32,8 @@ typedef struct {
     field_type type;
     field_data* data;
     int player_data; // Players can read and write here
-    linked_list* enter_events;
-    linked_list* exit_events;
+    event_list* enter_events;
+    event_list* exit_events;
 } field_state;
 
 typedef struct team_state {
@@ -47,13 +48,13 @@ typedef struct game_state {
     int remaining_actions;
     int board_x;
     int board_y;
-    linked_list* players;
+    player_list* players;
     int player_count;
     field_state* board;
     int feed_point;
     char* feed_buffer;
     int team_count;
-    linked_list* events;
+    event_list* events;
     team_state* team_states;
 } game_state;
 

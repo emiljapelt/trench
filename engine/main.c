@@ -169,7 +169,7 @@ turn_action player_turn_sync(player_state* ps) {
     while(1) {
         if (ps->dp >= ps->directive_len) return inactive();
         if (!use_resource(1,&_gs->remaining_steps)) return inactive();
-        //debug_print(ps);
+        debug_print(ps);
         switch (ps->directive[ps->dp++]) {
             case Meta_PlayerX: meta_player_x(ps);break;
             case Meta_PlayerY: meta_player_y(ps);break;
@@ -389,8 +389,8 @@ void play_round_sync() {
     Once each player has taken a turn, a round has passed.
 */
 void play_round_async() {
-
     linked_list_node* player_node = _gs->players->list;
+
     while (player_node) {
         player_state* player = (player_state*)player_node->data;
         int finished_events = update_events(player, _gs->events);
@@ -433,7 +433,6 @@ void dynamic_mode() {
     while(1) {
         play_round(_gr);
         if (_gs->round % _gr->mode == 0) {
-
             linked_list_node* player_node = _gs->players->list;
             while(player_node) {
                 player_state* player = (player_state*)player_node->data;
@@ -482,9 +481,9 @@ int main(int argc, char** argv) {
     caml_startup(argv);
     _gr = malloc(sizeof(game_rules));
     _gs = malloc(sizeof(game_state));
-printf("debug\n");    
+
     if(!compile_game(argv[1], _gr, _gs)) return 1;
-printf("debug\n");
+
     print_board();
     wait(1);
 

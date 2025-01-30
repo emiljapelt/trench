@@ -1,10 +1,9 @@
 #ifndef PLAYER_H
 #define PLAYER_H
 
-//#include "event_list.h"
 #include "resource_registry.h"
 
-typedef struct linked_list linked_list;
+typedef struct event_list event_list;
 
 typedef struct player_init {
     int* directive;
@@ -26,7 +25,7 @@ typedef struct player_state {
     int dp;
     int x;
     int y;
-    linked_list* death_events;
+    event_list* death_events;
     resource_registry* resources;
 } player_state;
 

@@ -7,14 +7,16 @@
 #include <stdio.h>
 
 
-void add_event(linked_list* list, event_function func, void* data) {
+void add_event(event_list* list, event_function func, void* data) {
     event* node = malloc(sizeof(event));
     node->func = func;
     node->data = data;
-    list_add(list, node);
+    list_add(&list->list, node);
 }
 
-int update_events(player_state* ps, linked_list* list) {
+int update_events(player_state* ps, event_list* list) {
+    if (!list->list) return 0;
+
     int finished_count = 0;
     linked_list_node* node = list->list;
     while (node) {
@@ -27,7 +29,7 @@ int update_events(player_state* ps, linked_list* list) {
         node = node->next;
     }
 
-    linked_list filtered = { .list = NULL };
+    event_list filtered = { .list = NULL };
     node = list->list;
     while(node) {
         linked_list_node* temp = node;
@@ -44,7 +46,7 @@ int update_events(player_state* ps, linked_list* list) {
         }
     }
 
-    list_rev(&filtered);
+    list_rev(&filtered.list);
     list->list = filtered.list;
     return finished_count;
 }

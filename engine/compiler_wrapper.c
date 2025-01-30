@@ -17,8 +17,8 @@ field_state* empty_board(const int x, const int y) {
 
     for (int _x = 0; _x < x; _x++) 
     for (int _y = 0; _y < y; _y++) {
-        linked_list* enter_events = malloc(sizeof(linked_list*));
-        linked_list* exit_events = malloc(sizeof(linked_list*));
+        event_list* enter_events = malloc(sizeof(event_list*));
+        event_list* exit_events = malloc(sizeof(event_list*));
         enter_events->list = NULL;
         exit_events->list = NULL;
         brd[(_y * x) + _x] = (field_state) {
@@ -116,13 +116,13 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 .board_x = board_x,
                 .board_y = board_y,
                 .player_count = player_count,
-                .players = malloc(sizeof(linked_list)),
+                .players = malloc(sizeof(player_list)),
                 .board = empty_board(board_x, board_y),
                 .feed_point = 0,
                 .feed_buffer = malloc(feed_size+1),
                 .team_count = team_count,
                 .team_states = malloc(sizeof(team_state) * team_count),
-                .events = malloc(sizeof(linked_list*))
+                .events = malloc(sizeof(event_list*))
             };
             gs->events->list = NULL;
             gs->players->list = NULL;
@@ -143,7 +143,7 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
             for(int i = 0; i < player_count; i++) {
                 value player_info = Field(Field(unwrapped_result, 6),i);
                 directive_info di = load_directive_to_struct(Field(player_info, 4));
-                linked_list* death_events = malloc(sizeof(linked_list*));
+                event_list* death_events = malloc(sizeof(event_list*));
                 death_events->list = NULL;
                 player_state* player = malloc(sizeof(player_state));
                 player->alive = 1;
