@@ -79,13 +79,11 @@ void instr_shoot(player_state* ps) {
         set_overlay(x,y,visual);
         set_color_overlay(x,y,FORE,color_predefs.yellow);
 
-        linked_list_node* player_node = _gs->players->list;
-        while(player_node) {
-            player_state* player = (player_state*)player_node->data;
+        for(int i = 0; i < _gs->players->list->count; i++) {
+            player_state* player = get_player(_gs->players, i);
             if (player->x == x && player->y == y && get_field(x,y)->type != TRENCH) {
                 death_mark_player(player, "Was gunned down");
             }
-            player_node = player_node->next;
         }
 
         move_coord(x, y, d, &x, &y);
@@ -146,14 +144,12 @@ void instr_mine(player_state* ps) {
     move_coord(ps->x, ps->y, d, &x, &y);
     char kill = 0;
 
-    linked_list_node* player_node = _gs->players->list;
-    while(player_node) {
-        player_state* player = (player_state*)player_node->data;
+    for(int i = 0; i < _gs->players->list->count; i++) {
+        player_state* player = get_player(_gs->players, i);
         if (player->x == x && player->y == y) { 
             death_mark_player(player, "Hit by a thrown mine"); 
             kill = 1; 
         }
-        player_node = player_node->next;
     }
 
     if (!kill) {
@@ -186,14 +182,11 @@ void instr_melee(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
     move_coord(ps->x, ps->y, d, &x, &y);
 
-    linked_list_node* player_node = _gs->players->list;
-    while(player_node) {
-        player_state* player = (player_state*)player_node->data;
+    for(int i = 0; i < _gs->players->list->count; i++) {
+        player_state* player = get_player(_gs->players, i);
         if (player->x == x && player->y == y) 
             death_mark_player(player, "Lost a fist fight");
-        player_node = player_node->next;
     }
-        
     //move(d,ps);
 }
 
@@ -394,22 +387,18 @@ void instr_projection(player_state* ps) {
 
     resource_registry* projection_registry = copy_resource_registry(ps->resources);
     player_state* projection = malloc(sizeof(player_state));
-    event_list* projection_pre_death_events = malloc(sizeof(event_list*));
-    event_list* projection_post_death_events = malloc(sizeof(event_list*));
-    projection_pre_death_events->list = NULL;
-    projection_post_death_events->list = NULL;
     int dir_bytes = sizeof(int) * ps->directive_len;
     int stack_bytes = sizeof(int) * ps->stack_len;
     int* projection_directive = malloc(dir_bytes);
     int* projection_stack = malloc(stack_bytes);
     memcpy(projection_directive, ps->directive, dir_bytes);
     memcpy(projection_stack, ps->stack, stack_bytes);
-    
+
     projection->alive = 1;
     projection->death_msg = NULL;
     projection->team = ps->team;
     projection->name = ps->name;
-    projection->id = _gs->player_count++;
+    projection->id = _gs->players->list->count;
     projection->stack = projection_stack;
     projection->stack_len = ps->stack_len;
     projection->sp = ps->sp;
@@ -419,12 +408,14 @@ void instr_projection(player_state* ps) {
     projection->dp = ps->dp;
     projection->x = ps->x;
     projection->y = ps->y;
-    projection->pre_death_events = projection_pre_death_events;
-    projection->post_death_events = projection_post_death_events;
+    projection->pre_death_events = malloc(sizeof(event_list*));
+        projection->pre_death_events->list = create_list(10);
+    projection->post_death_events = malloc(sizeof(event_list*));
+        projection->post_death_events->list = create_list(10);
     projection->resources = projection_registry;
+    
     add_player(_gs->players, projection);
     projection->team->members_alive++;
-
     projection_death_args* args = malloc(sizeof(projection_death_args));
     args->player_id = projection->id;
     args->remaining = 5;

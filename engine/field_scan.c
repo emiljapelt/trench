@@ -14,14 +14,12 @@ field_scan scan_field(const int x, const int y) {
     }
 
     unsigned int player_found;
-    linked_list_node* player_node = _gs->players->list;
-    while(player_node) {
-        player_state* player = (player_state*)player_node->data;
+    for(int i = 0; i < _gs->players->list->count; i++) {
+        player_state* player = get_player(_gs->players, i);
         if (player->x == x && player->y == y) {
             player_found = 1;
             break;
         }
-        player_node = player_node->next;
     }
 
     return (field_scan) {

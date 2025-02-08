@@ -19,10 +19,6 @@ field_state* empty_board(const int x, const int y) {
 
     for (int _x = 0; _x < x; _x++) 
     for (int _y = 0; _y < y; _y++) {
-        event_list* enter_events = malloc(sizeof(event_list*));
-        event_list* exit_events = malloc(sizeof(event_list*));
-        enter_events->list = NULL;
-        exit_events->list = NULL;
         brd[(_y * x) + _x] = (field_state) {
             .foreground_color_overlay = NULL,
             .background_color_overlay = NULL,
@@ -30,9 +26,11 @@ field_state* empty_board(const int x, const int y) {
             .symbol_overlay = 0,
             .type = EMPTY,
             .player_data = 0,
-            .enter_events = enter_events,
-            .exit_events = exit_events,
+            .enter_events = malloc(sizeof(event_list)),
+            .exit_events = malloc(sizeof(event_list)),
         };
+        brd[(_y * x) + _x].enter_events->list = create_list(10);
+        brd[(_y * x) + _x].exit_events->list = create_list(10);
     }
 
     //memset(brd,0,size);
@@ -118,17 +116,17 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 .round = 1,
                 .board_x = board_x,
                 .board_y = board_y,
-                .player_count = player_count,
                 .players = malloc(sizeof(player_list)),
+                .player_count = player_count,
                 .board = empty_board(board_x, board_y),
                 .feed_point = 0,
                 .feed_buffer = malloc(feed_size+1),
                 .team_count = team_count,
                 .team_states = malloc(sizeof(team_state) * team_count),
-                .events = malloc(sizeof(event_list*))
+                .events = malloc(sizeof(event_list)),
             };
-            gs->events->list = NULL;
-            gs->players->list = NULL;
+            gs->players->list = create_list(player_count + 1);
+            gs->events->list = create_list(10);
 
             for(int i = 0; i < team_count; i++) {
                 value team_info = Field(Field(unwrapped_result, 8),i);
@@ -146,10 +144,6 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
             for(int i = 0; i < player_count; i++) {
                 value player_info = Field(Field(unwrapped_result, 6),i);
                 directive_info di = load_directive_to_struct(Field(player_info, 4), gr->stack_size);
-                event_list* pre_death_events = malloc(sizeof(event_list*));
-                event_list* post_death_events = malloc(sizeof(event_list*));
-                pre_death_events->list = NULL;
-                post_death_events->list = NULL;
                 player_state* player = malloc(sizeof(player_state));
                 player->alive = 1;
                 player->death_msg = NULL;
@@ -165,8 +159,10 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 player->dp = 0;
                 player->x = Int_val(Field(Field(player_info, 2), 0));
                 player->y = Int_val(Field(Field(player_info, 2), 1));
-                player->pre_death_events = pre_death_events;
-                player->post_death_events = post_death_events;
+                player->pre_death_events = malloc(sizeof(event_list));
+                    player->pre_death_events->list = create_list(10);
+                player->post_death_events = malloc(sizeof(event_list));
+                    player->post_death_events->list = create_list(10);
                 player->resources = create_resource_registry(10, resource_count);
                 for(int r = 0; r < resource_count; r++) {
                     value resource = Field(Field(unwrapped_result, 11), r);

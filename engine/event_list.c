@@ -1,52 +1,46 @@
 #include "event_list.h"
 #include "game_state.h"
-#include "linked_list.h"
+#include "array_list.h"
 
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
 
 
-void add_event(event_list* list, event_function func, void* data) {
-    event* node = malloc(sizeof(event));
-    node->func = func;
-    node->data = data;
-    list_add(&list->list, node);
+void add_event(event_list* events, event_function func, void* data) {
+    event* e = malloc(sizeof(event));
+    e->data = data;
+    e->func = func;
+    list_add(events->list, e);
 }
 
-int update_events(player_state* ps, event_list* list) {
-    if (!list->list) return 0;
+event* get_event(event_list* events, int index) {
+    return (event*)list_get(events->list, index);
+}
+
+void remove_event(event_list* events, int index) {
+    list_remove(events->list, index, 0);
+}
+
+int update_events(player_state* player, event_list* events) {
 
     int finished_count = 0;
-    linked_list_node* node = list->list;
-    while (node) {
-        event* e = (event*)(node->data);
-        int finished = e->func(ps, e->data);
-        if (finished) { 
+    for(int i = 0; i < events->list->count; i++) {
+        event* e = get_event(events, i);
+        if (e->func(player, e->data)) { 
             e->func = NULL;
             finished_count++;
         }
-        node = node->next;
     }
 
-    event_list filtered = { .list = NULL };
-    node = list->list;
-    while(node) {
-        linked_list_node* temp = node;
-        event* e = (event*)temp->data;
-        node = node->next;
-        if (e->func) {
-            temp->next = filtered.list;
-            filtered.list = temp;
-        }
-        else {
+    for(int i = 0; i < events->list->count; i++) {
+        event* e = get_event(events, i);
+        if (e->func == NULL) {
+            remove_event(events, i);
             free(e->data);
-            free(temp->data);
-            free(temp);
+            free(e);
         }
     }
 
-    list_rev(&filtered.list);
-    list->list = filtered.list;
     return finished_count;
 }

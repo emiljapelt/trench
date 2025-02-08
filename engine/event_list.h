@@ -2,10 +2,10 @@
 #define EVENT_LIST_H
 
 #include "player.h"
-#include "linked_list.h"
+#include "array_list.h"
 
 typedef struct event_list {
-    linked_list_node* list;
+    array_list* list;
 } event_list;
 
 // Return 1 if the event is finished, otherwise return 0.
@@ -16,8 +16,9 @@ typedef struct event {
     void* data;
 } event;
 
-void add_event(event_list* list, event_function func, void* data);
-int update_events(player_state* ps, event_list* list);
+void add_event(event_list* events, event_function func, void* data);
+void remove_event(event_list* events, int index);
+int update_events(player_state* ps, event_list* events);
 
 
 #endif

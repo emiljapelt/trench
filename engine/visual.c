@@ -125,15 +125,13 @@ field_visual get_field_visual(const int x, const int y) {
             break;
         }
         case EMPTY: {
-            linked_list_node* player_node = _gs->players->list;
-            while(player_node) {
-                player_state* player = (player_state*)player_node->data;
+            for(int i = 0; i < _gs->players->list->count; i++) {
+                player_state* player = get_player(_gs->players, i);
                 if (player->x == x && player->y == y && player->alive) {
                     result.symbol = PERSON;
                     if (player->team) 
                         result.foreground_color = player->team->color;
                 }
-                player_node = player_node->next;
             }
             break;
         }
