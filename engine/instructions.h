@@ -157,6 +157,7 @@ void instr_mine(player_state* ps) {
         set_overlay(x,y,MINE);
         add_event(
             get_field(x,y)->exit_events,
+            PHYSICAL_EVENT,
             &mine_event, NULL
         );
     }
@@ -242,7 +243,7 @@ void instr_bomb(player_state* ps) {
     args->x = x;
     args->y = y;
     args->player_id = ps->id;
-    add_event(_gs->events, &bomb_event, args);
+    add_event(_gs->events, PHYSICAL_EVENT, &bomb_event, args);
     set_color_overlay(x,y,FORE,color_predefs.red);
     set_overlay(x,y,TARGET);
 }
@@ -419,7 +420,7 @@ void instr_projection(player_state* ps) {
     projection_death_args* args = malloc(sizeof(projection_death_args));
     args->player_id = projection->id;
     args->remaining = 5;
-    add_event(_gs->events, &projection_death_event, args);
+    add_event(_gs->events, MAGICAL_EVENT, &projection_death_event, args);
 }
 
 #endif

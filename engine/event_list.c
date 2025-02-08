@@ -7,10 +7,11 @@
 #include <stdio.h>
 
 
-void add_event(event_list* events, event_function func, void* data) {
+void add_event(event_list* events, event_kind kind, event_function func, void* data) {
     event* e = malloc(sizeof(event));
     e->data = data;
     e->func = func;
+    e->kind = kind;
     list_add(events->list, e);
 }
 
