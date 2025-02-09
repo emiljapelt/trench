@@ -34,6 +34,7 @@
                         "read", READ;
                         "write", WRITE;
                         "projection", PROJECTION;
+                        "freeze", FREEZE;
                         "PLAYER", PLAYER_CAP;
                         "TRENCH", TRENCH_CAP;
                         "TRAPPED", TRAPPED_CAP;

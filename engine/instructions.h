@@ -11,7 +11,7 @@
 #include "event_list.h"
 #include "events.h"
 #include "resource_registry.h"
-#include "field_scan.h"
+#include "fields.h"
 
 typedef enum {
   Meta_PlayerX = 0,
@@ -56,6 +56,7 @@ typedef enum {
   Instr_Read = 39,
   Instr_Write = 40,
   Instr_Projection = 41,
+  Instr_Freeze = 43,
 } instruction;
 
 void instr_shoot(player_state* ps) {
@@ -81,7 +82,7 @@ void instr_shoot(player_state* ps) {
 
         for(int i = 0; i < _gs->players->list->count; i++) {
             player_state* player = get_player(_gs->players, i);
-            if (player->x == x && player->y == y && get_field(x,y)->type != TRENCH) {
+            if (player->x == x && player->y == y && get_field(x,y)->data->type != TRENCH) {
                 death_mark_player(player, "Was gunned down");
             }
         }
@@ -107,7 +108,7 @@ void instr_look(player_state* ps) {
         case WEST: x--; break;
     }
     if (!in_bounds(x,y)) { ps->stack[ps->sp++] = 0; return; }
-    field_scan scan = scan_field(x,y);
+    field_scan scan = fields.scan(x,y);
     field_scan* bypass = &scan;
     if ((*(int*)bypass) & (1 << offset)) { ps->stack[ps->sp++] = i; return; }
     goto incr;
@@ -128,7 +129,7 @@ void instr_scan(player_state* ps) {
     }
     if (!in_bounds(x, y)) goto end;
 
-    field_scan scan = scan_field(x,y);
+    field_scan scan = fields.scan(x,y);
     field_scan* bypass = &scan;
     result = *(int*)bypass;
 
@@ -166,9 +167,11 @@ void instr_mine(player_state* ps) {
 void instr_move(player_state* ps) { 
     direction d = (direction)ps->stack[--ps->sp];
 
+    if (fields.has_obstruction(ps->x, ps->y)) return;
+
     int x, y;
     move_coord(ps->x, ps->y, d, &x, &y);
-    if (!in_bounds(x, y)) return;
+    if (!in_bounds(x,y) || fields.has_obstruction(x,y)) return;
 
     update_events(ps, get_field(ps->x,ps->y)->exit_events);
     if (!ps->death_msg) {
@@ -198,9 +201,9 @@ void instr_trench(player_state* ps) {
     if (!in_bounds(x, y)) return;
 
     field_state* field = get_field(x,y);
-    switch (field->type) {
+    switch (field->data->type) {
         case EMPTY: {
-            build_field(x,y);
+            build_trench_field(x,y);
         }
     }
 }
@@ -421,6 +424,37 @@ void instr_projection(player_state* ps) {
     args->player_id = projection->id;
     args->remaining = 5;
     add_event(_gs->events, MAGICAL_EVENT, &projection_death_event, args);
+}
+
+void instr_freeze(player_state* ps) {
+    int p = ps->stack[--ps->sp];
+    direction d = (direction)ps->stack[--ps->sp];
+    if(!spend_resource(ps->resources, "mana", 20)) return;
+
+    int x = ps->x;
+    int y = ps->y;
+    for (int i = p; i > 0; i--)
+        move_coord(x,y,d,&x,&y);
+
+    if(!in_bounds(x,y)) return;
+    field_state* field = get_field(x,y);
+    if(field->data->type == ICE_BLOCK) return;
+
+    ice_block_melt_event_args* args = malloc(sizeof(ice_block_melt_event_args));
+    args->x = x;
+    args->y = y;
+    args->player_id = ps->id;
+    args->remaining = 3;
+    add_event(_gs->events, NONE_EVENT, &ice_block_melt_event, args);
+
+    set_color_overlay(x,y,FORE,color_predefs.ice_blue);
+    set_color_overlay(x,y,BACK,color_predefs.black);
+    set_overlay(x,y,SNOWFLAKE);
+
+    field_data* new_field_data = malloc(sizeof(field_data));
+    new_field_data->type = ICE_BLOCK;
+    new_field_data->data.ice_block.inner = field->data;
+    field->data = new_field_data;
 }
 
 #endif

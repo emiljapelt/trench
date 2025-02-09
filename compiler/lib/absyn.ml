@@ -46,6 +46,7 @@ and statement_inner =
     | DeclareAssign of typ * string * value
     | Write of value
     | Projection
+    | Freeze of value * value 
 
 and value =
     | Reference of target

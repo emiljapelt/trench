@@ -95,6 +95,7 @@ let rec type_check_stmt_inner state stmt = match stmt with
   | Assign(Local n,e) -> require (var_type state.vars n) (type_value state e) (fun () -> state)
   | Move e 
   | Shoot e -> require T_Dir (type_value state e) (fun () -> state)
+  | Freeze(d,p)
   | Bomb(d,p) -> 
     require T_Dir (type_value state d) (fun () -> state) |> ignore ;
     require T_Int (type_value state p) (fun () -> state)

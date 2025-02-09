@@ -123,7 +123,18 @@ void player_turn_async(player_state* ps) {
             case Instr_Swap: instr_swap(ps); break;
             case Instr_Read: instr_read(ps); break;
             case Instr_Write: instr_write(ps); break;
-            case Instr_Projection: instr_projection(ps); break;
+            case Instr_Projection: {
+                if(!use_resource(1,&_gs->remaining_actions)) {ps->dp--; return;}
+                instr_projection(ps); 
+                change = 1;
+                break;
+            }
+            case Instr_Freeze: {
+                if(!use_resource(1,&_gs->remaining_actions)) {ps->dp--; return;}
+                instr_freeze(ps); 
+                change = 1;
+                break;
+            }
             default: return;
         }
 
@@ -213,7 +224,8 @@ turn_action player_turn_sync(player_state* ps) {
             case Instr_Swap: instr_swap(ps); break;
             case Instr_Read: instr_read(ps); break;
             case Instr_Write: instr_write(ps); break;
-            case Instr_Projection: defend_action(&instr_projection);
+            case Instr_Projection: defend_action(&instr_projection); break;
+            case Instr_Freeze: defend_action(&instr_freeze); break;
             default: return inactive();
         }
     }

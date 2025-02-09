@@ -11,34 +11,35 @@
 game_state* _gs;
 game_rules* _gr;
 
-field_state* get_field(const int x, const int y) {
-    return _gs->board + ((y * _gs->board_x) + x);
-}
-
-void set_field(const int x, const int y, field_state* f) {
-    _gs->board[(y * _gs->board_x) + x] = *f;
-}
+// field_state* get_field(const int x, const int y) {
+//     return _gs->board + ((y * _gs->board_x) + x);
+// }
+// 
+// void set_field(const int x, const int y, field_state* f) {
+//     _gs->board[(y * _gs->board_x) + x] = *f;
+// }
 
 void fortify_field(const int x, const int y) {
-    switch (_gs->board[(y * _gs->board_x) + x].type) {
+    field_state* field = get_field(x,y);
+    switch (field->data->type) {
         case TRENCH: {
-            _gs->board[(y * _gs->board_x) + x].data->trench.fortified = 1;
+            field->data->data.trench.fortified = 1;
             break;
         }
     }
 }
 
 void destroy_field(const int x, const int y) {
-    _gs->board[(y * _gs->board_x) + x].type = EMPTY;
-    free(_gs->board[(y * _gs->board_x) + x].data);
+    get_field(x,y)->data->type = EMPTY;
+    // free(_gs->board[(y * _gs->board_x) + x].data);
 }
 
-void build_field(const int x, const int y) {
-    trench_field* field = malloc(sizeof(trench_field));
-    field->fortified = 0;
+void build_trench_field(const int x, const int y) {
+    field_data* field = malloc(sizeof(field_data));
+    field->type = TRENCH;
+    field->data.trench.fortified = 0;
 
-    _gs->board[(y * _gs->board_x) + x].type = TRENCH;
-    _gs->board[(y * _gs->board_x) + x].data = (field_data*)field;
+    get_field(x,y)->data = field;
 }
 
 void set_color_overlay(const int x, const int y, color_target ct, const color* c) {
@@ -84,16 +85,15 @@ void death_mark_player(player_state* ps, const char* reason) {
 
 
 void explode_field(const int x, const int y) {
-    field_state* fld = get_field(x,y);
+    field_state* field = get_field(x,y);
 
-    switch (fld->type) {
+    switch (field->data->type) {
         case TRENCH: {
-            if(fld->data->trench.fortified) {
-                fld->data->trench.fortified = 0; 
+            if(field->data->data.trench.fortified) {
+                field->data->data.trench.fortified = 0;
                 return;
             }
-            fld->type = EMPTY;
-            free(fld->data);
+            field->data->type = EMPTY;
         }
     }
     

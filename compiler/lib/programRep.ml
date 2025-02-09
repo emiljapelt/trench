@@ -48,6 +48,7 @@ type instruction =
   | Instr_Read
   | Instr_Write
   | Instr_Projection
+  | Instr_Freeze
 
 let instruction_to_int label_map instr = match instr with
     | I i -> Some i
@@ -95,6 +96,7 @@ let instruction_to_int label_map instr = match instr with
     | Instr_Read -> Some 39
     | Instr_Write -> Some 40
     | Instr_Projection -> Some 41
+    | Instr_Freeze -> Some 43
 
 let label_set pp =
   let rec aux pp set = match pp with

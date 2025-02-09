@@ -87,6 +87,7 @@ let rec rename_variables_of_stmt i map (Stmt(stmt,ln)) = match stmt with
   | Move d -> (i,map,Stmt(Move(rename_variables_of_value map d),ln))
   | Shoot d -> (i,map,Stmt(Shoot(rename_variables_of_value map d),ln))
   | Bomb(d,p) -> (i,map,Stmt(Bomb(rename_variables_of_value map d,rename_variables_of_value map p),ln))
+  | Freeze(d,p) -> (i,map,Stmt(Freeze(rename_variables_of_value map d,rename_variables_of_value map p),ln))
   | Mine d -> (i,map,Stmt(Mine(rename_variables_of_value map d),ln))
   | Attack d -> (i,map,Stmt(Attack(rename_variables_of_value map d),ln))
   | Fortify v_o -> (i,map,Stmt(Fortify(Option.map (rename_variables_of_value map) v_o),ln))

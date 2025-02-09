@@ -126,6 +126,7 @@ and compile_stmt (Stmt(stmt,ln)) (state:compile_state) acc =
   | Pass -> Instr_Pass :: acc
   | GoTo n -> Instr_GoTo :: LabelRef n :: acc
   | Bomb(d,i) -> compile_value d state (compile_value i state (Instr_Bomb :: acc))
+  | Freeze(d,i) -> compile_value d state (compile_value i state (Instr_Freeze :: acc))
   | Mine d -> compile_value d state (Instr_Mine :: acc)
   | Attack d -> compile_value d state (Instr_Melee :: acc)
   | Declare _ -> Instr_Place :: I(0) :: acc

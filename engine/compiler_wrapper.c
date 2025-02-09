@@ -16,6 +16,8 @@
 field_state* empty_board(const int x, const int y) {
     int size = sizeof(field_state)*x*y;
     field_state* brd = malloc(size);
+    field_data* data = malloc(sizeof(field_data));
+    data->type = EMPTY;
 
     for (int _x = 0; _x < x; _x++) 
     for (int _y = 0; _y < y; _y++) {
@@ -24,7 +26,7 @@ field_state* empty_board(const int x, const int y) {
             .background_color_overlay = NULL,
             .mod_overlay = 0,
             .symbol_overlay = 0,
-            .type = EMPTY,
+            .data = data,
             .player_data = 0,
             .enter_events = malloc(sizeof(event_list)),
             .exit_events = malloc(sizeof(event_list)),

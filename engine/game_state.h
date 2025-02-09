@@ -24,18 +24,6 @@ typedef struct directive_info {
     int* directive;
 } directive_info;
 
-typedef struct {
-    const color* foreground_color_overlay;
-    const color* background_color_overlay;
-    print_mod mod_overlay;
-    const char* symbol_overlay;
-    field_type type;
-    field_data* data;
-    int player_data; // Players can read and write here
-    event_list* enter_events;
-    event_list* exit_events;
-} field_state;
-
 typedef struct team_state {
     char* team_name;
     color* color;
@@ -65,7 +53,7 @@ field_state* get_field(const int x, const int y);
 void set_field(const int x, const int y, field_state* f);
 void fortify_field(const int x, const int y);
 void destroy_field(const int x, const int y);
-void build_field(const int x, const int y);
+void build_trench_field(const int x, const int y);
 void explode_field(const int x, const int y);
 void bomb_field(const int x, const int y);
 void unexplode_field(const int x, const int y);

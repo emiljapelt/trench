@@ -1,7 +1,8 @@
 #ifndef VISUAL_H
 #define VISUAL_H
 #include "game_state.h"
-
+#include "color.h"
+#include "fields.h"
 
 // ** CHARACTER CODES ** 
 #define DESTORYED "*"
@@ -45,43 +46,18 @@
 #define MINE "\u2313"
 #define SKULL "\u2620"
 #define COFFIN "\u26b0"
+#define SNOWFLAKE "\u2744"
+#define LIGHTNING "\u2607"
 
 #define BULLETS_NS "\u22ee"
 #define BULLETS_EW "\u2026"
 
 // ****
 
-
-typedef struct color {
-    unsigned int r : 8;
-    unsigned int g : 8;
-    unsigned int b : 8;
-    unsigned int predef: 1;
-} color;
-
-typedef struct color_predef {
-    color* red;
-    color* green;
-    color* blue;
-    color* white;
-    color* black;
-    color* yellow;
-} color_predef;
-
 typedef enum {
     FORE,
     BACK,
 } color_target;
-
-typedef enum {
-    BOLD = 1,
-    SLIM = 2,
-    ITALIC = 3,
-    UNDERLINE = 4, 
-    SLOW_BLINK = 5,
-    FAST_BLINK = 6,
-    CROSS_OUT = 9,
-} print_mod;
 
 typedef struct field_visual {
     color* foreground_color;
@@ -92,7 +68,7 @@ typedef struct field_visual {
 
 color rgb_color(int r, int g, int b);
 static inline void clear_screen(void);
-field_visual get_field_visual(const int x, const int y);
+field_visual get_field_visual(const int x, const int y, const field_state* field);
 void print_board();
 extern const color_predef color_predefs;
 

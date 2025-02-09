@@ -1,5 +1,7 @@
 #include "events.h"
 
+#include <stdlib.h>
+
 #include "game_state.h"
 #include "visual.h"
 #include "player.h"
@@ -30,4 +32,21 @@ int projection_death_event(player_state* ps, void* data) {
         args->remaining--;
         return 0;
     }
+}
+
+int ice_block_melt_event(player_state* player, void* data) {
+    ice_block_melt_event_args* args = (ice_block_melt_event_args*)data;
+    field_state* field = get_field(args->x, args->y);
+
+    if (field->data->type != ICE_BLOCK) return 1;
+    if (args->player_id != player->id) 
+        return 0;
+    if (args->remaining) {
+        args->remaining--;
+        return 0;
+    }
+
+    ice_block_field ice_block = field->data->data.ice_block;
+    field->data = ice_block.inner;
+    return 1;
 }
