@@ -25,21 +25,22 @@ const color_predef color_predefs = {
     .ice_blue = &_ice_blue,
 };
 
-static inline void clear_screen(void) {
-    // use cursor movements instead, avoids flickering
-    // https://stackoverflow.com/questions/26423537/how-to-position-the-input-text-cursor-in-c
-    //printf("\e[1;1H\e[2J");
+// https://stackoverflow.com/questions/26423537/how-to-position-the-input-text-cursor-in-c
+inline void clear_screen(void) {
     printf("\033[H\033[J");
-    //printf("\033[%d;%dH", (0), (0));
+}
+inline void reset_cursor(void) {
+    printf("\033[0;0H");
 }
 
 static inline char trench_connects(int x, int y) {
-    if (!in_bounds(x,y)) return 0;
-    return fields.has_trench(get_field(x,y)->data);
+    return (!in_bounds(x,y)) 
+        ? 0 
+        : fields.has_trench(get_field(x,y)->data);
 }
 
 // 0xNESW
-const char* char_lookup[] = {
+char* char_lookup[] = {
     NONE, // 0x0000
     W, // 0x0001
     S, // 0x0010
@@ -57,7 +58,7 @@ const char* char_lookup[] = {
     NES, // 0x1110
     ALL, // 0x1111
 };
-const char* f_char_lookup[] = {
+char* f_char_lookup[] = {
     F_NONE, // 0x0000
     F_W, // 0x0001
     F_S, // 0x0010
@@ -146,17 +147,17 @@ field_visual get_field_visual(const int x, const int y, const field_state* field
     field_visual result = get_field_data_visual(x,y,field->data);
 
     if (_gs->board[(y * _gs->board_x) + x].symbol_overlay) {
-        const char* symbol = _gs->board[(y * _gs->board_x) + x].symbol_overlay;
+        char* symbol = _gs->board[(y * _gs->board_x) + x].symbol_overlay;
         _gs->board[(y * _gs->board_x) + x].symbol_overlay = NULL;
         result.symbol = symbol;
     }
     if (_gs->board[(y * _gs->board_x) + x].foreground_color_overlay) {
-        const color* color = _gs->board[(y * _gs->board_x) + x].foreground_color_overlay;
+        color* color = _gs->board[(y * _gs->board_x) + x].foreground_color_overlay;
         _gs->board[(y * _gs->board_x) + x].foreground_color_overlay = NULL;
         result.foreground_color = color;
     }
     if (_gs->board[(y * _gs->board_x) + x].background_color_overlay) {
-        const color* color = _gs->board[(y * _gs->board_x) + x].background_color_overlay;
+        color* color = _gs->board[(y * _gs->board_x) + x].background_color_overlay;
         _gs->board[(y * _gs->board_x) + x].background_color_overlay = NULL;
         result.background_color = color;
     }
@@ -165,7 +166,7 @@ field_visual get_field_visual(const int x, const int y, const field_state* field
 }
 
 void print_board() {
-    clear_screen();
+    reset_cursor();
     printf("Round: %i, Actions: %i, Steps: %i\n", _gs->round, _gs->remaining_actions, _gs->remaining_steps);
     for(int i = 0; i < _gs->board_x+2; i++) putchar('.');
     putchar('\n');

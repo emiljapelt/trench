@@ -65,7 +65,7 @@ void instr_shoot(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
     int x = ps->x;
     int y = ps->y;
-    const char* visual; switch (d) {
+    char* visual; switch (d) {
         case NORTH:
         case SOUTH: 
             visual = BULLETS_NS;

@@ -38,10 +38,10 @@ typedef struct {
 } field_scan;
 
 typedef struct field_state {
-    const color* foreground_color_overlay;
-    const color* background_color_overlay;
+    color* foreground_color_overlay;
+    color* background_color_overlay;
     print_mod mod_overlay;
-    const char* symbol_overlay;
+    char* symbol_overlay;
     field_data* data;
     int player_data; // Players can read and write here
     event_list* enter_events;

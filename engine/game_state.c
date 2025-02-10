@@ -42,18 +42,18 @@ void build_trench_field(const int x, const int y) {
     get_field(x,y)->data = field;
 }
 
-void set_color_overlay(const int x, const int y, color_target ct, const color* c) {
+void set_color_overlay(const int x, const int y, color_target ct, color* c) {
     switch (ct) {
         case FORE: _gs->board[(y * _gs->board_x) + x].foreground_color_overlay = c; break;
         case BACK: _gs->board[(y * _gs->board_x) + x].background_color_overlay = c; break;
     }
 }
 
-void set_mod_overlay(const int x, const int y, const print_mod m) {
+void set_mod_overlay(const int x, const int y, print_mod m) {
     _gs->board[(y * _gs->board_x) + x].mod_overlay = m;
 }
 
-void set_overlay(const int x, const int y, const char* symbol) {
+void set_overlay(const int x, const int y, char* symbol) {
     _gs->board[(y * _gs->board_x) + x].symbol_overlay = symbol;
 }
 

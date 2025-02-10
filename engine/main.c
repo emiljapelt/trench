@@ -481,6 +481,7 @@ int main(int argc, char** argv) {
 
     if(!compile_game(argv[1], _gr, _gs)) return 1;
 
+    clear_screen();
     print_board();
     wait(1);
 

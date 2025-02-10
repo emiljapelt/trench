@@ -1,5 +1,6 @@
 #ifndef VISUAL_H
 #define VISUAL_H
+
 #include "game_state.h"
 #include "color.h"
 #include "fields.h"
@@ -67,7 +68,8 @@ typedef struct field_visual {
 } field_visual;
 
 color rgb_color(int r, int g, int b);
-static inline void clear_screen(void);
+void clear_screen(void);
+void reset_cursor(void);
 field_visual get_field_visual(const int x, const int y, const field_state* field);
 void print_board();
 extern const color_predef color_predefs;
