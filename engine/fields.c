@@ -12,7 +12,7 @@ void set_field(const int x, const int y, field_state* f) {
     _gs->board[(y * _gs->board_x) + x] = *f;
 }
 
-int has_obstruction(int x, int y) {
+int has_obstruction(const int x, const int y) {
     switch (get_field(x,y)->data->type) {
         case ICE_BLOCK:
             return 1;
@@ -21,7 +21,7 @@ int has_obstruction(int x, int y) {
     }
 }
 
-int has_trench(field_data* field) {
+int has_trench(const field_data* field) {
     if (field == NULL) return 0;
     switch (field->type) {
         case TRENCH:
@@ -33,7 +33,7 @@ int has_trench(field_data* field) {
     }
 }
 
-int has_player(int x, int y) {
+int has_player(const int x, const int y) {
     unsigned int player_found;
     for(int i = 0; i < _gs->players->list->count; i++) {
         player_state* player = get_player(_gs->players, i);
@@ -43,7 +43,7 @@ int has_player(int x, int y) {
     return 0;
 }
 
-int has_trap(int x, int y) {
+int has_trap(const int x, const int y) {
     field_state* field = get_field(x,y);
     return 
         (field->enter_events->list->count || field->exit_events->list->count)

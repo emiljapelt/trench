@@ -49,13 +49,13 @@ typedef struct field_state {
 } field_state;
 
 typedef struct fields_namespace {
-    field_state* (*get)(const int x, const int y);
-    void (*set)(const int x, const int y, field_state* f);
-    int (*has_obstruction)(int x, int y);
-    int (*has_trench)(field_data*);
-    int (*has_player)(int x, int y);
-    int (*has_trap)(int x, int y);
-    field_scan (*scan)(const int x, const int y);
+    field_state* (*const get)(const int x, const int y);
+    void (*const set)(const int x, const int y, field_state* f);
+    int (*const has_obstruction)(const int x, const int y);
+    int (*const has_trench)(const field_data*);
+    int (*const has_player)(const int x, const int y);
+    int (*const has_trap)(const int x, const int y);
+    field_scan (*const scan)(const int x, const int y);
 } fields_namespace;
 
 extern const fields_namespace fields;
