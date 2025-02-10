@@ -413,9 +413,9 @@ void instr_projection(player_state* ps) {
     projection->x = ps->x;
     projection->y = ps->y;
     projection->pre_death_events = malloc(sizeof(event_list*));
-        projection->pre_death_events->list = create_list(10);
+        projection->pre_death_events->list = array_list.create(10);
     projection->post_death_events = malloc(sizeof(event_list*));
-        projection->post_death_events->list = create_list(10);
+        projection->post_death_events->list = array_list.create(10);
     projection->resources = projection_registry;
     
     add_player(_gs->players, projection);

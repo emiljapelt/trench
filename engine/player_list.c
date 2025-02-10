@@ -7,11 +7,11 @@
 #include "player.h"
 
 void add_player(player_list* players, player_state* ps) {
-    list_add(players->list, ps);
+    array_list.add(players->list, ps);
 }
 
 player_state* get_player(player_list* players, int index) {
-    return (player_state*)list_get(players->list, index);
+    return (player_state*)array_list.get(players->list, index);
 }
 
 void each_player(player_list* players, player_unit_function func) {

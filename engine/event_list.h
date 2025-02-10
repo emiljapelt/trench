@@ -5,7 +5,7 @@
 #include "array_list.h"
 
 typedef struct event_list {
-    array_list* list;
+    array_list_t* list;
 } event_list;
 
 // Return 1 if the event is finished, otherwise return 0.

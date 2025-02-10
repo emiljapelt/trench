@@ -31,8 +31,8 @@ field_state* empty_board(const int x, const int y) {
             .enter_events = malloc(sizeof(event_list)),
             .exit_events = malloc(sizeof(event_list)),
         };
-        brd[(_y * x) + _x].enter_events->list = create_list(10);
-        brd[(_y * x) + _x].exit_events->list = create_list(10);
+        brd[(_y * x) + _x].enter_events->list = array_list.create(10);
+        brd[(_y * x) + _x].exit_events->list = array_list.create(10);
     }
 
     //memset(brd,0,size);
@@ -127,8 +127,8 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 .team_states = malloc(sizeof(team_state) * team_count),
                 .events = malloc(sizeof(event_list)),
             };
-            gs->players->list = create_list(player_count + 1);
-            gs->events->list = create_list(10);
+            gs->players->list = array_list.create(player_count + 1);
+            gs->events->list = array_list.create(10);
 
             for(int i = 0; i < team_count; i++) {
                 value team_info = Field(Field(unwrapped_result, 8),i);
@@ -162,9 +162,9 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 player->x = Int_val(Field(Field(player_info, 2), 0));
                 player->y = Int_val(Field(Field(player_info, 2), 1));
                 player->pre_death_events = malloc(sizeof(event_list));
-                    player->pre_death_events->list = create_list(10);
+                    player->pre_death_events->list = array_list.create(10);
                 player->post_death_events = malloc(sizeof(event_list));
-                    player->post_death_events->list = create_list(10);
+                    player->post_death_events->list = array_list.create(10);
                 player->resources = create_resource_registry(10, resource_count);
                 for(int r = 0; r < resource_count; r++) {
                     value resource = Field(Field(unwrapped_result, 11), r);

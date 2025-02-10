@@ -5,7 +5,7 @@
 #include "array_list.h"
 
 typedef struct player_list {
-    array_list* list;
+    array_list_t* list;
 } player_list;
 
 

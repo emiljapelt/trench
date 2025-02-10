@@ -3,8 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-array_list* create_list(int init_size) {
-    array_list* new_list = malloc(sizeof(array_list));
+array_list_t* create(int init_size) {
+    array_list_t* new_list = malloc(sizeof(array_list_t));
     void** list = malloc(sizeof(void*) * init_size);
 
     new_list->count = 0;
@@ -14,7 +14,7 @@ array_list* create_list(int init_size) {
     return new_list;
 }
 
-void list_add(array_list* list, void* data) {
+void add(array_list_t* list, void* data) {
     if (list->count >= list->size) {
         void** new_list = malloc(list->size * 2);
         memcpy(new_list, list->list, sizeof(void*) * list->count);
@@ -26,14 +26,14 @@ void list_add(array_list* list, void* data) {
     list->list[list->count++] = data;
 };
 
-void* list_get(array_list* list, int index) {
+void* get(array_list_t* list, int index) {
     if (index < 0 || index > list->count)
         return NULL;
 
     return list->list[index];
 }
 
-void list_remove(array_list* list, int index, int do_free) {
+void remove(array_list_t* list, int index, int do_free) {
     if (index < 0 || index > list->count)
         return;
 
@@ -52,3 +52,10 @@ void list_remove(array_list* list, int index, int do_free) {
         list->size = quad_list_size;
     }
 }
+
+const array_list_namespace array_list = {
+    .create = &create,
+    .add = &add,
+    .get = &get,
+    .remove = &remove,
+};

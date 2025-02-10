@@ -12,15 +12,15 @@ void add_event(event_list* events, event_kind kind, event_function func, void* d
     e->data = data;
     e->func = func;
     e->kind = kind;
-    list_add(events->list, e);
+    array_list.add(events->list, e);
 }
 
 event* get_event(event_list* events, int index) {
-    return (event*)list_get(events->list, index);
+    return (event*)array_list.get(events->list, index);
 }
 
 void remove_event(event_list* events, int index) {
-    list_remove(events->list, index, 0);
+    array_list.remove(events->list, index, 0);
 }
 
 int update_events(player_state* player, event_list* events) {
