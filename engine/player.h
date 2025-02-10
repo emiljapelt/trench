@@ -2,8 +2,9 @@
 #define PLAYER_H
 
 #include "resource_registry.h"
+#include "array_list.h"
 
-typedef struct event_list event_list;
+typedef array_list_t event_list_t;
 typedef struct team_state team_state;
 
 typedef struct player_init {
@@ -27,8 +28,8 @@ typedef struct player_state {
     int dp;
     int x;
     int y;
-    event_list* pre_death_events;
-    event_list* post_death_events;
+    event_list_t* pre_death_events;
+    event_list_t* post_death_events;
     resource_registry* resources;
 } player_state;
 

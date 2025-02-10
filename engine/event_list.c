@@ -7,26 +7,26 @@
 #include <stdio.h>
 
 
-void add_event(event_list* events, event_kind kind, event_function func, void* data) {
+void add_event(event_list_t* events, event_kind kind, event_function func, void* data) {
     event* e = malloc(sizeof(event));
     e->data = data;
     e->func = func;
     e->kind = kind;
-    array_list.add(events->list, e);
+    array_list.add(events, e);
 }
 
-event* get_event(event_list* events, int index) {
-    return (event*)array_list.get(events->list, index);
+event* get_event(event_list_t* events, int index) {
+    return (event*)array_list.get(events, index);
 }
 
-void remove_event(event_list* events, int index) {
-    array_list.remove(events->list, index, 0);
+void remove_event(event_list_t* events, int index) {
+    array_list.remove(events, index, 0);
 }
 
-int update_events(player_state* player, event_list* events) {
+int update_events(player_state* player, event_list_t* events) {
 
     int finished_count = 0;
-    for(int i = 0; i < events->list->count; i++) {
+    for(int i = 0; i < events->count; i++) {
         event* e = get_event(events, i);
         if (e->func(player, e->data)) { 
             e->func = NULL;
@@ -34,7 +34,7 @@ int update_events(player_state* player, event_list* events) {
         }
     }
 
-    for(int i = 0; i < events->list->count; i++) {
+    for(int i = 0; i < events->count; i++) {
         event* e = get_event(events, i);
         if (e->func == NULL) {
             remove_event(events, i);

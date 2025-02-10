@@ -80,7 +80,7 @@ void instr_shoot(player_state* ps) {
         set_overlay(x,y,visual);
         set_color_overlay(x,y,FORE,color_predefs.yellow);
 
-        for(int i = 0; i < _gs->players->list->count; i++) {
+        for(int i = 0; i < _gs->players->count; i++) {
             player_state* player = get_player(_gs->players, i);
             if (player->x == x && player->y == y && get_field(x,y)->data->type != TRENCH) {
                 death_mark_player(player, "Was gunned down");
@@ -145,7 +145,7 @@ void instr_mine(player_state* ps) {
     move_coord(ps->x, ps->y, d, &x, &y);
     char kill = 0;
 
-    for(int i = 0; i < _gs->players->list->count; i++) {
+    for(int i = 0; i < _gs->players->count; i++) {
         player_state* player = get_player(_gs->players, i);
         if (player->x == x && player->y == y) { 
             death_mark_player(player, "Hit by a thrown mine"); 
@@ -186,7 +186,7 @@ void instr_melee(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
     move_coord(ps->x, ps->y, d, &x, &y);
 
-    for(int i = 0; i < _gs->players->list->count; i++) {
+    for(int i = 0; i < _gs->players->count; i++) {
         player_state* player = get_player(_gs->players, i);
         if (player->x == x && player->y == y) 
             death_mark_player(player, "Lost a fist fight");
@@ -402,7 +402,7 @@ void instr_projection(player_state* ps) {
     projection->death_msg = NULL;
     projection->team = ps->team;
     projection->name = ps->name;
-    projection->id = _gs->players->list->count;
+    projection->id = _gs->players->count;
     projection->stack = projection_stack;
     projection->stack_len = ps->stack_len;
     projection->sp = ps->sp;
@@ -412,10 +412,8 @@ void instr_projection(player_state* ps) {
     projection->dp = ps->dp;
     projection->x = ps->x;
     projection->y = ps->y;
-    projection->pre_death_events = malloc(sizeof(event_list*));
-        projection->pre_death_events->list = array_list.create(10);
-    projection->post_death_events = malloc(sizeof(event_list*));
-        projection->post_death_events->list = array_list.create(10);
+    projection->pre_death_events = array_list.create(10);
+    projection->post_death_events = array_list.create(10);
     projection->resources = projection_registry;
     
     add_player(_gs->players, projection);

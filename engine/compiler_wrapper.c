@@ -28,11 +28,11 @@ field_state* empty_board(const int x, const int y) {
             .symbol_overlay = 0,
             .data = data,
             .player_data = 0,
-            .enter_events = malloc(sizeof(event_list)),
-            .exit_events = malloc(sizeof(event_list)),
+            .enter_events = malloc(sizeof(event_list_t)),
+            .exit_events = malloc(sizeof(event_list_t)),
         };
-        brd[(_y * x) + _x].enter_events->list = array_list.create(10);
-        brd[(_y * x) + _x].exit_events->list = array_list.create(10);
+        brd[(_y * x) + _x].enter_events = array_list.create(10);
+        brd[(_y * x) + _x].exit_events = array_list.create(10);
     }
 
     //memset(brd,0,size);
@@ -118,17 +118,17 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 .round = 1,
                 .board_x = board_x,
                 .board_y = board_y,
-                .players = malloc(sizeof(player_list)),
+                .players = malloc(sizeof(player_list_t)),
                 .player_count = player_count,
                 .board = empty_board(board_x, board_y),
                 .feed_point = 0,
                 .feed_buffer = malloc(feed_size+1),
                 .team_count = team_count,
                 .team_states = malloc(sizeof(team_state) * team_count),
-                .events = malloc(sizeof(event_list)),
+                .events = malloc(sizeof(event_list_t)),
             };
-            gs->players->list = array_list.create(player_count + 1);
-            gs->events->list = array_list.create(10);
+            gs->players = array_list.create(player_count + 1);
+            gs->events = array_list.create(10);
 
             for(int i = 0; i < team_count; i++) {
                 value team_info = Field(Field(unwrapped_result, 8),i);
@@ -161,10 +161,10 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 player->dp = 0;
                 player->x = Int_val(Field(Field(player_info, 2), 0));
                 player->y = Int_val(Field(Field(player_info, 2), 1));
-                player->pre_death_events = malloc(sizeof(event_list));
-                    player->pre_death_events->list = array_list.create(10);
-                player->post_death_events = malloc(sizeof(event_list));
-                    player->post_death_events->list = array_list.create(10);
+                player->pre_death_events = malloc(sizeof(event_list_t));
+                    player->pre_death_events = array_list.create(10);
+                player->post_death_events = malloc(sizeof(event_list_t));
+                    player->post_death_events = array_list.create(10);
                 player->resources = create_resource_registry(10, resource_count);
                 for(int r = 0; r < resource_count; r++) {
                     value resource = Field(Field(unwrapped_result, 11), r);

@@ -128,7 +128,7 @@ field_visual get_field_data_visual(const int x, const int y, const field_data* f
             break;
         }
         case EMPTY: {
-            for(int i = 0; i < _gs->players->list->count; i++) {
+            for(int i = 0; i < _gs->players->count; i++) {
                 player_state* player = get_player(_gs->players, i);
                 if (player->x == x && player->y == y && player->alive) {
                     result.symbol = PERSON;

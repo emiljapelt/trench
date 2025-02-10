@@ -6,23 +6,23 @@
 #include "util.h"
 #include "player.h"
 
-void add_player(player_list* players, player_state* ps) {
-    array_list.add(players->list, ps);
+void add_player(player_list_t* players, player_state* ps) {
+    array_list.add(players, ps);
 }
 
-player_state* get_player(player_list* players, int index) {
-    return (player_state*)array_list.get(players->list, index);
+player_state* get_player(player_list_t* players, int index) {
+    return (player_state*)array_list.get(players, index);
 }
 
-void each_player(player_list* players, player_unit_function func) {
-    for(int i = 0; i < players->list->count; i++) {
+void each_player(player_list_t* players, player_unit_function func) {
+    for(int i = 0; i < players->count; i++) {
         player_state* ps = get_player(players, i);
         func(ps);
     }
 }
 
-player_state* first_player(player_list* players, player_bool_function func) {
-    for(int i = 0; i < players->list->count; i++) {
+player_state* first_player(player_list_t* players, player_bool_function func) {
+    for(int i = 0; i < players->count; i++) {
         player_state* ps = get_player(players, i);
         if (func(ps)) return ps;
     }

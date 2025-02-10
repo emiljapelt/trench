@@ -98,7 +98,7 @@ void explode_field(const int x, const int y) {
     }
     
 
-    for(int i = 0; i < _gs->players->list->count; i++) {
+    for(int i = 0; i < _gs->players->count; i++) {
         player_state* player = get_player(_gs->players, i);
         if (player->x == x && player->y == y) 
             death_mark_player(player, "Got blown up");

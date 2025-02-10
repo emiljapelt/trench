@@ -36,13 +36,13 @@ typedef struct game_state {
     int remaining_actions;
     int board_x;
     int board_y;
-    player_list* players;
+    player_list_t* players;
     int player_count;
     field_state* board;
     int feed_point;
     char* feed_buffer;
     int team_count;
-    event_list* events;
+    event_list_t* events;
     team_state* team_states;
 } game_state;
 

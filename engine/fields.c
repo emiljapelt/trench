@@ -35,7 +35,7 @@ int has_trench(const field_data* field) {
 
 int has_player(const int x, const int y) {
     unsigned int player_found;
-    for(int i = 0; i < _gs->players->list->count; i++) {
+    for(int i = 0; i < _gs->players->count; i++) {
         player_state* player = get_player(_gs->players, i);
         if (player->alive && player->x == x && player->y == y)
             return 1;
@@ -46,7 +46,7 @@ int has_player(const int x, const int y) {
 int has_trap(const int x, const int y) {
     field_state* field = get_field(x,y);
     return 
-        (field->enter_events->list->count || field->exit_events->list->count)
+        (field->enter_events->count || field->exit_events->count)
             ? 1 : 0;
 }
 

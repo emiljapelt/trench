@@ -44,8 +44,8 @@ typedef struct field_state {
     char* symbol_overlay;
     field_data* data;
     int player_data; // Players can read and write here
-    event_list* enter_events;
-    event_list* exit_events;
+    event_list_t* enter_events;
+    event_list_t* exit_events;
 } field_state;
 
 typedef struct fields_namespace {

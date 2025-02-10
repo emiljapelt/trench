@@ -312,7 +312,7 @@ void check_win_condition() {
 
 
 void play_round_sync() {
-        const int player_count = _gs->players->list->count;
+        const int player_count = _gs->players->count;
         int change = 0;
         int i = 0;
 
@@ -385,7 +385,7 @@ void play_round_sync() {
     // Check win condition
         check_win_condition();
         free(acts);
-        _gs->player_count = _gs->players->list->count;
+        _gs->player_count = _gs->players->count;
 }
 
 /*
@@ -393,7 +393,7 @@ void play_round_sync() {
     Once each player has taken a turn, a round has passed.
 */
 void play_round_async() {
-    const int player_count = _gs->players->list->count;
+    const int player_count = _gs->players->count;
     for(int i = 0; i < player_count; i++) {
         player_state* player = get_player(_gs->players, i);
         int finished_events = update_events(player, _gs->events);
@@ -434,7 +434,7 @@ void dynamic_mode() {
     while(1) {
         play_round(_gr);
         if (_gs->round % _gr->mode == 0) {
-            const int player_count = _gs->players->list->count;
+            const int player_count = _gs->players->count;
             for (int i = 0; i < player_count; i++) {
                 player_state* player = get_player(_gs->players, i);
                 if (!player->alive) continue; 
@@ -451,7 +451,7 @@ void dynamic_mode() {
 // Players can change directive before each of their turns
 void manual_mode() {
     while(1) {
-        const int player_count = _gs->players->list->count;
+        const int player_count = _gs->players->count;
         for(int i = 0; i < player_count; i++) {
             player_state* player = get_player(_gs->players, i);
             if (!player->alive) continue; 
