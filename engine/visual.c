@@ -111,7 +111,6 @@ field_visual get_field_data_visual(const int x, const int y, const field_data* f
 
     switch (field->type) {
         case TRENCH: {
-            //printf("trench\n");
             int char_idx = 
                 (trench_connects(x,y-1) << 3) | // N
                 (trench_connects(x+1,y) << 2) | // E
@@ -122,14 +121,12 @@ field_visual get_field_data_visual(const int x, const int y, const field_data* f
             break;
         }
         case ICE_BLOCK: {
-            //printf("ice\n");
             result.background_color = color_predefs.ice_blue;
             result.foreground_color = color_predefs.white;
             result.symbol = get_field_data_visual(x,y,field->data.ice_block.inner).symbol;
             break;
         }
         case EMPTY: {
-            //printf("empty\n");
             for(int i = 0; i < _gs->players->list->count; i++) {
                 player_state* player = get_player(_gs->players, i);
                 if (player->x == x && player->y == y && player->alive) {
@@ -146,31 +143,23 @@ field_visual get_field_data_visual(const int x, const int y, const field_data* f
 
 field_visual get_field_visual(const int x, const int y, const field_state* field) {
 
-    //printf("Getting visual %p...\n", field->data);
     field_visual result = get_field_data_visual(x,y,field->data);
-    //printf("Got visual!\n");
-    //printf("\t %p\n", result.background_color);
 
-    //printf("Getting visual overrides...\n");
     if (_gs->board[(y * _gs->board_x) + x].symbol_overlay) {
-        //printf("symbol overridden\n");
         const char* symbol = _gs->board[(y * _gs->board_x) + x].symbol_overlay;
         _gs->board[(y * _gs->board_x) + x].symbol_overlay = NULL;
         result.symbol = symbol;
     }
     if (_gs->board[(y * _gs->board_x) + x].foreground_color_overlay) {
-        //printf("foreground overridden\n");
         const color* color = _gs->board[(y * _gs->board_x) + x].foreground_color_overlay;
         _gs->board[(y * _gs->board_x) + x].foreground_color_overlay = NULL;
         result.foreground_color = color;
     }
     if (_gs->board[(y * _gs->board_x) + x].background_color_overlay) {
-        //printf("background overridden\n");
         const color* color = _gs->board[(y * _gs->board_x) + x].background_color_overlay;
         _gs->board[(y * _gs->board_x) + x].background_color_overlay = NULL;
         result.background_color = color;
     }
-    //printf("Done! %p\n", result.background_color);
 
     return result; 
 }
@@ -185,25 +174,21 @@ void print_board() {
         for(int x = 0; x < _gs->board_x; x++) {
             field_visual visual = get_field_visual(x,y,get_field(x,y));
 
-            //printf("Setting foreground... %p\n", visual.foreground_color);
             if (visual.foreground_color) {
                 set_color(*visual.foreground_color, FORE);
                 if (!visual.foreground_color->predef)
                     free(visual.foreground_color);
             }
 
-            //printf("Setting background... %p\n", visual.background_color);
             if (visual.background_color) {
                 set_color(*visual.background_color, BACK);
                 if (!visual.background_color->predef) 
                     free(visual.background_color);
             }
 
-            //printf("Setting mod...\n");
             if (visual.mod)
                 set_print_mod(visual.mod);
 
-            //printf("Printing...\n");
             printf("%s", visual.symbol);
             reset_print();
         }
