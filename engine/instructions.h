@@ -76,7 +76,7 @@ void instr_shoot(player_state* ps) {
             break;
     }
     move_coord(x, y, d, &x, &y);
-    while (in_bounds(x,y)) { 
+    while (in_bounds(x,y) && !fields.has_obstruction(x,y)) { 
         set_overlay(x,y,visual);
         set_color_overlay(x,y,FORE,color_predefs.yellow);
 
