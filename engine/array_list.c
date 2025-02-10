@@ -16,7 +16,7 @@ array_list_t* create(int init_size) {
 
 void add(array_list_t* list, void* data) {
     if (list->count >= list->size) {
-        void** new_list = malloc(list->size * 2);
+        void** new_list = malloc(sizeof(void*) * list->size * 2);
         memcpy(new_list, list->list, sizeof(void*) * list->count);
         free(list->list);
         list->list = new_list;
@@ -43,13 +43,12 @@ void remove(array_list_t* list, int index, int do_free) {
 
     list->count--;
 
-    int quad_list_size = list->size/4;
-    if (list->count < quad_list_size ) {
-        void** new_list = malloc(sizeof(void*) * quad_list_size);
+    if (list->count < (list->size/4) ) {
+        void** new_list = malloc(sizeof(void*) * (list->size / 2));
         memcpy(new_list, list->list, sizeof(void*) * list->count);
         free(list->list);
         list->list = new_list;
-        list->size = quad_list_size;
+        list->size /= 2;
     }
 }
 
