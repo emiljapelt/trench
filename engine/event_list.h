@@ -2,12 +2,10 @@
 #define EVENT_LIST_H
 
 #include "player.h"
+#include "events.h"
 #include "array_list.h"
 
 typedef array_list_t event_list_t;
-
-// Return 1 if the event is finished, otherwise return 0.
-typedef int (*event_function)(player_state* ps, void* data);
 
 typedef enum {
     NONE_EVENT,

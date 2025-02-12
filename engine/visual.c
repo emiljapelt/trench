@@ -36,7 +36,7 @@ inline void reset_cursor(void) {
 static inline char trench_connects(int x, int y) {
     return (!in_bounds(x,y)) 
         ? 0 
-        : fields.has_trench(get_field(x,y)->data);
+        : get_field(x,y)->type == TRENCH;
 }
 
 // 0xNESW
@@ -100,7 +100,7 @@ void reset_print() {
     printf("\033[0m");
 }
 
-field_visual get_field_data_visual(const int x, const int y, const field_data* field) {
+field_visual get_field_data_visual(const int x, const int y, const field_type type, const field_data* data) {
     field_visual result = {
         .background_color = NULL,
         .foreground_color = NULL,
@@ -108,9 +108,7 @@ field_visual get_field_data_visual(const int x, const int y, const field_data* f
         .symbol = " "
     };
 
-    if (field == NULL) return result;
-
-    switch (field->type) {
+    switch (type) {
         case TRENCH: {
             int char_idx = 
                 (trench_connects(x,y-1) << 3) | // N
@@ -118,13 +116,13 @@ field_visual get_field_data_visual(const int x, const int y, const field_data* f
                 (trench_connects(x,y+1) << 1) | // S
                 trench_connects(x-1,y);         // W 
 
-            result.symbol = (field->data.trench.fortified) ? f_char_lookup[char_idx] : char_lookup[char_idx];
+            result.symbol = (data->trench.fortified) ? f_char_lookup[char_idx] : char_lookup[char_idx];
             break;
         }
         case ICE_BLOCK: {
             result.background_color = color_predefs.ice_blue;
             result.foreground_color = color_predefs.white;
-            result.symbol = get_field_data_visual(x,y,field->data.ice_block.inner).symbol;
+            result.symbol = get_field_data_visual(x, y, data->ice_block.inner_type, data->ice_block.inner).symbol;
             break;
         }
         case EMPTY: {
@@ -144,7 +142,7 @@ field_visual get_field_data_visual(const int x, const int y, const field_data* f
 
 field_visual get_field_visual(const int x, const int y, const field_state* field) {
 
-    field_visual result = get_field_data_visual(x,y,field->data);
+    field_visual result = get_field_data_visual(x,y,field->type,field->data);
 
     if (_gs->board[(y * _gs->board_x) + x].symbol_overlay) {
         char* symbol = _gs->board[(y * _gs->board_x) + x].symbol_overlay;

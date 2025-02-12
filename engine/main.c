@@ -270,7 +270,7 @@ void get_new_directive(player_state* ps) {
 void nuke_board() {
     for(int y = 0; y < _gs->board_y; y++)
     for(int x = 0; x < _gs->board_x; x++) 
-        explode_field(x, y);
+        fields.destroy_field(x, y, "Got nuked");
 }
 
 int teams_alive() {
@@ -329,7 +329,7 @@ void play_round_sync() {
         if (_gs->feed_point) { print_board(); wait(1); }
 
     // Step phase
-        turn_action* acts = malloc(sizeof(turn_action) * _gs->player_count);
+        turn_action* acts = malloc(sizeof(turn_action) * player_count);
         change = 0;
         for(i = 0; i < player_count; i++) {
             player_state* player = get_player(_gs->players, i);
@@ -385,7 +385,6 @@ void play_round_sync() {
     // Check win condition
         check_win_condition();
         free(acts);
-        _gs->player_count = _gs->players->count;
 }
 
 /*

@@ -76,13 +76,13 @@ void instr_shoot(player_state* ps) {
             break;
     }
     move_coord(x, y, d, &x, &y);
-    while (in_bounds(x,y) && !fields.has_obstruction(x,y)) { 
+    while (in_bounds(x,y) && !fields.is_obstruction(x,y)) { 
         set_overlay(x,y,visual);
         set_color_overlay(x,y,FORE,color_predefs.yellow);
 
         for(int i = 0; i < _gs->players->count; i++) {
             player_state* player = get_player(_gs->players, i);
-            if (player->x == x && player->y == y && get_field(x,y)->data->type != TRENCH) {
+            if (player->x == x && player->y == y && !fields.is_cover(x,y)) {
                 death_mark_player(player, "Was gunned down");
             }
         }
@@ -159,7 +159,7 @@ void instr_mine(player_state* ps) {
         add_event(
             get_field(x,y)->exit_events,
             PHYSICAL_EVENT,
-            &mine_event, NULL
+            events.mine, NULL
         );
     }
 }
@@ -167,11 +167,11 @@ void instr_mine(player_state* ps) {
 void instr_move(player_state* ps) { 
     direction d = (direction)ps->stack[--ps->sp];
 
-    if (fields.has_obstruction(ps->x, ps->y)) return;
+    if (fields.is_obstruction(ps->x, ps->y)) return;
 
     int x, y;
     move_coord(ps->x, ps->y, d, &x, &y);
-    if (!in_bounds(x,y) || fields.has_obstruction(x,y)) return;
+    if (!in_bounds(x,y) || fields.is_obstruction(x,y)) return;
 
     update_events(ps, get_field(ps->x,ps->y)->exit_events);
     if (!ps->death_msg) {
@@ -201,7 +201,7 @@ void instr_trench(player_state* ps) {
     if (!in_bounds(x, y)) return;
 
     field_state* field = get_field(x,y);
-    switch (field->data->type) {
+    switch (field->type) {
         case EMPTY: {
             build_trench_field(x,y);
         }
@@ -246,7 +246,7 @@ void instr_bomb(player_state* ps) {
     args->x = x;
     args->y = y;
     args->player_id = ps->id;
-    add_event(_gs->events, PHYSICAL_EVENT, &bomb_event, args);
+    add_event(_gs->events, PHYSICAL_EVENT, events.bomb, args);
     set_color_overlay(x,y,FORE,color_predefs.red);
     set_overlay(x,y,TARGET);
 }
@@ -421,7 +421,7 @@ void instr_projection(player_state* ps) {
     projection_death_args* args = malloc(sizeof(projection_death_args));
     args->player_id = projection->id;
     args->remaining = 5;
-    add_event(_gs->events, MAGICAL_EVENT, &projection_death_event, args);
+    add_event(_gs->events, MAGICAL_EVENT, events.projection_death, args);
 }
 
 void instr_freeze(player_state* ps) {
@@ -436,23 +436,24 @@ void instr_freeze(player_state* ps) {
 
     if(!in_bounds(x,y)) return;
     field_state* field = get_field(x,y);
-    if(field->data->type == ICE_BLOCK) return;
+    if(field->type == ICE_BLOCK) return;
 
     ice_block_melt_event_args* args = malloc(sizeof(ice_block_melt_event_args));
     args->x = x;
     args->y = y;
     args->player_id = ps->id;
     args->remaining = 3;
-    add_event(_gs->events, NONE_EVENT, &ice_block_melt_event, args);
+    add_event(_gs->events, NONE_EVENT, events.ice_block_melt, args);
 
     set_color_overlay(x,y,FORE,color_predefs.ice_blue);
     set_color_overlay(x,y,BACK,color_predefs.black);
     set_overlay(x,y,SNOWFLAKE);
 
-    field_data* new_field_data = malloc(sizeof(field_data));
-    new_field_data->type = ICE_BLOCK;
-    new_field_data->data.ice_block.inner = field->data;
-    field->data = new_field_data;
+    field_data* new_data = malloc(sizeof(field_data));
+    new_data->ice_block.inner = field->data;
+    new_data->ice_block.inner_type = field->type;
+    field->type = ICE_BLOCK;
+    field->data = new_data;
 }
 
 #endif

@@ -49,6 +49,7 @@
 #define COFFIN "\u26b0"
 #define SNOWFLAKE "\u2744"
 #define LIGHTNING "\u2607"
+#define TREE_VISUAL "T"
 
 #define BULLETS_NS "\u22ee"
 #define BULLETS_EW "\u2026"

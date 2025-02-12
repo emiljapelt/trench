@@ -37,7 +37,6 @@ typedef struct game_state {
     int board_x;
     int board_y;
     player_list_t* players;
-    int player_count;
     field_state* board;
     int feed_point;
     char* feed_buffer;
@@ -52,11 +51,7 @@ extern game_rules* _gr;
 field_state* get_field(const int x, const int y);
 void set_field(const int x, const int y, field_state* f);
 void fortify_field(const int x, const int y);
-void destroy_field(const int x, const int y);
 void build_trench_field(const int x, const int y);
-void explode_field(const int x, const int y);
-void bomb_field(const int x, const int y);
-void unexplode_field(const int x, const int y);
 
 void death_mark_player(player_state* ps, const char* reason);
 void kill_player(player_state* ps);

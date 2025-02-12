@@ -12,8 +12,9 @@ void set_field(const int x, const int y, field_state* f) {
     _gs->board[(y * _gs->board_x) + x] = *f;
 }
 
-int has_obstruction(const int x, const int y) {
-    switch (get_field(x,y)->data->type) {
+// Something that cannot be passed through
+int is_obstruction(const int x, const int y) {
+    switch (get_field(x,y)->type) {
         case ICE_BLOCK:
             return 1;
         default:
@@ -21,13 +22,31 @@ int has_obstruction(const int x, const int y) {
     }
 }
 
-int has_trench(const field_data* field) {
-    if (field == NULL) return 0;
+// Something which is destroyed by fire
+int is_flammable(const int x, const int y) {
+    switch (get_field(x,y)->type) {
+        case TREE:
+            return 1;
+        default:
+            return 0;
+    }
+}
+
+// Something which protects from falling things. e.g. bombs and rocks
+int is_shelter(const int x, const int y) {
+    field_state* field = get_field(x,y);
     switch (field->type) {
         case TRENCH:
+            return field->data->trench.fortified;
+        default:
+            return 0;
+    }
+}
+
+int is_cover(const int x, const int y) {
+    switch (get_field(x,y)->type) {
+        case TRENCH:
             return 1;
-        case ICE_BLOCK:
-            return has_trench(field->data.ice_block.inner);
         default:
             return 0;
     }
@@ -54,19 +73,54 @@ field_scan scan_field(const int x, const int y) {
     field_state* field = get_field(x,y);
     return (field_scan) {
         ._ = 0,
-        .obstruction = has_obstruction(x,y),
+        .obstruction = is_obstruction(x,y),
         .player = has_player(x,y),
         .trapped = has_trap(x,y),
-        .trench = has_trench(field->data),
+        .flammable = is_flammable(x,y),
+        .cover = is_cover(x,y),
+        .shelter = is_shelter(x,y),
     };
+}
+
+void destroy_field(const int x, const int y, char* death_msg) {
+    field_state* field = get_field(x,y);
+    switch (field->type) {
+        case TREE:{
+            field->type = EMPTY;
+            break;
+        }
+        case TRENCH:{
+            if (field->data->trench.fortified) {
+                field->data->trench.fortified = 0;
+                return;
+            }
+            field->type = EMPTY;
+            free(field->data);
+            break;
+        }
+        case ICE_BLOCK: {
+            field->type = EMPTY;
+            free(field->data);
+            break;
+        }
+    }
+    for(int i = 0; i < _gs->players->count; i++) {
+        player_state* player = get_player(_gs->players, i);
+        if (player->x == x && player->y == y) {
+            death_mark_player(player, death_msg);
+        }
+    }
 }
 
 const fields_namespace fields = {
     .get = &get_field,
     .set = &set_field,
-    .has_obstruction = &has_obstruction,
-    .has_trench = &has_trench,
+    .is_obstruction = &is_obstruction,
+    .is_flammable = &is_flammable,
+    .is_cover = &is_cover,
+    .is_shelter = &is_shelter,
     .has_player = &has_player,
     .has_trap = &has_trap,
     .scan = &scan_field,
+    .destroy_field = &destroy_field,
 };

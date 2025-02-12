@@ -16,8 +16,6 @@
 field_state* empty_board(const int x, const int y) {
     int size = sizeof(field_state)*x*y;
     field_state* brd = malloc(size);
-    field_data* data = malloc(sizeof(field_data));
-    data->type = EMPTY;
 
     for (int _x = 0; _x < x; _x++) 
     for (int _y = 0; _y < y; _y++) {
@@ -26,7 +24,8 @@ field_state* empty_board(const int x, const int y) {
             .background_color_overlay = NULL,
             .mod_overlay = 0,
             .symbol_overlay = 0,
-            .data = data,
+            .type = EMPTY,
+            .data = NULL,
             .player_data = 0,
             .enter_events = array_list.create(10),
             .exit_events = array_list.create(10),
@@ -117,7 +116,6 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 .board_x = board_x,
                 .board_y = board_y,
                 .players = array_list.create(player_count + 1),
-                .player_count = player_count,
                 .board = empty_board(board_x, board_y),
                 .feed_point = 0,
                 .feed_buffer = malloc(feed_size+1),

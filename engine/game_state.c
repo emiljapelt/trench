@@ -11,35 +11,24 @@
 game_state* _gs;
 game_rules* _gr;
 
-// field_state* get_field(const int x, const int y) {
-//     return _gs->board + ((y * _gs->board_x) + x);
-// }
-// 
-// void set_field(const int x, const int y, field_state* f) {
-//     _gs->board[(y * _gs->board_x) + x] = *f;
-// }
-
 void fortify_field(const int x, const int y) {
     field_state* field = get_field(x,y);
-    switch (field->data->type) {
+    switch (field->type) {
         case TRENCH: {
-            field->data->data.trench.fortified = 1;
+            field->data->trench.fortified = 1;
             break;
         }
     }
 }
 
-void destroy_field(const int x, const int y) {
-    get_field(x,y)->data->type = EMPTY;
-    // free(_gs->board[(y * _gs->board_x) + x].data);
-}
-
 void build_trench_field(const int x, const int y) {
-    field_data* field = malloc(sizeof(field_data));
-    field->type = TRENCH;
-    field->data.trench.fortified = 0;
+    field_state* field = get_field(x,y);
 
-    get_field(x,y)->data = field;
+    field_data* data = malloc(sizeof(field_data));
+    data->trench.fortified = 0;
+
+    field->type = TRENCH;
+    field->data = data;
 }
 
 void set_color_overlay(const int x, const int y, color_target ct, color* c) {
@@ -81,34 +70,6 @@ void kill_player(player_state* ps) {
 
 void death_mark_player(player_state* ps, const char* reason) {
     ps->death_msg = reason;
-}
-
-
-void explode_field(const int x, const int y) {
-    field_state* field = get_field(x,y);
-
-    switch (field->data->type) {
-        case TRENCH: {
-            if(field->data->data.trench.fortified) {
-                field->data->data.trench.fortified = 0;
-                return;
-            }
-            field->data->type = EMPTY;
-        }
-    }
-    
-
-    for(int i = 0; i < _gs->players->count; i++) {
-        player_state* player = get_player(_gs->players, i);
-        if (player->x == x && player->y == y) 
-            death_mark_player(player, "Got blown up");
-    }
-}
-
-void bomb_field(const int x, const int y) {
-    set_overlay(x,y,EXPLOSION);
-    set_color_overlay(x,y,FORE,color_predefs.red);
-    explode_field(x,y);
 }
 
 void move_coord(int x, int y, direction d, int* _x, int* _y) {

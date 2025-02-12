@@ -6,22 +6,29 @@
 #include "visual.h"
 #include "player.h"
 
-int mine_event(player_state* ps, void* data) {
-    explode_field(ps->x,ps->y);
+int mine(player_state* ps, void* data) {
+    for(int i = 0; i < _gs->players->count; i++) {
+        player_state* player = get_player(_gs->players, i);
+        if (player->x == ps->x && player->y == ps->y) 
+            death_mark_player(player, "Got blown up by a mine");
+    }
     set_overlay(ps->x,ps->y,EXPLOSION);
     set_color_overlay(ps->x, ps->y, FORE, color_predefs.red);
     set_mod_overlay(ps->x, ps->y, BOLD);
     return 1;
 }
 
-int bomb_event(player_state* ps, void* data) {
+int bomb(player_state* ps, void* data) {
     bomb_event_args* args = (bomb_event_args*)data;
     if (args->player_id != ps->id) return 0;
-    bomb_field(args->x,args->y);
+    set_overlay(args->x,args->y,EXPLOSION);
+    set_color_overlay(args->x,args->y,FORE,color_predefs.red);
+    fields.destroy_field(args->x,args->y, "Got blown up");
+    // bomb_field(args->x,args->y);
     return 1;
 }
 
-int projection_death_event(player_state* ps, void* data) {
+int projection_death(player_state* ps, void* data) {
     projection_death_args* args = (projection_death_args*)data;
     if (!ps->alive || !args->player_id == ps->id) return 0;
     if (args->remaining <= 0) {
@@ -34,11 +41,11 @@ int projection_death_event(player_state* ps, void* data) {
     }
 }
 
-int ice_block_melt_event(player_state* player, void* data) {
+int ice_block_melt(player_state* player, void* data) {
     ice_block_melt_event_args* args = (ice_block_melt_event_args*)data;
     field_state* field = get_field(args->x, args->y);
 
-    if (field->data->type != ICE_BLOCK) return 1;
+    if (field->type != ICE_BLOCK) return 1;
     if (args->player_id != player->id) 
         return 0;
     if (args->remaining) {
@@ -46,7 +53,16 @@ int ice_block_melt_event(player_state* player, void* data) {
         return 0;
     }
 
-    ice_block_field ice_block = field->data->data.ice_block;
-    field->data = ice_block.inner;
+    field_data* old_data = field->data;
+    field->data = old_data->ice_block.inner;
+    field->type = old_data->ice_block.inner_type;
+    free(old_data);
     return 1;
 }
+
+const events_namespace events = {
+    .bomb = &bomb,
+    .mine = &mine,
+    .ice_block_melt = &ice_block_melt,
+    .projection_death = &projection_death,
+};
