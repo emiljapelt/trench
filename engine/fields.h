@@ -3,6 +3,7 @@
 
 #include "event_list.h"
 #include "color.h"
+#include "damage.h"
 
 typedef enum {
     EMPTY,
@@ -16,18 +17,16 @@ typedef int (*const field_property_check)(const int x, const int y);
 
 typedef union field_data field_data;
 
-//typedef struct field_data {
-//  field_type type;
-    typedef union field_data {
-        struct {
-            unsigned int fortified : 1;
-        } trench;
-        struct {
-            field_data* inner;
-            field_type inner_type;
-        } ice_block;
-    } field_data;
-//} field_data;
+typedef union field_data {
+    struct {
+        unsigned int fortified : 1;
+    } trench;
+    struct {
+        field_data* inner;
+        field_type inner_type;
+    } ice_block;
+} field_data;
+
 
 typedef struct {
     unsigned int obstruction : 1;
@@ -61,6 +60,7 @@ typedef struct fields_namespace {
     field_property_check has_player;
     field_property_check has_trap;
     void (*const destroy_field)(const int x, const int y, char* death_msg);
+    void (*const damage_field)(const int x, const int y, damage_t d_type, char* death_msg);
     field_scan (*const scan)(const int x, const int y);
 } fields_namespace;
 

@@ -6,11 +6,13 @@ type direction =
     | South
     | West
 
-and flag =
-    | PLAYER
-    | TRENCH
-    | TRAPPED
-    | OBSTRUCTION
+type field_prop = 
+    | Obstruction_Prop
+    | Player_Prop
+    | Trapped_Prop
+    | Flammable_Prop
+    | Cover_Prop
+    | Shelter_Prop
 
 and typ =
     | T_Int
@@ -57,11 +59,11 @@ and value =
     | Unary_op of string * value
     | Int of int
     | Scan of value * value
-    | Look of value * flag
+    | Look of value * field_prop
     | Direction of direction
     | Random
     | RandomSet of value list
-    | Flag of value * flag
+    | FieldProp of value * field_prop
     | Read
 
 and meta_data =
@@ -83,12 +85,6 @@ type compile_state = {
     break: string option;
     continue: string option;
 }
-
-let flag_index f = match f with
-    | OBSTRUCTION -> 0
-    | TRENCH -> 1
-    | PLAYER -> 2
-    | TRAPPED -> 3
 
 let string_of_dir d = match d with
     | North -> "0"

@@ -3,6 +3,7 @@
 #include <stdlib.h>
 
 #include "game_state.h"
+#include "damage.h"
 
 field_state* get_field(const int x, const int y) {
     return _gs->board + ((y * _gs->board_x) + x);
@@ -112,6 +113,12 @@ void destroy_field(const int x, const int y, char* death_msg) {
     }
 }
 
+void damage_field(const int x, const int y, damage_t d_type, char* death_msg) {
+    field_scan scan = scan_field(x,y);
+    if (scan.flammable && IS_DAMAGE_TYPE(FIRE_DAMAGE, d_type))
+        destroy_field(x,y,death_msg);
+}
+
 const fields_namespace fields = {
     .get = &get_field,
     .set = &set_field,
@@ -123,4 +130,5 @@ const fields_namespace fields = {
     .has_trap = &has_trap,
     .scan = &scan_field,
     .destroy_field = &destroy_field,
+    .damage_field = &damage_field,
 };

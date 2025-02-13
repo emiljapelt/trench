@@ -3,6 +3,7 @@
   open Exceptions
   open Lexing
   open Flags
+  open Field_props
 
   (*type var_name_generator = { mutable next : int }
   let vg = ( {next = 0;} )
@@ -36,6 +37,7 @@
 %token <int> CSTINT
 %token <string> NAME
 %token <string> META_NAME
+%token <string> FIELD_PROP_NAME
 %token <string> LABEL
 %token LPAR RPAR LBRACE RBRACE LBRAKE RBRAKE
 %token PLUS MINUS TIMES EQ NEQ LT GT LTEQ GTEQ
@@ -43,11 +45,10 @@
 %token COMMA SEMI COLON DOT EOF
 %token QMARK PLUSPLUS MINUSMINUS
 %token IF ELSE IS REPEAT WHILE FOR CONTINUE BREAK
-%token GOTO
+%token GOTO AT
 %token MOVE FORTIFY WAIT PASS TRENCH PROJECTION FREEZE
 %token NORTH EAST SOUTH WEST BOMB SHOOT LOOK SCAN MINE ATTACK
 %token INT DIR FIELD
-%token PLAYER_CAP TRENCH_CAP TRAPPED_CAP OBSTRUCTION_CAP
 %token READ WRITE
 
 /*Low precedence*/
@@ -105,19 +106,12 @@ simple_value:
   | LPAR value RPAR                    { $2 }
 ;
 
-flag:
-  | PLAYER_CAP { PLAYER }
-  | TRENCH_CAP { TRENCH }
-  | TRAPPED_CAP   { TRAPPED }
-  | OBSTRUCTION_CAP   { OBSTRUCTION }
-;
-
 value:
   | simple_value                       { $1 }
   | SCAN simple_value simple_value     { Scan($2,$3) }
-  | LOOK simple_value flag             { Look($2,$3) }
+  | LOOK simple_value FIELD_PROP_NAME  { Look($2,string_to_prop $3) }
   | value binop value                  { Binary_op ($2, $1, $3) }
-  | simple_value DOT flag              { Flag($1, $3) }
+  | simple_value FIELD_PROP_NAME       { FieldProp($1, string_to_prop $2) }
   | PLUSPLUS target                    { features ["sugar"] ; Increment($2, true)}
   | target PLUSPLUS                    { features ["sugar"] ; Increment($1, false)}
   | MINUSMINUS target                  { features ["sugar"] ; Decrement($2, true)}

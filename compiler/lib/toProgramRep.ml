@@ -2,6 +2,7 @@ open Absyn
 open ProgramRep
 open Exceptions
 open Typing
+open Field_props
 
 (*** Compiling functions ***)
 
@@ -34,7 +35,7 @@ let rec compile_value val_expr (state:compile_state) acc =
   | RandomSet vals -> 
     List.fold_left (fun acc v -> compile_value v state acc) (Instr_RandomSet :: I(List.length vals) :: acc) vals
   | Direction d -> Instr_Place :: I(int_of_dir d) :: acc
-  | Look(d,f) -> compile_value d state (Instr_Look :: I(flag_index f) :: acc)
+  | Look(d,f) -> compile_value d state (Instr_Look :: I(prop_index f) :: acc)
   | Scan(d,p) -> compile_value d state (compile_value p state (Instr_Scan :: acc))
   | Binary_op (op, e1, e2) -> ( match op, type_value state e1, type_value state e2 with
     | "+", T_Int, T_Int -> compile_value e1 state (compile_value e2 state (Instr_Add :: acc))
@@ -63,7 +64,7 @@ let rec compile_value val_expr (state:compile_state) acc =
       | "~" -> compile_value e state (Instr_Not :: acc)
       | _ -> raise_failure "Unknown unary operation"
   )
-  | Flag(v,f) -> compile_value v state (Instr_FieldFlag :: I(flag_index f) :: acc)
+  | FieldProp(v,f) -> compile_value v state (Instr_FieldProp :: I(prop_index f) :: acc)
   (* true = pre*)
   | Increment(Local n, true)  -> Instr_Place :: I(fetch_var_index n state.vars) :: Instr_Copy :: Instr_Copy :: Instr_Access :: Instr_Place :: I(1) :: Instr_Add :: Instr_Assign :: Instr_Access :: acc
   | Increment(Local n, false) -> Instr_Place :: I(fetch_var_index n state.vars) :: Instr_Copy :: Instr_Access :: Instr_Swap :: Instr_Copy :: Instr_Access :: Instr_Place :: I(1) :: Instr_Add :: Instr_Assign :: acc

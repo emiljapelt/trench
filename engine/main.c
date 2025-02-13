@@ -117,7 +117,7 @@ void player_turn_async(player_state* ps) {
             case Instr_Or: instr_or(ps); break;
             case Instr_And: instr_and(ps); break;
             case Instr_Assign: instr_assign(ps); break;
-            case Instr_FieldFlag: instr_flag_access(ps); break;
+            case Instr_FieldProp: instr_field_prop(ps); break;
             case Instr_DecStack: instr_dec_stack(ps); break;
             case Instr_Copy: instr_copy(ps); break;
             case Instr_Swap: instr_swap(ps); break;
@@ -218,7 +218,7 @@ turn_action player_turn_sync(player_state* ps) {
             case Instr_Or: instr_or(ps); break;
             case Instr_And: instr_and(ps); break;
             case Instr_Assign: instr_assign(ps); break;
-            case Instr_FieldFlag: instr_flag_access(ps); break;
+            case Instr_FieldProp: instr_field_prop(ps); break;
             case Instr_DecStack: instr_dec_stack(ps); break;
             case Instr_Copy: instr_copy(ps); break;
             case Instr_Swap: instr_swap(ps); break;

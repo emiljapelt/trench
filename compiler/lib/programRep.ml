@@ -30,7 +30,7 @@ type instruction =
   | Instr_Swap
   | Instr_Copy
   | Instr_DecStack
-  | Instr_FieldFlag
+  | Instr_FieldProp
   | Instr_Assign
   | Instr_GoToIf
   | Instr_GoTo
@@ -78,7 +78,7 @@ let instruction_to_int label_map instr = match instr with
     | Instr_Swap -> Some 21
     | Instr_Copy -> Some 22
     | Instr_DecStack -> Some 23
-    | Instr_FieldFlag -> Some 24
+    | Instr_FieldProp -> Some 24
     | Instr_Assign -> Some 25
     | Instr_GoToIf -> Some 26
     | Instr_GoTo -> Some 27

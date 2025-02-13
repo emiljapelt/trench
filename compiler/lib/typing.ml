@@ -53,7 +53,7 @@ let rec type_value (state:compile_state) v = match v with
       | T_Dir -> T_Dir
       | _ -> raise_failure ("Only int and dir can be incremented")
     )
-    | Flag(v,_) -> require T_Field (type_value state v) (fun () -> T_Int)
+    | FieldProp(v,_) -> require T_Field (type_value state v) (fun () -> T_Int)
     | Scan(d,p)  ->
       require T_Dir (type_value state d) (fun () -> ()) ;
       require T_Int (type_value state p) (fun () -> ()) ;

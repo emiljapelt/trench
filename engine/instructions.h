@@ -38,7 +38,7 @@ typedef enum {
   Instr_Swap = 21,
   Instr_Copy = 22,
   Instr_DecStack = 23,
-  Instr_FieldFlag = 24,
+  Instr_FieldProp = 24,
   Instr_Assign = 25,
   Instr_GoToIf = 26,
   Instr_GoTo = 27,
@@ -355,7 +355,7 @@ void instr_assign(player_state* ps) {
     ps->stack[target] = v;
 }
 
-void instr_flag_access(player_state* ps) { 
+void instr_field_prop(player_state* ps) { 
     int v = ps->stack[--ps->sp];
     int offset = ps->directive[ps->dp];
     ps->dp++;

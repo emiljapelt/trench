@@ -45,7 +45,7 @@ let rec rename_variables_of_value map v = match v with
   | Scan(v0,v1) -> Scan(rename_variables_of_value map v0, rename_variables_of_value map v1)
   | Look(v,f) -> Look(rename_variables_of_value map v,f)
   | RandomSet vs -> RandomSet(List.map (rename_variables_of_value map) vs)
-  | Flag(v,f) -> Flag(rename_variables_of_value map v, f)
+  | FieldProp(v,f) -> FieldProp(rename_variables_of_value map v, f)
   | Decrement(Local n,pre) -> Decrement(Local(StringMap.find n map), pre)
   | Increment(Local n,pre) -> Increment(Local(StringMap.find n map), pre)
   | _ -> v

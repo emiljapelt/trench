@@ -62,7 +62,7 @@ let rec optimize_value expr =
   | RandomSet _
   | Int _ -> expr
   | MetaReference _
-  | Flag _ 
+  | FieldProp _ 
   | Decrement _ 
   | Increment _
   | Read
