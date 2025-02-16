@@ -38,13 +38,10 @@ void kill_players() {
 }
 
 void player_turn_async(player_state* ps) {
-    _gs->remaining_actions = _gr->actions;
-    _gs->remaining_steps = _gr->steps;
-    
     while(1) {
         int change = 0;
         if (ps->dp >= ps->directive_len) { return; }
-        if (!use_resource(1,&_gs->remaining_steps)) return;
+        if (!use_resource(1,&ps->remaining_steps)) return;
         // debug_print(ps);
         switch (ps->directive[ps->dp++]) {
             case Meta_PlayerX: meta_player_x(ps);break;
@@ -54,12 +51,12 @@ void player_turn_async(player_state* ps) {
             case Meta_Resource: meta_resource(ps);break;
             case Meta_PlayerID: meta_player_id(ps);break;
             case Instr_Wait: {
-                if(!use_resource(1,&_gs->remaining_actions)) {ps->dp--;return;}
+                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--;return;}
                 break;
             }
             case Instr_Pass: return;
             case Instr_Shoot: { // Shot in direction
-                if(!use_resource(1,&_gs->remaining_actions)) {ps->dp--;return;}
+                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--;return;}
                 instr_shoot(ps);
                 change = 1;
                 break;
@@ -67,29 +64,30 @@ void player_turn_async(player_state* ps) {
             case Instr_Look: instr_look(ps); break;
             case Instr_Scan: instr_scan(ps); break;
             case Instr_Mine: { // Place mine
-                if(!use_resource(1,&_gs->remaining_actions)) {ps->dp--;return;}
+                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--;return;}
                 instr_mine(ps);
                 change = 1;
                 break;
             }
             case Instr_Move: { // Move
+                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--;return;}
                 instr_move(ps);
                 change = 1;
                 break;
             }
             case Instr_Melee: { // Melee attack
-                if(!use_resource(1,&_gs->remaining_actions)) {ps->dp--; return;}
+                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
                 instr_melee(ps);
                 break;
             }
             case Instr_Trench: { // Trench
-                if(!use_resource(1,&_gs->remaining_actions)) {ps->dp--; return;}
+                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
                 instr_trench(ps);
                 change = 1;
                 break;
             }
             case Instr_Fortify: { // Fortify
-                if(!use_resource(1,&_gs->remaining_actions)) {ps->dp--; return;}
+                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
                 instr_fortify(ps);
                 change = 1;
                 break;
@@ -98,7 +96,7 @@ void player_turn_async(player_state* ps) {
             case Instr_RandomSet: instr_random_range(ps); break;
             case Instr_Place: instr_place(ps); break;
             case Instr_Bomb: { 
-                if(!use_resource(1,&_gs->remaining_actions)) {ps->dp--; return;}
+                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
                 instr_bomb(ps);
                 change = 1;
                 break;
@@ -124,26 +122,42 @@ void player_turn_async(player_state* ps) {
             case Instr_Read: instr_read(ps); break;
             case Instr_Write: instr_write(ps); break;
             case Instr_Projection: {
-                if(!use_resource(1,&_gs->remaining_actions)) {ps->dp--; return;}
+                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
                 instr_projection(ps); 
                 change = 1;
                 break;
             }
             case Instr_Freeze: {
-                if(!use_resource(1,&_gs->remaining_actions)) {ps->dp--; return;}
+                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
                 instr_freeze(ps); 
                 change = 1;
                 break;
             }
             case Instr_Fireball: {
-                if(!use_resource(1,&_gs->remaining_actions)) {ps->dp--; return;}
+                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
                 instr_fireball(ps); 
                 change = 1;
                 break;
             }
             case Instr_Meditate: {
-                if(!use_resource(1,&_gs->remaining_actions)) {ps->dp--; return;}
+                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
                 instr_meditate(ps); 
+                change = 1;
+                break;
+            }
+            case Instr_Disarm: {
+                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
+                instr_disarm(ps); 
+                break;
+            }
+            case Instr_Dispel: {
+                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
+                instr_dispel(ps); 
+                break;
+            }
+            case Instr_ManaDrain: {
+                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
+                instr_mana_drain(ps); 
                 change = 1;
                 break;
             }
@@ -189,11 +203,9 @@ turn_action move_action() {
 }
 
 turn_action player_turn_sync(player_state* ps) {
-    _gs->remaining_steps = _gr->steps;
-    
     while(1) {
         if (ps->dp >= ps->directive_len) return inactive();
-        if (!use_resource(1,&_gs->remaining_steps)) return inactive();
+        if (!use_resource(1,&ps->remaining_steps)) return inactive();
         // debug_print(ps);
         switch (ps->directive[ps->dp++]) {
             case Meta_PlayerX: meta_player_x(ps);break;
@@ -240,6 +252,7 @@ turn_action player_turn_sync(player_state* ps) {
             case Instr_Freeze: defend_action(&instr_freeze); break;
             case Instr_Fireball: attack_action(&instr_fireball); break;
             case Instr_Meditate: defend_action(&instr_meditate); break;
+            case Instr_ManaDrain: defend_action(&instr_mana_drain); break;
             default: return inactive();
         }
     }
@@ -347,8 +360,10 @@ void play_round_sync() {
         change = 0;
         for(i = 0; i < player_count; i++) {
             player_state* player = get_player(_gs->players, i);
-            if (player->alive) 
+            if (player->alive) {
                 acts[i] = player_turn_sync(player);
+                set_player_steps_and_actions(player);
+            }
         }
 
     // Defend phase
@@ -415,6 +430,7 @@ void play_round_async() {
         if (_gs->feed_point) { print_board(); wait(1); }
         if (player->alive) {
             player_turn_async(player);
+            set_player_steps_and_actions(player);
             check_win_condition();
         }
     }

@@ -133,6 +133,9 @@ and compile_stmt (Stmt(stmt,ln)) (state:compile_state) acc =
     | Fireball -> Instr_Fireball
     | Move -> Instr_Move
     | Attack -> Instr_Melee
+    | Dispel -> Instr_Dispel
+    | Disarm -> Instr_Disarm
+    | ManaDrain -> Instr_ManaDrain
     in
     compile_value dir state (instr :: acc)
   )

@@ -37,6 +37,9 @@
                         "freeze", FREEZE;
                         "fireball", FIREBALL;
                         "meditate", MEDITATE;
+                        "dispel", DISPEL;
+                        "disarm", DISARM;
+                        "mana_drain", MANA_DRAIN
                       ] 
   
   let char_of_string s lexbuf = match s with

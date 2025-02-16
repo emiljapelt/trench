@@ -22,6 +22,7 @@ typedef struct event {
 void add_event(event_list_t* events, event_kind kind, event_function func, void* data);
 void remove_event(event_list_t* events, int index);
 int update_events(player_state* ps, event_list_t* events);
+event* get_event(event_list_t* events, int index);
 
 
 #endif

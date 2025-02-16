@@ -155,6 +155,8 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 player->dp = 0;
                 player->x = Int_val(Field(Field(player_info, 2), 0));
                 player->y = Int_val(Field(Field(player_info, 2), 1));
+                player->remaining_steps = gr->steps;
+                player->remaining_actions = gr->actions;
                 player->pre_death_events = array_list.create(10);
                 player->post_death_events = array_list.create(10);
                 player->resources = create_resource_registry(10, resource_count);

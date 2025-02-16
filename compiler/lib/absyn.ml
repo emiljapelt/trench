@@ -55,6 +55,9 @@ and directional_statement =
     | Fireball
     | Move
     | Attack
+    | Dispel
+    | Disarm
+    | ManaDrain
 
 and option_directional_statement =
     | Trench

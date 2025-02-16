@@ -29,6 +29,7 @@ typedef struct events_namespace {
     event_function mine;
     event_function projection_death;
     event_function ice_block_melt;
+    event_function mana_drain;
 } events_namespace;
 extern const events_namespace events;
 

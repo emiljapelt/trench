@@ -58,9 +58,15 @@ int ice_block_melt(player_state* player, void* data) {
     return 1;
 }
 
+int mana_drain(player_state* player, void* data) {
+    spend_resource(player->resources, "mana", peek_resource(player->resources, "mana"));
+    return 1;
+}
+
 const events_namespace events = {
     .bomb = &bomb,
     .mine = &mine,
     .ice_block_melt = &ice_block_melt,
     .projection_death = &projection_death,
+    .mana_drain = &mana_drain,
 };

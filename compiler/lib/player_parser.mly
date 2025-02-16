@@ -45,7 +45,7 @@
 %token COMMA SEMI COLON DOT EOF
 %token QMARK PLUSPLUS MINUSMINUS
 %token IF ELSE IS REPEAT WHILE FOR CONTINUE BREAK
-%token GOTO AT MEDITATE
+%token GOTO AT MEDITATE DISPEL DISARM MANA_DRAIN
 %token MOVE FORTIFY WAIT PASS TRENCH PROJECTION FREEZE FIREBALL
 %token NORTH EAST SOUTH WEST BOMB SHOOT LOOK SCAN MINE ATTACK
 %token INT DIR FIELD
@@ -207,6 +207,9 @@ non_control_flow_stmt:
   | FIREBALL value                    { themeing ["wizardry"] ; Directional(Fireball, $2) }
   | PROJECTION                        { themeing ["wizardry"] ; Unit(Projection) }
   | MEDITATE                          { themeing ["wizardry"] ; Unit(Meditate) }
+  | DISPEL value                      { themeing ["wizardry"] ; Directional(Dispel, $2) }
+  | DISARM value                      { themeing ["forestry";"basic"] ; Directional(Disarm, $2)}
+  | MANA_DRAIN value                   { themeing ["wizardry"] ; Directional(ManaDrain, $2) }
 ;
 
 direction:

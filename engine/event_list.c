@@ -28,7 +28,7 @@ int update_events(player_state* player, event_list_t* events) {
     int finished_count = 0;
     for(int i = 0; i < events->count; i++) {
         event* e = get_event(events, i);
-        if (e->func(player, e->data)) { 
+        if (e->func && e->func(player, e->data)) { 
             e->func = NULL;
             finished_count++;
         }

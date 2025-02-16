@@ -32,8 +32,6 @@ typedef struct team_state {
 
 typedef struct game_state {
     int round;
-    int remaining_steps;
-    int remaining_actions;
     int board_x;
     int board_y;
     player_list_t* players;
@@ -55,6 +53,7 @@ void build_trench_field(const int x, const int y);
 
 void death_mark_player(player_state* ps, const char* reason);
 void kill_player(player_state* ps);
+void set_player_steps_and_actions(player_state* ps);
 
 void set_color_overlay(const int x, const int y, color_target ct, color* c);
 void set_mod_overlay(const int x, const int y, print_mod m);

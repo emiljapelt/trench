@@ -51,6 +51,7 @@
 #define LIGHTNING "\u2607"
 #define TREE_VISUAL "T"
 #define CIRCLE "\u2b24"
+#define EMPTY_DIAMOND "\u2662"
 
 #define BULLETS_NS "\u22ee"
 #define BULLETS_EW "\u2026"

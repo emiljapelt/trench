@@ -147,7 +147,7 @@ field_visual get_field_visual(const int x, const int y, const field_state* field
 
 void print_board() {
     reset_cursor();
-    printf("Round: %i, Actions: %i, Steps: %i\n", _gs->round, _gs->remaining_actions, _gs->remaining_steps);
+    printf("Round: %i\n", _gs->round);
     for(int i = 0; i < _gs->board_x+2; i++) putchar('.');
     putchar('\n');
     for(int y = 0; y < _gs->board_y; (putchar('\n'), y++)) {

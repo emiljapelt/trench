@@ -61,6 +61,9 @@ typedef enum {
   Instr_Freeze = 42,
   Instr_Fireball = 43,
   Instr_Meditate = 44,
+  Instr_Dispel = 45,
+  Instr_Disarm = 46,
+  Instr_ManaDrain = 47,
 } instruction;
 
 void instr_shoot(player_state* ps) {
@@ -492,6 +495,68 @@ void instr_fireball(player_state* ps) {
 void instr_meditate(player_state* ps) {
     add_resource(ps->resources, "mana", 10);
     set_color_overlay(ps->x,ps->y,BACK,color_predefs.magic_purple);
+}
+
+void instr_dispel(player_state* ps) {
+    direction d = (direction)ps->stack[--ps->sp];
+    if(!spend_resource(ps->resources, "mana", 10)) return;
+
+    int x = ps->x;
+    int y = ps->y;
+    move_coord(x,y,d,&x,&y);
+    if (!in_bounds(x,y)) return;
+
+    field_state* field = get_field(x,y);
+    for (int i = 0; i < field->enter_events->count; i++) {
+        event* e = get_event(field->enter_events,i);
+        if (e->kind == MAGICAL_EVENT)
+            e->func = NULL;
+    }
+    for (int i = 0; i < field->exit_events->count; i++) {
+        event* e = get_event(field->exit_events,i);
+        if (e->kind == MAGICAL_EVENT)
+            e->func = NULL;
+    }
+}
+
+void instr_disarm(player_state* ps) {
+    direction d = (direction)ps->stack[--ps->sp];
+    if(!spend_resource(ps->resources, "mana", 10)) return;
+
+    int x = ps->x;
+    int y = ps->y;
+    move_coord(x,y,d,&x,&y);
+    if (!in_bounds(x,y)) return;
+
+    field_state* field = get_field(x,y);
+    for (int i = 0; i < field->enter_events->count; i++) {
+        event* e = get_event(field->enter_events,i);
+        if (e->kind == PHYSICAL_EVENT)
+            e->func = NULL;
+    }
+    for (int i = 0; i < field->exit_events->count; i++) {
+        event* e = get_event(field->exit_events,i);
+        if (e->kind == PHYSICAL_EVENT)
+            e->func = NULL;
+    }
+}
+
+void instr_mana_drain(player_state* ps){
+    direction d = (direction)ps->stack[--ps->sp];
+    if(!spend_resource(ps->resources, "mana", 10)) return;
+
+    int x = ps->x;
+    int y = ps->y;
+    move_coord(x,y,d,&x,&y);
+    if (!in_bounds(x,y)) return;
+
+    set_overlay(x,y,EMPTY_DIAMOND);
+    set_color_overlay(x,y,FORE,color_predefs.magic_purple);
+    add_event(
+        get_field(x,y)->enter_events,
+        MAGICAL_EVENT,
+        events.mana_drain, NULL
+    );
 }
 
 #endif

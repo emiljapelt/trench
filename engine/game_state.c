@@ -57,6 +57,10 @@ void clear_feed() {
     _gs->feed_point = 0;
 }
 
+void set_player_steps_and_actions(player_state* ps) {
+    ps->remaining_steps = _gr->steps;
+    ps->remaining_actions = _gr->actions;
+}
 
 void kill_player(player_state* ps) {
     set_overlay(ps->x,ps->y,COFFIN);
