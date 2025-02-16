@@ -50,6 +50,7 @@ type instruction =
   | Instr_Projection
   | Instr_Freeze
   | Instr_Fireball
+  | Instr_Meditate
 
 let instruction_to_int label_map instr = match instr with
     | I i -> Some i
@@ -59,8 +60,8 @@ let instruction_to_int label_map instr = match instr with
     | Meta_PlayerY -> Some 1
     | Meta_BoardX -> Some 2
     | Meta_BoardY -> Some 3
-    | Meta_Resource -> Some 5
-    | Meta_PlayerID -> Some 42
+    | Meta_Resource -> Some 4
+    | Meta_PlayerID -> Some 5
     | Instr_Add -> Some 6
     | Instr_Sub -> Some 7
     | Instr_Mul -> Some 8
@@ -97,8 +98,9 @@ let instruction_to_int label_map instr = match instr with
     | Instr_Read -> Some 39
     | Instr_Write -> Some 40
     | Instr_Projection -> Some 41
-    | Instr_Freeze -> Some 43
-    | Instr_Fireball -> Some 44
+    | Instr_Freeze -> Some 42
+    | Instr_Fireball -> Some 43
+    | Instr_Meditate -> Some 44
 
 let label_set pp =
   let rec aux pp set = match pp with

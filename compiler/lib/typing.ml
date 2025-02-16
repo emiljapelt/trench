@@ -102,13 +102,11 @@ let rec type_check_stmt_inner state stmt = match stmt with
     )
   | DeclareAssign(t,n,v) -> require t (type_value state v) (fun () -> {state with vars = Var(t,n)::state.vars})
   | Declare(t,n) -> {state with vars = Var(t,n)::state.vars}
-  | Wait
   | GoTo _
   | Label _
   | Continue
   | Break
-  | Projection
-  | Pass -> state
+  | Unit _ -> state
   | Write v -> require T_Int (type_value state v) (fun () -> state)
 
 and type_check_stmt regs (Stmt(stmt,ln)) = 

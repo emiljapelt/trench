@@ -90,13 +90,11 @@ let rec optimize_stmt (Stmt(stmt_i,ln) as stmt) =
   | OptionDirectional(stmt,d) -> Stmt(OptionDirectional(stmt,Option.map optimize_value d),ln)
   | Targeting(stmt,dir,dis) -> Stmt(Targeting(stmt,optimize_value dir, optimize_value dis),ln)
   | Declare _
-  | Wait
   | GoTo _
   | Label _
   | Continue
   | Break
-  | Projection
-  | Pass -> stmt)
+  | Unit _ -> stmt)
   with
   | Failure (f, None, msg) -> raise (Failure(f,Some ln,msg))
   | e -> raise e

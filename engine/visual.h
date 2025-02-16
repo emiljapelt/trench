@@ -74,6 +74,5 @@ void clear_screen(void);
 void reset_cursor(void);
 field_visual get_field_visual(const int x, const int y, const field_state* field);
 void print_board();
-extern const color_predef color_predefs;
 
 #endif

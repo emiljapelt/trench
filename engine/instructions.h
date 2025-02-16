@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <stdio.h>
+
 #include "game_state.h"
 #include "player.h"
 #include "visual.h"
@@ -19,7 +21,7 @@ typedef enum {
   Meta_BoardX = 2,
   Meta_BoardY = 3,
   Meta_Resource = 4,
-  Meta_PlayerID = 42,
+  Meta_PlayerID = 5,
   Instr_Add = 6,
   Instr_Sub = 7,
   Instr_Mul = 8,
@@ -56,8 +58,9 @@ typedef enum {
   Instr_Read = 39,
   Instr_Write = 40,
   Instr_Projection = 41,
-  Instr_Freeze = 43,
-  Instr_Fireball = 44,
+  Instr_Freeze = 42,
+  Instr_Fireball = 43,
+  Instr_Meditate = 44,
 } instruction;
 
 void instr_shoot(player_state* ps) {
@@ -484,6 +487,11 @@ void instr_fireball(player_state* ps) {
         if (end) break;
         move_coord(x,y,d,&x,&y);
     }
+}
+
+void instr_meditate(player_state* ps) {
+    add_resource(ps->resources, "mana", 10);
+    set_color_overlay(ps->x,ps->y,BACK,color_predefs.magic_purple);
 }
 
 #endif

@@ -45,7 +45,7 @@
 %token COMMA SEMI COLON DOT EOF
 %token QMARK PLUSPLUS MINUSMINUS
 %token IF ELSE IS REPEAT WHILE FOR CONTINUE BREAK
-%token GOTO AT
+%token GOTO AT MEDITATE
 %token MOVE FORTIFY WAIT PASS TRENCH PROJECTION FREEZE FIREBALL
 %token NORTH EAST SOUTH WEST BOMB SHOOT LOOK SCAN MINE ATTACK
 %token INT DIR FIELD
@@ -197,15 +197,16 @@ non_control_flow_stmt:
   | ATTACK value                      { themeing ["basic"] ; Directional(Attack, $2) }
   | FORTIFY value?                    { OptionDirectional(Fortify, $2) }
   | TRENCH value?                     { OptionDirectional(Trench, $2) }
-  | WAIT                              { Wait }
-  | PASS                              { Pass }
+  | WAIT                              { Unit(Wait) }
+  | PASS                              { Unit(Pass) }
   | WRITE value                       { features ["comms"] ; Write $2 }
   | SHOOT value                       { themeing ["basic"] ; Directional(Shoot, $2) }
   | MINE value                        { themeing ["basic"] ; Directional(Mine, $2) }
   | BOMB simple_value simple_value    { themeing ["basic"] ; Targeting(Bomb, $2, $3) }
   | FREEZE simple_value simple_value  { themeing ["wizardry"] ; Targeting(Freeze, $2, $3) }
   | FIREBALL value                    { themeing ["wizardry"] ; Directional(Fireball, $2) }
-  | PROJECTION                        { themeing ["wizardry"] ; Projection }
+  | PROJECTION                        { themeing ["wizardry"] ; Unit(Projection) }
+  | MEDITATE                          { themeing ["wizardry"] ; Unit(Meditate) }
 ;
 
 direction:

@@ -4,6 +4,7 @@
 
 #include "game_state.h"
 #include "visual.h"
+#include "color.h"
 #include "player.h"
 
 int mine(player_state* ps, void* data) {

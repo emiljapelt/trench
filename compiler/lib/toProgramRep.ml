@@ -117,6 +117,15 @@ and compile_stmt (Stmt(stmt,ln)) (state:compile_state) acc =
   | Assign (Local target, aexpr) -> 
     Instr_Place :: I(fetch_var_index target state.vars) :: compile_value aexpr state (Instr_Assign :: acc)
   | Label name -> Label name :: acc
+  | Unit stmt -> (
+    let instr = match stmt with
+    | Wait -> Instr_Wait
+    | Pass -> Instr_Pass
+    | Projection -> Instr_Projection
+    | Meditate -> Instr_Meditate
+    in
+    instr :: acc
+  )
   | Directional(stmt, dir) -> (
     let instr = match stmt with
     | Shoot -> Instr_Shoot
@@ -143,12 +152,9 @@ and compile_stmt (Stmt(stmt,ln)) (state:compile_state) acc =
     in
     compile_value dir state (compile_value dis state (instr :: acc))
   )
-  | Wait -> Instr_Wait :: acc
-  | Pass -> Instr_Pass :: acc
   | GoTo n -> Instr_GoTo :: LabelRef n :: acc
   | Declare _ -> Instr_Place :: I(0) :: acc
   | Write v -> compile_value v state (Instr_Write :: acc)
-  | Projection -> Instr_Projection :: acc
   | DeclareAssign _ -> failwith "DeclareAssign still present"
   with 
   | Failure(p,None,msg) -> raise (Failure(p,Some ln, msg))

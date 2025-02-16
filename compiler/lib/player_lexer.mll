@@ -36,6 +36,7 @@
                         "projection", PROJECTION;
                         "freeze", FREEZE;
                         "fireball", FIREBALL;
+                        "meditate", MEDITATE;
                       ] 
   
   let char_of_string s lexbuf = match s with

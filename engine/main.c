@@ -141,6 +141,12 @@ void player_turn_async(player_state* ps) {
                 change = 1;
                 break;
             }
+            case Instr_Meditate: {
+                if(!use_resource(1,&_gs->remaining_actions)) {ps->dp--; return;}
+                instr_meditate(ps); 
+                change = 1;
+                break;
+            }
             default: return;
         }
 
@@ -233,6 +239,7 @@ turn_action player_turn_sync(player_state* ps) {
             case Instr_Projection: defend_action(&instr_projection); break;
             case Instr_Freeze: defend_action(&instr_freeze); break;
             case Instr_Fireball: attack_action(&instr_fireball); break;
+            case Instr_Meditate: defend_action(&instr_meditate); break;
             default: return inactive();
         }
     }

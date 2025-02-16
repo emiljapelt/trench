@@ -34,16 +34,20 @@ and statement_inner =
     | Break
     | Assign of target * value
     | Label of string
-    | Wait
-    | Pass
     | GoTo of string
     | Declare of typ * string
     | DeclareAssign of typ * string * value
     | Write of value
-    | Projection
+    | Unit of unit_statement
     | Directional of directional_statement * value
     | OptionDirectional of option_directional_statement * value option
     | Targeting of targeting_statement * value * value
+
+and unit_statement =
+    | Wait
+    | Pass
+    | Projection
+    | Meditate
 
 and directional_statement =
     | Shoot

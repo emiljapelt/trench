@@ -6,8 +6,9 @@
 #include "visual.h"
 
 #include "util.h"
+#include "color.h"
 
-color _red = {.r = 255, .g = 0, .b = 0, .predef = 1};
+/*color _red = {.r = 255, .g = 0, .b = 0, .predef = 1};
 color _green = {.r = 0, .g = 255, .b = 0, .predef = 1};
 color _blue = {.r = 0, .g = 0, .b = 255, .predef = 1};
 color _white = {.r = 255, .g = 255, .b = 255, .predef = 1};
@@ -23,7 +24,7 @@ const color_predef color_predefs = {
     .black = &_black,
     .yellow = &_yellow,
     .ice_blue = &_ice_blue,
-};
+};*/
 
 // https://stackoverflow.com/questions/26423537/how-to-position-the-input-text-cursor-in-c
 inline void clear_screen(void) {
