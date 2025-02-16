@@ -53,10 +53,7 @@ int ice_block_melt(player_state* player, void* data) {
         return 0;
     }
 
-    field_data* old_data = field->data;
-    field->data = old_data->ice_block.inner;
-    field->type = old_data->ice_block.inner_type;
-    free(old_data);
+    fields.remove_field(args->x, args->y);
     return 1;
 }
 

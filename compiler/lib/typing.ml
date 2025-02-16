@@ -93,19 +93,13 @@ let rec type_check_stmt_inner state stmt = match stmt with
   | While(v,s,Some si) -> 
     require T_Int (type_value state v) (fun () -> type_check_stmt state s |> ignore ; type_check_stmt state si |> ignore ; state)
   | Assign(Local n,e) -> require (var_type state.vars n) (type_value state e) (fun () -> state)
-  | Move e 
-  | Shoot e -> require T_Dir (type_value state e) (fun () -> state)
-  | Freeze(d,p)
-  | Bomb(d,p) -> 
-    require T_Dir (type_value state d) (fun () -> state) |> ignore ;
-    require T_Int (type_value state p) (fun () -> state)
-  | Attack d
-  | Mine d -> require T_Dir (type_value state d) (fun () -> state)
-  | Fortify o
-  | Trench o -> (match o with
-    | Some e -> require T_Dir (type_value state e) (fun () -> state)
-    | None -> state
-  )
+  | Directional(_,dir) -> require T_Dir (type_value state dir) (fun () -> state)
+  | OptionDirectional(_,None) -> state
+  | OptionDirectional(_,Some dir) -> require T_Dir (type_value state dir) (fun () -> state)
+  | Targeting(_,dir,dis) -> 
+    require T_Dir (type_value state dir) (fun () -> 
+      require T_Int (type_value state dis) (fun () -> state)
+    )
   | DeclareAssign(t,n,v) -> require t (type_value state v) (fun () -> {state with vars = Var(t,n)::state.vars})
   | Declare(t,n) -> {state with vars = Var(t,n)::state.vars}
   | Wait

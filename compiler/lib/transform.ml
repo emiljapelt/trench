@@ -84,14 +84,9 @@ let rec rename_variables_of_stmt i map (Stmt(stmt,ln)) = match stmt with
   | Assign(Local n,v) -> 
     (i,map,Stmt(Assign(Local(StringMap.find n map), rename_variables_of_value map v),ln))
   | Label s -> (i,map,Stmt(Label s,ln))
-  | Move d -> (i,map,Stmt(Move(rename_variables_of_value map d),ln))
-  | Shoot d -> (i,map,Stmt(Shoot(rename_variables_of_value map d),ln))
-  | Bomb(d,p) -> (i,map,Stmt(Bomb(rename_variables_of_value map d,rename_variables_of_value map p),ln))
-  | Freeze(d,p) -> (i,map,Stmt(Freeze(rename_variables_of_value map d,rename_variables_of_value map p),ln))
-  | Mine d -> (i,map,Stmt(Mine(rename_variables_of_value map d),ln))
-  | Attack d -> (i,map,Stmt(Attack(rename_variables_of_value map d),ln))
-  | Fortify v_o -> (i,map,Stmt(Fortify(Option.map (rename_variables_of_value map) v_o),ln))
-  | Trench v_o -> (i,map,Stmt(Trench(Option.map (rename_variables_of_value map) v_o),ln))
+  | Directional(stmt,dir) -> (i,map,Stmt(Directional(stmt,rename_variables_of_value map dir),ln))
+  | OptionDirectional(stmt,dir) ->(i,map,Stmt(OptionDirectional(stmt,Option.map (rename_variables_of_value map) dir),ln))
+  | Targeting(stmt,dir,dis) -> (i,map,Stmt(Targeting(stmt,rename_variables_of_value map dir,rename_variables_of_value map dis),ln))
   | Write v -> (i,map,Stmt(Write(rename_variables_of_value map v),ln))
   | Declare(t,n) -> 
     let new_name = n^"_"^string_of_int i in

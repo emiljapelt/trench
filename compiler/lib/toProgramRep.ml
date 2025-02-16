@@ -117,19 +117,35 @@ and compile_stmt (Stmt(stmt,ln)) (state:compile_state) acc =
   | Assign (Local target, aexpr) -> 
     Instr_Place :: I(fetch_var_index target state.vars) :: compile_value aexpr state (Instr_Assign :: acc)
   | Label name -> Label name :: acc
-  | Move e -> compile_value e state (Instr_Move :: acc)
-  | Shoot e -> compile_value e state (Instr_Shoot :: acc)
-  | Fortify Some e -> compile_value e state (Instr_Fortify :: acc)
-  | Fortify None -> Instr_Place :: I(4) :: Instr_Fortify :: acc
-  | Trench Some e -> compile_value e state ( Instr_Trench :: acc)
-  | Trench None -> Instr_Place :: I(4) :: Instr_Trench :: acc
+  | Directional(stmt, dir) -> (
+    let instr = match stmt with
+    | Shoot -> Instr_Shoot
+    | Mine -> Instr_Mine
+    | Fireball -> Instr_Fireball
+    | Move -> Instr_Move
+    | Attack -> Instr_Melee
+    in
+    compile_value dir state (instr :: acc)
+  )
+  | OptionDirectional(stmt, dir_opt) -> (
+    let instr = match stmt with
+    | Trench -> Instr_Trench
+    | Fortify -> Instr_Fortify
+    in
+    match dir_opt with
+    | Some dir -> compile_value dir state (instr :: acc)
+    | None ->  Instr_Place :: I(4) :: instr :: acc
+  )
+  | Targeting(stmt, dir, dis) -> (
+    let instr = match stmt with
+    | Bomb -> Instr_Bomb
+    | Freeze -> Instr_Freeze
+    in
+    compile_value dir state (compile_value dis state (instr :: acc))
+  )
   | Wait -> Instr_Wait :: acc
   | Pass -> Instr_Pass :: acc
   | GoTo n -> Instr_GoTo :: LabelRef n :: acc
-  | Bomb(d,i) -> compile_value d state (compile_value i state (Instr_Bomb :: acc))
-  | Freeze(d,i) -> compile_value d state (compile_value i state (Instr_Freeze :: acc))
-  | Mine d -> compile_value d state (Instr_Mine :: acc)
-  | Attack d -> compile_value d state (Instr_Melee :: acc)
   | Declare _ -> Instr_Place :: I(0) :: acc
   | Write v -> compile_value v state (Instr_Write :: acc)
   | Projection -> Instr_Projection :: acc

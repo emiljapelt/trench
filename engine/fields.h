@@ -61,6 +61,7 @@ typedef struct fields_namespace {
     field_property_check has_trap;
     void (*const destroy_field)(const int x, const int y, char* death_msg);
     void (*const damage_field)(const int x, const int y, damage_t d_type, char* death_msg);
+    void (*const remove_field)(const int x, const int y);
     field_scan (*const scan)(const int x, const int y);
 } fields_namespace;
 

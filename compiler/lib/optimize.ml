@@ -84,15 +84,11 @@ let rec optimize_stmt (Stmt(stmt_i,ln) as stmt) =
   | While(v,s,None) -> Stmt(While(optimize_value v,optimize_stmt s,None),ln)
   | While(v,s,Some si) -> Stmt(While(optimize_value v,optimize_stmt s,Some(optimize_stmt si)),ln)
   | Assign(n,e) -> Stmt(Assign(optimize_assign_target n,optimize_value e),ln)
-  | Move e -> Stmt(Move(optimize_value e),ln)
-  | Shoot e -> Stmt(Shoot(optimize_value e),ln)
-  | Bomb(d,p) -> Stmt(Bomb(optimize_value d, optimize_value p),ln)
-  | Mine d -> Stmt(Mine(optimize_value d),ln)
-  | Attack d -> Stmt(Attack(optimize_value d),ln)
-  | Fortify o -> Stmt(Fortify(Option.map optimize_value o),ln)
-  | Trench o -> Stmt(Trench(Option.map optimize_value o),ln)
   | DeclareAssign(ty,n,v) -> Stmt(DeclareAssign(ty,n,optimize_value v), ln)
   | Write v -> Stmt(Write(optimize_value v),ln)
+  | Directional(stmt,d) -> Stmt(Directional(stmt,optimize_value d),ln)
+  | OptionDirectional(stmt,d) -> Stmt(OptionDirectional(stmt,Option.map optimize_value d),ln)
+  | Targeting(stmt,dir,dis) -> Stmt(Targeting(stmt,optimize_value dir, optimize_value dis),ln)
   | Declare _
   | Wait
   | GoTo _
@@ -100,7 +96,6 @@ let rec optimize_stmt (Stmt(stmt_i,ln) as stmt) =
   | Continue
   | Break
   | Projection
-  | Freeze _
   | Pass -> stmt)
   with
   | Failure (f, None, msg) -> raise (Failure(f,Some ln,msg))

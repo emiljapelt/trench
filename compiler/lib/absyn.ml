@@ -34,13 +34,6 @@ and statement_inner =
     | Break
     | Assign of target * value
     | Label of string
-    | Move of value
-    | Shoot of value
-    | Bomb of value * value
-    | Mine of value
-    | Attack of value
-    | Fortify of value option
-    | Trench of value option
     | Wait
     | Pass
     | GoTo of string
@@ -48,7 +41,24 @@ and statement_inner =
     | DeclareAssign of typ * string * value
     | Write of value
     | Projection
-    | Freeze of value * value 
+    | Directional of directional_statement * value
+    | OptionDirectional of option_directional_statement * value option
+    | Targeting of targeting_statement * value * value
+
+and directional_statement =
+    | Shoot
+    | Mine
+    | Fireball
+    | Move
+    | Attack
+
+and option_directional_statement =
+    | Trench
+    | Fortify
+
+and targeting_statement =
+    | Bomb
+    | Freeze
 
 and value =
     | Reference of target

@@ -119,6 +119,28 @@ void damage_field(const int x, const int y, damage_t d_type, char* death_msg) {
         destroy_field(x,y,death_msg);
 }
 
+void remove_field(const int x, const int y) {
+    field_state* field = get_field(x,y);
+    switch (field->type) {
+        case TREE: {
+            /* code */
+            break;
+        }
+        case TRENCH: {
+            field->type = EMPTY;
+            free(field->data);
+            break;
+        }
+        case ICE_BLOCK: {
+            field_data* old_data = field->data;
+            field->data = old_data->ice_block.inner;
+            field->type = old_data->ice_block.inner_type;
+            free(old_data);
+            break;
+        }
+    }
+}
+
 const fields_namespace fields = {
     .get = &get_field,
     .set = &set_field,
@@ -131,4 +153,5 @@ const fields_namespace fields = {
     .scan = &scan_field,
     .destroy_field = &destroy_field,
     .damage_field = &damage_field,
+    .remove_field = &remove_field,
 };

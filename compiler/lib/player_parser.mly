@@ -46,7 +46,7 @@
 %token QMARK PLUSPLUS MINUSMINUS
 %token IF ELSE IS REPEAT WHILE FOR CONTINUE BREAK
 %token GOTO AT
-%token MOVE FORTIFY WAIT PASS TRENCH PROJECTION FREEZE
+%token MOVE FORTIFY WAIT PASS TRENCH PROJECTION FREEZE FIREBALL
 %token NORTH EAST SOUTH WEST BOMB SHOOT LOOK SCAN MINE ATTACK
 %token INT DIR FIELD
 %token READ WRITE
@@ -193,19 +193,18 @@ non_control_flow_stmt:
   | PLUSPLUS target        { features ["memory"; "sugar"] ; Assign ($2, Binary_op("+", Reference $2, Int 1)) }
   | target MINUSMINUS      { features ["memory"; "sugar"] ; Assign ($1, Binary_op("-", Reference $1, Int 1)) }
   | MINUSMINUS target      { features ["memory"; "sugar"] ; Assign ($2, Binary_op("-", Reference $2, Int 1)) }
-  | MOVE value                        { Move $2 }
-  | ATTACK value                      { themeing ["basic"] ; Attack $2 }
-  | FORTIFY                           { Fortify None }
-  | FORTIFY value                     { Fortify (Some $2) }
-  | TRENCH                            { Trench None }
-  | TRENCH value                      { Trench (Some $2) }
+  | MOVE value                        { Directional(Move, $2) }
+  | ATTACK value                      { themeing ["basic"] ; Directional(Attack, $2) }
+  | FORTIFY value?                    { OptionDirectional(Fortify, $2) }
+  | TRENCH value?                     { OptionDirectional(Trench, $2) }
   | WAIT                              { Wait }
   | PASS                              { Pass }
-  | SHOOT value                       { themeing ["basic"] ; Shoot $2 }
-  | MINE value                        { themeing ["basic"] ; Mine $2 }
-  | BOMB simple_value simple_value    { themeing ["basic"] ; Bomb($2, $3) }
-  | FREEZE simple_value simple_value  { themeing ["wizardry"] ; Freeze($2, $3) }
   | WRITE value                       { features ["comms"] ; Write $2 }
+  | SHOOT value                       { themeing ["basic"] ; Directional(Shoot, $2) }
+  | MINE value                        { themeing ["basic"] ; Directional(Mine, $2) }
+  | BOMB simple_value simple_value    { themeing ["basic"] ; Targeting(Bomb, $2, $3) }
+  | FREEZE simple_value simple_value  { themeing ["wizardry"] ; Targeting(Freeze, $2, $3) }
+  | FIREBALL value                    { themeing ["wizardry"] ; Directional(Fireball, $2) }
   | PROJECTION                        { themeing ["wizardry"] ; Projection }
 ;
 

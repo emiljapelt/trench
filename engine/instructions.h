@@ -57,6 +57,7 @@ typedef enum {
   Instr_Write = 40,
   Instr_Projection = 41,
   Instr_Freeze = 43,
+  Instr_Fireball = 44,
 } instruction;
 
 void instr_shoot(player_state* ps) {
@@ -454,6 +455,35 @@ void instr_freeze(player_state* ps) {
     new_data->ice_block.inner_type = field->type;
     field->type = ICE_BLOCK;
     field->data = new_data;
+}
+
+void instr_fireball(player_state* ps) {
+    direction d = (direction)ps->stack[--ps->sp];
+    if(!spend_resource(ps->resources, "mana", 10)) return;
+    int x = ps->x;
+    int y = ps->y;
+    move_coord(x,y,d,&x,&y);
+    int end = 0;
+    while(in_bounds(x,y)) {
+        if (fields.is_obstruction(x,y)) {
+            end = 1;
+            fields.damage_field(x,y,FIRE_DAMAGE,"Hit by a fireball");
+        }
+        else if (fields.has_player(x,y) && !(fields.is_cover(x,y) || fields.is_shelter(x,y))) {
+            end = 1;
+            for(int i = 0; i < _gs->players->count; i++) {
+                player_state* player = get_player(_gs->players, i);
+                if (player->alive && player->x == x && player->y == y) 
+                    death_mark_player(player, "Hit by a fireball");
+            }
+        }
+
+        set_color_overlay(x,y,FORE,color_predefs.red);
+        set_overlay(x,y,CIRCLE);
+        print_board(); wait(0.05);
+        if (end) break;
+        move_coord(x,y,d,&x,&y);
+    }
 }
 
 #endif

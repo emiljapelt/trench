@@ -50,6 +50,7 @@
 #define SNOWFLAKE "\u2744"
 #define LIGHTNING "\u2607"
 #define TREE_VISUAL "T"
+#define CIRCLE "\u2b24"
 
 #define BULLETS_NS "\u22ee"
 #define BULLETS_EW "\u2026"
