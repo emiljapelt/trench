@@ -122,16 +122,17 @@ let type_index t = match t with
 
 type player_info_field =
     | PlayerName of string
-    | PlayerPosition of int * int
+    | PlayerOrigin of int * int
     | PlayerFile of string
 
 type team_info_field =
     | TeamName of string
     | TeamColor of int * int * int
+    | TeamOrigin of int * int
     | TeamPlayer of player_info
 
-and player_info = PI of { team: int; name: string; position: int * int; file: string }
-type team_info = TI of { name: string; color: (int*int*int); players: player_info list }
+and player_info = PI of { team: int; name: string; origin: int * int; file: string }
+type team_info = TI of { name: string; color: (int*int*int); origin: int * int; players: player_info list }
 
 type resource = string * int
 

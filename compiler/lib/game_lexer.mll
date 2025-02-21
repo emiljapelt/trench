@@ -12,7 +12,7 @@
                         "nuke", NUKE;
                         "team", TEAM;
                         "name", NAME;
-                        "position", POSITION;
+                        "origin", ORIGIN;
                         "file", FILE;
                         "features", FEATURES;
                         "exec_mode", EXEC_MODE;

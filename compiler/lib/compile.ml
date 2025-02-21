@@ -175,7 +175,7 @@ let game_setup_player (PI player) =
   {
   team = player.team;
   name = player.name;
-  position = player.position;
+  position = player.origin;
   file = player.file;
   directive = Array.of_list p;
   directive_len = List.length p;
@@ -191,10 +191,12 @@ let set_resources rs =
 
 module IntSet = Set.Make(Int)
 
-let add_team_numbers (teams : team_info list) : team_info list =
+let add_team_info (teams : team_info list) : team_info list =
+  let combine_origin a b = (fst a + fst b, snd a + snd b)
+  in
   List.mapi (
     fun i (TI ti) -> (TI({
-      ti with players = List.map (fun (PI p) -> PI({p with team = i})) ti.players 
+      ti with players = List.map (fun (PI p) -> PI({p with team = i; origin = combine_origin p.origin ti.origin})) ti.players 
     }))
   ) teams
 
@@ -220,7 +222,7 @@ let player_list teams =
   |> List.flatten
 
 let format_game_setup (GS gs) = 
-  let checked_teams = gs.teams |> check_team_colors |> add_team_numbers in
+  let checked_teams = gs.teams |> check_team_colors |> add_team_info in
   let teams = checked_teams |> team_list |> Array.of_list in
   let players = player_list checked_teams in
   {
