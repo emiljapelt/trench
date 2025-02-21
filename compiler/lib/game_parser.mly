@@ -47,7 +47,7 @@
 %token <float> CSTFLOAT
 %token <string> WORD
 %token LPAR RPAR LBRACE RBRACE
-%token COMMA SEMI COLON EOF STAR FEATURES COLOR
+%token COMMA SEMI COLON EOF STAR FEATURES COLOR INFINITE MANUAL
 %token PLAYER RESOURCES THEMES TIME_SCALE SEED ACTIONS STEPS MODE BOARD NUKE NAME TEAM ORIGIN FILE EXEC_MODE SYNC ASYNC
 
 /*Low precedence*/
@@ -90,6 +90,12 @@ resource:
   | WORD COLON CSTINT SEMI? { ($1, $3) }
 ;
 
+game_mode:
+  | CSTINT { Mode $1 }
+  | MANUAL { Mode (-1) }
+  | INFINITE { Mode 0 }
+;
+
 game_setup_part:
   | TEAM COLON LBRACE team_info+ RBRACE { team_info_fields_to_team_info $4 }
   | RESOURCES COLON LBRACE resource* RBRACE { Resources $4 }
@@ -99,7 +105,7 @@ game_setup_part:
   | FEATURES COLON STAR SEMI? { Features all_features }
   | ACTIONS COLON CSTINT SEMI? { Actions $3 }
   | STEPS COLON CSTINT SEMI? { Steps $3 }
-  | MODE COLON CSTINT SEMI? { Mode $3 }
+  | MODE COLON game_mode SEMI? { $3 }
   | BOARD COLON CSTINT COMMA CSTINT SEMI? { Board ($3,$5) }
   | NUKE COLON CSTINT SEMI? { Nuke $3 }
   | EXEC_MODE COLON SYNC SEMI? { ExecMode SyncExec }

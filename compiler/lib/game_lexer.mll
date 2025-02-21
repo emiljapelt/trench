@@ -23,6 +23,8 @@
                         "seed", SEED;
                         "time_scale", TIME_SCALE;
                         "color", COLOR;
+                        "manual", MANUAL;
+                        "inf", INFINITE;
                       ]
   
   let char_of_string s lexbuf = match s with
