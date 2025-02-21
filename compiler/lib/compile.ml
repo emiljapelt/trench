@@ -191,12 +191,18 @@ let set_resources rs =
 
 module IntSet = Set.Make(Int)
 
-let add_team_info (teams : team_info list) : team_info list =
-  let combine_origin a b = (fst a + fst b, snd a + snd b)
+let add_team_info board_size (teams : team_info list) : team_info list =
+  let compute_origin (PI player) (TI team) = 
+    let result = (fst player.origin + fst team.origin, snd player.origin + snd team.origin) in
+    if (
+      0 <= fst result && fst result < fst board_size &&
+      0 <= snd result && snd result < snd board_size
+    ) then result
+    else raise_failure ("'" ^ player.name ^ "' of team '" ^ team.name ^ "' would spawn outside the board")
   in
   List.mapi (
     fun i (TI ti) -> (TI({
-      ti with players = List.map (fun (PI p) -> PI({p with team = i; origin = combine_origin p.origin ti.origin})) ti.players 
+      ti with players = List.map (fun (PI p) -> PI({p with team = i; origin = compute_origin (PI p) (TI ti)})) ti.players 
     }))
   ) teams
 
@@ -222,7 +228,7 @@ let player_list teams =
   |> List.flatten
 
 let format_game_setup (GS gs) = 
-  let checked_teams = gs.teams |> check_team_colors |> add_team_info in
+  let checked_teams = gs.teams |> check_team_colors |> add_team_info gs.board in
   let teams = checked_teams |> team_list |> Array.of_list in
   let players = player_list checked_teams in
   {
