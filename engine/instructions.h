@@ -517,6 +517,10 @@ void instr_dispel(player_state* ps) {
         if (e->kind == MAGICAL_EVENT)
             e->func = NULL;
     }
+
+    set_overlay(x,y,LARGE_X);
+    set_color_overlay(x,y,FORE,color_predefs.magic_purple);
+    print_board(); wait(0.5);
 }
 
 void instr_disarm(player_state* ps) {
@@ -539,6 +543,9 @@ void instr_disarm(player_state* ps) {
         if (e->kind == PHYSICAL_EVENT)
             e->func = NULL;
     }
+
+    set_overlay(x,y,LARGE_X);
+    print_board(); wait(0.5);
 }
 
 void instr_mana_drain(player_state* ps){

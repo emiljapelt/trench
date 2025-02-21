@@ -54,9 +54,10 @@
 #define EMPTY_DIAMOND "\u27d0"
 #define BEAR_TRAP "\u26ba"
 #define PENTAGRAM "\u26e4"
+#define LARGE_X "\u2a09"
 
 #define BULLETS_NS "\u22ee"
-#define BULLETS_EW "\u2026"
+#define BULLETS_EW "\u22ef"
 
 // ****
 
