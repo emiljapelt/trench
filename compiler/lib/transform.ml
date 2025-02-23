@@ -87,6 +87,8 @@ let rec rename_variables_of_stmt i map (Stmt(stmt,ln)) = match stmt with
   | Directional(stmt,dir) -> (i,map,Stmt(Directional(stmt,rename_variables_of_value map dir),ln))
   | OptionDirectional(stmt,dir) ->(i,map,Stmt(OptionDirectional(stmt,Option.map (rename_variables_of_value map) dir),ln))
   | Targeting(stmt,dir,dis) -> (i,map,Stmt(Targeting(stmt,rename_variables_of_value map dir,rename_variables_of_value map dis),ln))
+  | PagerSet v -> (i,map,Stmt(PagerSet(rename_variables_of_value map v),ln))
+  | PagerWrite v -> (i,map,Stmt(PagerWrite(rename_variables_of_value map v),ln))
   | Write v -> (i,map,Stmt(Write(rename_variables_of_value map v),ln))
   | Declare(t,n) -> 
     let new_name = n^"_"^string_of_int i in

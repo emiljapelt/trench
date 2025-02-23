@@ -54,6 +54,9 @@ type instruction =
   | Instr_Dispel
   | Instr_Disarm
   | Instr_ManaDrain
+  | Instr_PagerSet
+  | Instr_PagerRead
+  | Instr_PagerWrite
 
 let instruction_to_int label_map instr = match instr with
     | I i -> Some i
@@ -107,6 +110,9 @@ let instruction_to_int label_map instr = match instr with
     | Instr_Dispel -> Some 45
     | Instr_Disarm -> Some 46
     | Instr_ManaDrain -> Some 47
+    | Instr_PagerSet -> Some 48
+    | Instr_PagerWrite -> Some 49
+    | Instr_PagerRead -> Some 50
 
 let label_set pp =
   let rec aux pp set = match pp with

@@ -38,6 +38,8 @@ and statement_inner =
     | Declare of typ * string
     | DeclareAssign of typ * string * value
     | Write of value
+    | PagerSet of value
+    | PagerWrite of value
     | Unit of unit_statement
     | Directional of directional_statement * value
     | OptionDirectional of option_directional_statement * value option
@@ -82,6 +84,7 @@ and value =
     | RandomSet of value list
     | FieldProp of value * field_prop
     | Read
+    | PagerRead
 
 and meta_data =
     | PlayerX     (* #x *)

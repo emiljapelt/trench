@@ -65,6 +65,7 @@ let rec optimize_value expr =
   | FieldProp _ 
   | Decrement _ 
   | Increment _
+  | PagerRead
   | Read
   | Reference Local _ -> expr
 
@@ -85,6 +86,8 @@ let rec optimize_stmt (Stmt(stmt_i,ln) as stmt) =
   | While(v,s,Some si) -> Stmt(While(optimize_value v,optimize_stmt s,Some(optimize_stmt si)),ln)
   | Assign(n,e) -> Stmt(Assign(optimize_assign_target n,optimize_value e),ln)
   | DeclareAssign(ty,n,v) -> Stmt(DeclareAssign(ty,n,optimize_value v), ln)
+  | PagerSet v -> Stmt(PagerSet(optimize_value v),ln)
+  | PagerWrite v -> Stmt(PagerWrite(optimize_value v),ln)
   | Write v -> Stmt(Write(optimize_value v),ln)
   | Directional(stmt,d) -> Stmt(Directional(stmt,optimize_value d),ln)
   | OptionDirectional(stmt,d) -> Stmt(OptionDirectional(stmt,Option.map optimize_value d),ln)

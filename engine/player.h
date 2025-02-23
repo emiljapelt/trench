@@ -30,6 +30,8 @@ typedef struct player_state {
     int y;
     int remaining_steps;
     int remaining_actions;
+    int pager_channel;
+    array_list_t* pager_msgs;
     event_list_t* pre_death_events;
     event_list_t* post_death_events;
     resource_registry* resources;

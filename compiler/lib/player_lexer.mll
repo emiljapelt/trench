@@ -33,6 +33,9 @@
                         "field", FIELD;
                         "read", READ;
                         "write", WRITE;
+                        "pager_read", PAGER_READ;
+                        "pager_write", PAGER_WRITE;
+                        "pager_set", PAGER_SET;
                         "projection", PROJECTION;
                         "freeze", FREEZE;
                         "fireball", FIREBALL;

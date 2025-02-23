@@ -64,6 +64,9 @@ typedef enum {
   Instr_Dispel = 45,
   Instr_Disarm = 46,
   Instr_ManaDrain = 47,
+  Instr_PagerSet = 48,
+  Instr_PagerWrite = 49,
+  Instr_PagerRead = 50,
 } instruction;
 
 void instr_shoot(player_state* ps) {
@@ -419,6 +422,8 @@ void instr_projection(player_state* ps) {
     projection->dp = ps->dp;
     projection->x = ps->x;
     projection->y = ps->y;
+    projection->pager_channel = ps->pager_channel;
+    projection->pager_msgs = array_list.create(10);
     projection->pre_death_events = array_list.create(10);
     projection->post_death_events = array_list.create(10);
     projection->resources = projection_registry;
@@ -548,7 +553,7 @@ void instr_disarm(player_state* ps) {
     print_board(); wait(0.5);
 }
 
-void instr_mana_drain(player_state* ps){
+void instr_mana_drain(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
     if(!spend_resource(ps->resources, "mana", 10)) return;
 
@@ -565,5 +570,36 @@ void instr_mana_drain(player_state* ps){
         events.mana_drain, NULL
     );
 }
+
+void instr_pager_set(player_state* ps) {
+    ps->pager_channel = ps->stack[--ps->sp];
+}
+
+void instr_pager_read(player_state* ps) {
+    //printf("pager: %p %i\n", ps->pager_msgs, ps->pager_msgs->count); wait(1);
+    if (ps->pager_msgs->count <= 0) 
+        ps->stack[ps->sp++] = 0;
+    else {
+        void* msg = array_list.get(ps->pager_msgs, 0);
+        //printf("\tread: %i\n", msg); wait(1);
+        void** msg_bypass = &msg;
+        ps->stack[ps->sp++] = *(int*)msg_bypass;
+        array_list.remove(ps->pager_msgs, 0, 0);
+    }
+}
+
+void instr_pager_write(player_state* ps) {
+    //printf("writing...\n"); wait(1);
+    int msg = ps->stack[--ps->sp];
+    int* msg_bypass = &msg;
+    int channel = ps->pager_channel;
+    for(int i = 0; i < _gs->players->count; i++) {
+        player_state* other = array_list.get(_gs->players, i);
+        if (other->id != ps->id && other->pager_channel == channel) {
+            array_list.add(other->pager_msgs, *(void**)msg_bypass);
+        }
+    }
+}
+
 
 #endif

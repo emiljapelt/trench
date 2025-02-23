@@ -39,7 +39,7 @@ void remove(array_list_t* list, int index, int do_free) {
 
     if (do_free) free(list->list[index]);
 
-    memmove(list->list[index], list->list[index] + 1, sizeof(void*) * (list->count - index));
+    memmove(list->list + index, list->list + index + 1, sizeof(void*) * (list->count - index));
 
     list->count--;
 

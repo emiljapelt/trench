@@ -27,6 +27,7 @@ typedef struct color_predef {
     color* yellow;
     color* ice_blue;
     color* magic_purple;
+    color* dark_grey;
 } color_predef;
 
 extern const color_predef color_predefs;

@@ -44,6 +44,7 @@
 %token LOGIC_AND LOGIC_OR PIPE FSLASH PCT TILDE
 %token COMMA SEMI COLON DOT EOF
 %token QMARK PLUSPLUS MINUSMINUS
+%token PAGER_READ PAGER_WRITE PAGER_SET
 %token IF ELSE IS REPEAT WHILE FOR CONTINUE BREAK
 %token GOTO AT MEDITATE DISPEL DISARM MANA_DRAIN
 %token MOVE FORTIFY WAIT PASS TRENCH PROJECTION FREEZE FIREBALL
@@ -102,7 +103,8 @@ simple_value:
   | TILDE simple_value                 { Unary_op ("~", $2) }
   | NAME                               { features ["memory"] ; Reference(Local $1) }
   | META_NAME                          { MetaReference (meta_name $1) }
-  | READ                               { features ["comms"] ; Read }
+  | READ                               { features ["ipc"] ; Read }
+  | PAGER_READ                         { features ["ipc"] ; PagerRead }
   | LPAR value RPAR                    { $2 }
 ;
 
@@ -199,7 +201,9 @@ non_control_flow_stmt:
   | TRENCH value?                     { OptionDirectional(Trench, $2) }
   | WAIT                              { Unit(Wait) }
   | PASS                              { Unit(Pass) }
-  | WRITE value                       { features ["comms"] ; Write $2 }
+  | WRITE value                       { features ["ipc"] ; Write $2 }
+  | PAGER_WRITE value                 { features ["ipc"] ; PagerWrite $2 }
+  | PAGER_SET value                   { features ["ipc"] ; PagerSet $2 }
   | SHOOT value                       { themeing ["basic"] ; Directional(Shoot, $2) }
   | MINE value                        { themeing ["basic"] ; Directional(Mine, $2) }
   | BOMB simple_value simple_value    { themeing ["basic"] ; Targeting(Bomb, $2, $3) }

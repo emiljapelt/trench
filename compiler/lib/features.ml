@@ -3,7 +3,7 @@ module StringSet = Set.Make(String)
 let all_features = [
   "random";
   "memory";
-  "comms";
+  "ipc";
   "loops";
   "control";
   "sugar";

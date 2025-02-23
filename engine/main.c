@@ -42,7 +42,7 @@ void player_turn_async(player_state* ps) {
         int change = 0;
         if (ps->dp >= ps->directive_len) { return; }
         if (!use_resource(1,&ps->remaining_steps)) return;
-        // debug_print(ps);
+        //debug_print(ps);
         switch (ps->directive[ps->dp++]) {
             case Meta_PlayerX: meta_player_x(ps);break;
             case Meta_PlayerY: meta_player_y(ps);break;
@@ -161,6 +161,9 @@ void player_turn_async(player_state* ps) {
                 change = 1;
                 break;
             }
+            case Instr_PagerSet: instr_pager_set(ps); break;
+            case Instr_PagerRead: instr_pager_read(ps); break; 
+            case Instr_PagerWrite: instr_pager_write(ps); break;
             default: return;
         }
 
@@ -253,6 +256,9 @@ turn_action player_turn_sync(player_state* ps) {
             case Instr_Fireball: attack_action(&instr_fireball); break;
             case Instr_Meditate: defend_action(&instr_meditate); break;
             case Instr_ManaDrain: defend_action(&instr_mana_drain); break;
+            case Instr_PagerSet: instr_pager_set(ps); break;
+            case Instr_PagerRead: instr_pager_read(ps); break; 
+            case Instr_PagerWrite: instr_pager_write(ps); break;
             default: return inactive();
         }
     }
