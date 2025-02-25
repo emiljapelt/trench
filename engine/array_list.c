@@ -27,14 +27,14 @@ void add(array_list_t* list, void* data) {
 };
 
 void* get(array_list_t* list, int index) {
-    if (index < 0 || index > list->count)
+    if (index < 0 || index >= list->count)
         return NULL;
 
     return list->list[index];
 }
 
 void remove(array_list_t* list, int index, int do_free) {
-    if (index < 0 || index > list->count)
+    if (index < 0 || index >= list->count)
         return;
 
     if (do_free) free(list->list[index]);
@@ -43,7 +43,7 @@ void remove(array_list_t* list, int index, int do_free) {
 
     list->count--;
 
-    if (list->count < (list->size/4) ) {
+    if (list->size > 1 && list->count < (list->size/4)) {
         void** new_list = malloc(sizeof(void*) * (list->size / 2));
         memcpy(new_list, list->list, sizeof(void*) * list->count);
         free(list->list);
