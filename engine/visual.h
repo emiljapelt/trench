@@ -49,15 +49,17 @@
 #define COFFIN "\u26b0"
 #define SNOWFLAKE "\u2744"
 #define LIGHTNING "\u2607"
-#define TREE_VISUAL "T"
-#define CIRCLE "\u2b24"
+#define TREE_VISUAL "\u219f"
+#define FILLED_CIRCLE "\u2b24"
+#define BULLET "\u2022"
 #define EMPTY_DIAMOND "\u27d0"
 #define BEAR_TRAP "\u26ba"
 #define PENTAGRAM "\u26e4"
 #define LARGE_X "\u2a09"
 #define MIDDOT "\u00b7"
-#define BULLETS_NS "\u22ee"
-#define BULLETS_EW "\u22ef"
+#define LIGHTNING "\u21af"
+#define DOTS_NS "\u22ee"
+#define DOTS_EW "\u22ef"
 
 // ****
 

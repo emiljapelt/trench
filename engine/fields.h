@@ -33,9 +33,10 @@ typedef struct {
     unsigned int player : 1;
     unsigned int trapped : 1;
     unsigned int flammable : 1;
+    unsigned int meltable : 1;
     unsigned int shelter : 1;
     unsigned int cover : 1;
-    unsigned int _ : 26;
+    unsigned int _ : 25;
 } field_scan;
 
 typedef struct field_state {

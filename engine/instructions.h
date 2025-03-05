@@ -75,27 +75,28 @@ void instr_shoot(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
     int x = ps->x;
     int y = ps->y;
-    char* visual; switch (d) {
-        case NORTH:
-        case SOUTH: 
-            visual = BULLETS_NS;
-            break;
-        case EAST:
-        case WEST:
-            visual = BULLETS_EW;
-            break;
-    }
+    
+    int hit = 0;
     move_coord(x, y, d, &x, &y);
     while (in_bounds(x,y) && !fields.is_obstruction(x,y)) { 
-        set_overlay(x,y,visual);
+        set_overlay(x,y,BULLET);
         set_color_overlay(x,y,FORE,color_predefs.yellow);
+        print_board(); wait(0.02);
 
-        for(int i = 0; i < _gs->players->count; i++) {
-            player_state* player = get_player(_gs->players, i);
-            if (player->x == x && player->y == y && !fields.is_cover(x,y)) {
-                death_mark_player(player, "Was gunned down");
+        if (fields.is_obstruction(x,y)) {
+            hit = 1;
+            fields.damage_field(x, y, KINETIC_DMG & PROJECTILE_DMG, "Shoot by a bullet");
+        }
+        else if (fields.has_player(x,y) && !(fields.is_cover(x,y) || fields.is_shelter(x,y))) {
+            hit = 1;
+            for(int i = 0; i < _gs->players->count; i++) {
+                player_state* player = get_player(_gs->players, i);
+                if (player->alive && player->x == x && player->y == y) 
+                    death_mark_player(player, "Shoot by a bullet");
             }
         }
+        
+        if (hit) return;
 
         move_coord(x, y, d, &x, &y);
     }
@@ -473,15 +474,16 @@ void instr_fireball(player_state* ps) {
     if(!spend_resource(ps->resources, "mana", 10)) return;
     int x = ps->x;
     int y = ps->y;
+    int hit = 0;
+
     move_coord(x,y,d,&x,&y);
-    int end = 0;
     while(in_bounds(x,y)) {
         if (fields.is_obstruction(x,y)) {
-            end = 1;
-            fields.damage_field(x,y,FIRE_DAMAGE,"Hit by a fireball");
+            hit = 1;
+            fields.damage_field(x, y, FIRE_DMG & PROJECTILE_DMG, "Hit by a fireball");
         }
         else if (fields.has_player(x,y) && !(fields.is_cover(x,y) || fields.is_shelter(x,y))) {
-            end = 1;
+            hit = 1;
             for(int i = 0; i < _gs->players->count; i++) {
                 player_state* player = get_player(_gs->players, i);
                 if (player->alive && player->x == x && player->y == y) 
@@ -490,9 +492,9 @@ void instr_fireball(player_state* ps) {
         }
 
         set_color_overlay(x,y,FORE,color_predefs.red);
-        set_overlay(x,y,CIRCLE);
+        set_overlay(x,y,FILLED_CIRCLE);
         print_board(); wait(0.05);
-        if (end) break;
+        if (hit) break;
         move_coord(x,y,d,&x,&y);
     }
 }

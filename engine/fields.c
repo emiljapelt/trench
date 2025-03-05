@@ -33,6 +33,16 @@ int is_flammable(const int x, const int y) {
     }
 }
 
+// Something which is removed by heat
+int is_meltable(const int x, const int y) {
+    switch (get_field(x,y)->type) {
+        case ICE_BLOCK:
+            return 1;
+        default:
+            return 0;
+    }
+}
+
 // Something which protects from falling things. e.g. bombs and rocks
 int is_shelter(const int x, const int y) {
     field_state* field = get_field(x,y);
@@ -78,6 +88,7 @@ field_scan scan_field(const int x, const int y) {
         .player = has_player(x,y),
         .trapped = has_trap(x,y),
         .flammable = is_flammable(x,y),
+        .meltable = is_meltable(x,y),
         .cover = is_cover(x,y),
         .shelter = is_shelter(x,y),
     };
@@ -113,12 +124,6 @@ void destroy_field(const int x, const int y, char* death_msg) {
     }
 }
 
-void damage_field(const int x, const int y, damage_t d_type, char* death_msg) {
-    field_scan scan = scan_field(x,y);
-    if (scan.flammable && IS_DAMAGE_TYPE(FIRE_DAMAGE, d_type))
-        destroy_field(x,y,death_msg);
-}
-
 void remove_field(const int x, const int y) {
     field_state* field = get_field(x,y);
     switch (field->type) {
@@ -139,6 +144,14 @@ void remove_field(const int x, const int y) {
             break;
         }
     }
+}
+
+void damage_field(const int x, const int y, damage_t d_type, char* death_msg) {
+    field_scan scan = scan_field(x,y);
+    if (scan.flammable && IS_DAMAGE_TYPE(FIRE_DMG, d_type))
+        destroy_field(x,y,death_msg);
+    else if (scan.meltable && IS_DAMAGE_TYPE(FIRE_DMG, d_type))
+        remove_field(x,y);
 }
 
 const fields_namespace fields = {
