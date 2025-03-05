@@ -16,6 +16,7 @@ void set_field(const int x, const int y, field_state* f) {
 // Something that cannot be passed through
 int is_obstruction(const int x, const int y) {
     switch (get_field(x,y)->type) {
+        case TREE:
         case ICE_BLOCK:
             return 1;
         default:
@@ -128,7 +129,7 @@ void remove_field(const int x, const int y) {
     field_state* field = get_field(x,y);
     switch (field->type) {
         case TREE: {
-            /* code */
+            field->type = EMPTY;
             break;
         }
         case TRENCH: {

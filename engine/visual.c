@@ -108,6 +108,11 @@ field_visual get_field_data_visual(const int x, const int y, const field_type ty
             result.symbol = get_field_data_visual(x, y, data->ice_block.inner_type, data->ice_block.inner).symbol;
             break;
         }
+        case TREE: {
+            result.foreground_color = color_predefs.green;
+            result.symbol = TREE_VISUAL;
+            break;
+        }
         case EMPTY: {
             for(int i = 0; i < _gs->players->count; i++) {
                 player_state* player = get_player(_gs->players, i);

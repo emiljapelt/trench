@@ -48,7 +48,6 @@
 #define SKULL "\u2620"
 #define COFFIN "\u26b0"
 #define SNOWFLAKE "\u2744"
-#define LIGHTNING "\u2607"
 #define TREE_VISUAL "\u219f"
 #define FILLED_CIRCLE "\u2b24"
 #define BULLET "\u2022"
