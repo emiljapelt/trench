@@ -48,7 +48,7 @@ extern game_rules* _gr;
 
 field_state* get_field(const int x, const int y);
 void set_field(const int x, const int y, field_state* f);
-void fortify_field(const int x, const int y);
+int fortify_field(const int x, const int y);
 void build_trench_field(const int x, const int y);
 
 void death_mark_player(player_state* ps, const char* reason);

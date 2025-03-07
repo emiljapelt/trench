@@ -69,14 +69,15 @@ typedef enum {
   Instr_PagerRead = 50,
 } instruction;
 
-void instr_shoot(player_state* ps) {
-    if(!spend_resource(ps->resources, "shot", 1)) return;
+// all instructions return 1 if the board should be updated, and 0 if not.
+
+int instr_shoot(player_state* ps) {
+    if(!spend_resource(ps->resources, "shot", 1)) return 0;
     
     direction d = (direction)ps->stack[--ps->sp];
     int x = ps->x;
     int y = ps->y;
     
-    int hit = 0;
     move_coord(x, y, d, &x, &y);
     while (in_bounds(x,y) && !fields.is_obstruction(x,y)) { 
         set_overlay(x,y,BULLET);
@@ -84,25 +85,24 @@ void instr_shoot(player_state* ps) {
         print_board(); wait(0.02);
 
         if (fields.is_obstruction(x,y)) {
-            hit = 1;
             fields.damage_field(x, y, KINETIC_DMG & PROJECTILE_DMG, "Shoot by a bullet");
+            return 1;
         }
         else if (fields.has_player(x,y) && !(fields.is_cover(x,y) || fields.is_shelter(x,y))) {
-            hit = 1;
             for(int i = 0; i < _gs->players->count; i++) {
                 player_state* player = get_player(_gs->players, i);
                 if (player->alive && player->x == x && player->y == y) 
                     death_mark_player(player, "Shoot by a bullet");
             }
+            return 1;
         }
-        
-        if (hit) return;
 
         move_coord(x, y, d, &x, &y);
     }
+    return 1;
 }
 
-void instr_look(player_state* ps) {
+int instr_look(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
     int offset = ps->directive[ps->dp];
     ps->dp++;
@@ -118,14 +118,14 @@ void instr_look(player_state* ps) {
         case SOUTH: y++; break;
         case WEST: x--; break;
     }
-    if (!in_bounds(x,y)) { ps->stack[ps->sp++] = 0; return; }
+    if (!in_bounds(x,y)) { ps->stack[ps->sp++] = 0; return 0; }
     field_scan scan = fields.scan(x,y);
     field_scan* bypass = &scan;
-    if ((*(int*)bypass) & (1 << offset)) { ps->stack[ps->sp++] = i; return; }
+    if ((*(int*)bypass) & (1 << offset)) { ps->stack[ps->sp++] = i; return 0; }
     goto incr;
 }
 
-void instr_scan(player_state* ps) {
+int instr_scan(player_state* ps) {
     int x = ps->x;
     int y = ps->y;
     direction power = (direction)ps->stack[--ps->sp];
@@ -146,14 +146,16 @@ void instr_scan(player_state* ps) {
 
     end:
     ps->stack[ps->sp++] = result;
+    return 0;
 }
 
-void instr_mine(player_state* ps) {
-    if(!spend_resource(ps->resources, "bomb", 1)) return;
+int instr_mine(player_state* ps) {
+    if(!spend_resource(ps->resources, "bomb", 1)) return 0;
 
     int x, y;
     direction d = (direction)ps->stack[--ps->sp];
     move_coord(ps->x, ps->y, d, &x, &y);
+    if (!in_bounds(x,y)) return 0;
     char kill = 0;
 
     for(int i = 0; i < _gs->players->count; i++) {
@@ -165,7 +167,6 @@ void instr_mine(player_state* ps) {
     }
 
     if (!kill) {
-        if (!in_bounds(x,y)) return;
         set_overlay(x,y,MINE);
         add_event(
             get_field(x,y)->exit_events,
@@ -173,16 +174,17 @@ void instr_mine(player_state* ps) {
             events.mine, NULL
         );
     }
+    return 1;
 }
 
-void instr_move(player_state* ps) { 
+int instr_move(player_state* ps) { 
     direction d = (direction)ps->stack[--ps->sp];
 
-    if (fields.is_obstruction(ps->x, ps->y)) return;
+    if (fields.is_obstruction(ps->x, ps->y)) return 0;
 
     int x, y;
     move_coord(ps->x, ps->y, d, &x, &y);
-    if (!in_bounds(x,y) || fields.is_obstruction(x,y)) return;
+    if (!in_bounds(x,y) || fields.is_obstruction(x,y)) return 0;
 
     update_events(ps, get_field(ps->x,ps->y)->exit_events);
     if (!ps->death_msg) {
@@ -190,9 +192,10 @@ void instr_move(player_state* ps) {
         ps->y = y;
         update_events(ps, get_field(x,y)->enter_events);
     }
+    return 1;
 }
 
-void instr_melee(player_state* ps) {
+int instr_melee(player_state* ps) {
     int x, y;
     direction d = (direction)ps->stack[--ps->sp];
     move_coord(ps->x, ps->y, d, &x, &y);
@@ -203,55 +206,63 @@ void instr_melee(player_state* ps) {
             death_mark_player(player, "Lost a fist fight");
     }
     //move(d,ps);
+    return 1;
 }
 
-void instr_trench(player_state* ps) {
+int instr_trench(player_state* ps) {
     int x, y;
     direction d = (direction)ps->stack[--ps->sp];
     move_coord(ps->x, ps->y, d, &x, &y);
-    if (!in_bounds(x, y)) return;
+    if (!in_bounds(x, y)) return 0;
 
     field_state* field = get_field(x,y);
     switch (field->type) {
         case EMPTY: {
             build_trench_field(x,y);
+            return 1;
         }
     }
+    return 0;
 }
 
-void instr_fortify(player_state* ps) {
+int instr_fortify(player_state* ps) {
     int x, y;
     direction d = (direction)ps->stack[--ps->sp];
     move_coord(ps->x, ps->y, d, &x, &y);
-    fortify_field(x,y);
+    return fortify_field(x,y);
 }
 
-void instr_random_int(player_state* ps) { 
+int instr_random_int(player_state* ps) { 
     ps->stack[ps->sp++] = rand();
+    return 0;
 }
 
-void instr_random_range(player_state* ps) {
+int instr_random_range(player_state* ps) {
     int num = ps->directive[ps->dp];
     int pick = ps->stack[ps->sp - ((rand() % num)+1)];
     ps->sp -= num;
     ps->stack[ps->sp++] = pick;
     ps->dp++;
+    return 0;
 }
 
-void instr_place(player_state* ps) {
+int instr_place(player_state* ps) {
     ps->stack[ps->sp++] = ps->directive[ps->dp];
     ps->dp++;
+    return 0;
 }
 
-void instr_bomb(player_state* ps) {
+int instr_bomb(player_state* ps) {
     int p = ps->stack[--ps->sp];
     direction d = (direction)ps->stack[--ps->sp];
-    if(!spend_resource(ps->resources, "bomb", 1)) return;
+    if(!spend_resource(ps->resources, "bomb", 1)) return 0;
 
     int x = ps->x;
     int y = ps->y;
     for (int i = p; i > 0; i--)
         move_coord(x,y,d,&x,&y);
+
+    if (!in_bounds(x,y)) return 0;
 
     bomb_event_args* args = malloc(sizeof(bomb_event_args));
     args->x = x;
@@ -260,145 +271,172 @@ void instr_bomb(player_state* ps) {
     add_event(_gs->events, PHYSICAL_EVENT, events.bomb, args);
     set_color_overlay(x,y,FORE,color_predefs.red);
     set_overlay(x,y,TARGET);
+    return 1;
 }
 
-void meta_player_x(player_state* ps) {
+int meta_player_x(player_state* ps) {
     ps->stack[ps->sp++] = ps->x;
+    return 0;
 }
-void meta_player_y(player_state* ps) {
+int meta_player_y(player_state* ps) {
     ps->stack[ps->sp++] = ps->y;
+    return 0;
 }
-void meta_board_x(player_state* ps) {
+int meta_board_x(player_state* ps) {
     ps->stack[ps->sp++] = _gs->board_x;
+    return 0;
 }
-void meta_board_y(player_state* ps) {
+int meta_board_y(player_state* ps) {
     ps->stack[ps->sp++] = _gs->board_y;
+    return 0;
 }
-void meta_resource(player_state* ps) {
+int meta_resource(player_state* ps) {
     int index = ps->directive[ps->dp];
     ps->dp++;
     ps->stack[ps->sp++] = peek_resource_index(ps->resources, index);
+    return 0;
 }
-void meta_player_id(player_state* ps) {
+int meta_player_id(player_state* ps) {
     ps->stack[ps->sp++] = ps->id;
+    return 0;
 }
 
-void instr_access(player_state* ps) {
+int instr_access(player_state* ps) {
     int num = ps->stack[ps->sp-1];
     ps->stack[ps->sp-1] = ps->stack[num];
+    return 0;
 }
 
-void instr_goto(player_state* ps) {
-    ps->dp = ps->directive[ps->dp];;
+int instr_goto(player_state* ps) {
+    ps->dp = ps->directive[ps->dp];
+    return 0;
 }
 
-void instr_goto_if(player_state* ps) {
+int instr_goto_if(player_state* ps) {
     int v = ps->stack[--ps->sp];
     if (v)
         ps->dp = ps->directive[ps->dp];
     else ps->dp++;
+    return 0;
 }
 
-void instr_eq(player_state* ps) {
+int instr_eq(player_state* ps) {
     int v0 = ps->stack[--ps->sp];
     int v1 = ps->stack[--ps->sp];
     ps->stack[ps->sp++] = v0 == v1;
+    return 0;
 }
 
-void instr_lt(player_state* ps) {
+int instr_lt(player_state* ps) {
     int v0 = ps->stack[--ps->sp];
     int v1 = ps->stack[--ps->sp];
     ps->stack[ps->sp++] = v0 < v1;
+    return 0;
 }
 
-void instr_sub(player_state* ps) {
+int instr_sub(player_state* ps) {
     int v0 = ps->stack[--ps->sp];
     int v1 = ps->stack[--ps->sp];
     ps->stack[ps->sp++] = v1 - v0;
+    return 0;
 }
 
-void instr_add(player_state* ps) {
+int instr_add(player_state* ps) {
     int v0 = ps->stack[--ps->sp];
     int v1 = ps->stack[--ps->sp];
     ps->stack[ps->sp++] = v0 + v1;
+    return 0;
 }
 
-void instr_mul(player_state* ps) {
+int instr_mul(player_state* ps) {
     int v0 = ps->stack[--ps->sp];
     int v1 = ps->stack[--ps->sp];
     ps->stack[ps->sp++] = v0 * v1;
+    return 0;
 }
 
-void instr_div(player_state* ps) { 
+int instr_div(player_state* ps) { 
     int v0 = ps->stack[--ps->sp];
     int v1 = ps->stack[--ps->sp];
-    if (v1 == 0) { death_mark_player(ps, "Mental break down (div by 0)"); return; }
+    if (v1 == 0) { death_mark_player(ps, "Mental break down (div by 0)"); return 0; }
     ps->stack[ps->sp++] = v0 / v1;
+    return 0;
 }
 
-void instr_mod(player_state* ps) {
+int instr_mod(player_state* ps) {
     int v0 = ps->stack[--ps->sp];
     int v1 = ps->stack[--ps->sp];
-    if (v1 == 0) { death_mark_player(ps, "Mental break down (div by 0)"); return; }
+    if (v1 == 0) { death_mark_player(ps, "Mental break down (div by 0)"); return 0; }
     ps->stack[ps->sp++] = ((v0%v1) + v1)%v1;
+    return 0;
 }
 
-void instr_not(player_state* ps) {
+int instr_not(player_state* ps) {
     int v = ps->stack[--ps->sp];
     ps->stack[ps->sp++] = !v;
+    return 0;
 }
 
-void instr_or(player_state* ps) {
+int instr_or(player_state* ps) {
     int v0 = ps->stack[--ps->sp];
     int v1 = ps->stack[--ps->sp];
     ps->stack[ps->sp++] = v0 || v1;
+    return 0;
 }
 
-void instr_and(player_state* ps) {
+int instr_and(player_state* ps) {
     int v0 = ps->stack[--ps->sp];
     int v1 = ps->stack[--ps->sp];
     ps->stack[ps->sp++] = v0 && v1;
+    return 0;
 }
 
-void instr_assign(player_state* ps) { 
+int instr_assign(player_state* ps) { 
     int v = ps->stack[--ps->sp];
     int target = ps->stack[--ps->sp];
     ps->stack[target] = v;
+    return 0;
 }
 
-void instr_field_prop(player_state* ps) { 
+int instr_field_prop(player_state* ps) { 
     int v = ps->stack[--ps->sp];
     int offset = ps->directive[ps->dp];
     ps->dp++;
     ps->stack[ps->sp++] = v & (1 << offset);
+    return 0;
 }
 
-void instr_dec_stack(player_state* ps) {
+int instr_dec_stack(player_state* ps) {
     ps->sp--;
+    return 0;
 }
 
-void instr_copy(player_state* ps) {
+int instr_copy(player_state* ps) {
     ps->stack[ps->sp] = ps->stack[ps->sp - 1];
     ps->sp++;
+    return 0;
 }
 
-void instr_swap(player_state* ps) {
+int instr_swap(player_state* ps) {
     int v0 = ps->stack[--ps->sp];
     int v1 = ps->stack[--ps->sp];
     ps->stack[ps->sp++] = v0;
     ps->stack[ps->sp++] = v1;
+    return 0;
 }
 
-void instr_write(player_state* ps) {
+int instr_write(player_state* ps) {
     get_field(ps->x, ps->y)->player_data = ps->stack[--ps->sp];
+    return 0;
 }
 
-void instr_read(player_state* ps) {
+int instr_read(player_state* ps) {
     ps->stack[ps->sp++] = get_field(ps->x, ps->y)->player_data;
+    return 0;
 }
 
-void instr_projection(player_state* ps) {
-    if(!spend_resource(ps->resources, "mana", 100)) return;
+int instr_projection(player_state* ps) {
+    if(!spend_resource(ps->resources, "mana", 100)) return 0;
 
     resource_registry* projection_registry = copy_resource_registry(ps->resources);
     player_state* projection = malloc(sizeof(player_state));
@@ -435,21 +473,22 @@ void instr_projection(player_state* ps) {
     args->player_id = projection->id;
     args->remaining = 5;
     add_event(_gs->events, MAGICAL_EVENT, events.projection_death, args);
+    return 0;
 }
 
-void instr_freeze(player_state* ps) {
+int instr_freeze(player_state* ps) {
     int p = ps->stack[--ps->sp];
     direction d = (direction)ps->stack[--ps->sp];
-    if(!spend_resource(ps->resources, "mana", 20)) return;
+    if(!spend_resource(ps->resources, "mana", 20)) return 0;
 
     int x = ps->x;
     int y = ps->y;
     for (int i = p; i > 0; i--)
         move_coord(x,y,d,&x,&y);
 
-    if(!in_bounds(x,y)) return;
+    if(!in_bounds(x,y)) return 0;
     field_state* field = get_field(x,y);
-    if(field->type == ICE_BLOCK) return;
+    if(field->type == ICE_BLOCK) return 0;
 
     ice_block_melt_event_args* args = malloc(sizeof(ice_block_melt_event_args));
     args->x = x;
@@ -461,57 +500,59 @@ void instr_freeze(player_state* ps) {
     set_color_overlay(x,y,FORE,color_predefs.ice_blue);
     set_color_overlay(x,y,BACK,color_predefs.black);
     set_overlay(x,y,SNOWFLAKE);
+    print_board(); wait(1);
 
     field_data* new_data = malloc(sizeof(field_data));
     new_data->ice_block.inner = field->data;
     new_data->ice_block.inner_type = field->type;
     field->type = ICE_BLOCK;
     field->data = new_data;
+
+    return 1;
 }
 
-void instr_fireball(player_state* ps) {
+int instr_fireball(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
-    if(!spend_resource(ps->resources, "mana", 10)) return;
+    if(!spend_resource(ps->resources, "mana", 10)) return 0;
     int x = ps->x;
     int y = ps->y;
-    int hit = 0;
 
     move_coord(x,y,d,&x,&y);
     while(in_bounds(x,y)) {
         if (fields.is_obstruction(x,y)) {
-            hit = 1;
             fields.damage_field(x, y, FIRE_DMG & PROJECTILE_DMG, "Hit by a fireball");
+            return 1;
         }
         else if (fields.has_player(x,y) && !(fields.is_cover(x,y) || fields.is_shelter(x,y))) {
-            hit = 1;
             for(int i = 0; i < _gs->players->count; i++) {
                 player_state* player = get_player(_gs->players, i);
                 if (player->alive && player->x == x && player->y == y) 
                     death_mark_player(player, "Hit by a fireball");
             }
+            return 1;
         }
 
         set_color_overlay(x,y,FORE,color_predefs.red);
         set_overlay(x,y,FILLED_CIRCLE);
         print_board(); wait(0.05);
-        if (hit) break;
         move_coord(x,y,d,&x,&y);
     }
 }
 
-void instr_meditate(player_state* ps) {
+int instr_meditate(player_state* ps) {
     add_resource(ps->resources, "mana", 10);
     set_color_overlay(ps->x,ps->y,BACK,color_predefs.magic_purple);
+    return 1;
 }
 
-void instr_dispel(player_state* ps) {
+int instr_dispel(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
-    if(!spend_resource(ps->resources, "mana", 10)) return;
+    if(!spend_resource(ps->resources, "mana", 10)) return 0;
 
     int x = ps->x;
     int y = ps->y;
     move_coord(x,y,d,&x,&y);
-    if (!in_bounds(x,y)) return;
+    if (!in_bounds(x,y)) return 0;
 
     field_state* field = get_field(x,y);
     for (int i = 0; i < field->enter_events->count; i++) {
@@ -528,16 +569,17 @@ void instr_dispel(player_state* ps) {
     set_overlay(x,y,LARGE_X);
     set_color_overlay(x,y,FORE,color_predefs.magic_purple);
     print_board(); wait(0.5);
+    return 1;
 }
 
-void instr_disarm(player_state* ps) {
+int instr_disarm(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
-    if(!spend_resource(ps->resources, "mana", 10)) return;
+    if(!spend_resource(ps->resources, "mana", 10)) return 0;
 
     int x = ps->x;
     int y = ps->y;
     move_coord(x,y,d,&x,&y);
-    if (!in_bounds(x,y)) return;
+    if (!in_bounds(x,y)) return 0;
 
     field_state* field = get_field(x,y);
     for (int i = 0; i < field->enter_events->count; i++) {
@@ -553,16 +595,17 @@ void instr_disarm(player_state* ps) {
 
     set_overlay(x,y,LARGE_X);
     print_board(); wait(0.5);
+    return 1;
 }
 
-void instr_mana_drain(player_state* ps) {
+int instr_mana_drain(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
-    if(!spend_resource(ps->resources, "mana", 10)) return;
+    if(!spend_resource(ps->resources, "mana", 10)) return 0;
 
     int x = ps->x;
     int y = ps->y;
     move_coord(x,y,d,&x,&y);
-    if (!in_bounds(x,y)) return;
+    if (!in_bounds(x,y)) return 0;
 
     set_overlay(x,y,EMPTY_DIAMOND);
     set_color_overlay(x,y,FORE,color_predefs.magic_purple);
@@ -571,14 +614,15 @@ void instr_mana_drain(player_state* ps) {
         MAGICAL_EVENT,
         events.mana_drain, NULL
     );
+    return 1;
 }
 
-void instr_pager_set(player_state* ps) {
+int instr_pager_set(player_state* ps) {
     ps->pager_channel = ps->stack[--ps->sp];
+    return 0;
 }
 
-void instr_pager_read(player_state* ps) {
-    //printf("pager: %p %i\n", ps->pager_msgs, ps->pager_msgs->count); wait(1);
+int instr_pager_read(player_state* ps) {
     if (ps->pager_msgs->count <= 0) 
         ps->stack[ps->sp++] = 0;
     else {
@@ -588,10 +632,10 @@ void instr_pager_read(player_state* ps) {
         ps->stack[ps->sp++] = *(int*)msg_bypass;
         array_list.remove(ps->pager_msgs, 0, 0);
     }
+    return 0;
 }
 
-void instr_pager_write(player_state* ps) {
-    //printf("writing...\n"); wait(1);
+int instr_pager_write(player_state* ps) {
     int msg = ps->stack[--ps->sp];
     int* msg_bypass = &msg;
     int channel = ps->pager_channel;
@@ -601,6 +645,7 @@ void instr_pager_write(player_state* ps) {
             array_list.add(other->pager_msgs, *(void**)msg_bypass);
         }
     }
+    return 0;
 }
 
 

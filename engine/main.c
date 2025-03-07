@@ -44,12 +44,12 @@ void player_turn_async(player_state* ps) {
         if (!use_resource(1,&ps->remaining_steps)) return;
         //debug_print(ps);
         switch (ps->directive[ps->dp++]) {
-            case Meta_PlayerX: meta_player_x(ps);break;
-            case Meta_PlayerY: meta_player_y(ps);break;
-            case Meta_BoardX: meta_board_x(ps);break;
-            case Meta_BoardY: meta_board_y(ps);break;
-            case Meta_Resource: meta_resource(ps);break;
-            case Meta_PlayerID: meta_player_id(ps);break;
+            case Meta_PlayerX: change = meta_player_x(ps);break;
+            case Meta_PlayerY: change = meta_player_y(ps);break;
+            case Meta_BoardX: change = meta_board_x(ps);break;
+            case Meta_BoardY: change = meta_board_y(ps);break;
+            case Meta_Resource: change = meta_resource(ps);break;
+            case Meta_PlayerID: change = meta_player_id(ps);break;
             case Instr_Wait: {
                 if(!use_resource(1,&ps->remaining_actions)) {ps->dp--;return;}
                 break;
@@ -57,39 +57,34 @@ void player_turn_async(player_state* ps) {
             case Instr_Pass: return;
             case Instr_Shoot: { // Shot in direction
                 if(!use_resource(1,&ps->remaining_actions)) {ps->dp--;return;}
-                instr_shoot(ps);
-                change = 1;
+                change = instr_shoot(ps);
                 break;
             }
             case Instr_Look: instr_look(ps); break;
             case Instr_Scan: instr_scan(ps); break;
             case Instr_Mine: { // Place mine
                 if(!use_resource(1,&ps->remaining_actions)) {ps->dp--;return;}
-                instr_mine(ps);
-                change = 1;
+                change = instr_mine(ps);
                 break;
             }
             case Instr_Move: { // Move
                 if(!use_resource(1,&ps->remaining_actions)) {ps->dp--;return;}
-                instr_move(ps);
-                change = 1;
+                change = instr_move(ps);
                 break;
             }
             case Instr_Melee: { // Melee attack
                 if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
-                instr_melee(ps);
+                change = instr_melee(ps);
                 break;
             }
             case Instr_Trench: { // Trench
                 if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
-                instr_trench(ps);
-                change = 1;
+                change = instr_trench(ps);
                 break;
             }
             case Instr_Fortify: { // Fortify
                 if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
-                instr_fortify(ps);
-                change = 1;
+                change = instr_fortify(ps);
                 break;
             }
             case Instr_Random: instr_random_int(ps); break; 
@@ -97,73 +92,67 @@ void player_turn_async(player_state* ps) {
             case Instr_Place: instr_place(ps); break;
             case Instr_Bomb: { 
                 if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
-                instr_bomb(ps);
-                change = 1;
+                change = instr_bomb(ps);
                 break;
             }
-            case Instr_Access: instr_access(ps); break;
-            case Instr_GoTo: instr_goto(ps); break;
-            case Instr_GoToIf: instr_goto_if(ps); break;
-            case Instr_Eq: instr_eq(ps); break;
-            case Instr_Lt: instr_lt(ps); break;
-            case Instr_Sub: instr_sub(ps); break;
-            case Instr_Add: instr_add(ps); break;
-            case Instr_Mul: instr_mul(ps); break;
-            case Instr_Div: instr_div(ps); break;
-            case Instr_Mod: instr_mod(ps); break;
-            case Instr_Not: instr_not(ps); break;
-            case Instr_Or: instr_or(ps); break;
-            case Instr_And: instr_and(ps); break;
-            case Instr_Assign: instr_assign(ps); break;
-            case Instr_FieldProp: instr_field_prop(ps); break;
-            case Instr_DecStack: instr_dec_stack(ps); break;
-            case Instr_Copy: instr_copy(ps); break;
-            case Instr_Swap: instr_swap(ps); break;
-            case Instr_Read: instr_read(ps); break;
-            case Instr_Write: instr_write(ps); break;
+            case Instr_Access: change = instr_access(ps); break;
+            case Instr_GoTo: change = instr_goto(ps); break;
+            case Instr_GoToIf: change = instr_goto_if(ps); break;
+            case Instr_Eq: change = instr_eq(ps); break;
+            case Instr_Lt: change = instr_lt(ps); break;
+            case Instr_Sub: change = instr_sub(ps); break;
+            case Instr_Add: change = instr_add(ps); break;
+            case Instr_Mul: change = instr_mul(ps); break;
+            case Instr_Div: change = instr_div(ps); break;
+            case Instr_Mod: change = instr_mod(ps); break;
+            case Instr_Not: change = instr_not(ps); break;
+            case Instr_Or: change = instr_or(ps); break;
+            case Instr_And: change = instr_and(ps); break;
+            case Instr_Assign: change = instr_assign(ps); break;
+            case Instr_FieldProp: change = instr_field_prop(ps); break;
+            case Instr_DecStack: change = instr_dec_stack(ps); break;
+            case Instr_Copy: change = instr_copy(ps); break;
+            case Instr_Swap: change = instr_swap(ps); break;
+            case Instr_Read: change = instr_read(ps); break;
+            case Instr_Write: change = instr_write(ps); break;
             case Instr_Projection: {
                 if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
-                instr_projection(ps); 
-                change = 1;
+                change = instr_projection(ps); 
                 break;
             }
             case Instr_Freeze: {
                 if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
-                instr_freeze(ps); 
-                change = 1;
+                change = instr_freeze(ps); 
                 break;
             }
             case Instr_Fireball: {
                 if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
-                instr_fireball(ps); 
-                change = 1;
+                change = instr_fireball(ps); 
                 break;
             }
             case Instr_Meditate: {
                 if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
-                instr_meditate(ps); 
-                change = 1;
+                change = instr_meditate(ps); 
                 break;
             }
             case Instr_Disarm: {
                 if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
-                instr_disarm(ps); 
+                change = instr_disarm(ps); 
                 break;
             }
             case Instr_Dispel: {
                 if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
-                instr_dispel(ps); 
+                change = instr_dispel(ps); 
                 break;
             }
             case Instr_ManaDrain: {
                 if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
-                instr_mana_drain(ps); 
-                change = 1;
+                change = instr_mana_drain(ps); 
                 break;
             }
-            case Instr_PagerSet: instr_pager_set(ps); break;
-            case Instr_PagerRead: instr_pager_read(ps); break; 
-            case Instr_PagerWrite: instr_pager_write(ps); break;
+            case Instr_PagerSet: change = instr_pager_set(ps); break;
+            case Instr_PagerRead: change = instr_pager_read(ps); break; 
+            case Instr_PagerWrite: change = instr_pager_write(ps); break;
             default: return;
         }
 
@@ -184,7 +173,7 @@ typedef enum player_action {
 typedef struct turn_action {
     player_action action_type;
     union {
-        void (*instr)(player_state*);
+        int (*instr)(player_state*);
         char inactive;
     } action;   
 } turn_action;
@@ -193,11 +182,11 @@ turn_action inactive() {
     return (turn_action) {.action_type = INACTIVE, .action = '\0'};
 }
 
-turn_action attack_action(void (*instr)(player_state*)) {
+turn_action attack_action(int (*instr)(player_state*)) {
     return (turn_action) {.action_type = ATTACK, .action = instr};
 }
 
-turn_action defend_action(void (*instr)(player_state*)) {
+turn_action defend_action(int (*instr)(player_state*)) {
     return (turn_action) {.action_type = DEFEND, .action = instr};
 }
 
@@ -377,8 +366,7 @@ void play_round_sync() {
         for(i = 0; i < player_count; i++) {
             player_state* player = get_player(_gs->players, i);
             if (player->alive && acts[i].action_type == DEFEND) {
-                acts[i].action.instr(player);
-                change++;
+                change += acts[i].action.instr(player);
             }
         }
         if (change || _gs->feed_point) { print_board(); wait(1); }
@@ -388,8 +376,7 @@ void play_round_sync() {
         for(i = 0; i < player_count; i++) {
             player_state* player = get_player(_gs->players, i);
             if (player->alive && acts[i].action_type == ATTACK) {
-                acts[i].action.instr(player);
-                change++;
+                change += acts[i].action.instr(player);
             }
         }
         if (change || _gs->feed_point) { print_board(); wait(1); }

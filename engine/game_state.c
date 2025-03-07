@@ -11,16 +11,18 @@
 game_state* _gs;
 game_rules* _gr;
 
-void fortify_field(const int x, const int y) {
+int fortify_field(const int x, const int y) {
     field_state* field = get_field(x,y);
     switch (field->type) {
         case TRENCH: {
             field->data->trench.fortified = 1;
-            break;
+            return 1;
         }
+        default: return 0;
     }
 }
 
+// TODO: Maybe limit when a trench can be created ???!!!
 void build_trench_field(const int x, const int y) {
     field_state* field = get_field(x,y);
 
