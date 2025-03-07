@@ -105,7 +105,7 @@ field_visual get_field_data_visual(const int x, const int y, const field_type ty
         case ICE_BLOCK: {
             result.background_color = color_predefs.ice_blue;
             result.foreground_color = color_predefs.white;
-            result.symbol = get_field_data_visual(x, y, data->ice_block.inner_type, data->ice_block.inner).symbol;
+            result.symbol = (data->ice_block.inner_type == EMPTY) ? " " : get_field_data_visual(x, y, data->ice_block.inner_type, data->ice_block.inner).symbol;
             break;
         }
         case TREE: {
@@ -156,6 +156,8 @@ field_visual get_field_visual(const int x, const int y, const field_state* field
 
 void print_board() {
     reset_cursor();
+    int feed_index = 0;
+
     printf("Round: %i", _gs->round);
     for(int i = 0; i < 2*_gs->board_x-5; i++) putchar(' ');
     putchar('\n');
@@ -186,11 +188,18 @@ void print_board() {
             reset_print();
             putchar(' ');
         }
-        printf("%s", NS);
+        printf("%s   ", NS);
+        while(feed_index < _gs->feed_point) {
+            if (_gs->feed_buffer[feed_index] == '\n') {
+                feed_index++; break;
+            }
+            putchar(_gs->feed_buffer[feed_index]);
+            feed_index++;
+        } 
     }
     printf("%s", NE);
     for(int i = 0; i < 2*_gs->board_x+1; i++) printf("%s", EW);
     printf("%s\n", NW);
-    for(int i = 0; i < _gs->feed_point; i++) putchar(_gs->feed_buffer[i]);
+    // TODO: Print feed to the right of the board maybe ???
     clear_feed();
 }

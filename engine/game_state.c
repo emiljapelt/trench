@@ -68,7 +68,7 @@ void kill_player(player_state* ps) {
     set_overlay(ps->x,ps->y,COFFIN);
     set_color_overlay(ps->x,ps->y,FORE,color_predefs.white);
     char msg[100];
-    sprintf(msg, "Player %s %i died: %s\n", ps->name, ps->id, (ps->death_msg) ? ps->death_msg : "Unknown reason");
+    sprintf(msg, "Player %s (%i) died: %s\n", ps->name, ps->id, (ps->death_msg) ? ps->death_msg : "Unknown reason");
     print_to_feed(msg);
     ps->alive = 0;
     ps->death_msg = NULL;
