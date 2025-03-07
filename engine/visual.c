@@ -157,13 +157,13 @@ field_visual get_field_visual(const int x, const int y, const field_state* field
 void print_board() {
     reset_cursor();
     printf("Round: %i", _gs->round);
-    for(int i = 0; i < _gs->board_x-6; i++) putchar(' ');
+    for(int i = 0; i < 2*_gs->board_x-5; i++) putchar(' ');
     putchar('\n');
     printf("%s", SE);
-    for(int i = 0; i < _gs->board_x; i++) printf("%s", EW);
+    for(int i = 0; i < 2*_gs->board_x+1; i++) printf("%s", EW);
     printf("%s\n", SW);
     for(int y = 0; y < _gs->board_y; (putchar('\n'), y++)) {
-        printf("%s", NS);
+        printf("%s ", NS);
         for(int x = 0; x < _gs->board_x; x++) {
             field_visual visual = get_field_visual(x,y,get_field(x,y));
 
@@ -184,11 +184,12 @@ void print_board() {
 
             printf("%s", visual.symbol);
             reset_print();
+            putchar(' ');
         }
         printf("%s", NS);
     }
     printf("%s", NE);
-    for(int i = 0; i < _gs->board_x; i++) printf("%s", EW);
+    for(int i = 0; i < 2*_gs->board_x+1; i++) printf("%s", EW);
     printf("%s\n", NW);
     for(int i = 0; i < _gs->feed_point; i++) putchar(_gs->feed_buffer[i]);
     clear_feed();
