@@ -111,6 +111,7 @@ field_visual get_field_data_visual(const int x, const int y, const field_type ty
         case TREE: {
             result.foreground_color = color_predefs.green;
             result.symbol = TREE_VISUAL;
+            result.mod = BOLD;
             break;
         }
         case EMPTY: {
