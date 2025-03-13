@@ -46,9 +46,9 @@
 %token QMARK PLUSPLUS MINUSMINUS
 %token PAGER_READ PAGER_WRITE PAGER_SET
 %token IF ELSE IS REPEAT WHILE FOR CONTINUE BREAK
-%token GOTO AT MEDITATE DISPEL DISARM MANA_DRAIN
-%token MOVE FORTIFY WAIT PASS TRENCH PROJECTION FREEZE FIREBALL
-%token NORTH EAST SOUTH WEST BOMB SHOOT LOOK SCAN MINE ATTACK
+%token GOTO AT MEDITATE DISPEL DISARM MANA_DRAIN PLANT_TREE
+%token MOVE FORTIFY WAIT PASS TRENCH WALL PROJECTION FREEZE FIREBALL
+%token NORTH EAST SOUTH WEST BOMB SHOOT LOOK SCAN MINE CHOP
 %token INT DIR FIELD
 %token READ WRITE
 
@@ -196,24 +196,26 @@ non_control_flow_stmt:
   | target MINUSMINUS      { features ["memory"; "sugar"] ; Assign ($1, Binary_op("-", Reference $1, Int 1)) }
   | MINUSMINUS target      { features ["memory"; "sugar"] ; Assign ($2, Binary_op("-", Reference $2, Int 1)) }
   | MOVE value                        { Directional(Move, $2) }
-  | ATTACK value                      { themeing ["basic"] ; Directional(Attack, $2) }
+  | CHOP value                        { Directional(Chop, $2) }
   | FORTIFY value?                    { OptionDirectional(Fortify, $2) }
   | TRENCH value?                     { OptionDirectional(Trench, $2) }
+  | WALL value                        { Directional(Wall, $2) }
+  | PLANT_TREE value                  { Directional(PlantTree, $2) }
   | WAIT                              { Unit(Wait) }
   | PASS                              { Unit(Pass) }
   | WRITE value                       { features ["ipc"] ; Write $2 }
   | PAGER_WRITE value                 { features ["ipc"] ; PagerWrite $2 }
   | PAGER_SET value                   { features ["ipc"] ; PagerSet $2 }
-  | SHOOT value                       { themeing ["basic"] ; Directional(Shoot, $2) }
-  | MINE value                        { themeing ["basic"] ; Directional(Mine, $2) }
-  | BOMB simple_value simple_value    { themeing ["basic"] ; Targeting(Bomb, $2, $3) }
+  | SHOOT value                       { themeing ["military"] ; Directional(Shoot, $2) }
+  | MINE value                        { themeing ["military"] ; Directional(Mine, $2) }
+  | BOMB simple_value simple_value    { themeing ["military"] ; Targeting(Bomb, $2, $3) }
   | FREEZE simple_value simple_value  { themeing ["wizardry"] ; Targeting(Freeze, $2, $3) }
   | FIREBALL value                    { themeing ["wizardry"] ; Directional(Fireball, $2) }
   | PROJECTION                        { themeing ["wizardry"] ; Unit(Projection) }
   | MEDITATE                          { themeing ["wizardry"] ; Unit(Meditate) }
   | DISPEL value                      { themeing ["wizardry"] ; Directional(Dispel, $2) }
-  | DISARM value                      { themeing ["forestry";"basic"] ; Directional(Disarm, $2)}
-  | MANA_DRAIN value                   { themeing ["wizardry"] ; Directional(ManaDrain, $2) }
+  | DISARM value                      { themeing ["forestry";"military"] ; Directional(Disarm, $2)}
+  | MANA_DRAIN value                  { themeing ["wizardry"] ; Directional(ManaDrain, $2) }
 ;
 
 direction:

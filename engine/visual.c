@@ -15,10 +15,18 @@ inline void reset_cursor(void) {
     printf("\033[0;0H");
 }
 
-static inline char trench_connects(int x, int y) {
+static inline char line_connects(int x, int y, field_type field) {
     return (!in_bounds(x,y)) 
         ? 0 
-        : get_field(x,y)->type == TRENCH;
+        : get_field(x,y)->type == field;
+}
+
+int connection_lookup(int x, int y, field_type field) {
+    return 
+        (line_connects(x,y-1,field) << 3) | // N
+        (line_connects(x+1,y,field) << 2) | // E
+        (line_connects(x,y+1,field) << 1) | // S
+        line_connects(x-1,y,field);         // W 
 }
 
 // 0xNESW
@@ -92,12 +100,7 @@ field_visual get_field_data_visual(const int x, const int y, const field_type ty
 
     switch (type) {
         case TRENCH: {
-            int char_idx = 
-                (trench_connects(x,y-1) << 3) | // N
-                (trench_connects(x+1,y) << 2) | // E
-                (trench_connects(x,y+1) << 1) | // S
-                trench_connects(x-1,y);         // W 
-
+            int char_idx = connection_lookup(x,y,TRENCH);
             result.symbol = (data->trench.fortified) ? f_char_lookup[char_idx] : char_lookup[char_idx];
             result.foreground_color = color_predefs.white;
             break;
@@ -112,6 +115,18 @@ field_visual get_field_data_visual(const int x, const int y, const field_type ty
             result.foreground_color = color_predefs.green;
             result.symbol = TREE_VISUAL;
             result.mod = BOLD;
+            break;
+        }
+        case WALL: {
+            int char_idx = connection_lookup(x,y,WALL);
+            result.symbol = (data->wall.fortified) ? f_char_lookup[char_idx] : char_lookup[char_idx];
+            result.foreground_color = color_predefs.wood_brown;
+            break;
+        }
+        case OCEAN: {
+            result.foreground_color = color_predefs.ice_blue;
+            result.background_color = color_predefs.blue;
+            result.symbol = "~";
             break;
         }
         case EMPTY: {
@@ -159,10 +174,10 @@ void print_board() {
     int feed_index = 0;
 
     printf("Round: %i", _gs->round);
-    for(int i = 0; i < 2*_gs->board_x-5; i++) putchar(' ');
+    for(int i = 0; i < _gs->board_x-5; i++) putchar(' ');
     putchar('\n');
     printf("%s", SE);
-    for(int i = 0; i < 2*_gs->board_x+1; i++) printf("%s", EW);
+    for(int i = 0; i < _gs->board_x+2; i++) printf("%s", EW);
     printf("%s\n", SW);
     for(int y = 0; y < _gs->board_y; (putchar('\n'), y++)) {
         printf("%s ", NS);
@@ -186,9 +201,8 @@ void print_board() {
 
             printf("%s", visual.symbol);
             reset_print();
-            putchar(' ');
         }
-        printf("%s   ", NS);
+        printf(" %s ", NS);
         while(feed_index < _gs->feed_point) {
             if (_gs->feed_buffer[feed_index] == '\n') {
                 feed_index++; break;
@@ -198,7 +212,7 @@ void print_board() {
         } 
     }
     printf("%s", NE);
-    for(int i = 0; i < 2*_gs->board_x+1; i++) printf("%s", EW);
+    for(int i = 0; i < _gs->board_x+2; i++) printf("%s", EW);
     printf("%s\n", NW);
     // TODO: Print feed to the right of the board maybe ???
     clear_feed();

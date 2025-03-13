@@ -14,6 +14,7 @@
                         "continue", CONTINUE;
                         "move", MOVE;
                         "trench", TRENCH;
+                        "wall", WALL;
                         "fortify", FORTIFY;
                         "scan", SCAN;
                         "look", LOOK;
@@ -27,7 +28,7 @@
                         "goto", GOTO;
                         "shoot", SHOOT;
                         "mine", MINE;
-                        "attack", ATTACK;
+                        "chop", CHOP;
                         "int", INT;
                         "dir", DIR;
                         "field", FIELD;
@@ -42,7 +43,8 @@
                         "meditate", MEDITATE;
                         "dispel", DISPEL;
                         "disarm", DISARM;
-                        "mana_drain", MANA_DRAIN
+                        "mana_drain", MANA_DRAIN;
+                        "plant_tree", PLANT_TREE;
                       ] 
   
   let char_of_string s lexbuf = match s with

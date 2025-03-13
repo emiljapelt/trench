@@ -56,10 +56,12 @@ and directional_statement =
     | Mine
     | Fireball
     | Move
-    | Attack
+    | Chop
     | Dispel
     | Disarm
     | ManaDrain
+    | Wall
+    | PlantTree
 
 and option_directional_statement =
     | Trench

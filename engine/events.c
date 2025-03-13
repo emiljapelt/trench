@@ -30,7 +30,7 @@ int bomb(player_state* ps, void* data) {
 }
 
 int projection_death(player_state* ps, void* data) {
-    projection_death_args* args = (projection_death_args*)data;
+    countdown_args* args = (countdown_args*)data;
     if (!ps->alive || !args->player_id == ps->id) return 0;
     if (args->remaining <= 0) {
         ps->death_msg = "Projection faded";
@@ -63,10 +63,24 @@ int mana_drain(player_state* player, void* data) {
     return 1;
 }
 
+int tree_grow(player_state* player, void* data) {
+    field_countdown_args* args = (field_countdown_args*)data;
+    if (player->id != args->player_id) return 0;
+
+    args->remaining--;
+    if (args->remaining != 0) return 0;
+
+    if (get_field(args->x, args->y)->type == EMPTY)
+        fields.build.tree(args->x, args->y);
+        
+    return 1;
+}
+
 const events_namespace events = {
     .bomb = &bomb,
     .mine = &mine,
     .ice_block_melt = &ice_block_melt,
     .projection_death = &projection_death,
     .mana_drain = &mana_drain,
+    .tree_grow = &tree_grow,
 };

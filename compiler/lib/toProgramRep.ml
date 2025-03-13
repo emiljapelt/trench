@@ -133,10 +133,12 @@ and compile_stmt (Stmt(stmt,ln)) (state:compile_state) acc =
     | Mine -> Instr_Mine
     | Fireball -> Instr_Fireball
     | Move -> Instr_Move
-    | Attack -> Instr_Melee
+    | Chop -> Instr_Chop
     | Dispel -> Instr_Dispel
     | Disarm -> Instr_Disarm
     | ManaDrain -> Instr_ManaDrain
+    | Wall -> Instr_Wall
+    | PlantTree -> Instr_PlantTree
     in
     compile_value dir state (instr :: acc)
   )

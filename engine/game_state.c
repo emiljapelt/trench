@@ -11,27 +11,6 @@
 game_state* _gs;
 game_rules* _gr;
 
-int fortify_field(const int x, const int y) {
-    field_state* field = get_field(x,y);
-    switch (field->type) {
-        case TRENCH: {
-            field->data->trench.fortified = 1;
-            return 1;
-        }
-        default: return 0;
-    }
-}
-
-// TODO: Maybe limit when a trench can be created ???!!!
-void build_trench_field(const int x, const int y) {
-    field_state* field = get_field(x,y);
-
-    field_data* data = malloc(sizeof(field_data));
-    data->trench.fortified = 0;
-
-    field->type = TRENCH;
-    field->data = data;
-}
 
 void set_color_overlay(const int x, const int y, color_target ct, color* c) {
     switch (ct) {
@@ -68,7 +47,7 @@ void kill_player(player_state* ps) {
     set_overlay(ps->x,ps->y,COFFIN);
     set_color_overlay(ps->x,ps->y,FORE,color_predefs.white);
     char msg[100];
-    sprintf(msg, "Player %s (%i) died: %s\n", ps->name, ps->id, (ps->death_msg) ? ps->death_msg : "Unknown reason");
+    sprintf(msg, "%s (#%i) died: %s\n", ps->name, ps->id, (ps->death_msg) ? ps->death_msg : "Unknown reason");
     print_to_feed(msg);
     ps->alive = 0;
     ps->death_msg = NULL;

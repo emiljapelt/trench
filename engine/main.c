@@ -55,36 +55,41 @@ void player_turn_async(player_state* ps) {
                 break;
             }
             case Instr_Pass: return;
-            case Instr_Shoot: { // Shot in direction
+            case Instr_Shoot: { 
                 if(!use_resource(1,&ps->remaining_actions)) {ps->dp--;return;}
                 change = instr_shoot(ps);
                 break;
             }
             case Instr_Look: instr_look(ps); break;
             case Instr_Scan: instr_scan(ps); break;
-            case Instr_Mine: { // Place mine
+            case Instr_Mine: {
                 if(!use_resource(1,&ps->remaining_actions)) {ps->dp--;return;}
                 change = instr_mine(ps);
                 break;
             }
-            case Instr_Move: { // Move
+            case Instr_Move: {
                 if(!use_resource(1,&ps->remaining_actions)) {ps->dp--;return;}
                 change = instr_move(ps);
                 break;
             }
-            case Instr_Melee: { // Melee attack
+            case Instr_Chop: {
                 if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
-                change = instr_melee(ps);
+                change = instr_chop(ps);
                 break;
             }
-            case Instr_Trench: { // Trench
+            case Instr_Trench: { 
                 if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
                 change = instr_trench(ps);
                 break;
             }
-            case Instr_Fortify: { // Fortify
+            case Instr_Fortify: {
                 if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
                 change = instr_fortify(ps);
+                break;
+            }
+            case Instr_PlantTree: {
+                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
+                change = instr_plant_tree(ps);
                 break;
             }
             case Instr_Random: instr_random_int(ps); break; 
@@ -153,6 +158,12 @@ void player_turn_async(player_state* ps) {
             case Instr_PagerSet: change = instr_pager_set(ps); break;
             case Instr_PagerRead: change = instr_pager_read(ps); break; 
             case Instr_PagerWrite: change = instr_pager_write(ps); break;
+            case Instr_Wall: {
+                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
+                change = instr_wall(ps);
+                break;
+            }
+            
             default: return;
         }
 
@@ -213,7 +224,7 @@ turn_action player_turn_sync(player_state* ps) {
             case Instr_Scan: instr_scan(ps); break;
             case Instr_Mine: return attack_action(&instr_mine);
             case Instr_Move: return move_action();
-            case Instr_Melee: return attack_action(&instr_melee);
+            case Instr_Chop: return attack_action(&instr_chop);
             case Instr_Trench: return defend_action(&instr_trench);
             case Instr_Fortify: return defend_action(&instr_fortify);
             case Instr_Random: instr_random_int(ps); break;
@@ -240,14 +251,16 @@ turn_action player_turn_sync(player_state* ps) {
             case Instr_Swap: instr_swap(ps); break;
             case Instr_Read: instr_read(ps); break;
             case Instr_Write: instr_write(ps); break;
-            case Instr_Projection: defend_action(&instr_projection); break;
-            case Instr_Freeze: defend_action(&instr_freeze); break;
-            case Instr_Fireball: attack_action(&instr_fireball); break;
-            case Instr_Meditate: defend_action(&instr_meditate); break;
-            case Instr_ManaDrain: defend_action(&instr_mana_drain); break;
+            case Instr_Projection: return defend_action(&instr_projection); break;
+            case Instr_Freeze: return defend_action(&instr_freeze); break;
+            case Instr_Fireball: return attack_action(&instr_fireball); break;
+            case Instr_Meditate: return defend_action(&instr_meditate); break;
+            case Instr_ManaDrain: return defend_action(&instr_mana_drain); break;
             case Instr_PagerSet: instr_pager_set(ps); break;
             case Instr_PagerRead: instr_pager_read(ps); break; 
             case Instr_PagerWrite: instr_pager_write(ps); break;
+            case Instr_Wall: return defend_action(&instr_wall); break;
+            case Instr_PlantTree: return defend_action(&instr_plant_tree); break;
             default: return inactive();
         }
     }

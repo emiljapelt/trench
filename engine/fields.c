@@ -1,6 +1,7 @@
 #include "fields.h"
 
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "game_state.h"
 #include "damage.h"
@@ -16,6 +17,7 @@ void set_field(const int x, const int y, field_state* f) {
 // Something that cannot be passed through
 int is_obstruction(const int x, const int y) {
     switch (get_field(x,y)->type) {
+        case WALL:
         case TREE:
         case ICE_BLOCK:
             return 1;
@@ -27,6 +29,7 @@ int is_obstruction(const int x, const int y) {
 // Something which is destroyed by fire
 int is_flammable(const int x, const int y) {
     switch (get_field(x,y)->type) {
+        case WALL:
         case TREE:
             return 1;
         default:
@@ -64,6 +67,16 @@ int is_cover(const int x, const int y) {
     }
 }
 
+int is_walkable(const int x, const int y) {
+    switch (get_field(x,y)->type) {
+        case TRENCH:
+        case EMPTY:
+            return 1;
+        default:
+            return 0;
+    }
+}
+
 int has_player(const int x, const int y) {
     unsigned int player_found;
     for(int i = 0; i < _gs->players->count; i++) {
@@ -92,14 +105,25 @@ field_scan scan_field(const int x, const int y) {
         .meltable = is_meltable(x,y),
         .cover = is_cover(x,y),
         .shelter = is_shelter(x,y),
+        .walkable = is_walkable(x,y),
     };
 }
 
 void destroy_field(const int x, const int y, char* death_msg) {
     field_state* field = get_field(x,y);
     switch (field->type) {
+        case OCEAN:
         case TREE:{
             field->type = EMPTY;
+            break;
+        }
+        case WALL: {
+            if (field->data->wall.fortified) {
+                field->data->wall.fortified = 0;
+                return;
+            }
+            field->type = EMPTY;
+            free(field->data);
             break;
         }
         case TRENCH:{
@@ -128,10 +152,12 @@ void destroy_field(const int x, const int y, char* death_msg) {
 void remove_field(const int x, const int y) {
     field_state* field = get_field(x,y);
     switch (field->type) {
+        case OCEAN:
         case TREE: {
             field->type = EMPTY;
             break;
         }
+        case WALL:
         case TRENCH: {
             field->type = EMPTY;
             free(field->data);
@@ -155,6 +181,47 @@ void damage_field(const int x, const int y, damage_t d_type, char* death_msg) {
         remove_field(x,y);
 }
 
+int fortify_field(const int x, const int y) {
+    field_state* field = get_field(x,y);
+    switch (field->type) {
+        case TRENCH: {
+            field->data->trench.fortified = 1;
+            return 1;
+        }
+        case WALL: {
+            field->data->wall.fortified = 1;
+            return 1;
+        }
+        default: return 0;
+    }
+}
+
+void build_trench(const int x, const int y) {
+    field_state* field = get_field(x,y);
+
+    field_data* data = malloc(sizeof(field_data));
+    data->trench.fortified = 0;
+
+    field->type = TRENCH;
+    field->data = data;
+}
+
+void build_wall(const int x, const int y) {
+    field_state* field = get_field(x,y);
+
+    field_data* data = malloc(sizeof(field_data));
+    data->wall.fortified = 0;
+
+    field->type = WALL;
+    field->data = data;
+}
+
+void build_tree(const int x, const int y) {
+    field_state* field = get_field(x,y);
+
+    field->type = TREE;
+}
+
 const fields_namespace fields = {
     .get = &get_field,
     .set = &set_field,
@@ -162,10 +229,17 @@ const fields_namespace fields = {
     .is_flammable = &is_flammable,
     .is_cover = &is_cover,
     .is_shelter = &is_shelter,
+    .is_walkable = &is_walkable,
     .has_player = &has_player,
     .has_trap = &has_trap,
     .scan = &scan_field,
     .destroy_field = &destroy_field,
     .damage_field = &damage_field,
     .remove_field = &remove_field,
+    .fortify_field = &fortify_field,
+    .build = {
+        .trench = &build_trench,
+        .wall = &build_wall,
+        .tree = &build_tree,
+    },
 };

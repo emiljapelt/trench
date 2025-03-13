@@ -45,7 +45,7 @@ typedef enum {
   Instr_GoToIf = 26,
   Instr_GoTo = 27,
   Instr_Move = 28,
-  Instr_Attack = 29,
+  Instr_PlantTree = 29,
   Instr_Trench = 30,
   Instr_Fortify = 31,
   Instr_Bomb = 32,
@@ -54,7 +54,7 @@ typedef enum {
   Instr_Pass = 35,
   Instr_Look = 36,
   Instr_Mine = 37,
-  Instr_Melee = 38,
+  Instr_Chop = 38,
   Instr_Read = 39,
   Instr_Write = 40,
   Instr_Projection = 41,
@@ -67,6 +67,7 @@ typedef enum {
   Instr_PagerSet = 48,
   Instr_PagerWrite = 49,
   Instr_PagerRead = 50,
+  Instr_Wall = 51,
 } instruction;
 
 // all instructions return 1 if the board should be updated, and 0 if not.
@@ -118,7 +119,7 @@ int instr_look(player_state* ps) {
         case SOUTH: y++; break;
         case WEST: x--; break;
     }
-    if (!in_bounds(x,y)) { ps->stack[ps->sp++] = 0; return 0; }
+    if (!in_bounds(x,y) || fields.is_obstruction(x,y)) { ps->stack[ps->sp++] = 0; return 0; }
     field_scan scan = fields.scan(x,y);
     field_scan* bypass = &scan;
     if ((*(int*)bypass) & (1 << offset)) { ps->stack[ps->sp++] = i; return 0; }
@@ -181,10 +182,9 @@ int instr_move(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
 
     if (fields.is_obstruction(ps->x, ps->y)) return 0;
-
     int x, y;
     move_coord(ps->x, ps->y, d, &x, &y);
-    if (!in_bounds(x,y) || fields.is_obstruction(x,y)) return 0;
+    if (!in_bounds(x,y) || !fields.is_walkable(x,y)) return 0;
 
     update_events(ps, get_field(ps->x,ps->y)->exit_events);
     if (!ps->death_msg) {
@@ -195,17 +195,23 @@ int instr_move(player_state* ps) {
     return 1;
 }
 
-int instr_melee(player_state* ps) {
+int instr_chop(player_state* ps) {
     int x, y;
     direction d = (direction)ps->stack[--ps->sp];
     move_coord(ps->x, ps->y, d, &x, &y);
+    field_state* field = get_field(x,y);
 
-    for(int i = 0; i < _gs->players->count; i++) {
-        player_state* player = get_player(_gs->players, i);
-        if (player->x == x && player->y == y) 
-            death_mark_player(player, "Lost a fist fight");
+    if (field->type == EMPTY)
+        for(int i = 0; i < _gs->players->count; i++) {
+            player_state* player = get_player(_gs->players, i);
+            if (player->x == x && player->y == y) 
+                death_mark_player(player, "Chopped to pieces");
+        }
+    else if (field->type == TREE) {
+        fields.remove_field(x,y);
+        add_resource(ps->resources, "wood", 10);
     }
-    //move(d,ps);
+
     return 1;
 }
 
@@ -218,7 +224,7 @@ int instr_trench(player_state* ps) {
     field_state* field = get_field(x,y);
     switch (field->type) {
         case EMPTY: {
-            build_trench_field(x,y);
+            fields.build.trench(x,y);
             return 1;
         }
     }
@@ -226,10 +232,11 @@ int instr_trench(player_state* ps) {
 }
 
 int instr_fortify(player_state* ps) {
+    if(!spend_resource(ps->resources, "wood", 5)) return 0;
     int x, y;
     direction d = (direction)ps->stack[--ps->sp];
     move_coord(ps->x, ps->y, d, &x, &y);
-    return fortify_field(x,y);
+    return fields.fortify_field(x,y);
 }
 
 int instr_random_int(player_state* ps) { 
@@ -469,7 +476,7 @@ int instr_projection(player_state* ps) {
     
     add_player(_gs->players, projection);
     projection->team->members_alive++;
-    projection_death_args* args = malloc(sizeof(projection_death_args));
+    countdown_args* args = malloc(sizeof(countdown_args));
     args->player_id = projection->id;
     args->remaining = 5;
     add_event(_gs->events, MAGICAL_EVENT, events.projection_death, args);
@@ -648,5 +655,40 @@ int instr_pager_write(player_state* ps) {
     return 0;
 }
 
+int instr_wall(player_state* ps) {
+    if(!spend_resource(ps->resources, "wood", 5)) return 0;
+
+    int x, y;
+    direction d = (direction)ps->stack[--ps->sp];
+    move_coord(ps->x, ps->y, d, &x, &y);
+    if (!in_bounds(x, y)) return 0;
+
+    field_state* field = get_field(x,y);
+    switch (field->type) {
+        case EMPTY: {
+            fields.build.wall(x,y);
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int instr_plant_tree(player_state* ps) {
+    if(!spend_resource(ps->resources, "sapling", 1)) return 0;
+
+    int x, y;
+    direction d = (direction)ps->stack[--ps->sp];
+    move_coord(ps->x, ps->y, d, &x, &y);
+    if (!in_bounds(x, y)) return 0;
+
+    field_countdown_args* args = malloc(sizeof(field_countdown_args));
+    args->x = x;
+    args->y = y;
+    args->player_id = ps->id;
+    args->remaining = 3;
+
+    add_event(_gs->events, PHYSICAL_EVENT, events.tree_grow, args);
+    return 0;
+}
 
 #endif

@@ -9,6 +9,7 @@ color _yellow = {.r = 255, .g = 255, .b = 0, .predef = 1};
 color _ice_blue = {.r = 162, .g = 210, .b = 223, .predef = 1};
 color _magic_purple = {.r = 207, .g = 159, .b = 255, .predef = 1};
 color _dark_grey = {.r = 40, .g = 40, .b = 40, .predef = 1};
+color _wood_brown = {.r = 133, .g = 94, .b = 66, .predef = 1};
 
 const color_predef color_predefs = {
     .red = &_red,
@@ -20,4 +21,5 @@ const color_predef color_predefs = {
     .ice_blue = &_ice_blue,
     .magic_purple = &_magic_purple,
     .dark_grey = &_dark_grey,
+    .wood_brown = &_wood_brown,
 };

@@ -35,7 +35,7 @@ type instruction =
   | Instr_GoToIf
   | Instr_GoTo
   | Instr_Move
-  | Instr_Attack
+  | Instr_Chop
   | Instr_Trench
   | Instr_Fortify
   | Instr_Bomb
@@ -44,7 +44,6 @@ type instruction =
   | Instr_Pass
   | Instr_Look
   | Instr_Mine
-  | Instr_Melee
   | Instr_Read
   | Instr_Write
   | Instr_Projection
@@ -57,6 +56,8 @@ type instruction =
   | Instr_PagerSet
   | Instr_PagerRead
   | Instr_PagerWrite
+  | Instr_Wall
+  | Instr_PlantTree
 
 let instruction_to_int label_map instr = match instr with
     | I i -> Some i
@@ -91,7 +92,7 @@ let instruction_to_int label_map instr = match instr with
     | Instr_GoToIf -> Some 26
     | Instr_GoTo -> Some 27
     | Instr_Move -> Some 28
-    | Instr_Attack -> Some 29
+    | Instr_PlantTree -> Some 29
     | Instr_Trench -> Some 30
     | Instr_Fortify -> Some 31
     | Instr_Bomb -> Some 32
@@ -100,7 +101,7 @@ let instruction_to_int label_map instr = match instr with
     | Instr_Pass -> Some 35
     | Instr_Look -> Some 36
     | Instr_Mine -> Some 37
-    | Instr_Melee -> Some 38
+    | Instr_Chop -> Some 38
     | Instr_Read -> Some 39
     | Instr_Write -> Some 40
     | Instr_Projection -> Some 41
@@ -113,6 +114,7 @@ let instruction_to_int label_map instr = match instr with
     | Instr_PagerSet -> Some 48
     | Instr_PagerWrite -> Some 49
     | Instr_PagerRead -> Some 50
+    | Instr_Wall -> Some 51
 
 let label_set pp =
   let rec aux pp set = match pp with
