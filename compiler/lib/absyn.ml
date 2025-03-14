@@ -145,6 +145,10 @@ type exec_mode =
     | AsyncExec
     | SyncExec
 
+type map =
+    | EmptyMap of int * int
+    | FileMap of string * (int * int)
+
 type game_setup_part =
     | Team of team_info
     | Resources of resource list
@@ -153,11 +157,11 @@ type game_setup_part =
     | Actions of int
     | Steps of int
     | Mode of int
-    | Board of int * int
     | Nuke of int
     | ExecMode of exec_mode
     | Seed of int option
     | TimeScale of float
+    | Map of map
 
 type game_setup = GS of {
     teams: team_info list;
@@ -167,9 +171,9 @@ type game_setup = GS of {
     actions: int;
     steps: int;
     mode: int;
-    board: int * int;
     nuke: int;
     exec_mode: exec_mode;
     seed: int option;
     time_scale: float;
+    map: map;
 }

@@ -12,8 +12,9 @@
 #include "visual.h"
 #include "resource_registry.h"
 #include "player_list.h"
+#include "fields.h"
 
-field_state* empty_board(const int x, const int y) {
+field_state* create_board(char* map_data, const int x, const int y) {
     int size = sizeof(field_state)*x*y;
     field_state* brd = malloc(size);
 
@@ -30,9 +31,30 @@ field_state* empty_board(const int x, const int y) {
             .enter_events = array_list.create(10),
             .exit_events = array_list.create(10),
         };
+        if (map_data) switch(map_data[(_y * x) + _x]) {
+            case '+': {
+                field_data* data = malloc(sizeof(field_data));
+                data->trench.fortified = 0;
+                brd[(_y * x) + _x].type = TRENCH;
+                brd[(_y * x) + _x].data = data;
+                break;
+            }
+            case 'w': {
+                field_data* data = malloc(sizeof(field_data));
+                data->wall.fortified = 0;
+                brd[(_y * x) + _x].type = WALL;
+                brd[(_y * x) + _x].data = data;
+                break;
+            }
+            case '~':
+                brd[(_y * x) + _x].type = OCEAN;
+                break;
+            case 'T': 
+                brd[(_y * x) + _x].type = TREE;
+                break;
+        }
     }
 
-    //memset(brd,0,size);
     return brd;
 }
 
@@ -104,10 +126,29 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 .stack_size = 1000,
             };
 
+            value map = Field(unwrapped_result, 4);
+            field_state* board = NULL;
+            int board_x;
+            int board_y;
+            switch (Tag_val(map)) {
+                case 0: { // EmptyMap
+                    board_x = Int_val(Field(map, 0));
+                    board_y = Int_val(Field(map, 1));
+                    board = create_board(NULL, board_x, board_y);
+                    break;
+                }
+                case 1: { // FileMap
+                    char* map_data = strdup(String_val(Field(map, 0)));
+                    board_x = Int_val(Field(Field(map, 1), 0));
+                    board_y = Int_val(Field(Field(map, 1), 1));
+                    board = create_board(map_data, board_x, board_y);
+                    free(map_data);
+                    break;
+                }
+            }
+
             int player_count = Int_val(Field(unwrapped_result, 5));
             int team_count = Int_val(Field(unwrapped_result, 7));
-            int board_x = Int_val(Field(Field(unwrapped_result, 4),0));
-            int board_y = Int_val(Field(Field(unwrapped_result, 4),1));
             int resource_count = Int_val(Field(unwrapped_result, 10));
             int feed_size = 200;
 
@@ -116,7 +157,7 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 .board_x = board_x,
                 .board_y = board_y,
                 .players = array_list.create(player_count + 1),
-                .board = empty_board(board_x, board_y),
+                .board = board,// empty_board(board_x, board_y),
                 .feed_point = 0,
                 .feed_buffer = malloc(feed_size+1),
                 .team_count = team_count,

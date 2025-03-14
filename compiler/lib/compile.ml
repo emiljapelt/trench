@@ -7,12 +7,11 @@ open Absyn
 open Transform
 open Themes
 
-let check_input input =
+let check_path path extensions =
   try (
-    if not (Sys.file_exists input) then raise_failure ("Input file does not exist: "^input)
-    else if String.ends_with ~suffix:".tr" input then ()
-    else if String.ends_with ~suffix:".trg" input then ()
-    else raise_failure "Invalid input file extension"
+    if not(Sys.file_exists path) then raise_failure ("File does not exist: " ^ path)
+    else if not(extensions |> List.exists (fun ext -> String.ends_with ~suffix:ext path)) then raise_failure "Invalid file extension"
+    else ()
   ) with
   | ex -> raise ex
 
@@ -67,12 +66,32 @@ let default_game_setup = GS {
   actions = 1;
   steps = 100;
   mode = 0;
-  board = (20,20);
+  map = EmptyMap(20,20);
   nuke = 0;
   exec_mode = AsyncExec;
   seed = None;
   time_scale = 1.0;
 }
+
+let valid_map_chars = ['\n'; '\r'; '.'; '+'; '~'; 'T'; 'w']
+
+let get_map_size map = match map with
+  | EmptyMap(x,y)
+  | FileMap(_,(x,y)) -> (x,y)
+
+let check_map map = match map with
+  | EmptyMap (x,y) -> if x > 0 || y > 0 then map else raise_failure "Map size cannot be negative"
+  | FileMap(path,_) -> 
+    check_path path [".trm"] ;
+    let map_string = read_file path |> String.trim in
+    if not(String.for_all (fun c -> List.mem c valid_map_chars) map_string) then raise_failure "Map contained invalid characters"
+    else match String.split_on_char '\n' map_string with
+    | [] | [""] -> raise_failure "Empty map file"
+    | l::ls as lines -> (
+      let x = String.length l in
+      if not(ls |> List.for_all (fun line -> String.length line = x)) then raise_failure "Not all map lines were the same length"
+      else FileMap(String.concat "" lines, (x,List.length lines))
+    )
 
 let to_game_setup gsps =
   let rec aux gs (GS acc) = match gs with
@@ -82,10 +101,10 @@ let to_game_setup gsps =
       | Resources rs -> (GS ({acc with resources = rs}))
       | Themes ts -> (GS ({acc with themes = ts}))
       | Features fs -> (GS ({acc with features = fs}))
-      | Actions i -> if i > 0 then (GS ({acc with actions = i})) else raise_failure "Must have some actions per trun"
-      | Steps i -> if i > 0 then (GS ({acc with steps = i})) else raise_failure "Must have some steps per trun"
+      | Actions i -> if i > 0 then (GS ({acc with actions = i})) else raise_failure "Must have some actions per turn"
+      | Steps i -> if i > 0 then (GS ({acc with steps = i})) else raise_failure "Must have some steps per turn"
       | Mode i -> (GS ({acc with mode = i}))
-      | Board(x,y) -> if x >= 0 && y >= 0 then (GS ({acc with board = (x,y)})) else raise_failure "Board size cannot be negative"
+      | Map m -> (GS ({acc with map = check_map m}))
       | Nuke i -> if i >= 0 then (GS ({acc with nuke = i})) else raise_failure "Nuke option size cannot be negative"
       | ExecMode em -> GS ({acc with exec_mode = em})
       | Seed s -> GS ({acc with seed = s})
@@ -143,7 +162,7 @@ type compiled_game_file = {
   steps: int;
   mode: int;
   nuke: int;
-  board_size: int * int;
+  map: map;
   player_count: int;
   player_info: compiled_player_info array;
   team_count: int;
@@ -156,7 +175,7 @@ type compiled_game_file = {
 }
 
 let compile_player_file path = try (
-  let _ = check_input path in
+  check_path path [".tr"] ;
   Ok(compile Player_parser.main Player_lexer.start [
     type_check_program;
     rename_variables_of_file;
@@ -228,14 +247,13 @@ let player_list teams =
   |> List.flatten
 
 let format_game_setup (GS gs) = 
-  let checked_teams = gs.teams |> check_team_colors |> add_team_info gs.board in
+  let checked_teams = gs.teams |> check_team_colors |> add_team_info (get_map_size gs.map) in
   let teams = checked_teams |> team_list |> Array.of_list in
   let players = player_list checked_teams in
   {
     actions = gs.actions;
     steps = gs.steps;
     mode = gs.mode;
-    board_size = gs.board;
     nuke = gs.nuke;
     player_count = List.length players;
     player_info = (set_features gs.features ; set_themes gs.themes ; set_resources gs.resources ; Array.of_list (List.map game_setup_player players));
@@ -246,6 +264,7 @@ let format_game_setup (GS gs) =
     resources = Array.of_list gs.resources;
     seed = gs.seed;
     time_scale = gs.time_scale;
+    map = gs.map;
   }
 
 let check_resources (GS gs) = 
@@ -257,7 +276,7 @@ let check_resources (GS gs) =
   else raise_failure ("Defined resources does not match required resource. \nRequired:\n\t" ^ (String.concat "\n\t" (StringSet.to_list required)) ^ "\nGiven:\n\t" ^ (String.concat "\n\t" given))
 
 let compile_game_file path = try (
-  let _ = check_input path in
+  check_path path [".trg"] ;
   Ok(compile Game_parser.main Game_lexer.start [] [] (fun gsp -> gsp |> to_game_setup |> check_resources) format_game_setup path)
 ) with
 | Failure(None,ln,msg) -> Error(format_failure (Failure(Some path, ln, msg)))

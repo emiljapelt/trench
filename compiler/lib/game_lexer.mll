@@ -8,7 +8,7 @@
                         "actions", ACTIONS;
                         "steps", STEPS;
                         "mode", MODE;
-                        "board", BOARD;
+                        "map", MAP;
                         "nuke", NUKE;
                         "team", TEAM;
                         "name", NAME;
