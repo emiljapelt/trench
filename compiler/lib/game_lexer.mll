@@ -25,6 +25,7 @@
                         "color", COLOR;
                         "manual", MANUAL;
                         "inf", INFINITE;
+                        "of", OF;
                       ]
   
   let char_of_string s lexbuf = match s with

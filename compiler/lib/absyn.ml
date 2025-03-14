@@ -139,7 +139,7 @@ type team_info_field =
 and player_info = PI of { team: int; name: string; origin: int * int; file: string }
 type team_info = TI of { name: string; color: (int*int*int); origin: int * int; players: player_info list }
 
-type resource = string * int
+type resource = string * (int * int)
 
 type exec_mode =
     | AsyncExec

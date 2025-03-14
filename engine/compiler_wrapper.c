@@ -205,7 +205,7 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 player->resources = create_resource_registry(10, resource_count);
                 for(int r = 0; r < resource_count; r++) {
                     value resource = Field(Field(unwrapped_result, 11), r);
-                    init_resource(player->resources, strdup(String_val(Field(resource, 0))), Int_val(Field(resource, 1)));
+                    init_resource(player->resources, strdup(String_val(Field(resource, 0))), Int_val(Field(Field(resource, 1), 0)), Int_val(Field(Field(resource, 1), 1)));
                 }
                 add_player(gs->players, player);
             }

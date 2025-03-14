@@ -36,7 +36,7 @@ int get_bucket_index(const char* name, int size) {
     return bucket_index;
 }
 
-void init_resource(resource_registry* registry, const char* name, int init_amount) {
+void init_resource(resource_registry* registry, const char* name, int init_amount, int max_amount) {
     if (registry->count >= registry->max_count) return;
 
     resource_node* node = malloc(sizeof(resource_node));
@@ -45,6 +45,7 @@ void init_resource(resource_registry* registry, const char* name, int init_amoun
     resource_node node_value = {
         .name = name,
         .amount = init_amount,
+        .max = max_amount,
         .next = registry->buckets[bucket_index]
     };
 
@@ -71,7 +72,7 @@ resource_registry* copy_resource_registry(resource_registry* old_registry) {
     memcpy(new_registry, &new_registry_value, sizeof(resource_registry));
 
     for(int i = 0; i < old_registry->count; i++)
-        init_resource(new_registry, old_registry->index_ref[i]->name, old_registry->index_ref[i]->amount);
+        init_resource(new_registry, old_registry->index_ref[i]->name, old_registry->index_ref[i]->amount, old_registry->index_ref[i]->max);
 
     return new_registry;
 }
@@ -137,5 +138,8 @@ void add_resource(resource_registry* registry, const char* name, unsigned int am
 
     if (!node) return;
     
-    node->amount += amount;
+    if (node->max == -1 || node->amount + amount <= node->max)
+        node->amount += amount;
+    else
+        node->amount = node->max;
 }

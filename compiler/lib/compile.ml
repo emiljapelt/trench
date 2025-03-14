@@ -169,7 +169,7 @@ type compiled_game_file = {
   teams: (string * (int*int*int) * int) array;
   exec_mode: exec_mode;
   resources_count: int;
-  resources: (string * int) array;
+  resources: (string * (int * int)) array;
   seed: int option;
   time_scale: float;
 }
