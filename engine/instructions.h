@@ -210,6 +210,7 @@ int instr_chop(player_state* ps) {
     else if (field->type == TREE) {
         fields.remove_field(x,y);
         add_resource(ps->resources, "wood", 10);
+        add_resource(ps->resources, "sapling", 1);
     }
 
     return 1;

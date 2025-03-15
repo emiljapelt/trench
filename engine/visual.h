@@ -49,7 +49,7 @@
 #define COFFIN "\u26b0"
 #define SNOWFLAKE "\u2744"
 #define TREE_VISUAL "\u219f"
-#define BOAT_VISUAL "\u26f5" // For some reason this prints a char to wide
+#define BOAT_VISUAL "\u23c5" // "\u26f5" // For some reason this prints a char to wide
 #define FILLED_CIRCLE "\u2b24"
 #define BULLET "\u2022"
 #define EMPTY_DIAMOND "\u27d0"
@@ -60,6 +60,7 @@
 #define LIGHTNING "\u21af" // 26a1 this also print a char extra :(
 #define DOTS_NS "\u22ee"
 #define DOTS_EW "\u22ef"
+#define HOUSE_VISUAL "\u2302"
 
 // ****
 
