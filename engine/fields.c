@@ -71,6 +71,7 @@ int is_walkable(const int x, const int y) {
     switch (get_field(x,y)->type) {
         case TRENCH:
         case EMPTY:
+        case BRIDGE:
             return 1;
         default:
             return 0;
@@ -113,8 +114,12 @@ void destroy_field(const int x, const int y, char* death_msg) {
     field_state* field = get_field(x,y);
     switch (field->type) {
         case OCEAN:
-        case TREE:{
+        case TREE: {
             field->type = EMPTY;
+            break;
+        }
+        case BRIDGE: {
+            field->type = OCEAN;
             break;
         }
         case WALL: {
@@ -155,6 +160,10 @@ void remove_field(const int x, const int y) {
         case OCEAN:
         case TREE: {
             field->type = EMPTY;
+            break;
+        }
+        case BRIDGE: {
+            field->type = OCEAN;
             break;
         }
         case WALL:

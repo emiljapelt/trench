@@ -138,6 +138,7 @@ and compile_stmt (Stmt(stmt,ln)) (state:compile_state) acc =
     | Disarm -> Instr_Disarm
     | ManaDrain -> Instr_ManaDrain
     | Wall -> Instr_Wall
+    | Bridge -> Instr_Bridge
     | PlantTree -> Instr_PlantTree
     in
     compile_value dir state (instr :: acc)

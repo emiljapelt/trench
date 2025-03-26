@@ -58,6 +58,7 @@ type instruction =
   | Instr_PagerWrite
   | Instr_Wall
   | Instr_PlantTree
+  | Instr_Bridge
 
 let instruction_to_int label_map instr = match instr with
     | I i -> Some i
@@ -115,6 +116,7 @@ let instruction_to_int label_map instr = match instr with
     | Instr_PagerWrite -> Some 49
     | Instr_PagerRead -> Some 50
     | Instr_Wall -> Some 51
+    | Instr_Bridge -> Some 52
 
 let label_set pp =
   let rec aux pp set = match pp with

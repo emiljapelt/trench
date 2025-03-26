@@ -123,6 +123,13 @@ field_visual get_field_data_visual(const int x, const int y, const field_type ty
             result.foreground_color = color_predefs.wood_brown;
             break;
         }
+        case BRIDGE: {
+            int char_idx = ~connection_lookup(x,y,OCEAN);
+            result.symbol = f_char_lookup[char_idx];
+            result.foreground_color = color_predefs.wood_brown;
+            result.background_color = color_predefs.blue;
+            break;
+        }
         case OCEAN: {
             result.foreground_color = color_predefs.ice_blue;
             result.background_color = color_predefs.blue;

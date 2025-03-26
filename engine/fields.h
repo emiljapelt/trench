@@ -12,6 +12,7 @@ typedef enum {
     TREE,
     OCEAN,
     WALL,
+    BRIDGE,
 } field_type;
 
 
@@ -23,13 +24,16 @@ typedef union field_data {
     struct {
         unsigned int fortified : 1;
     } trench;
+
     struct {
         unsigned int fortified : 1;
     } wall;
+
     struct {
         field_data* inner;
         field_type inner_type;
     } ice_block;
+    
 } field_data;
 
 

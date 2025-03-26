@@ -163,7 +163,11 @@ void player_turn_async(player_state* ps) {
                 change = instr_wall(ps);
                 break;
             }
-            
+            case Instr_Bridge: {
+                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
+                change = instr_bridge(ps);
+                break;
+            }
             default: return;
         }
 
@@ -261,6 +265,7 @@ turn_action player_turn_sync(player_state* ps) {
             case Instr_PagerWrite: instr_pager_write(ps); break;
             case Instr_Wall: return defend_action(&instr_wall); break;
             case Instr_PlantTree: return defend_action(&instr_plant_tree); break;
+            case Instr_Bridge: return defend_action(&instr_bridge); break;
             default: return inactive();
         }
     }

@@ -8,6 +8,7 @@ let string_to_prop s = match s with
   | "flammable" -> Flammable_Prop
   | "cover" -> Cover_Prop
   | "shelter" -> Shelter_Prop
+  | "walkable" -> Walkable_Prop
   | _ -> raise_failure ("Unknown field property: "^s)
 
 
@@ -18,3 +19,4 @@ let prop_index p = match p with
   | Flammable_Prop -> 3
   | Cover_Prop -> 4
   | Shelter_Prop -> 5
+  | Walkable_Prop -> 7

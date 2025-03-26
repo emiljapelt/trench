@@ -45,6 +45,7 @@
                         "disarm", DISARM;
                         "mana_drain", MANA_DRAIN;
                         "plant_tree", PLANT_TREE;
+                        "bridge", BRIDGE;
                       ] 
   
   let char_of_string s lexbuf = match s with

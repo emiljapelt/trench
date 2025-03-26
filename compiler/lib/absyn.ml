@@ -13,6 +13,7 @@ type field_prop =
     | Flammable_Prop
     | Cover_Prop
     | Shelter_Prop
+    | Walkable_Prop
 
 and typ =
     | T_Int
@@ -61,6 +62,7 @@ and directional_statement =
     | Disarm
     | ManaDrain
     | Wall
+    | Bridge
     | PlantTree
 
 and option_directional_statement =

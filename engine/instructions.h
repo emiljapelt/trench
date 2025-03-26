@@ -68,6 +68,7 @@ typedef enum {
   Instr_PagerWrite = 49,
   Instr_PagerRead = 50,
   Instr_Wall = 51,
+  Instr_Bridge = 52,
 } instruction;
 
 // all instructions return 1 if the board should be updated, and 0 if not.
@@ -657,12 +658,12 @@ int instr_pager_write(player_state* ps) {
 }
 
 int instr_wall(player_state* ps) {
-    if(!spend_resource(ps->resources, "wood", 5)) return 0;
-
     int x, y;
     direction d = (direction)ps->stack[--ps->sp];
     move_coord(ps->x, ps->y, d, &x, &y);
+
     if (!in_bounds(x, y)) return 0;
+    if (!spend_resource(ps->resources, "wood", 5)) return 0;
 
     field_state* field = get_field(x,y);
     switch (field->type) {
@@ -675,12 +676,12 @@ int instr_wall(player_state* ps) {
 }
 
 int instr_plant_tree(player_state* ps) {
-    if(!spend_resource(ps->resources, "sapling", 1)) return 0;
-
     int x, y;
     direction d = (direction)ps->stack[--ps->sp];
     move_coord(ps->x, ps->y, d, &x, &y);
+
     if (!in_bounds(x, y)) return 0;
+    if (!spend_resource(ps->resources, "sapling", 1)) return 0;
 
     field_countdown_args* args = malloc(sizeof(field_countdown_args));
     args->x = x;
@@ -690,6 +691,20 @@ int instr_plant_tree(player_state* ps) {
 
     add_event(_gs->events, PHYSICAL_EVENT, events.tree_grow, args);
     return 0;
+}
+
+int instr_bridge(player_state* ps) {
+    int x, y;
+    direction d = (direction)ps->stack[--ps->sp];
+    move_coord(ps->x, ps->y, d, &x, &y);
+
+    if (!in_bounds(x, y)) return 0;
+    field_state* field = get_field(x,y);
+    if (field->type != OCEAN) return 0;
+    if (!spend_resource(ps->resources, "wood", 20)) return 0;
+
+    field->type = BRIDGE;
+    return 1;
 }
 
 #endif
