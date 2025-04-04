@@ -124,6 +124,8 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 .seed = seed,
                 .time_scale = (float)Double_val(Field(unwrapped_result, 13)),
                 .stack_size = 1000,
+                .throw_limit = Int_val(Field(unwrapped_result, 14)),
+                .shoot_limit = Int_val(Field(unwrapped_result, 15)),
             };
 
             value map = Field(unwrapped_result, 4);

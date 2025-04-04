@@ -82,7 +82,8 @@ int instr_shoot(player_state* ps) {
     int y = ps->y;
     
     move_coord(x, y, d, &x, &y);
-    while (in_bounds(x,y) && !fields.is_obstruction(x,y)) { 
+    int limit = _gr->shoot_limit;
+    while (limit-- && in_bounds(x,y)) { 
         set_overlay(x,y,BULLET);
         set_color_overlay(x,y,FORE,color_predefs.yellow);
         print_board(); wait(0.02);
@@ -269,6 +270,7 @@ int instr_bomb(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
     if(!spend_resource(ps->resources, "bomb", 1)) return 0;
 
+    if (p > _gr->throw_limit) p = _gr->throw_limit;
     int x = ps->x;
     int y = ps->y;
     for (int i = p; i > 0; i--)
@@ -530,7 +532,8 @@ int instr_fireball(player_state* ps) {
     int y = ps->y;
 
     move_coord(x,y,d,&x,&y);
-    while(in_bounds(x,y)) {
+    int limit = _gr->shoot_limit;
+    while(limit-- && in_bounds(x,y)) {
         if (fields.is_obstruction(x,y)) {
             fields.damage_field(x, y, FIRE_DMG & PROJECTILE_DMG, "Hit by a fireball");
             return 1;

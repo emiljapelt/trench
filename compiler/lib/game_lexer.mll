@@ -26,6 +26,8 @@
                         "manual", MANUAL;
                         "inf", INFINITE;
                         "of", OF;
+                        "shoot_limit", SHOOT_LIMIT;
+                        "throw_limit", THROW_LIMIT;
                       ]
   
   let char_of_string s lexbuf = match s with
@@ -63,6 +65,7 @@ rule lex = parse
     |   ':'           { COLON }
     |   ';'           { SEMI }
     |   '('           { LPAR }
+    |   '.'           { DOT }
     |   ')'           { RPAR }
     |   '*'           { STAR }
     |   '{'           { LBRACE }

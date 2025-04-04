@@ -165,6 +165,8 @@ type game_setup_part =
     | Seed of int option
     | TimeScale of float
     | Map of map
+    | ThrowLimit of int
+    | ShootLimit of int
 
 type game_setup = GS of {
     teams: team_info list;
@@ -179,4 +181,6 @@ type game_setup = GS of {
     seed: int option;
     time_scale: float;
     map: map;
+    throw_limit: int;
+    shoot_limit: int;
 }
