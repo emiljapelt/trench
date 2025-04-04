@@ -68,6 +68,7 @@ and directional_statement =
 and option_directional_statement =
     | Trench
     | Fortify
+    | Collect
 
 and targeting_statement =
     | Bomb

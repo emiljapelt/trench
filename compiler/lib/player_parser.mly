@@ -48,7 +48,7 @@
 %token IF ELSE IS REPEAT WHILE FOR CONTINUE BREAK
 %token GOTO AT MEDITATE DISPEL DISARM MANA_DRAIN PLANT_TREE BRIDGE
 %token MOVE FORTIFY WAIT PASS TRENCH WALL PROJECTION FREEZE FIREBALL
-%token NORTH EAST SOUTH WEST BOMB SHOOT LOOK SCAN MINE CHOP
+%token NORTH EAST SOUTH WEST BOMB SHOOT LOOK SCAN MINE CHOP COLLECT
 %token INT DIR FIELD
 %token READ WRITE
 
@@ -217,6 +217,7 @@ non_control_flow_stmt:
   | DISARM value                      { themeing ["forestry";"military"] ; Directional(Disarm, $2)}
   | MANA_DRAIN value                  { themeing ["wizardry"] ; Directional(ManaDrain, $2) }
   | BRIDGE value                      { Directional(Bridge, $2) }
+  | COLLECT value?                    { OptionDirectional(Collect, $2) }
 ;
 
 direction:

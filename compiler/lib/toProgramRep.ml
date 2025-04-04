@@ -147,6 +147,7 @@ and compile_stmt (Stmt(stmt,ln)) (state:compile_state) acc =
     let instr = match stmt with
     | Trench -> Instr_Trench
     | Fortify -> Instr_Fortify
+    | Collect -> Instr_Collect
     in
     match dir_opt with
     | Some dir -> compile_value dir state (instr :: acc)

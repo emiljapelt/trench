@@ -69,6 +69,7 @@ typedef enum {
   Instr_PagerRead = 50,
   Instr_Wall = 51,
   Instr_Bridge = 52,
+  Instr_Collect = 53,
 } instruction;
 
 // all instructions return 1 if the board should be updated, and 0 if not.
@@ -120,10 +121,11 @@ int instr_look(player_state* ps) {
         case SOUTH: y++; break;
         case WEST: x--; break;
     }
-    if (!in_bounds(x,y) || fields.is_obstruction(x,y)) { ps->stack[ps->sp++] = 0; return 0; }
+    if (!in_bounds(x,y)) { ps->stack[ps->sp++] = 0; return 0; }
     field_scan scan = fields.scan(x,y);
     field_scan* bypass = &scan;
     if ((*(int*)bypass) & (1 << offset)) { ps->stack[ps->sp++] = i; return 0; }
+    if (fields.is_obstruction(x,y)) { ps->stack[ps->sp++] = 0; return 0; }
     goto incr;
 }
 
@@ -211,7 +213,8 @@ int instr_chop(player_state* ps) {
     else if (field->type == TREE) {
         fields.remove_field(x,y);
         add_resource(ps->resources, "wood", 10);
-        add_resource(ps->resources, "sapling", 1);
+        int got_sapling = rand() % 100 > 30;
+        if (got_sapling) add_resource(ps->resources, "sapling", 1);
     }
 
     return 1;
@@ -705,6 +708,23 @@ int instr_bridge(player_state* ps) {
 
     field->type = BRIDGE;
     return 1;
+}
+
+int instr_collect(player_state* ps) {
+    int x, y;
+    direction d = (direction)ps->stack[--ps->sp];
+    move_coord(ps->x, ps->y, d, &x, &y);
+
+    if (!in_bounds(x, y)) return 0;
+    field_state* field = get_field(x,y);
+
+    switch (field->type) {
+        case TREE:
+            add_resource(ps->resources, "sapling", 1);
+            return 0;
+        default:
+            return 0;
+    }
 }
 
 #endif
