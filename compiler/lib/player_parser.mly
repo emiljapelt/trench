@@ -49,14 +49,15 @@
 %token GOTO AT MEDITATE DISPEL DISARM MANA_DRAIN PLANT_TREE BRIDGE
 %token MOVE FORTIFY WAIT PASS TRENCH WALL PROJECTION FREEZE FIREBALL
 %token NORTH EAST SOUTH WEST BOMB SHOOT LOOK SCAN MINE CHOP COLLECT
-%token INT DIR FIELD
+%token INT DIR FIELD L_SHIFT R_SHIFT
 %token READ WRITE
 
 /*Low precedence*/
 %left LOGIC_AND LOGIC_OR
 %left EQ NEQ
 %left GT LT GTEQ LTEQ
-%left PLUS MINUS
+%left L_SHIFT R_SHIFT
+%left PLUS MINUS 
 %left TIMES FSLASH PCT
 /*High precedence*/
 
@@ -121,8 +122,8 @@ value:
 ;
 
 %inline binop:
-  | LOGIC_AND   { "&" }
-  | LOGIC_OR    { "|" }
+  | LOGIC_AND   { "&"  }
+  | LOGIC_OR    { "|"  }
   | EQ          { "="  }
   | NEQ         { "!=" }
   | LTEQ        { "<=" }
@@ -134,6 +135,8 @@ value:
   | MINUS       { "-"  }
   | FSLASH      { "/"  }
   | PCT         { "%"  }
+  | L_SHIFT     { "<<" }
+  | R_SHIFT     { ">>" }
 ;
 
 stmt:

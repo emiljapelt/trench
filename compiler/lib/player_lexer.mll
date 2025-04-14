@@ -92,8 +92,10 @@ rule lex = parse
     |   '='           { EQ }
     |   "!="          { NEQ }
     |   "<="          { LTEQ }
+    |   "<<"          { L_SHIFT }
     |   "<"           { LT }
     |   ">="          { GTEQ }
+    |   ">>"          { R_SHIFT }
     |   ">"           { GT }
     |   "&"           { LOGIC_AND }
     |   "|"           { LOGIC_OR }

@@ -34,10 +34,8 @@ let rec type_value (state:compile_state) v = match v with
       | ">=", T_Int, T_Int 
       | "/", T_Int, T_Int
       | "%", T_Int, T_Int -> T_Int
-      | "+", T_Dir, T_Int 
-      | "+", T_Int, T_Dir
-      | "-", T_Dir, T_Int 
-      | "-", T_Int, T_Dir -> T_Dir
+      | "<<", T_Dir, T_Int 
+      | ">>", T_Dir, T_Int -> T_Dir
       | _,t0,t1 -> raise_failure ("Unknown binary operation: "^type_string t0^op^type_string t1)
     )
     | Unary_op _

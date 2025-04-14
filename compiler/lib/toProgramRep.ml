@@ -53,11 +53,8 @@ let rec compile_value val_expr (state:compile_state) acc =
     | ">=", T_Int, T_Int -> compile_value e2 state (compile_value e1 state (Instr_Lt :: Instr_Not :: acc))
     | "/", T_Int, T_Int -> compile_value e2 state (compile_value e1 state (Instr_Div :: acc))
     | "%", T_Int, T_Int -> compile_value e2 state (compile_value e1 state (Instr_Mod :: acc))
-    | "+", T_Dir, T_Int -> Instr_Place :: I(4) :: (compile_value e1 state (compile_value e2 state (Instr_Add :: Instr_Mod :: acc)))
-    | "+", T_Int, T_Dir -> Instr_Place :: I(4) :: (compile_value e1 state (compile_value e2 state (Instr_Add :: Instr_Mod :: acc)))
-    (*Subtraction from direction does not work currently*)
-    | "-", T_Dir, T_Int -> Instr_Place :: I(4) :: (compile_value e1 state (compile_value e2 state (Instr_Sub :: Instr_Mod :: acc)))
-    | "-", T_Int, T_Dir -> Instr_Place :: I(4) :: (compile_value e2 state (compile_value e1 state (Instr_Sub :: Instr_Mod :: acc)))
+    | ">>", T_Dir, T_Int -> Instr_Place :: I(4) :: (compile_value e1 state (compile_value e2 state (Instr_Add :: Instr_Mod :: acc)))
+    | "<<", T_Dir, T_Int -> Instr_Place :: I(4) :: (compile_value e1 state (compile_value e2 state (Instr_Sub :: Instr_Mod :: acc)))
     | _ -> raise_failure "Unknown binary operation"
   )
   | Unary_op (op, e) -> ( match op with 
