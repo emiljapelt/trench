@@ -192,6 +192,8 @@ non_control_flow_stmt:
   | target MINUS EQ value  { features ["memory"; "sugar"] ; Assign ($1, Binary_op("-", Reference $1, $4)) }
   | target TIMES EQ value  { features ["memory"; "sugar"] ; Assign ($1, Binary_op("*", Reference $1, $4)) }
   | target TILDE EQ value  { features ["memory"; "sugar"] ; Assign ($1, Unary_op("~", $4)) }
+  | target L_SHIFT EQ value  { features ["memory"; "sugar"] ; Assign ($1, Binary_op("<<", Reference $1, $4)) }
+  | target R_SHIFT EQ value  { features ["memory"; "sugar"] ; Assign ($1, Binary_op(">>", Reference $1, $4)) }
   | typ NAME               { features ["memory"] ; Declare($1,$2) }
   | typ NAME EQ value      { features ["memory"] ; DeclareAssign($1,$2,$4) }
   | target PLUSPLUS        { features ["memory"; "sugar"] ; Assign ($1, Binary_op("+", Reference $1, Int 1)) }
