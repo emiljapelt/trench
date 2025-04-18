@@ -88,6 +88,7 @@ let rec optimize_stmt (Stmt(stmt_i,ln) as stmt) =
   | DeclareAssign(ty,n,v) -> Stmt(DeclareAssign(ty,n,optimize_value v), ln)
   | PagerSet v -> Stmt(PagerSet(optimize_value v),ln)
   | PagerWrite v -> Stmt(PagerWrite(optimize_value v),ln)
+  | Say v -> Stmt(Say(optimize_value v),ln)
   | Write v -> Stmt(Write(optimize_value v),ln)
   | Directional(stmt,d) -> Stmt(Directional(stmt,optimize_value d),ln)
   | OptionDirectional(stmt,d) -> Stmt(OptionDirectional(stmt,Option.map optimize_value d),ln)

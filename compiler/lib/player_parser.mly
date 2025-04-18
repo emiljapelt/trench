@@ -50,7 +50,7 @@
 %token MOVE FORTIFY WAIT PASS TRENCH WALL PROJECTION FREEZE FIREBALL
 %token NORTH EAST SOUTH WEST BOMB SHOOT LOOK SCAN MINE CHOP COLLECT
 %token INT DIR FIELD L_SHIFT R_SHIFT
-%token READ WRITE
+%token READ WRITE SAY
 
 /*Low precedence*/
 %left LOGIC_AND LOGIC_OR
@@ -223,10 +223,11 @@ non_control_flow_stmt:
   | MANA_DRAIN value                  { themeing ["wizardry"] ; Directional(ManaDrain, $2) }
   | BRIDGE value                      { Directional(Bridge, $2) }
   | COLLECT value?                    { OptionDirectional(Collect, $2) }
+  | SAY value                         { Say $2 }
 ;
 
 direction:
-  | NORTH   { North }
+  | NORTH { North }
   | EAST  { East  }
   | SOUTH { South }
   | WEST  { West }

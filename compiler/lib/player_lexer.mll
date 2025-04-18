@@ -47,6 +47,7 @@
                         "plant_tree", PLANT_TREE;
                         "bridge", BRIDGE;
                         "collect", COLLECT;
+                        "say", SAY;
                       ] 
   
   let char_of_string s lexbuf = match s with

@@ -45,6 +45,7 @@ and statement_inner =
     | Directional of directional_statement * value
     | OptionDirectional of option_directional_statement * value option
     | Targeting of targeting_statement * value * value
+    | Say of value
 
 and unit_statement =
     | Wait

@@ -169,6 +169,7 @@ void player_turn_async(player_state* ps) {
                 break;
             }
             case Instr_Collect: change = instr_collect(ps); break;
+            case Instr_Say: change = instr_say(ps); break;
             default: return;
         }
 
@@ -268,6 +269,7 @@ turn_action player_turn_sync(player_state* ps) {
             case Instr_PlantTree: return defend_action(&instr_plant_tree); break;
             case Instr_Bridge: return defend_action(&instr_bridge); break;
             case Instr_Collect: instr_collect(ps); break;
+            case Instr_Say: instr_say(ps); break;
             default: return inactive();
         }
     }

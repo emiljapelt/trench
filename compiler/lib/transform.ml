@@ -96,6 +96,7 @@ let rec rename_variables_of_stmt i map (Stmt(stmt,ln)) = match stmt with
   | DeclareAssign(t,n,v) ->
     let new_name = n^"_"^string_of_int i in
     (i+1,StringMap.add n new_name map,Stmt(DeclareAssign(t,new_name,rename_variables_of_value map v),ln))
+  | Say v -> (i,map,Stmt(Say(rename_variables_of_value map v),ln))
   | _ -> (i,map,Stmt(stmt,ln))
 
 let rename_variables_of_file (File(regs,stmts)) =

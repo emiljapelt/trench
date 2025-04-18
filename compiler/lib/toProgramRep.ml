@@ -162,6 +162,7 @@ and compile_stmt (Stmt(stmt,ln)) (state:compile_state) acc =
   | PagerSet v -> compile_value v state (Instr_PagerSet :: acc)
   | PagerWrite v -> compile_value v state (Instr_PagerWrite :: acc)
   | Write v -> compile_value v state (Instr_Write :: acc)
+  | Say v -> compile_value v state (Instr_Say :: acc)
   | DeclareAssign _ -> failwith "DeclareAssign still present"
   with 
   | Failure(p,None,msg) -> raise (Failure(p,Some ln, msg))

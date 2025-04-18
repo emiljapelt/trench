@@ -109,6 +109,7 @@ let rec type_check_stmt_inner state stmt = match stmt with
   | PagerSet v
   | PagerWrite v
   | Write v -> require T_Int (type_value state v) (fun () -> state)
+  | Say v -> require T_Int (type_value state v) (fun () -> state)
 
 and type_check_stmt regs (Stmt(stmt,ln)) = 
   try 
