@@ -37,7 +37,6 @@
 %token <int> CSTINT
 %token <string> NAME
 %token <string> META_NAME
-%token <string> FIELD_PROP_NAME
 %token <string> LABEL
 %token LPAR RPAR LBRACE RBRACE LBRAKE RBRAKE
 %token PLUS MINUS TIMES EQ NEQ LT GT LTEQ GTEQ
@@ -53,6 +52,7 @@
 %token READ WRITE SAY
 
 /*Low precedence*/
+%left IS
 %left LOGIC_AND LOGIC_OR
 %left EQ NEQ
 %left GT LT GTEQ LTEQ
@@ -112,9 +112,9 @@ simple_value:
 value:
   | simple_value                       { $1 }
   | SCAN simple_value simple_value     { Scan($2,$3) }
-  | LOOK simple_value FIELD_PROP_NAME  { Look($2,string_to_prop $3) }
+  | LOOK simple_value NAME             { Look($2,string_to_prop $3) }
   | value binop value                  { Binary_op ($2, $1, $3) }
-  | simple_value FIELD_PROP_NAME       { FieldProp($1, string_to_prop $2) }
+  | value IS NAME               { FieldProp($1, string_to_prop $3) }
   | PLUSPLUS target                    { features ["sugar"] ; Increment($2, true)}
   | target PLUSPLUS                    { features ["sugar"] ; Increment($1, false)}
   | MINUSMINUS target                  { features ["sugar"] ; Decrement($2, true)}

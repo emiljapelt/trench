@@ -2,7 +2,7 @@ open Absyn
 open Exceptions
 
 let string_to_prop s = match s with
-  | "obstruct" -> Obstruction_Prop
+  | "obstruction" -> Obstruction_Prop
   | "player" -> Player_Prop
   | "trapped" -> Trapped_Prop
   | "flammable" -> Flammable_Prop
