@@ -6,5 +6,8 @@ trench
 *.trc
 *.exe
 .vscode
+node_modules
+package-lock.json
+package.json
 
 !logo.tr
