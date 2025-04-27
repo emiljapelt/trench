@@ -43,9 +43,10 @@ app.post('/filesubmit', upload.single('file'), (req, res) => {
     if (file && body.name) {
         const content = Buffer.from(file.buffer).toString("utf-8");
         const path = `./file_${counter++}.tr`;
-        console.log(`${body.name} submitted ${path}`);
         fs.writeFileSync(path, content);
         exec(`../trenchc ${path}`, { cwd: '.'}, (err,stdout,stderr) => {
+            if (err) fs.unlinkSync(path);
+            else console.log(`${body.name} submitted ${path}`);
             res.writeHead(200, {'Content-Type': 'text/html'});
             res.write(`${form}<p>${stdout}</p>`);
             res.send();

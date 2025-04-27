@@ -11,14 +11,14 @@ let () = Trenchclib.Compile.set_features Trenchclib.Features.all_features
 let () = Trenchclib.Compile.set_themes Trenchclib.Themes.all_themes
 
 let () = match handle_cmd_line Sys.argv with
-  | None -> Printf.printf "No argument given"
+  | None -> (Printf.printf "No argument given" ; exit 1)
   | Some path -> 
     if String.ends_with ~suffix:"g" path then 
       match Trenchclib.Compile.compile_game_file path with
       | Ok _ -> Printf.printf "Game file compiled\n" 
-      | Error msg -> Printf.printf "%s\n" msg
+      | Error msg -> (Printf.printf "%s\n" msg ; exit 1)
     else if String.ends_with ~suffix:"r" path then
       match Trenchclib.Compile.compile_player_file path with
       | Ok p -> Array.iter (Printf.printf "%i ") p
-      | Error msg -> Printf.printf "%s\n" msg
-    else Printf.printf "Dont know what to do with: %s\n" path
+      | Error msg -> (Printf.printf "%s\n" msg ; exit 1)
+    else (Printf.printf "Dont know what to do with: %s\n" path ; exit 1)
