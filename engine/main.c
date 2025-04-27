@@ -279,7 +279,7 @@ void get_new_directive(player_state* ps) {
     while(1) {
         char* path;
         char option;
-        printf("Player %s, change directive?:\n0: No change\n1: Reload file\n2: New file\n", ps->name);
+        printf("%s#%i, change directive?:\n0: No change\n1: Reload file\n2: New file\n", ps->name, ps->id);
         scanf(" %c",&option);
         switch (option) {
             case '0': return;
