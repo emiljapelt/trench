@@ -279,7 +279,6 @@ void get_new_directive(player_state* ps) {
     while(1) {
         char* path;
         char option;
-        //print_board();
         printf("Player %s, change directive?:\n0: No change\n1: Reload file\n2: New file\n", ps->name);
         scanf(" %c",&option);
         switch (option) {
@@ -298,7 +297,9 @@ void get_new_directive(player_state* ps) {
         }
 
         directive_info di;
+        printf("loading %s...\n", ps->path);
         if (compile_player(ps->path, _gr->stack_size, &di)) {
+            printf("Compiled!\n");
             free(ps->directive);
             free(ps->stack);
             ps->directive = di.directive;
@@ -483,6 +484,7 @@ void dynamic_mode() {
                 player_state* player = get_player(_gs->players, i);
                 if (!player->alive) continue; 
                 get_new_directive(player);
+                clear_screen();
                 print_board();
             }
         }
@@ -500,6 +502,7 @@ void manual_mode() {
             player_state* player = get_player(_gs->players, i);
             if (!player->alive) continue; 
             get_new_directive(player);
+            clear_screen();
             print_board();
             player_turn_async(player);
             check_win_condition();

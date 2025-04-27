@@ -80,7 +80,7 @@ int compile_player(const char* path, int stack_size, directive_info* result) {
     static const value* compile_player_closure = NULL;
     if(compile_player_closure == NULL) compile_player_closure = caml_named_value("compile_player_file");
     value callback_result = caml_callback(*compile_player_closure, caml_copy_string(path));
-
+    
     switch (Tag_val(callback_result)) {
         case 0: { // Ok
             value comp = Field(callback_result, 0);
@@ -152,7 +152,7 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
             int player_count = Int_val(Field(unwrapped_result, 5));
             int team_count = Int_val(Field(unwrapped_result, 7));
             int resource_count = Int_val(Field(unwrapped_result, 10));
-            int feed_size = 200;
+            int feed_size = 2000;
 
             *gs = (game_state) {
                 .round = 1,
@@ -194,7 +194,7 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 player->sp = di.regs;
                 player->path = strdup(String_val(Field(player_info, 3)));
                 player->directive = di.directive;
-                player->directive_len = di.dir_len;//(Field(player_info, 4))-(di.regs_len+1);
+                player->directive_len = di.dir_len;
                 player->dp = 0;
                 player->x = Int_val(Field(Field(player_info, 2), 0));
                 player->y = Int_val(Field(Field(player_info, 2), 1));

@@ -734,13 +734,8 @@ int instr_collect(player_state* ps) {
 
 int instr_say(player_state* ps) {
     int v = ps->stack[--ps->sp];
-    int v_len = log10((double)abs(v));
-    int id_len = log10((double)ps->id);
-    if (v < 0) v_len += 1;
-    int len = strlen(ps->name) + v_len + 10; 
-    char msg[len];
-    memset(msg, len, 0);
-    sprintf(msg, "%s(%i) says %i\n", ps->name, ps->id, v);
+    char msg[100 + 1];
+    snprintf(msg, 100, "%s#%i says %i\n", ps->name, ps->id, v);
     print_to_feed(msg);
     return 0;
 }

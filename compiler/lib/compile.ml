@@ -150,7 +150,7 @@ let check_vars_unique (File(regs,_)) =
 
 let player_to_program (regs,program) = 
   let program_list = program_to_int_list program in
-  List.length program_list :: List.length regs :: program_list
+  List.length program_list :: List.length regs :: program_list |> Array.of_list
 
 type compiled_player_info = {
   team: int;
@@ -158,7 +158,6 @@ type compiled_player_info = {
   position: int * int;
   file: string;
   directive: int array;
-  directive_len: int;
 }
 
 type compiled_game_file = {
@@ -198,13 +197,13 @@ let game_setup_player (PI player) =
     | Error msg -> raise_failure msg
   in
   {
-  team = player.team;
-  name = player.name;
-  position = player.origin;
-  file = player.file;
-  directive = Array.of_list p;
-  directive_len = List.length p;
-}
+    team = player.team;
+    name = player.name;
+    position = player.origin;
+    file = player.file;
+    directive = p;
+  }
+
 let set_themes ts =
   Flags.compile_flags.themes <- ts ; ()
 
