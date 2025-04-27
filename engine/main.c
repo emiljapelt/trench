@@ -283,23 +283,24 @@ void get_new_directive(player_state* ps) {
         scanf(" %c",&option);
         switch (option) {
             case '0': return;
-            case '1': break;
+            case '1': {
+                path = ps->path;
+                break;
+            };
             case '2': {
                 free(ps->path);
-                path = malloc(1001);
-                memset(path,0,1001);
+                path = malloc(201);
+                memset(path,0,201);
                 puts("New path:");
-                scanf(" %1000s", path);
-                ps->path = path;
+                scanf(" %200s", path);
                 break;
             }
             default: continue;
         }
 
         directive_info di;
-        printf("loading %s...\n", ps->path);
-        if (compile_player(ps->path, _gr->stack_size, &di)) {
-            printf("Compiled!\n");
+        printf("loading %s...\n", path);
+        if (compile_player(path, _gr->stack_size, &di)) {
             free(ps->directive);
             free(ps->stack);
             ps->directive = di.directive;
@@ -307,6 +308,7 @@ void get_new_directive(player_state* ps) {
             ps->sp = di.regs;
             ps->dp = 0;
             ps->directive_len = di.dir_len;
+            ps->path = path;
             return;
         }
     }
