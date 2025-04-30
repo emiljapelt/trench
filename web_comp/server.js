@@ -9,24 +9,48 @@ const upload = multer();
 
 const form = `
     <head>
+        <meta charset="UTF-8">
         <style>
-            div { margin: 0 0 10 10; }
+            * {
+                box-sizing: border-box
+            } 
+            div { 
+                margin: 0 0 10 10; 
+            }
+            .main {
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+            }
+            form {
+                max-width: 20em;
+            }
+            .big-text {
+                font-size: 5em;
+            }
+            .form-elem {
+                width: 100%;
+            }
         </style>
     </head>
     <body>
-        <form action="filesubmit" method="post" enctype="multipart/form-data">
-            <div>
-                <label for="name">Name</label>
-                <input type="text" id="name" name="name"/><br>
-            </div>
-            <div>
-                <label for="file">File</label>
-                <input type="file" id="file" name="file"/><br>
-            </div>
-            <div>
-                <input type="submit" value="Submit"/>
-            </div>
-        </form>
+        <div class="main">
+            <p class="big-text">🕳⛏🤖</p>
+            <form action="filesubmit" method="post" enctype="multipart/form-data">
+                <div>
+                    <label for="name">Name: </label>
+                    <input class="form-elem" type="text" id="name" name="name"/><br>
+                </div>
+                <div>
+                    <label for="file">File: </label>
+                    <input class="form-elem" type="file" id="file" name="file"/><br>
+                </div>
+                <div>
+                    <input class="form-elem" type="submit" value="Submit"/>
+                </div>
+            </form>
+        <div>
     </body>
 `;
 
