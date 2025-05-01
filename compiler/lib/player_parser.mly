@@ -102,7 +102,7 @@ simple_value:
   | QMARK LPAR simple_value+ RPAR      { features ["random"] ; RandomSet $3 }
   | MINUS simple_value                 { Binary_op ("-", Int 0, $2) } %prec TILDE
   | TILDE simple_value                 { Unary_op ("~", $2) }
-  | NAME                               { features ["memory"] ; Reference(Local $1) }
+  | target                             { Reference($1) }
   | META_NAME                          { MetaReference (meta_name $1) }
   | READ                               { features ["ipc"] ; Read }
   | PAGER_READ                         { features ["ipc"] ; PagerRead }
@@ -149,9 +149,9 @@ stmt2:
 ;
 stmt2_inner:
   | IF simple_value stmt1 ELSE stmt2         { features ["control"] ; If ($2, $3, $5) }
-  | IF simple_value stmt1                     { features ["control"] ; If ($2, $3, Stmt(Block [], $symbolstartpos.pos_lnum)) }
-  | IF simple_value alt+                        { features ["control"; "sugar"] ; IfIs($2, $3, None)}
-  | IF simple_value alt+ ELSE stmt2             { features ["control"; "sugar"] ; IfIs($2, $3, Some $5) }
+  | IF simple_value stmt1                    { features ["control"] ; If ($2, $3, Stmt(Block [], $symbolstartpos.pos_lnum)) }
+  | IF simple_value alt+                     { features ["control"; "sugar"] ; IfIs($2, $3, None)}
+  | IF simple_value alt+ ELSE stmt2          { features ["control"; "sugar"] ; IfIs($2, $3, Some $5) }
 ;
 
 /* No unbalanced if-else */
@@ -201,17 +201,17 @@ non_control_flow_stmt:
   | target MINUSMINUS      { features ["memory"; "sugar"] ; Assign ($1, Binary_op("-", Reference $1, Int 1)) }
   | MINUSMINUS target      { features ["memory"; "sugar"] ; Assign ($2, Binary_op("-", Reference $2, Int 1)) }
   | MOVE value                        { Directional(Move, $2) }
-  | CHOP value                        { Directional(Chop, $2) }
   | FORTIFY value?                    { OptionDirectional(Fortify, $2) }
   | TRENCH value?                     { OptionDirectional(Trench, $2) }
   | WALL value                        { Directional(Wall, $2) }
-  | PLANT_TREE value                  { Directional(PlantTree, $2) }
+  | CHOP value                        { themeing ["forestry"] ; Directional(Chop, $2) }
+  | PLANT_TREE value                  { themeing ["forestry"] ; Directional(PlantTree, $2) }
   | WAIT                              { Unit(Wait) }
   | PASS                              { Unit(Pass) }
   | WRITE value                       { features ["ipc"] ; Write $2 }
   | PAGER_WRITE value                 { features ["ipc"] ; PagerWrite $2 }
   | PAGER_SET value                   { features ["ipc"] ; PagerSet $2 }
-  | SHOOT value                       { themeing ["military"] ; Directional(Shoot, $2) }
+  | SHOOT value                       { themeing ["military";"forestry"] ; Directional(Shoot, $2) }
   | MINE value                        { themeing ["military"] ; Directional(Mine, $2) }
   | BOMB simple_value simple_value    { themeing ["military"] ; Targeting(Bomb, $2, $3) }
   | FREEZE simple_value simple_value  { themeing ["wizardry"] ; Targeting(Freeze, $2, $3) }
@@ -219,7 +219,7 @@ non_control_flow_stmt:
   | PROJECTION                        { themeing ["wizardry"] ; Unit(Projection) }
   | MEDITATE                          { themeing ["wizardry"] ; Unit(Meditate) }
   | DISPEL value                      { themeing ["wizardry"] ; Directional(Dispel, $2) }
-  | DISARM value                      { themeing ["forestry";"military"] ; Directional(Disarm, $2)}
+  | DISARM value                      { themeing ["forestry"; "military"] ; Directional(Disarm, $2)}
   | MANA_DRAIN value                  { themeing ["wizardry"] ; Directional(ManaDrain, $2) }
   | BRIDGE value                      { Directional(Bridge, $2) }
   | COLLECT value?                    { OptionDirectional(Collect, $2) }
