@@ -4,7 +4,7 @@
 
 The trench langauge is used to describe the behavior of characters. It is executed from the top and down.
 
-A program consists of a series of statements, which may consist of other statements and expressions, all of which are descriped in this document.
+A program consists of a series of statements, which may consist of other statements and expressions, all of which are described in this document.
 
 Some language constructs require some game settings to be enabled, called features and themes. If a language construct is marked by some themes, it is enabled if one or more of those themes are enabled. On the other hand, if a language construct is marked by some features, they must all be enabled.
 
