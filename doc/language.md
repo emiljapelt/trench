@@ -6,7 +6,7 @@ The trench langauge is used to describe the behavior of characters. It is execut
 
 A program consists of a series of statements, which may consist of other statements and expressions, all of which are descriped in this document.
 
-Some language constructs require some game settings to be enabled, called features and themes. If a language construct is marked by some themes, it is enabled if one or more of those themes are enabled. On the other hand, if a language construct is marked by some features, they must all be enabled. 
+Some language constructs require some game settings to be enabled, called features and themes. If a language construct is marked by some themes, it is enabled if one or more of those themes are enabled. On the other hand, if a language construct is marked by some features, they must all be enabled.
 
 ## Comments
 
@@ -54,7 +54,7 @@ Contains information about a field. The available information is:
 | Name | Description |
 | --- | --- |
 | obstruction | This field cannot be seen through, passed through and players will be stuck inside |
-| player | A player is loacated on this field |
+| player | A player is located on this field |
 | trapped | This field is trapped in some way |
 | flammable | This field can be destroyed by fire |
 | cover | This field will protect players from projectiles |
@@ -69,7 +69,7 @@ These properties of the field can be queried for, using the 'is' expression.
 
 **features:** memory
 
-Variables are name for data, they start with a letter which is followed by an amount of letters, numbers and underscores. 
+Variables are name for data, they start with a letter which is followed by an amount of letters, numbers and underscores.
 
 Examples:
 
@@ -136,7 +136,7 @@ These are operations on a single value. The operation symbol prefixes the value,
 *op* *value*
 
 | Operation | Type | Description |
-| --- | --- | --- | 
+| --- | --- | --- |
 | - | int | Negates the integer value |
 | ~ | int | Returns the opposite boolean value |
 
@@ -219,9 +219,9 @@ This can only be called on variables.
 
 | | |
 | ---  | --- |
-| `++x` | Increases the value of *x* by 1, and evaluates to the increased value | 
+| `++x` | Increases the value of *x* by 1, and evaluates to the increased value |
 | `x++` | Increases the value of *x* by 1, and evaluates to the prior value |
-| `--x` | Decreases the value of *x* by 1, and evaluates to the decreased value | 
+| `--x` | Decreases the value of *x* by 1, and evaluates to the decreased value |
 | `x--` | Decreases the value of *x* by 1, and evaluates to the prior value |
 
 ---
@@ -272,7 +272,7 @@ Assigns the resulting value of evaluating the expression, to the variable of the
 ### Repeat
 **syntax:** `repeat` *x* *stmt*
 
-Where *x* is a constant integer. Compiles the given statement *x* times 
+Where *x* is a constant integer. Compiles the given statement *x* times
 
 ---
 
@@ -372,7 +372,7 @@ Moves the player one field in the given direction, if that field is walkable, un
 ### Bridge <sub><small>action</small></sub>
 **themes:** forestry
 
-**syntax:** `brdige d`
+**syntax:** `bridge d`
 
 ### Meditate <sub><small>action</small></sub>
 **themes:** wizardry
