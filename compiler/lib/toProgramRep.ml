@@ -25,7 +25,7 @@ let rec compile_value val_expr (state:compile_state) acc =
     | BoardX -> Meta_BoardX :: acc
     | BoardY -> Meta_BoardY :: acc
     | PlayerID -> Meta_PlayerID :: acc
-    | PlayerResource n -> ( match List.find_index (fun name -> n = name) Flags.compile_flags.resources with
+    | PlayerResource n -> (match List.find_index (fun name -> n = name) Flags.compile_flags.resources with
       | Some i -> Meta_Resource :: I(i) :: acc
       | None -> raise_failure ("Unknown resource lookup: "^n)
     )

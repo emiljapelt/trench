@@ -14,6 +14,13 @@ type field_prop =
     | Cover_Prop
     | Shelter_Prop
     | Walkable_Prop
+    | IsEmpty_Prop
+    | IsTrench_Prop
+    | IsIceBlock_Prop
+    | IsTree_Prop
+    | IsOcean_Prop
+    | IsWall_Prop
+    | IsBridge_Prop
 
 and typ =
     | T_Int

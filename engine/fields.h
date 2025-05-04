@@ -46,7 +46,16 @@ typedef struct {
     unsigned int shelter : 1;
     unsigned int cover : 1;
     unsigned int walkable: 1;
-    unsigned int _ : 24;
+
+    unsigned int is_empty: 1;
+    unsigned int is_trench: 1;
+    unsigned int is_ice_block: 1;
+    unsigned int is_tree: 1;
+    unsigned int is_ocean: 1;
+    unsigned int is_wall: 1;
+    unsigned int is_bridge: 1;
+
+    unsigned int _ : 17;
 } field_scan;
 
 typedef struct field_state {

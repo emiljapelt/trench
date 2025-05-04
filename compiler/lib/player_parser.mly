@@ -114,7 +114,7 @@ value:
   | SCAN simple_value simple_value     { Scan($2,$3) }
   | LOOK simple_value NAME             { Look($2,string_to_prop $3) }
   | value binop value                  { Binary_op ($2, $1, $3) }
-  | value IS NAME               { FieldProp($1, string_to_prop $3) }
+  | value IS NAME                      { FieldProp($1, string_to_prop $3) }
   | PLUSPLUS target                    { features ["sugar"] ; Increment($2, true)}
   | target PLUSPLUS                    { features ["sugar"] ; Increment($1, false)}
   | MINUSMINUS target                  { features ["sugar"] ; Decrement($2, true)}

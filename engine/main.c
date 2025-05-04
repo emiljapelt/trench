@@ -279,6 +279,7 @@ void get_new_directive(player_state* ps) {
     while(1) {
         char* path;
         char option;
+        int do_free = 0;
         printf("%s#%i, change directive?:\n0: No change\n1: Reload file\n2: New file\n", ps->name, ps->id);
         scanf(" %c",&option);
         switch (option) {
@@ -288,11 +289,11 @@ void get_new_directive(player_state* ps) {
                 break;
             };
             case '2': {
-                free(ps->path);
                 path = malloc(201);
                 memset(path,0,201);
                 puts("New path:");
                 scanf(" %200s", path);
+                do_free = 1;
                 break;
             }
             default: continue;
@@ -301,6 +302,7 @@ void get_new_directive(player_state* ps) {
         directive_info di;
         printf("loading %s...\n", path);
         if (compile_player(path, _gr->stack_size, &di)) {
+            if (do_free) free(ps->path);
             free(ps->directive);
             free(ps->stack);
             ps->directive = di.directive;

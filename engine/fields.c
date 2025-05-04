@@ -107,6 +107,13 @@ field_scan scan_field(const int x, const int y) {
         .cover = is_cover(x,y),
         .shelter = is_shelter(x,y),
         .walkable = is_walkable(x,y),
+        .is_empty = field->type == EMPTY,
+        .is_trench = field->type == TRENCH,
+        .is_ice_block = field->type == ICE_BLOCK,
+        .is_tree = field->type == TREE,
+        .is_ocean = field->type == OCEAN,
+        .is_wall = field->type == WALL,
+        .is_bridge = field->type == BRIDGE,
     };
 }
 

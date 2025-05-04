@@ -1,6 +1,7 @@
 
-let () = Printexc.record_backtrace true
-    
+module StringSet = Set.Make(String)
+
+let () = Printexc.record_backtrace true    
 
 let handle_cmd_line argv = 
   Array.fold_left (fun _ arg -> match arg with 
@@ -9,6 +10,7 @@ let handle_cmd_line argv =
 
 let () = Trenchclib.Compile.set_features Trenchclib.Features.all_features
 let () = Trenchclib.Compile.set_themes Trenchclib.Themes.all_themes
+let () = Trenchclib.Compile.set_resources (Trenchclib.Themes.all_themes |> Trenchclib.Themes.all_required_resources |> StringSet.to_list |> List.map (fun a -> (a,())))
 
 let () = match handle_cmd_line Sys.argv with
   | None -> (Printf.printf "No argument given" ; exit 1)

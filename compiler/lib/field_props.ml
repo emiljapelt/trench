@@ -9,6 +9,13 @@ let string_to_prop s = match s with
   | "cover" -> Cover_Prop
   | "shelter" -> Shelter_Prop
   | "walkable" -> Walkable_Prop
+  | "empty" -> IsEmpty_Prop
+  | "trench" -> IsTrench_Prop
+  | "ice_block" -> IsIceBlock_Prop
+  | "tree" -> IsTree_Prop
+  | "ocean" -> IsOcean_Prop
+  | "wall" -> IsWall_Prop
+  | "bridge" -> IsBridge_Prop
   | _ -> raise_failure ("Unknown field property: "^s)
 
 
@@ -20,3 +27,10 @@ let prop_index p = match p with
   | Cover_Prop -> 4
   | Shelter_Prop -> 5
   | Walkable_Prop -> 7
+  | IsEmpty_Prop -> 8
+  | IsTrench_Prop -> 9
+  | IsIceBlock_Prop -> 10
+  | IsTree_Prop -> 11
+  | IsOcean_Prop -> 12
+  | IsWall_Prop -> 13
+  | IsBridge_Prop -> 14
