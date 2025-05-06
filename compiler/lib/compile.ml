@@ -17,7 +17,7 @@ let check_path path extensions =
 
 
 let get_line ls l =
-  Printf.sprintf "%i | %s\n" (l+1) (List.nth ls l)
+  Printf.sprintf "%i | %s\n" l (List.nth ls (l-1))
 
 let read_file path =
   let file = open_in path in
@@ -32,10 +32,14 @@ let format_failure f = match f with
     let details = 
         let line_msg = Printf.sprintf ", line %i: \n" line in
         let lines = String.split_on_char '\n' (read_file path) in
-        let printer =  get_line lines in match line with
-        | 1 -> line_msg ^ printer 0 ^ printer 1
-        | n when n = (List.length lines) -> line_msg ^  printer (n-2) ^ printer (n-1)
-        | _ ->  line_msg ^ printer (line-2) ^ printer (line-1) ^ printer line
+        let printer = get_line lines in 
+        let is_first_line = line = 1 in
+        let is_last_line = line = List.length lines in
+        line_msg ^ match is_first_line, is_last_line with
+        | true, true   -> printer 1
+        | true, false  -> printer 1 ^ printer 2
+        | false, true  -> printer (line-1) ^ printer line
+        | false, false -> printer (line-1) ^ printer line ^ printer (line+1)
       in
       msg ^ details
   ) 
