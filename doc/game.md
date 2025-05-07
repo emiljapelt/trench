@@ -15,8 +15,6 @@ map: 20,29
 actions: 2;
 steps: 50;
 
-throw_limit: 5
-
 resources: {
     // Mana overload!
     mana: 300 of 100
@@ -107,20 +105,6 @@ The value must be an integer. If set the given value will be used as the inital 
 The value must a positive float. The given value is used to scale how slow the game runs. 0.0 meaning as fast as possible, and 2.0 meaning twice as slow as normal.
 
 **Default**: 1.0
-
----
-
-### shoot_limit
-The value must be a positive integer. The value limits how far projectiles can travel, e.g. bullets and fireballs.
-
-**Default**: 10
-
----
-
-### throw_limit
-The value must be a positive integer. The value limits how far things can be thrown, e.g. bombs.
-
-**Default**: 5
 
 ---
 

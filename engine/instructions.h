@@ -84,21 +84,21 @@ int instr_shoot(player_state* ps) {
     int y = ps->y;
     
     move_coord(x, y, d, &x, &y);
-    int limit = _gr->shoot_limit;
+    int limit = _gr->instr.shoot.range;
     while (limit-- && in_bounds(x,y)) { 
         set_overlay(x,y,BULLET);
         set_color_overlay(x,y,FORE,color_predefs.yellow);
         print_board(); wait(0.02);
 
         if (fields.is_obstruction(x,y)) {
-            fields.damage_field(x, y, KINETIC_DMG & PROJECTILE_DMG, "Shoot by a bullet");
+            fields.damage_field(x, y, KINETIC_DMG & PROJECTILE_DMG, "Got shot");
             return 1;
         }
         else if (fields.has_player(x,y) && !(fields.is_cover(x,y) || fields.is_shelter(x,y))) {
             for(int i = 0; i < _gs->players->count; i++) {
                 player_state* player = get_player(_gs->players, i);
                 if (player->alive && player->x == x && player->y == y) 
-                    death_mark_player(player, "Shoot by a bullet");
+                    death_mark_player(player, "Got shot");
             }
             return 1;
         }
@@ -215,8 +215,8 @@ int instr_chop(player_state* ps) {
         }
     else if (field->type == TREE) {
         fields.remove_field(x,y);
-        add_resource(ps->resources, "wood", 10);
-        int got_sapling = rand() % 100 > 30;
+        add_resource(ps->resources, "wood", _gr->instr.chop.wood_gain);
+        int got_sapling = rand() % 100 > _gr->instr.chop.sapling_chance;
         if (got_sapling) add_resource(ps->resources, "sapling", 1);
     }
 
@@ -240,7 +240,7 @@ int instr_trench(player_state* ps) {
 }
 
 int instr_fortify(player_state* ps) {
-    if(!spend_resource(ps->resources, "wood", 5)) return 0;
+    if(!spend_resource(ps->resources, "wood", _gr->instr.fortify.cost)) return 0;
     int x, y;
     direction d = (direction)ps->stack[--ps->sp];
     move_coord(ps->x, ps->y, d, &x, &y);
@@ -272,7 +272,7 @@ int instr_bomb(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
     if(!spend_resource(ps->resources, "bomb", 1)) return 0;
 
-    if (p > _gr->throw_limit) p = _gr->throw_limit;
+    if (p > _gr->instr.bomb.range) p = _gr->instr.bomb.range;
     int x = ps->x;
     int y = ps->y;
     for (int i = p; i > 0; i--)
@@ -452,7 +452,7 @@ int instr_read(player_state* ps) {
 }
 
 int instr_projection(player_state* ps) {
-    if(!spend_resource(ps->resources, "mana", 100)) return 0;
+    if(!spend_resource(ps->resources, "mana", _gr->instr.projection.cost)) return 0;
 
     resource_registry* projection_registry = copy_resource_registry(ps->resources);
     player_state* projection = malloc(sizeof(player_state));
@@ -487,7 +487,7 @@ int instr_projection(player_state* ps) {
     projection->team->members_alive++;
     countdown_args* args = malloc(sizeof(countdown_args));
     args->player_id = projection->id;
-    args->remaining = 5;
+    args->remaining = _gr->instr.projection.duration;
     add_event(_gs->events, MAGICAL_EVENT, events.projection_death, args);
     return 0;
 }
@@ -495,7 +495,7 @@ int instr_projection(player_state* ps) {
 int instr_freeze(player_state* ps) {
     int p = ps->stack[--ps->sp];
     direction d = (direction)ps->stack[--ps->sp];
-    if(!spend_resource(ps->resources, "mana", 20)) return 0;
+    if(!spend_resource(ps->resources, "mana", _gr->instr.freeze.cost)) return 0;
 
     int x = ps->x;
     int y = ps->y;
@@ -510,7 +510,7 @@ int instr_freeze(player_state* ps) {
     args->x = x;
     args->y = y;
     args->player_id = ps->id;
-    args->remaining = 3;
+    args->remaining = _gr->instr.freeze.duration;
     add_event(_gs->events, NONE_EVENT, events.ice_block_melt, args);
 
     set_color_overlay(x,y,FORE,color_predefs.ice_blue);
@@ -529,12 +529,12 @@ int instr_freeze(player_state* ps) {
 
 int instr_fireball(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
-    if(!spend_resource(ps->resources, "mana", 10)) return 0;
+    if(!spend_resource(ps->resources, "mana", _gr->instr.fireball.cost)) return 0;
     int x = ps->x;
     int y = ps->y;
 
     move_coord(x,y,d,&x,&y);
-    int limit = _gr->shoot_limit;
+    int limit = _gr->instr.fireball.range;
     while(limit-- && in_bounds(x,y)) {
         if (fields.is_obstruction(x,y)) {
             fields.damage_field(x, y, FIRE_DMG & PROJECTILE_DMG, "Hit by a fireball");
@@ -557,14 +557,14 @@ int instr_fireball(player_state* ps) {
 }
 
 int instr_meditate(player_state* ps) {
-    add_resource(ps->resources, "mana", 10);
+    add_resource(ps->resources, "mana", _gr->instr.meditate.amount);
     set_color_overlay(ps->x,ps->y,BACK,color_predefs.magic_purple);
     return 1;
 }
 
 int instr_dispel(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
-    if(!spend_resource(ps->resources, "mana", 10)) return 0;
+    if(!spend_resource(ps->resources, "mana", _gr->instr.dispel.cost)) return 0;
 
     int x = ps->x;
     int y = ps->y;
@@ -591,7 +591,6 @@ int instr_dispel(player_state* ps) {
 
 int instr_disarm(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
-    if(!spend_resource(ps->resources, "mana", 10)) return 0;
 
     int x = ps->x;
     int y = ps->y;
@@ -617,7 +616,7 @@ int instr_disarm(player_state* ps) {
 
 int instr_mana_drain(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
-    if(!spend_resource(ps->resources, "mana", 10)) return 0;
+    if(!spend_resource(ps->resources, "mana", _gr->instr.mana_drain.cost)) return 0;
 
     int x = ps->x;
     int y = ps->y;
@@ -671,7 +670,7 @@ int instr_wall(player_state* ps) {
     move_coord(ps->x, ps->y, d, &x, &y);
 
     if (!in_bounds(x, y)) return 0;
-    if (!spend_resource(ps->resources, "wood", 5)) return 0;
+    if (!spend_resource(ps->resources, "wood", _gr->instr.wall.cost)) return 0;
 
     field_state* field = get_field(x,y);
     switch (field->type) {
@@ -695,7 +694,7 @@ int instr_plant_tree(player_state* ps) {
     args->x = x;
     args->y = y;
     args->player_id = ps->id;
-    args->remaining = 3;
+    args->remaining = _gr->instr.plant_tree.delay;
 
     add_event(_gs->events, PHYSICAL_EVENT, events.tree_grow, args);
     return 0;
@@ -709,7 +708,7 @@ int instr_bridge(player_state* ps) {
     if (!in_bounds(x, y)) return 0;
     field_state* field = get_field(x,y);
     if (field->type != OCEAN) return 0;
-    if (!spend_resource(ps->resources, "wood", 20)) return 0;
+    if (!spend_resource(ps->resources, "wood", _gr->instr.bridge.cost)) return 0;
 
     field->type = BRIDGE;
     return 1;

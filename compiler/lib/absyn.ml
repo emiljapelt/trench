@@ -160,6 +160,8 @@ type map =
     | EmptyMap of int * int
     | FileMap of string * (int * int)
 
+type instruction_setting_overwrites = string * (string * int) list
+
 type game_setup_part =
     | Team of team_info
     | Resources of resource list
@@ -173,8 +175,7 @@ type game_setup_part =
     | Seed of int option
     | TimeScale of float
     | Map of map
-    | ThrowLimit of int
-    | ShootLimit of int
+    | InstructionSettingOverwrites of instruction_setting_overwrites list
 
 type game_setup = GS of {
     teams: team_info list;
@@ -189,6 +190,5 @@ type game_setup = GS of {
     seed: int option;
     time_scale: float;
     map: map;
-    throw_limit: int;
-    shoot_limit: int;
+    instruction_setting_overwrites: instruction_setting_overwrites list;
 }

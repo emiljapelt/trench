@@ -6,6 +6,7 @@ open ProgramRep
 open Absyn
 open Transform
 open Themes
+open Rules
 
 let check_path path extensions =
   try (
@@ -75,8 +76,7 @@ let default_game_setup = GS {
   exec_mode = AsyncExec;
   seed = None;
   time_scale = 1.0;
-  shoot_limit = 10;
-  throw_limit = 5;
+  instruction_setting_overwrites = [];
 }
 
 let valid_map_chars = ['\n'; '\r'; '.'; '+'; '~'; 'T'; 'w']
@@ -115,8 +115,7 @@ let to_game_setup gsps =
       | ExecMode em -> GS ({acc with exec_mode = em})
       | Seed s -> GS ({acc with seed = s})
       | TimeScale f -> if (f >= 0.0) then GS ({acc with time_scale = f}) else raise_failure "Time scale option cannot be negative"
-      | ThrowLimit i -> if (i > 0) then GS ({acc with throw_limit = i}) else raise_failure "Throw limit must be positive"
-      | ShootLimit i -> if (i > 0) then GS ({acc with shoot_limit = i}) else raise_failure "Shoot limit must be positive"
+      | InstructionSettingOverwrites iso -> (GS ({acc with instruction_setting_overwrites = iso}))
     )
   in
   aux gsps default_game_setup
@@ -179,8 +178,7 @@ type compiled_game_file = {
   resources: (string * (int * int)) array;
   seed: int option;
   time_scale: float;
-  throw_limit: int;
-  shoot_limit: int;
+  instruction_settings: instruction_settings;
 }
 
 let compile_player_file path = try (
@@ -274,8 +272,7 @@ let format_game_setup (GS gs) =
     seed = gs.seed;
     time_scale = gs.time_scale;
     map = gs.map;
-    throw_limit = gs.throw_limit;
-    shoot_limit = gs.shoot_limit;
+    instruction_settings = overwrite_instruction_settings default_settings gs.instruction_setting_overwrites;
   }
 
 let check_resources (GS gs) = 

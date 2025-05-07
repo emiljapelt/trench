@@ -40,21 +40,21 @@
 %token <string> LABEL
 %token LPAR RPAR LBRACE RBRACE LBRAKE RBRAKE
 %token PLUS MINUS TIMES EQ NEQ LT GT LTEQ GTEQ
-%token LOGIC_AND LOGIC_OR PIPE FSLASH PCT TILDE
+%token LOGIC_AND LOGIC_OR FSLASH PCT EXCLAIM
 %token COMMA SEMI COLON DOT EOF
 %token QMARK PLUSPLUS MINUSMINUS
 %token PAGER_READ PAGER_WRITE PAGER_SET
-%token IF ELSE IS REPEAT WHILE FOR CONTINUE BREAK
-%token GOTO AT MEDITATE DISPEL DISARM MANA_DRAIN PLANT_TREE BRIDGE
+%token IF ELSE IS REPEAT WHILE CONTINUE BREAK
+%token GOTO MEDITATE DISPEL DISARM MANA_DRAIN PLANT_TREE BRIDGE
 %token MOVE FORTIFY WAIT PASS TRENCH WALL PROJECTION FREEZE FIREBALL
 %token NORTH EAST SOUTH WEST BOMB SHOOT LOOK SCAN MINE CHOP COLLECT
 %token INT DIR FIELD L_SHIFT R_SHIFT
 %token READ WRITE SAY
 
 /*Low precedence*/
-%left IS
-%left LOGIC_AND LOGIC_OR
-%left EQ NEQ
+%left LOGIC_OR
+%left LOGIC_AND 
+%left EQ NEQ IS
 %left GT LT GTEQ LTEQ
 %left L_SHIFT R_SHIFT
 %left PLUS MINUS 
@@ -100,8 +100,8 @@ simple_value:
   | const_value                        { $1 }
   | QMARK                              { features ["random"] ; Random }
   | QMARK LPAR simple_value+ RPAR      { features ["random"] ; RandomSet $3 }
-  | MINUS simple_value                 { Binary_op ("-", Int 0, $2) } %prec TILDE
-  | TILDE simple_value                 { Unary_op ("~", $2) }
+  | MINUS simple_value                 { Binary_op ("-", Int 0, $2) } %prec EXCLAIM
+  | EXCLAIM simple_value                 { Unary_op ("!", $2) }
   | target                             { Reference($1) }
   | META_NAME                          { MetaReference (meta_name $1) }
   | READ                               { features ["ipc"] ; Read }
@@ -191,7 +191,7 @@ non_control_flow_stmt:
   | target PLUS EQ value   { features ["memory"; "sugar"] ; Assign ($1, Binary_op("+", Reference $1, $4)) }
   | target MINUS EQ value  { features ["memory"; "sugar"] ; Assign ($1, Binary_op("-", Reference $1, $4)) }
   | target TIMES EQ value  { features ["memory"; "sugar"] ; Assign ($1, Binary_op("*", Reference $1, $4)) }
-  | target TILDE EQ value  { features ["memory"; "sugar"] ; Assign ($1, Unary_op("~", $4)) }
+  | target EXCLAIM EQ value  { features ["memory"; "sugar"] ; Assign ($1, Unary_op("!", $4)) }
   | target L_SHIFT EQ value  { features ["memory"; "sugar"] ; Assign ($1, Binary_op("<<", Reference $1, $4)) }
   | target R_SHIFT EQ value  { features ["memory"; "sugar"] ; Assign ($1, Binary_op(">>", Reference $1, $4)) }
   | typ NAME               { features ["memory"] ; Declare($1,$2) }

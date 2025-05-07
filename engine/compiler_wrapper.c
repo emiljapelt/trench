@@ -94,6 +94,51 @@ int compile_player(const char* path, int stack_size, directive_info* result) {
     }
 }
 
+void load_instruction_settings(game_rules* gr, value settings) {
+    value fireball_settings = Field(settings, 0);
+        gr->instr.fireball.range = Int_val(Field(fireball_settings, 0));
+        gr->instr.fireball.cost = Int_val(Field(fireball_settings, 1));
+
+    value shoot_settings = Field(settings, 1);
+        gr->instr.shoot.range = Int_val(Field(shoot_settings, 0));
+
+    value bomb_settings = Field(settings, 2);
+        gr->instr.bomb.range = Int_val(Field(bomb_settings, 0));
+
+    value meditate_settings = Field(settings, 3);
+        gr->instr.meditate.amount = Int_val(Field(meditate_settings, 0));
+
+    value dispel_settings = Field(settings, 4);
+        gr->instr.dispel.cost = Int_val(Field(dispel_settings, 0));
+
+    value mana_drain_settings = Field(settings, 5);
+        gr->instr.mana_drain.cost = Int_val(Field(mana_drain_settings, 0));
+
+    value wall_settings = Field(settings, 6);
+        gr->instr.wall.cost = Int_val(Field(wall_settings, 0));
+
+    value plant_tree_settings = Field(settings, 7);
+        gr->instr.plant_tree.delay = Int_val(Field(plant_tree_settings, 0));
+
+    value bridge_settings = Field(settings, 8);
+        gr->instr.bridge.cost = Int_val(Field(bridge_settings, 0));
+
+    value chop_settings = Field(settings, 9);
+        gr->instr.chop.wood_gain = Int_val(Field(chop_settings, 0));
+        gr->instr.chop.sapling_chance = Int_val(Field(chop_settings, 1));
+
+    value fortify_settings = Field(settings, 10);
+        gr->instr.fortify.cost = Int_val(Field(fortify_settings, 0));
+
+    value projection_settings = Field(settings, 11);
+        gr->instr.projection.cost = Int_val(Field(projection_settings, 0));
+        gr->instr.projection.duration = Int_val(Field(projection_settings, 1));
+
+    value freeze_settings = Field(settings, 12);
+        gr->instr.freeze.cost = Int_val(Field(freeze_settings, 0));
+        gr->instr.freeze.duration = Int_val(Field(freeze_settings, 1));
+}
+
 int compile_game(const char* path, game_rules* gr, game_state* gs) {
     static const value* compile_game_closure = NULL;
     if(compile_game_closure == NULL) compile_game_closure = caml_named_value("compile_game_file");
@@ -124,9 +169,9 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 .seed = seed,
                 .time_scale = (float)Double_val(Field(unwrapped_result, 13)),
                 .stack_size = 1000,
-                .throw_limit = Int_val(Field(unwrapped_result, 14)),
-                .shoot_limit = Int_val(Field(unwrapped_result, 15)),
             };
+
+            load_instruction_settings(gr, Field(unwrapped_result, 14));
 
             value map = Field(unwrapped_result, 4);
             field_state* board = NULL;

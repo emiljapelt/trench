@@ -26,8 +26,7 @@
                         "manual", MANUAL;
                         "inf", INFINITE;
                         "of", OF;
-                        "shoot_limit", SHOOT_LIMIT;
-                        "throw_limit", THROW_LIMIT;
+                        "instructions", INSTRS;
                       ]
   
   let char_of_string s lexbuf = match s with

@@ -10,8 +10,64 @@ typedef struct game_rules {
     int seed;
     float time_scale;
     int stack_size;
-    int throw_limit;
-    int shoot_limit;
+
+    struct instr {
+        struct{
+            int range;
+            int cost;
+        } fireball;
+
+        struct {
+            int range;
+        } shoot;
+
+        struct {
+            int range;
+        } bomb;
+        
+        struct {
+            int amount;
+        } meditate;
+
+        struct {
+            int cost;
+        } dispel;
+
+        struct {
+            int cost;
+        } mana_drain;
+
+        struct {
+            int cost;
+        } wall;
+
+        struct {
+            int delay;
+        } plant_tree;
+
+        struct {
+            int cost;
+        } bridge;
+
+        struct {
+            int wood_gain;
+            int sapling_chance;
+        } chop;
+
+        struct {
+            int cost;
+        } fortify;
+
+        struct {
+            int cost;
+            int duration;
+        } projection;
+
+        struct {
+            int cost;
+            int duration;
+        } freeze;
+    } instr;
 } game_rules;
 
 #endif

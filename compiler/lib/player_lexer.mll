@@ -9,7 +9,6 @@
                         "is", IS;
                         "repeat", REPEAT;
                         "while", WHILE;
-                        "for", FOR;
                         "break", BREAK;
                         "continue", CONTINUE;
                         "move", MOVE;
@@ -100,7 +99,7 @@ rule lex = parse
     |   "&"           { LOGIC_AND }
     |   "|"           { LOGIC_OR }
     |   '?'           { QMARK }
-    |   '~'           { TILDE }
+    |   '!'           { EXCLAIM }
     |   '('           { LPAR }
     |   ')'           { RPAR }
     |   '{'           { LBRACE }

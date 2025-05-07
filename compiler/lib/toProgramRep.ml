@@ -58,7 +58,7 @@ let rec compile_value val_expr (state:compile_state) acc =
     | _ -> raise_failure "Unknown binary operation"
   )
   | Unary_op (op, e) -> ( match op with 
-      | "~" -> compile_value e state (Instr_Not :: acc)
+      | "!" -> compile_value e state (Instr_Not :: acc)
       | _ -> raise_failure "Unknown unary operation"
   )
   | FieldProp(v,f) -> compile_value v state (Instr_FieldProp :: I(prop_index f) :: acc)
