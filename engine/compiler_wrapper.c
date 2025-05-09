@@ -137,6 +137,7 @@ void load_instruction_settings(game_rules* gr, value settings) {
     value freeze_settings = Field(settings, 12);
         gr->instr.freeze.cost = Int_val(Field(freeze_settings, 0));
         gr->instr.freeze.duration = Int_val(Field(freeze_settings, 1));
+        gr->instr.freeze.range = Int_val(Field(freeze_settings, 2));
 }
 
 int compile_game(const char* path, game_rules* gr, game_state* gs) {

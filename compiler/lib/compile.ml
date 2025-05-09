@@ -6,7 +6,7 @@ open ProgramRep
 open Absyn
 open Transform
 open Themes
-open Rules
+open Instr_settings
 
 let check_path path extensions =
   try (

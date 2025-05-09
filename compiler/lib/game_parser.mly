@@ -121,5 +121,5 @@ instruction_rule:
 ;
 
 instruction_rules:
-  | WORD COLON CSTINT { ($1,$3) }
+  | WORD COLON CSTINT SEMI? { ($1,$3) }
 ;

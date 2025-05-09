@@ -66,6 +66,7 @@ typedef struct game_rules {
         struct {
             int cost;
             int duration;
+            int range;
         } freeze;
     } instr;
 } game_rules;

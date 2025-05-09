@@ -26,6 +26,12 @@ type chop_setting = {
   sapling_chance: int;
 }
 
+type freeze_setting = {
+  cost: int;
+  duration: int;
+  range: int;
+}
+
 type cost_and_duration_setting = {
   cost: int;
   duration: int;
@@ -44,7 +50,7 @@ type instruction_settings = {
   chop: chop_setting;
   fortify: cost_setting;
   projection: cost_and_duration_setting;
-  freeze: cost_and_duration_setting; 
+  freeze: freeze_setting; 
 }
 
 type 'a overwrite = (string * ('a -> int -> 'a)) list
@@ -65,7 +71,7 @@ let cost_setting_overwrite = overwritter [
 ]
 
 let range_and_cost_setting_overwrite = overwritter [
-  ("range", fun s v -> {s with range = v} );
+  ("range", fun (s: range_and_cost_setting) v -> {s with range = v} );
   ("cost", fun s v -> {s with cost = v} );
 ]
 
@@ -80,6 +86,12 @@ let delay_setting_overwrite = overwritter [
 let chop_setting_overwrite = overwritter [
   ("wood_gain", fun s v -> {s with wood_gain = v} );
   ("sapling_chance", fun s v -> {s with sapling_chance = v} );
+]
+
+let freeze_setting_overwrite = overwritter [
+  ("cost", fun (s: freeze_setting) v -> {s with cost = v} );
+  ("duration", fun s v -> {s with duration = v} );
+  ("range", fun s v -> {s with range = v} );
 ]
 
 let cost_and_duration_setting_overwrite = overwritter [
@@ -107,7 +119,7 @@ let rec overwrite_instruction_settings settings overwrites =
           | "chop" ->       ({ settings with chop = chop_setting_overwrite settings.chop setting_overwrites })
           | "fortify" ->    ({ settings with fortify = cost_setting_overwrite settings.fortify setting_overwrites })
           | "projection" -> ({ settings with projection = cost_and_duration_setting_overwrite settings.projection setting_overwrites })
-          | "freeze" ->     ({ settings with freeze = cost_and_duration_setting_overwrite settings.freeze setting_overwrites })
+          | "freeze" ->     ({ settings with freeze = freeze_setting_overwrite settings.freeze setting_overwrites })
           | _ -> raise_failure ("No settings for instruction: '" ^ name ^ "'")
         )
       )
@@ -129,5 +141,5 @@ let default_settings : instruction_settings = {
   chop = { sapling_chance = 30; wood_gain = 10; };
   fortify = { cost = 5 };
   projection = { cost = 50; duration = 3 };
-  freeze = { cost = 25; duration = 2 };
+  freeze = { cost = 25; duration = 2; range = 5; };
 }

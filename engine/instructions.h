@@ -497,6 +497,7 @@ int instr_freeze(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
     if(!spend_resource(ps->resources, "mana", _gr->instr.freeze.cost)) return 0;
 
+    if (p > _gr->instr.freeze.range) p = _gr->instr.freeze.range;
     int x = ps->x;
     int y = ps->y;
     for (int i = p; i > 0; i--)
