@@ -112,9 +112,9 @@ simple_value:
 value:
   | simple_value                       { $1 }
   | SCAN simple_value simple_value     { Scan($2,$3) }
-  | LOOK simple_value NAME             { Look($2,string_to_prop $3) }
+  | LOOK simple_value property         { Look($2,string_to_prop $3) }
   | value binop value                  { Binary_op ($2, $1, $3) }
-  | value IS NAME                      { FieldProp($1, string_to_prop $3) }
+  | value IS property                  { FieldProp($1, string_to_prop $3) }
   | PLUSPLUS target                    { features ["sugar"] ; Increment($2, true)}
   | target PLUSPLUS                    { features ["sugar"] ; Increment($1, false)}
   | MINUSMINUS target                  { features ["sugar"] ; Decrement($2, true)}
@@ -184,7 +184,13 @@ alt:
 
 target:
   | NAME { features ["memory"] ; Local $1 }
-; 
+;
+
+property:
+  | NAME      { $1 }
+  | TRENCH    { "trench" }
+  | BRIDGE    { "bridge" }
+;
 
 non_control_flow_stmt:
   | target EQ value        { features ["memory"] ; Assign ($1, $3) }
