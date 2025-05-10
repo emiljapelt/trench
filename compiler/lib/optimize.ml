@@ -68,10 +68,10 @@ let rec optimize_value expr =
   | PagerRead
   | Read
   | Reference Local _ -> expr
-
+  | Reference(Array(_,_)) -> expr
 
 let optimize_assign_target tar = match tar with
-      | Local _ -> tar
+      | _ -> tar
 
 let rec optimize_stmt (Stmt(stmt_i,ln) as stmt) = 
   try (match stmt_i with

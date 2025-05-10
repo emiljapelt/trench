@@ -1,10 +1,11 @@
 open Absyn
 open Exceptions
 
-let type_string t = match t with
+let rec type_string t = match t with
   | T_Int -> "int"
   | T_Dir -> "dir"
   | T_Field -> "field"
+  | T_Array(t,_) -> (type_string t) ^ "[]"
 
 let require req_typ expr_t res = 
   if req_typ = expr_t then res ()
@@ -17,6 +18,12 @@ let var_type vars name =
 
 let rec type_value (state:compile_state) v = match v with
     | Reference Local n -> var_type state.vars n  
+    | Reference Array(target,idx) -> (
+      require T_Int (type_value state idx) (fun () -> ()) ;
+      match type_value state (Reference target) with 
+      | T_Array(t,_) -> t
+      | _ -> raise_failure ("not an array")
+    )
     | MetaReference m -> type_meta m
     | Binary_op(op,v0,v1) -> (match op, type_value state v0, type_value state v1 with
       | "+", T_Int, T_Int 
@@ -41,14 +48,12 @@ let rec type_value (state:compile_state) v = match v with
     | Unary_op _
     | Random
     | Int _ -> T_Int
-    | Decrement(Local n,_) -> (match var_type state.vars n with 
+    | Decrement(target,_) -> (match type_value state (Reference target) with 
       | T_Int -> T_Int
-      | T_Dir -> T_Dir
       | _ -> raise_failure ("Only int and dir can be decremented")
     )
-    | Increment(Local n,_) -> (match var_type state.vars n with 
+    | Increment(target,_) -> (match type_value state (Reference target) with 
       | T_Int -> T_Int
-      | T_Dir -> T_Dir
       | _ -> raise_failure ("Only int and dir can be incremented")
     )
     | FieldProp(v,_) -> require T_Field (type_value state v) (fun () -> T_Int)
@@ -70,7 +75,7 @@ let rec type_value (state:compile_state) v = match v with
 
 and type_meta m = match m with
     | PlayerX     
-    | PlayerY     
+    | PlayerY
     | BoardX      
     | BoardY 
     | PlayerID
@@ -92,6 +97,15 @@ let rec type_check_stmt_inner state stmt = match stmt with
   | While(v,s,Some si) -> 
     require T_Int (type_value state v) (fun () -> type_check_stmt state s |> ignore ; type_check_stmt state si |> ignore ; state)
   | Assign(Local n,e) -> require (var_type state.vars n) (type_value state e) (fun () -> state)
+
+  | Assign(Array(target, index), e) -> (
+    require T_Int (type_value state index) (fun () -> 
+      match type_value state (Reference target) with
+      | T_Array(t,_) -> require (t) (type_value state e) (fun () -> state)
+      | _ -> raise_failure "array assignment to non-array"
+    )
+  )
+
   | Directional(_,dir) -> require T_Dir (type_value state dir) (fun () -> state)
   | OptionDirectional(_,None) -> state
   | OptionDirectional(_,Some dir) -> require T_Dir (type_value state dir) (fun () -> state)

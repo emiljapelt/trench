@@ -11,14 +11,16 @@ module StringSet = Set.Make(String)
 let fetch_var_index name vars = 
   let rec aux vars i = match vars with
     | [] -> raise_failure ("No such register: "^name)
-    | Var(_,n)::t ->
-      if n = name then i else aux t (i+1)
+    | Var(ty,n)::t ->
+      if n = name then i else aux t (i+type_size ty)
   in
   aux vars 0
 
+
+
 let rec compile_value val_expr (state:compile_state) acc =
   match val_expr with
-  | Reference Local name ->  Instr_Place :: I(fetch_var_index name state.vars) :: Instr_Access :: acc
+  | Reference target -> compile_target_index target state (Instr_Access :: acc)
   | MetaReference md -> ( match md with
     | PlayerX -> Meta_PlayerX :: acc
     | PlayerY -> Meta_PlayerY :: acc
@@ -63,12 +65,20 @@ let rec compile_value val_expr (state:compile_state) acc =
   )
   | FieldProp(v,f) -> compile_value v state (Instr_FieldProp :: I(prop_index f) :: acc)
   (* true = pre*)
-  | Increment(Local n, true)  -> Instr_Place :: I(fetch_var_index n state.vars) :: Instr_Copy :: Instr_Copy :: Instr_Access :: Instr_Place :: I(1) :: Instr_Add :: Instr_Assign :: Instr_Access :: acc
-  | Increment(Local n, false) -> Instr_Place :: I(fetch_var_index n state.vars) :: Instr_Copy :: Instr_Access :: Instr_Swap :: Instr_Copy :: Instr_Access :: Instr_Place :: I(1) :: Instr_Add :: Instr_Assign :: acc
-  | Decrement(Local n, true)  -> Instr_Place :: I(fetch_var_index n state.vars) :: Instr_Copy :: Instr_Copy :: Instr_Access :: Instr_Place :: I(1) :: Instr_Sub :: Instr_Assign :: Instr_Access :: acc
-  | Decrement(Local n, false) -> Instr_Place :: I(fetch_var_index n state.vars) :: Instr_Copy :: Instr_Access :: Instr_Swap :: Instr_Copy :: Instr_Access :: Instr_Place :: I(1) :: Instr_Sub :: Instr_Assign :: acc
+  | Increment(target, true)  ->  compile_target_index target state (Instr_Copy :: Instr_Copy :: Instr_Access :: Instr_Place :: I(1) :: Instr_Add :: Instr_Assign :: Instr_Access :: acc)
+  | Increment(target, false) ->  compile_target_index target state (Instr_Copy :: Instr_Access :: Instr_Swap :: Instr_Copy :: Instr_Access :: Instr_Place :: I(1) :: Instr_Add :: Instr_Assign :: acc)
+  | Decrement(target, true)  ->  compile_target_index target state (Instr_Copy :: Instr_Copy :: Instr_Access :: Instr_Place :: I(1) :: Instr_Sub :: Instr_Assign :: Instr_Access :: acc)
+  | Decrement(target, false) ->  compile_target_index target state (Instr_Copy :: Instr_Access :: Instr_Swap :: Instr_Copy :: Instr_Access :: Instr_Place :: I(1) :: Instr_Sub :: Instr_Assign :: acc)
   | PagerRead -> Instr_PagerRead :: acc
   | Read -> Instr_Read :: acc
+
+
+and compile_target_index target (state:compile_state) acc = match target with
+  | Local name -> Instr_Place :: I(fetch_var_index name state.vars) :: acc
+  | Array(t,i) -> 
+    let t_type = type_value state (Reference target) in
+    let t_type_size = type_size t_type in
+    Instr_Place :: I(t_type_size) :: compile_value i state (Instr_Mul :: compile_target_index t state (Instr_Add :: acc))
 
 
 and compile_stmt (Stmt(stmt,ln)) (state:compile_state) acc =
@@ -112,8 +122,10 @@ and compile_stmt (Stmt(stmt,ln)) (state:compile_state) acc =
     | Some label -> Instr_GoTo :: LabelRef(label) :: acc
     | None -> raise_failure "Nothing to break out of"
   )
-  | Assign (Local target, aexpr) -> 
-    Instr_Place :: I(fetch_var_index target state.vars) :: compile_value aexpr state (Instr_Assign :: acc)
+  (*| Assign (Local target, aexpr) -> 
+    Instr_Place :: I(fetch_var_index target state.vars) :: compile_value aexpr state (Instr_Assign :: acc)*)
+  | Assign (target, expr) ->
+    compile_target_index target state (compile_value expr state (Instr_Assign :: acc))
   | Label name -> Label name :: acc
   | Unit stmt -> (
     let instr = match stmt with

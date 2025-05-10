@@ -319,6 +319,10 @@ int meta_player_id(player_state* ps) {
 
 int instr_access(player_state* ps) {
     int num = ps->stack[ps->sp-1];
+    if (num < 0 || num >= ps->stack_len) {
+        death_mark_player(ps, "Had an aneurysm");
+        return 0;
+    }
     ps->stack[ps->sp-1] = ps->stack[num];
     return 0;
 }
@@ -410,6 +414,10 @@ int instr_and(player_state* ps) {
 int instr_assign(player_state* ps) { 
     int v = ps->stack[--ps->sp];
     int target = ps->stack[--ps->sp];
+    if (target < 0 || target >= ps->stack_len) {
+        death_mark_player(ps, "Had an aneurysm");
+        return 0;
+    }
     ps->stack[target] = v;
     return 0;
 }

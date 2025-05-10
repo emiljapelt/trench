@@ -151,9 +151,22 @@ let check_vars_unique (File(regs,_)) =
   in
   aux regs StringSet.empty
 
-let player_to_program (regs,program) = 
+let check_no_negative_arrays (File(regs,_)) =
+  let rec check_type t = match t with
+  | T_Array(t,i) -> if i < 0 then false else check_type t
+  | _ -> true
+  in
+  let rec aux regs = match regs with
+  | [] -> ()
+  | Var(ty,n)::t -> 
+    if check_type ty then aux t
+    else raise_failure (n ^ " contains a negative sized array")
+  in
+  aux regs
+
+let player_to_program ((regs: variable list), program) = 
   let program_list = program_to_int_list program in
-  List.length program_list :: List.length regs :: program_list |> Array.of_list
+  List.length program_list :: (List.fold_left (fun acc (Var(ty,_)) -> acc + type_size ty) 0 regs) :: program_list |> Array.of_list
 
 type compiled_player_info = {
   team: int;
@@ -188,7 +201,7 @@ let compile_player_file path = try (
     rename_variables_of_file;
     optimize_program;
     pull_out_declarations_of_file
-  ] [check_vars_unique] compile_player player_to_program path)
+  ] [check_vars_unique;check_no_negative_arrays] compile_player player_to_program path)
 ) with
 | Failure(None,ln,msg) -> Error(format_failure (Failure(Some path, ln, msg)))
 | Failure _ as f -> Error(format_failure f)

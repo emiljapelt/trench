@@ -84,6 +84,7 @@ typ:
   | INT { T_Int }
   | DIR { T_Dir }
   | FIELD { T_Field }
+  | typ LBRAKE CSTINT RBRAKE { T_Array($1,$3) }
 ;
 
 block:
@@ -164,11 +165,6 @@ stmt1_inner:
   | IF simple_value alt+ ELSE stmt1           { features ["control"; "sugar"] ; IfIs($2, $3, Some $5) }
   | WHILE simple_value stmt1                  { features ["loops"] ; While($2,$3,None) }
   | WHILE simple_value LPAR non_control_flow_stmt RPAR stmt1     { features ["loops"; "sugar"] ; While($2,$6,Some(Stmt($4, $symbolstartpos.pos_lnum))) }
-  (*| FOR LPAR non_control_flow_stmt SEMI value SEMI non_control_flow_stmt RPAR stmt1      
-      { feature 3 ; Block[
-        Stmt($3,$symbolstartpos.pos_lnum);
-        Stmt(While($5,$9,Some(Stmt($7,$symbolstartpos.pos_lnum))),$symbolstartpos.pos_lnum)] }
-        *)
   | BREAK SEMI                                { features ["loops"] ; Break }
   | CONTINUE SEMI                             { features ["loops"] ; Continue }
   | GOTO NAME SEMI                            { GoTo $2 }
@@ -184,6 +180,7 @@ alt:
 
 target:
   | NAME { features ["memory"] ; Local $1 }
+  | target LBRAKE value RBRAKE  { features ["memory"] ; Array($1,$3)}
 ;
 
 property:

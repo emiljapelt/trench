@@ -26,7 +26,7 @@ let rec pull_out_declarations stmt = match stmt with
     let (regs,s) = pull_out_declarations s in
     let (regsi,si) = pull_out_declarations si in
     (regs@regsi,Stmt(While(v,s,Some si),ln))
-  | Stmt(Declare(typ,n),ln) -> ([Var(typ,n)], Stmt(Assign(Local n,Int 0),ln))
+  | Stmt(Declare(typ,n),ln) -> ([Var(typ,n)], Stmt(Block [],ln))
   | Stmt(DeclareAssign(typ,n,v),ln) -> ([Var(typ,n)], Stmt(Assign(Local n, v),ln))
   | _ -> ([], stmt)
 
@@ -38,19 +38,23 @@ let pull_out_declarations_of_file (File(_,stmts)) =
 
 module StringMap = Map.Make(String)
 
-let rec rename_variables_of_value map v = match v with
-  | Reference(Local n) -> Reference(Local(StringMap.find n map))
+let rec rename_variables_of_target map t = match t with
+  | Local n -> Local(StringMap.find n map)
+  | Array(t,i) -> Array(rename_variables_of_target map t, rename_variables_of_value map i)
+
+and rename_variables_of_value map v = match v with
+  | Reference target -> Reference(rename_variables_of_target map target)
   | Binary_op(op,v0,v1) -> Binary_op(op,rename_variables_of_value map v0, rename_variables_of_value map v1)
   | Unary_op(op,v) -> Unary_op(op, rename_variables_of_value map v)
   | Scan(v0,v1) -> Scan(rename_variables_of_value map v0, rename_variables_of_value map v1)
   | Look(v,f) -> Look(rename_variables_of_value map v,f)
   | RandomSet vs -> RandomSet(List.map (rename_variables_of_value map) vs)
   | FieldProp(v,f) -> FieldProp(rename_variables_of_value map v, f)
-  | Decrement(Local n,pre) -> Decrement(Local(StringMap.find n map), pre)
-  | Increment(Local n,pre) -> Increment(Local(StringMap.find n map), pre)
+  | Decrement(target,pre) -> Decrement(rename_variables_of_target map target, pre)
+  | Increment(target,pre) -> Increment(rename_variables_of_target map target, pre)
   | _ -> v
 
-let rec rename_variables_of_stmt i map (Stmt(stmt,ln)) = match stmt with
+and rename_variables_of_stmt i map (Stmt(stmt,ln)) = match stmt with
   | If(v,s0,s1) -> 
     let (i,_,s0) = rename_variables_of_stmt i map s0 in
     let (i,_,s1) = rename_variables_of_stmt i map s1 in
@@ -81,8 +85,8 @@ let rec rename_variables_of_stmt i map (Stmt(stmt,ln)) = match stmt with
     let (i,_,s) = rename_variables_of_stmt i map s in
     let (i,_,si) = rename_variables_of_stmt i map si in
     (i,map,Stmt(While(rename_variables_of_value map v,s,Some si),ln))
-  | Assign(Local n,v) -> 
-    (i,map,Stmt(Assign(Local(StringMap.find n map), rename_variables_of_value map v),ln))
+  | Assign(target,v) -> 
+    (i,map,Stmt(Assign(rename_variables_of_target map target, rename_variables_of_value map v),ln))
   | Label s -> (i,map,Stmt(Label s,ln))
   | Directional(stmt,dir) -> (i,map,Stmt(Directional(stmt,rename_variables_of_value map dir),ln))
   | OptionDirectional(stmt,dir) ->(i,map,Stmt(OptionDirectional(stmt,Option.map (rename_variables_of_value map) dir),ln))

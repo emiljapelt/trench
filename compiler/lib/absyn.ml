@@ -26,12 +26,14 @@ and typ =
     | T_Int
     | T_Dir
     | T_Field
+    | T_Array of typ * int
 
 and statement =
     | Stmt of statement_inner * int
 
 and target =
     | Local of string
+    | Array of target * value
 
 and statement_inner =
     | If of value * statement * statement
@@ -131,10 +133,11 @@ let int_of_dir d = match d with
     | South -> 2
     | West -> 3
 
-let type_index t = match t with
-    | T_Int -> 0
-    | T_Dir -> 1
-    | T_Field -> 2
+let rec type_size t = match t with
+    | T_Int 
+    | T_Dir 
+    | T_Field -> 1
+    | T_Array(t,s) -> s * (type_size t)
 
 type player_info_field =
     | PlayerName of string

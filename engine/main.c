@@ -177,6 +177,7 @@ void player_turn_async(player_state* ps) {
 
         kill_players();
         if (_gs->feed_point) { print_board(); wait(1); }
+        if (!ps->alive) return;
     }
 }
 
