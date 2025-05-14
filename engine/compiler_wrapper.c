@@ -138,6 +138,12 @@ void load_instruction_settings(game_rules* gr, value settings) {
         gr->instr.freeze.cost = Int_val(Field(freeze_settings, 0));
         gr->instr.freeze.duration = Int_val(Field(freeze_settings, 1));
         gr->instr.freeze.range = Int_val(Field(freeze_settings, 2));
+
+    value look_settings = Field(settings, 13);
+        gr->instr.look.range = Int_val(Field(look_settings, 0));
+
+    value scan_settings = Field(settings, 14);
+        gr->instr.scan.range = Int_val(Field(scan_settings, 0));
 }
 
 int compile_game(const char* path, game_rules* gr, game_state* gs) {

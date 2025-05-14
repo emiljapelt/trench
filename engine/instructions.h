@@ -83,7 +83,7 @@ int instr_shoot(player_state* ps) {
     int x = ps->x;
     int y = ps->y;
     
-    move_coord(x, y, d, &x, &y);
+    move_coord(&x, &y, d, 1);
     int limit = _gr->instr.shoot.range;
     while (limit-- && in_bounds(x,y)) { 
         set_overlay(x,y,BULLET);
@@ -103,7 +103,7 @@ int instr_shoot(player_state* ps) {
             return 1;
         }
 
-        move_coord(x, y, d, &x, &y);
+        move_coord(&x, &y, d, 1);
     }
     return 1;
 }
@@ -118,12 +118,8 @@ int instr_look(player_state* ps) {
     int i = 0;
     incr:
     i++;
-    switch (d) {
-        case NORTH: y--; break;
-        case EAST: x++; break;
-        case SOUTH: y++; break;
-        case WEST: x--; break;
-    }
+    if (i > _gr->instr.look.range) { ps->stack[ps->sp++] = 0; return 0; }
+    move_coord(&x, &y, d, 1);
     if (!in_bounds(x,y)) { ps->stack[ps->sp++] = 0; return 0; }
     field_scan scan = fields.scan(x,y);
     field_scan* bypass = &scan;
@@ -135,23 +131,18 @@ int instr_look(player_state* ps) {
 int instr_scan(player_state* ps) {
     int x = ps->x;
     int y = ps->y;
-    direction power = (direction)ps->stack[--ps->sp];
+    direction p = (direction)ps->stack[--ps->sp];
     direction d = (direction)ps->stack[--ps->sp];
-
     int result = 0;
-    switch (d) {
-        case NORTH: y -= power; break;
-        case EAST: x += power; break;
-        case SOUTH: y += power; break;
-        case WEST: x -= power; break;
+
+    if (_gr->instr.bomb.range >= 0 && p > _gr->instr.bomb.range) p = _gr->instr.bomb.range;
+    move_coord(&x, &y, d, p);
+    if (in_bounds(x, y)) {   
+        field_scan scan = fields.scan(x,y);
+        field_scan* bypass = &scan;
+        result = *(int*)bypass;
     }
-    if (!in_bounds(x, y)) goto end;
 
-    field_scan scan = fields.scan(x,y);
-    field_scan* bypass = &scan;
-    result = *(int*)bypass;
-
-    end:
     ps->stack[ps->sp++] = result;
     return 0;
 }
@@ -159,9 +150,10 @@ int instr_scan(player_state* ps) {
 int instr_mine(player_state* ps) {
     if(!spend_resource(ps->resources, "bomb", 1)) return 0;
 
-    int x, y;
+    int x = ps->x;
+    int y = ps->y;
     direction d = (direction)ps->stack[--ps->sp];
-    move_coord(ps->x, ps->y, d, &x, &y);
+    move_coord(&x, &y, d, 1);
     if (!in_bounds(x,y)) return 0;
     char kill = 0;
 
@@ -188,8 +180,9 @@ int instr_move(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
 
     if (fields.is_obstruction(ps->x, ps->y)) return 0;
-    int x, y;
-    move_coord(ps->x, ps->y, d, &x, &y);
+    int x = ps->x;
+    int y = ps->y;
+    move_coord(&x, &y, d, 1);
     if (!in_bounds(x,y) || !fields.is_walkable(x,y)) return 0;
 
     update_events(ps, get_field(ps->x,ps->y)->exit_events);
@@ -202,9 +195,10 @@ int instr_move(player_state* ps) {
 }
 
 int instr_chop(player_state* ps) {
-    int x, y;
+    int x = ps->x;
+    int y = ps->y;
     direction d = (direction)ps->stack[--ps->sp];
-    move_coord(ps->x, ps->y, d, &x, &y);
+    move_coord(&x, &y, d, 1);
     field_state* field = get_field(x,y);
 
     if (field->type == EMPTY)
@@ -224,9 +218,10 @@ int instr_chop(player_state* ps) {
 }
 
 int instr_trench(player_state* ps) {
-    int x, y;
+    int x = ps->x;
+    int y = ps->y;
     direction d = (direction)ps->stack[--ps->sp];
-    move_coord(ps->x, ps->y, d, &x, &y);
+    move_coord(&x, &y, d, 1);
     if (!in_bounds(x, y)) return 0;
 
     field_state* field = get_field(x,y);
@@ -241,9 +236,10 @@ int instr_trench(player_state* ps) {
 
 int instr_fortify(player_state* ps) {
     if(!spend_resource(ps->resources, "wood", _gr->instr.fortify.cost)) return 0;
-    int x, y;
+    int x = ps->x;
+    int y = ps->y;
     direction d = (direction)ps->stack[--ps->sp];
-    move_coord(ps->x, ps->y, d, &x, &y);
+    move_coord(&x, &y, d, 1);
     return fields.fortify_field(x,y);
 }
 
@@ -272,11 +268,10 @@ int instr_bomb(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
     if(!spend_resource(ps->resources, "bomb", 1)) return 0;
 
-    if (p > _gr->instr.bomb.range) p = _gr->instr.bomb.range;
+    if (_gr->instr.bomb.range >= 0 && p > _gr->instr.bomb.range) p = _gr->instr.bomb.range;
     int x = ps->x;
     int y = ps->y;
-    for (int i = p; i > 0; i--)
-        move_coord(x,y,d,&x,&y);
+    move_coord(&x, &y, d, p);
 
     if (!in_bounds(x,y)) return 0;
 
@@ -505,11 +500,10 @@ int instr_freeze(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
     if(!spend_resource(ps->resources, "mana", _gr->instr.freeze.cost)) return 0;
 
-    if (p > _gr->instr.freeze.range) p = _gr->instr.freeze.range;
+    if (_gr->instr.freeze.range >= 0 &&p > _gr->instr.freeze.range) p = _gr->instr.freeze.range;
     int x = ps->x;
     int y = ps->y;
-    for (int i = p; i > 0; i--)
-        move_coord(x,y,d,&x,&y);
+    move_coord(&x, &y, d, p);
 
     if(!in_bounds(x,y)) return 0;
     field_state* field = get_field(x,y);
@@ -542,7 +536,7 @@ int instr_fireball(player_state* ps) {
     int x = ps->x;
     int y = ps->y;
 
-    move_coord(x,y,d,&x,&y);
+    move_coord(&x, &y, d, 1);
     int limit = _gr->instr.fireball.range;
     while(limit-- && in_bounds(x,y)) {
         if (fields.is_obstruction(x,y)) {
@@ -561,7 +555,7 @@ int instr_fireball(player_state* ps) {
         set_color_overlay(x,y,FORE,color_predefs.red);
         set_overlay(x,y,FILLED_CIRCLE);
         print_board(); wait(0.05);
-        move_coord(x,y,d,&x,&y);
+        move_coord(&x, &y, d, 1);
     }
 }
 
@@ -577,7 +571,7 @@ int instr_dispel(player_state* ps) {
 
     int x = ps->x;
     int y = ps->y;
-    move_coord(x,y,d,&x,&y);
+    move_coord(&x, &y, d, 1);
     if (!in_bounds(x,y)) return 0;
 
     field_state* field = get_field(x,y);
@@ -603,7 +597,7 @@ int instr_disarm(player_state* ps) {
 
     int x = ps->x;
     int y = ps->y;
-    move_coord(x,y,d,&x,&y);
+    move_coord(&x, &y, d, 1);
     if (!in_bounds(x,y)) return 0;
 
     field_state* field = get_field(x,y);
@@ -629,7 +623,7 @@ int instr_mana_drain(player_state* ps) {
 
     int x = ps->x;
     int y = ps->y;
-    move_coord(x,y,d,&x,&y);
+    move_coord(&x, &y, d, 1);
     if (!in_bounds(x,y)) return 0;
 
     set_overlay(x,y,EMPTY_DIAMOND);
@@ -674,9 +668,10 @@ int instr_pager_write(player_state* ps) {
 }
 
 int instr_wall(player_state* ps) {
-    int x, y;
+    int x = ps->x;
+    int y = ps->y;
     direction d = (direction)ps->stack[--ps->sp];
-    move_coord(ps->x, ps->y, d, &x, &y);
+    move_coord(&x, &y, d, 1);
 
     if (!in_bounds(x, y)) return 0;
     if (!spend_resource(ps->resources, "wood", _gr->instr.wall.cost)) return 0;
@@ -692,9 +687,10 @@ int instr_wall(player_state* ps) {
 }
 
 int instr_plant_tree(player_state* ps) {
-    int x, y;
+    int x = ps->x;
+    int y = ps->y;
     direction d = (direction)ps->stack[--ps->sp];
-    move_coord(ps->x, ps->y, d, &x, &y);
+    move_coord(&x, &y, d, 1);
 
     if (!in_bounds(x, y)) return 0;
     if (!spend_resource(ps->resources, "sapling", 1)) return 0;
@@ -710,9 +706,10 @@ int instr_plant_tree(player_state* ps) {
 }
 
 int instr_bridge(player_state* ps) {
-    int x, y;
+    int x = ps->x;
+    int y = ps->y;
     direction d = (direction)ps->stack[--ps->sp];
-    move_coord(ps->x, ps->y, d, &x, &y);
+    move_coord(&x, &y, d, 1);
 
     if (!in_bounds(x, y)) return 0;
     field_state* field = get_field(x,y);
@@ -724,9 +721,10 @@ int instr_bridge(player_state* ps) {
 }
 
 int instr_collect(player_state* ps) {
-    int x, y;
+    int x = ps->x;
+    int y = ps->y;
     direction d = (direction)ps->stack[--ps->sp];
-    move_coord(ps->x, ps->y, d, &x, &y);
+    move_coord(&x, &y, d, 1);
 
     if (!in_bounds(x, y)) return 0;
     field_state* field = get_field(x,y);

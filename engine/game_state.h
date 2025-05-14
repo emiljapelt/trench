@@ -68,6 +68,6 @@ static inline char in_bounds(const int x, const int y) {
     return (0 <= x && x < _gs->board_x && 0 <= y && y < _gs->board_y);
 }
 
-void move_coord(int x, int y, direction d, int* _x, int* _y);
+void move_coord(int* x, int* y, direction dir, unsigned int dist);
 
 #endif

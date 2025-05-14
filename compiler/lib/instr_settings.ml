@@ -51,6 +51,8 @@ type instruction_settings = {
   fortify: cost_setting;
   projection: cost_and_duration_setting;
   freeze: freeze_setting; 
+  look: range_setting;
+  scan: range_setting;
 }
 
 type 'a overwrite = (string * ('a -> int -> 'a)) list
@@ -120,6 +122,8 @@ let rec overwrite_instruction_settings settings overwrites =
           | "fortify" ->    ({ settings with fortify = cost_setting_overwrite settings.fortify setting_overwrites })
           | "projection" -> ({ settings with projection = cost_and_duration_setting_overwrite settings.projection setting_overwrites })
           | "freeze" ->     ({ settings with freeze = freeze_setting_overwrite settings.freeze setting_overwrites })
+          | "look" ->       ({ settings with look = range_setting_overwrite settings.look setting_overwrites })
+          | "scan" ->       ({ settings with scan = range_setting_overwrite settings.scan setting_overwrites })
           | _ -> raise_failure ("No settings for instruction: '" ^ name ^ "'")
         )
       )
@@ -142,4 +146,6 @@ let default_settings : instruction_settings = {
   fortify = { cost = 5 };
   projection = { cost = 50; duration = 3 };
   freeze = { cost = 25; duration = 2; range = 5; };
+  look = { range = -1; };
+  scan = { range = -1; };
 }

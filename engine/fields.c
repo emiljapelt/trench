@@ -121,6 +121,7 @@ void destroy_field(const int x, const int y, char* death_msg) {
     field_state* field = get_field(x,y);
     switch (field->type) {
         case OCEAN:
+            break;
         case TREE: {
             field->type = EMPTY;
             break;

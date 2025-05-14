@@ -68,6 +68,14 @@ typedef struct game_rules {
             int duration;
             int range;
         } freeze;
+
+        struct {
+            int range;
+        } look;
+
+        struct {
+            int range;
+        } scan;
     } instr;
 } game_rules;
 
