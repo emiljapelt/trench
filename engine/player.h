@@ -37,4 +37,6 @@ typedef struct player_state {
     resource_registry* resources;
 } player_state;
 
+player_state* copy_player_state(const player_state*);
+
 #endif

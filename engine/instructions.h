@@ -457,41 +457,16 @@ int instr_read(player_state* ps) {
 int instr_projection(player_state* ps) {
     if(!spend_resource(ps->resources, "mana", _gr->instr.projection.cost)) return 0;
 
-    resource_registry* projection_registry = copy_resource_registry(ps->resources);
-    player_state* projection = malloc(sizeof(player_state));
-    int dir_bytes = sizeof(int) * ps->directive_len;
-    int stack_bytes = sizeof(int) * ps->stack_len;
-    int* projection_directive = malloc(dir_bytes);
-    int* projection_stack = malloc(stack_bytes);
-    memcpy(projection_directive, ps->directive, dir_bytes);
-    memcpy(projection_stack, ps->stack, stack_bytes);
+    player_state* projection = copy_player_state(ps);
 
-    projection->alive = 1;
-    projection->death_msg = NULL;
-    projection->team = ps->team;
-    projection->name = ps->name;
-    projection->id = _gs->players->count;
-    projection->stack = projection_stack;
-    projection->stack_len = ps->stack_len;
-    projection->sp = ps->sp;
-    projection->path = strdup(ps->path);
-    projection->directive = projection_directive;
-    projection->directive_len = ps->directive_len;
-    projection->dp = ps->dp;
-    projection->x = ps->x;
-    projection->y = ps->y;
-    projection->pager_channel = ps->pager_channel;
-    projection->pager_msgs = array_list.create(10);
-    projection->pre_death_events = array_list.create(10);
-    projection->post_death_events = array_list.create(10);
-    projection->resources = projection_registry;
-    
     add_player(_gs->players, projection);
     projection->team->members_alive++;
+
     countdown_args* args = malloc(sizeof(countdown_args));
     args->player_id = projection->id;
     args->remaining = _gr->instr.projection.duration;
     add_event(_gs->events, MAGICAL_EVENT, events.projection_death, args);
+
     return 0;
 }
 
