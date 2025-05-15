@@ -325,9 +325,12 @@ void nuke_board() {
 
 int teams_alive() {
     int alive = 0;
-    for(int i = 0; i < _gs->team_count; i++) 
-        if (_gs->team_states[i].members_alive) 
-            alive++;
+    for(int i = 0; i < _gs->team_count; i++) {
+        if (_gs->team_states[i].members_alive) {
+            alive++; 
+            continue;
+        }
+    }
     return alive;
 }
 
@@ -337,9 +340,9 @@ int player_alive(player_state* ps) {
 
 char* first_team_alive() {
     player_state* ps = first_player(_gs->players, &player_alive);
-    if (ps)
+    if (ps && ps->team)
         return ps->team->team_name;
-    printf("No player is alive\n");
+    printf("No team has live players\n");
     exit(1);
 }
 
@@ -452,8 +455,8 @@ void play_round_async() {
         if (player->alive) {
             player_turn_async(player);
             set_player_steps_and_actions(player);
-            check_win_condition();
         }
+        check_win_condition();
     }
     if (_gr->nuke > 0 && _gs->round % _gr->nuke == 0) nuke_board();
 }

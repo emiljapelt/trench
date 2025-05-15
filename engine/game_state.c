@@ -51,7 +51,8 @@ void kill_player(player_state* ps) {
     print_to_feed(msg);
     ps->alive = 0;
     ps->death_msg = NULL;
-    ps->team->members_alive--;
+    if (ps->team)
+        ps->team->members_alive--;
 }
 
 void death_mark_player(player_state* ps, const char* reason) {

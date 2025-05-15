@@ -460,7 +460,8 @@ int instr_projection(player_state* ps) {
     player_state* projection = copy_player_state(ps);
 
     add_player(_gs->players, projection);
-    projection->team->members_alive++;
+    if (projection->team)
+        projection->team->members_alive++;
 
     countdown_args* args = malloc(sizeof(countdown_args));
     args->player_id = projection->id;
