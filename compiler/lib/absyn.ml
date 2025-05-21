@@ -13,7 +13,6 @@ type field_prop =
     | Flammable_Prop
     | Cover_Prop
     | Shelter_Prop
-    | Walkable_Prop
     | IsEmpty_Prop
     | IsTrench_Prop
     | IsIceBlock_Prop
@@ -74,6 +73,9 @@ and directional_statement =
     | Wall
     | Bridge
     | PlantTree
+    | Mount
+    | Dismount
+    | Boat
 
 and option_directional_statement =
     | Trench
@@ -163,7 +165,7 @@ type map =
     | EmptyMap of int * int
     | FileMap of string * (int * int)
 
-type instruction_setting_overwrites = string * (string * int) list
+type setting_overwrites = string * (string * int) list
 
 type game_setup_part =
     | Team of team_info
@@ -178,7 +180,7 @@ type game_setup_part =
     | Seed of int option
     | TimeScale of float
     | Map of map
-    | InstructionSettingOverwrites of instruction_setting_overwrites list
+    | SettingOverwrites of setting_overwrites list
 
 type game_setup = GS of {
     teams: team_info list;
@@ -193,5 +195,5 @@ type game_setup = GS of {
     seed: int option;
     time_scale: float;
     map: map;
-    instruction_setting_overwrites: instruction_setting_overwrites list;
+    setting_overwrites: setting_overwrites list;
 }

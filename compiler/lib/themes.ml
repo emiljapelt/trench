@@ -8,7 +8,7 @@ let all_themes = [
 ] |> StringSet.of_list
 
 let required_resources theme = match theme with
-  | "military" -> ["bomb"; "shot";] |> StringSet.of_list
+  | "military" -> ["explosive"; "ammo";] |> StringSet.of_list
   | "wizardry" -> ["mana";] |> StringSet.of_list
   | "forestry" -> ["sapling";] |> StringSet.of_list
   | _ -> StringSet.empty

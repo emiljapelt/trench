@@ -13,6 +13,11 @@ type range_and_cost_setting = {
   cost: int;
 }
 
+type capacity_cost_setting = {
+  capacity: int;
+  cost: int;
+}
+
 type amount_setting = {
   amount: int;
 } 
@@ -37,7 +42,7 @@ type cost_and_duration_setting = {
   duration: int;
 }
 
-type instruction_settings = {
+type settings = {
   fireball: range_and_cost_setting;
   shoot: range_setting;
   bomb: range_setting;
@@ -53,6 +58,7 @@ type instruction_settings = {
   freeze: freeze_setting; 
   look: range_setting;
   scan: range_setting;
+  boat: capacity_cost_setting;
 }
 
 type 'a overwrite = (string * ('a -> int -> 'a)) list
@@ -101,13 +107,18 @@ let cost_and_duration_setting_overwrite = overwritter [
   ("duration", fun s v -> {s with duration = v} );
 ]
 
+let capacity_cost_setting_overwrite = overwritter [
+  ("capacity", fun s v -> {s with capacity = v});
+  ("cost", fun s v -> {s with cost = v})
+]
 
-let rec overwrite_instruction_settings settings overwrites = 
+
+let rec overwrite_settings settings overwrites = 
   match overwrites with
   | [] -> settings
   | (name, setting_overwrites) :: t -> ( 
       try (
-        t |> overwrite_instruction_settings (
+        t |> overwrite_settings (
           match name with
           | "fireball" ->   ({ settings with fireball = range_and_cost_setting_overwrite settings.fireball setting_overwrites })
           | "shoot" ->      ({ settings with shoot = range_setting_overwrite settings.shoot setting_overwrites })
@@ -124,6 +135,7 @@ let rec overwrite_instruction_settings settings overwrites =
           | "freeze" ->     ({ settings with freeze = freeze_setting_overwrite settings.freeze setting_overwrites })
           | "look" ->       ({ settings with look = range_setting_overwrite settings.look setting_overwrites })
           | "scan" ->       ({ settings with scan = range_setting_overwrite settings.scan setting_overwrites })
+          | "boat" ->       ({ settings with boat = capacity_cost_setting_overwrite settings.boat setting_overwrites })
           | _ -> raise_failure ("No settings for instruction: '" ^ name ^ "'")
         )
       )
@@ -132,7 +144,7 @@ let rec overwrite_instruction_settings settings overwrites =
   )
 
 
-let default_settings : instruction_settings = {
+let default_settings : settings = {
   fireball = { range = 5; cost = 10 };
   shoot  = { range = 6 };
   bomb = { range = 4 };
@@ -148,4 +160,5 @@ let default_settings : instruction_settings = {
   freeze = { cost = 25; duration = 2; range = 5; };
   look = { range = -1; };
   scan = { range = -1; };
+  boat = { cost = 30; capacity = 4; };
 }

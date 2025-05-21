@@ -1,6 +1,7 @@
 #ifndef GAME_STATE_H
 #define GAME_STATE_H
 
+#include "direction.h"
 #include "player.h"
 #include "game_rules.h"
 #include "event_list.h"
@@ -8,14 +9,6 @@
 #include "resource_registry.h"
 #include "visual.h"
 #include "fields.h"
-
-typedef enum direction {
-    NORTH,
-    EAST,
-    SOUTH,
-    WEST,
-    HERE
-} direction;
 
 typedef struct directive_info {
     int regs;

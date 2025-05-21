@@ -49,7 +49,7 @@
 %token MOVE FORTIFY WAIT PASS TRENCH WALL PROJECTION FREEZE FIREBALL
 %token NORTH EAST SOUTH WEST BOMB SHOOT LOOK SCAN MINE CHOP COLLECT
 %token INT DIR FIELD L_SHIFT R_SHIFT
-%token READ WRITE SAY
+%token READ WRITE SAY MOUNT DISMOUNT BOAT
 
 /*Low precedence*/
 %left LOGIC_OR
@@ -186,6 +186,7 @@ target:
 property:
   | NAME      { $1 }
   | TRENCH    { "trench" }
+  | WALL      { "wall" }
   | BRIDGE    { "bridge" }
 ;
 
@@ -227,6 +228,9 @@ non_control_flow_stmt:
   | BRIDGE value                      { Directional(Bridge, $2) }
   | COLLECT value?                    { OptionDirectional(Collect, $2) }
   | SAY value                         { Say $2 }
+  | MOUNT value                       { Directional(Mount, $2) }
+  | DISMOUNT value                    { Directional(Dismount, $2) }
+  | BOAT value                        { Directional(Boat, $2) }
 ;
 
 direction:

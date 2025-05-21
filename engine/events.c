@@ -76,6 +76,11 @@ int tree_grow(player_state* player, void* data) {
     return 1;
 }
 
+int ocean_drowning(player_state* player, void* data) {
+    death_mark_player(player, "Drowned");
+    return 0;
+}
+
 const events_namespace events = {
     .bomb = &bomb,
     .mine = &mine,
@@ -83,4 +88,5 @@ const events_namespace events = {
     .projection_death = &projection_death,
     .mana_drain = &mana_drain,
     .tree_grow = &tree_grow,
+    .ocean_drowning = &ocean_drowning,
 };

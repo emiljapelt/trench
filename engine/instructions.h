@@ -10,6 +10,7 @@
 #include "game_state.h"
 #include "player.h"
 #include "visual.h"
+#include "vehicles.h"
 #include "util.h"
 #include "event_list.h"
 #include "events.h"
@@ -72,19 +73,22 @@ typedef enum {
   Instr_Bridge = 52,
   Instr_Collect = 53,
   Instr_Say = 54,
+  Instr_Mount = 55,
+  Instr_Dismount = 56,
+  Instr_Boat = 57,
 } instruction;
 
 // all instructions return 1 if the board should be updated, and 0 if not.
 
 int instr_shoot(player_state* ps) {
-    if(!spend_resource(ps->resources, "shot", 1)) return 0;
+    if(!spend_resource(ps->resources, "ammo", 1)) return 0;
     
     direction d = (direction)ps->stack[--ps->sp];
     int x = ps->x;
     int y = ps->y;
     
     move_coord(&x, &y, d, 1);
-    int limit = _gr->instr.shoot.range;
+    int limit = _gr->settings.shoot.range;
     while (limit-- && in_bounds(x,y)) { 
         set_overlay(x,y,BULLET);
         set_color_overlay(x,y,FORE,color_predefs.yellow);
@@ -118,7 +122,7 @@ int instr_look(player_state* ps) {
     int i = 0;
     incr:
     i++;
-    if (i > _gr->instr.look.range) { ps->stack[ps->sp++] = 0; return 0; }
+    if (_gr->settings.look.range >= 0 && i > _gr->settings.look.range) { ps->stack[ps->sp++] = 0; return 0; }
     move_coord(&x, &y, d, 1);
     if (!in_bounds(x,y)) { ps->stack[ps->sp++] = 0; return 0; }
     field_scan scan = fields.scan(x,y);
@@ -135,7 +139,7 @@ int instr_scan(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
     int result = 0;
 
-    if (_gr->instr.bomb.range >= 0 && p > _gr->instr.bomb.range) p = _gr->instr.bomb.range;
+    if (_gr->settings.bomb.range >= 0 && p > _gr->settings.bomb.range) p = _gr->settings.bomb.range;
     move_coord(&x, &y, d, p);
     if (in_bounds(x, y)) {   
         field_scan scan = fields.scan(x,y);
@@ -148,7 +152,7 @@ int instr_scan(player_state* ps) {
 }
 
 int instr_mine(player_state* ps) {
-    if(!spend_resource(ps->resources, "bomb", 1)) return 0;
+    if(!spend_resource(ps->resources, "explosive", 1)) return 0;
 
     int x = ps->x;
     int y = ps->y;
@@ -179,11 +183,17 @@ int instr_mine(player_state* ps) {
 int instr_move(player_state* ps) { 
     direction d = (direction)ps->stack[--ps->sp];
 
-    if (fields.is_obstruction(ps->x, ps->y)) return 0;
+    if (ps->vehicle) {
+        return get_vehicle_move_func(ps->vehicle->type)(ps->vehicle, d);
+    }
+
     int x = ps->x;
     int y = ps->y;
     move_coord(&x, &y, d, 1);
-    if (!in_bounds(x,y) || !fields.is_walkable(x,y)) return 0;
+    if(!in_bounds(x,y)) return 0;
+    field_state* field = get_field(x,y);
+
+    if (fields.is_obstruction(ps->x, ps->y) || fields.is_obstruction(x, y)) return 0;
 
     update_events(ps, get_field(ps->x,ps->y)->exit_events);
     if (!ps->death_msg) {
@@ -209,8 +219,8 @@ int instr_chop(player_state* ps) {
         }
     else if (field->type == TREE) {
         fields.remove_field(x,y);
-        add_resource(ps->resources, "wood", _gr->instr.chop.wood_gain);
-        int got_sapling = rand() % 100 > _gr->instr.chop.sapling_chance;
+        add_resource(ps->resources, "wood", _gr->settings.chop.wood_gain);
+        int got_sapling = rand() % 100 > _gr->settings.chop.sapling_chance;
         if (got_sapling) add_resource(ps->resources, "sapling", 1);
     }
 
@@ -235,7 +245,7 @@ int instr_trench(player_state* ps) {
 }
 
 int instr_fortify(player_state* ps) {
-    if(!spend_resource(ps->resources, "wood", _gr->instr.fortify.cost)) return 0;
+    if(!spend_resource(ps->resources, "wood", _gr->settings.fortify.cost)) return 0;
     int x = ps->x;
     int y = ps->y;
     direction d = (direction)ps->stack[--ps->sp];
@@ -266,9 +276,9 @@ int instr_place(player_state* ps) {
 int instr_bomb(player_state* ps) {
     int p = ps->stack[--ps->sp];
     direction d = (direction)ps->stack[--ps->sp];
-    if(!spend_resource(ps->resources, "bomb", 1)) return 0;
+    if(!spend_resource(ps->resources, "explosive", 1)) return 0;
 
-    if (_gr->instr.bomb.range >= 0 && p > _gr->instr.bomb.range) p = _gr->instr.bomb.range;
+    if (_gr->settings.bomb.range >= 0 && p > _gr->settings.bomb.range) p = _gr->settings.bomb.range;
     int x = ps->x;
     int y = ps->y;
     move_coord(&x, &y, d, p);
@@ -455,17 +465,19 @@ int instr_read(player_state* ps) {
 }
 
 int instr_projection(player_state* ps) {
-    if(!spend_resource(ps->resources, "mana", _gr->instr.projection.cost)) return 0;
+    if (!spend_resource(ps->resources, "mana", _gr->settings.projection.cost)) return 0;
+    if (ps->vehicle && !(get_vehicle_capacity(ps->vehicle->type) > ps->vehicle->players->count)) return 0;
 
     player_state* projection = copy_player_state(ps);
 
     add_player(_gs->players, projection);
     if (projection->team)
         projection->team->members_alive++;
+    projection->vehicle = ps->vehicle;
 
     countdown_args* args = malloc(sizeof(countdown_args));
     args->player_id = projection->id;
-    args->remaining = _gr->instr.projection.duration;
+    args->remaining = _gr->settings.projection.duration;
     add_event(_gs->events, MAGICAL_EVENT, events.projection_death, args);
 
     return 0;
@@ -474,9 +486,9 @@ int instr_projection(player_state* ps) {
 int instr_freeze(player_state* ps) {
     int p = ps->stack[--ps->sp];
     direction d = (direction)ps->stack[--ps->sp];
-    if(!spend_resource(ps->resources, "mana", _gr->instr.freeze.cost)) return 0;
+    if(!spend_resource(ps->resources, "mana", _gr->settings.freeze.cost)) return 0;
 
-    if (_gr->instr.freeze.range >= 0 &&p > _gr->instr.freeze.range) p = _gr->instr.freeze.range;
+    if (_gr->settings.freeze.range >= 0 &&p > _gr->settings.freeze.range) p = _gr->settings.freeze.range;
     int x = ps->x;
     int y = ps->y;
     move_coord(&x, &y, d, p);
@@ -489,7 +501,7 @@ int instr_freeze(player_state* ps) {
     args->x = x;
     args->y = y;
     args->player_id = ps->id;
-    args->remaining = _gr->instr.freeze.duration;
+    args->remaining = _gr->settings.freeze.duration;
     add_event(_gs->events, NONE_EVENT, events.ice_block_melt, args);
 
     set_color_overlay(x,y,FORE,color_predefs.ice_blue);
@@ -508,12 +520,12 @@ int instr_freeze(player_state* ps) {
 
 int instr_fireball(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
-    if(!spend_resource(ps->resources, "mana", _gr->instr.fireball.cost)) return 0;
+    if(!spend_resource(ps->resources, "mana", _gr->settings.fireball.cost)) return 0;
     int x = ps->x;
     int y = ps->y;
 
     move_coord(&x, &y, d, 1);
-    int limit = _gr->instr.fireball.range;
+    int limit = _gr->settings.fireball.range;
     while(limit-- && in_bounds(x,y)) {
         if (fields.is_obstruction(x,y)) {
             fields.damage_field(x, y, FIRE_DMG & PROJECTILE_DMG, "Hit by a fireball");
@@ -536,14 +548,14 @@ int instr_fireball(player_state* ps) {
 }
 
 int instr_meditate(player_state* ps) {
-    add_resource(ps->resources, "mana", _gr->instr.meditate.amount);
+    add_resource(ps->resources, "mana", _gr->settings.meditate.amount);
     set_color_overlay(ps->x,ps->y,BACK,color_predefs.magic_purple);
     return 1;
 }
 
 int instr_dispel(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
-    if(!spend_resource(ps->resources, "mana", _gr->instr.dispel.cost)) return 0;
+    if(!spend_resource(ps->resources, "mana", _gr->settings.dispel.cost)) return 0;
 
     int x = ps->x;
     int y = ps->y;
@@ -595,7 +607,7 @@ int instr_disarm(player_state* ps) {
 
 int instr_mana_drain(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
-    if(!spend_resource(ps->resources, "mana", _gr->instr.mana_drain.cost)) return 0;
+    if(!spend_resource(ps->resources, "mana", _gr->settings.mana_drain.cost)) return 0;
 
     int x = ps->x;
     int y = ps->y;
@@ -650,7 +662,7 @@ int instr_wall(player_state* ps) {
     move_coord(&x, &y, d, 1);
 
     if (!in_bounds(x, y)) return 0;
-    if (!spend_resource(ps->resources, "wood", _gr->instr.wall.cost)) return 0;
+    if (!spend_resource(ps->resources, "wood", _gr->settings.wall.cost)) return 0;
 
     field_state* field = get_field(x,y);
     switch (field->type) {
@@ -675,7 +687,7 @@ int instr_plant_tree(player_state* ps) {
     args->x = x;
     args->y = y;
     args->player_id = ps->id;
-    args->remaining = _gr->instr.plant_tree.delay;
+    args->remaining = _gr->settings.plant_tree.delay;
 
     add_event(_gs->events, PHYSICAL_EVENT, events.tree_grow, args);
     return 0;
@@ -690,7 +702,7 @@ int instr_bridge(player_state* ps) {
     if (!in_bounds(x, y)) return 0;
     field_state* field = get_field(x,y);
     if (field->type != OCEAN) return 0;
-    if (!spend_resource(ps->resources, "wood", _gr->instr.bridge.cost)) return 0;
+    if (!spend_resource(ps->resources, "wood", _gr->settings.bridge.cost)) return 0;
 
     field->type = BRIDGE;
     return 1;
@@ -720,6 +732,63 @@ int instr_say(player_state* ps) {
     snprintf(msg, 100, "%s#%i says %i\n", ps->name, ps->id, v);
     print_to_feed(msg);
     return 0;
+}
+
+int instr_mount(player_state* ps) {
+    int d = ps->stack[--ps->sp];
+    int x = ps->x;
+    int y = ps->y;
+    move_coord(&x, &y, d, 1);
+
+    if (!in_bounds(x,y)) return 0;
+    field_state* field = get_field(x,y);
+    if (field->vehicle == NULL) return 0;
+    if (!(field->vehicle->players->count < get_vehicle_capacity(field->vehicle->type))) return 0;
+
+    add_player(field->vehicle->players, ps);
+    ps->x = -1;
+    ps->y = -1;
+    ps->vehicle = field->vehicle;
+    return 1;
+}
+
+int instr_dismount(player_state* ps) {
+    int d = ps->stack[--ps->sp];
+    int x = ps->vehicle->x;
+    int y = ps->vehicle->y;
+    move_coord(&x, &y, d, 1);
+
+    if (!in_bounds(x,y)) return 0;
+
+    remove_player_id(ps->vehicle->players, ps->id);
+    ps->x = x;
+    ps->y = y;
+    ps->vehicle = NULL;
+    update_events(ps, get_field(x,y)->enter_events);
+
+    return 1;
+}
+
+int instr_boat(player_state* ps) {
+    int d = ps->stack[--ps->sp];
+    int x = ps->x;
+    int y = ps->y;
+    move_coord(&x, &y, d, 1);
+
+    if (!in_bounds(x,y)) return 0;
+    field_state* field = get_field(x,y);
+    if (field->vehicle != NULL) return 0;
+    if (field->type != OCEAN) return 0;
+
+    if (!spend_resource(ps->resources, "wood", _gr->settings.boat.cost)) return 0;
+
+    vehicle_state* boat = malloc(sizeof(vehicle_state));
+    boat->players = array_list.create(get_vehicle_capacity(VEHICLE_BOAT));
+    boat->x = x;
+    boat->y = y;
+    boat->type = VEHICLE_BOAT;
+    field->vehicle = boat;
+    return 1;
 }
 
 #endif

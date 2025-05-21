@@ -11,7 +11,7 @@ typedef struct game_rules {
     float time_scale;
     int stack_size;
 
-    struct instr {
+    struct settings {
         struct{
             int range;
             int cost;
@@ -76,7 +76,12 @@ typedef struct game_rules {
         struct {
             int range;
         } scan;
-    } instr;
+
+        struct {
+            int capacity;
+            int cost;
+        } boat;
+    } settings;
 } game_rules;
 
 #endif

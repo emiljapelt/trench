@@ -6,4 +6,4 @@ typedef int damage_t;
 #define PROJECTILE_DMG      0b00000000000000000000000000001000
 #define EXPLOSIVE_DMG       0b00000000000000000000000000010000
 
-#define IS_DAMAGE_TYPE(t,v) (v | t)
+#define IS_DAMAGE_TYPE(t,v) (v & t)

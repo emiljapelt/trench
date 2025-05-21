@@ -67,17 +67,6 @@ int is_cover(const int x, const int y) {
     }
 }
 
-int is_walkable(const int x, const int y) {
-    switch (get_field(x,y)->type) {
-        case TRENCH:
-        case EMPTY:
-        case BRIDGE:
-            return 1;
-        default:
-            return 0;
-    }
-}
-
 int has_player(const int x, const int y) {
     unsigned int player_found;
     for(int i = 0; i < _gs->players->count; i++) {
@@ -106,7 +95,6 @@ field_scan scan_field(const int x, const int y) {
         .meltable = is_meltable(x,y),
         .cover = is_cover(x,y),
         .shelter = is_shelter(x,y),
-        .walkable = is_walkable(x,y),
         .is_empty = field->type == EMPTY,
         .is_trench = field->type == TRENCH,
         .is_ice_block = field->type == ICE_BLOCK,
@@ -213,6 +201,7 @@ int fortify_field(const int x, const int y) {
     }
 }
 
+
 void build_trench(const int x, const int y) {
     field_state* field = get_field(x,y);
 
@@ -246,7 +235,6 @@ const fields_namespace fields = {
     .is_flammable = &is_flammable,
     .is_cover = &is_cover,
     .is_shelter = &is_shelter,
-    .is_walkable = &is_walkable,
     .has_player = &has_player,
     .has_trap = &has_trap,
     .scan = &scan_field,

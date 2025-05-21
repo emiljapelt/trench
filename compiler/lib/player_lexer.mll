@@ -47,6 +47,9 @@
                         "bridge", BRIDGE;
                         "collect", COLLECT;
                         "say", SAY;
+                        "mount", MOUNT;
+                        "dismount", DISMOUNT;
+                        "boat", BOAT;
                       ] 
   
   let char_of_string s lexbuf = match s with

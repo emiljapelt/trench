@@ -8,7 +8,6 @@ let string_to_prop s = match s with
   | "flammable" -> Flammable_Prop
   | "cover" -> Cover_Prop
   | "shelter" -> Shelter_Prop
-  | "walkable" -> Walkable_Prop
   | "empty" -> IsEmpty_Prop
   | "trench" -> IsTrench_Prop
   | "ice_block" -> IsIceBlock_Prop
@@ -26,11 +25,10 @@ let prop_index p = match p with
   | Flammable_Prop -> 3
   | Cover_Prop -> 4
   | Shelter_Prop -> 5
-  | Walkable_Prop -> 7
-  | IsEmpty_Prop -> 8
-  | IsTrench_Prop -> 9
-  | IsIceBlock_Prop -> 10
-  | IsTree_Prop -> 11
-  | IsOcean_Prop -> 12
-  | IsWall_Prop -> 13
-  | IsBridge_Prop -> 14
+  | IsEmpty_Prop -> 7
+  | IsTrench_Prop -> 8
+  | IsIceBlock_Prop -> 9
+  | IsTree_Prop -> 10
+  | IsOcean_Prop -> 11
+  | IsWall_Prop -> 12
+  | IsBridge_Prop -> 13

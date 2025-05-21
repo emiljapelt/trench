@@ -149,6 +149,9 @@ and compile_stmt (Stmt(stmt,ln)) (state:compile_state) acc =
     | Wall -> Instr_Wall
     | Bridge -> Instr_Bridge
     | PlantTree -> Instr_PlantTree
+    | Mount -> Instr_Mount
+    | Dismount -> Instr_Dismount
+    | Boat -> Instr_Boat
     in
     compile_value dir state (instr :: acc)
   )

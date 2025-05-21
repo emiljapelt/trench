@@ -170,6 +170,9 @@ void player_turn_async(player_state* ps) {
             }
             case Instr_Collect: change = instr_collect(ps); break;
             case Instr_Say: change = instr_say(ps); break;
+            case Instr_Mount: change = instr_mount(ps); break;
+            case Instr_Dismount: change = instr_dismount(ps); break;
+            case Instr_Boat: change = instr_boat(ps); break;
             default: return;
         }
 

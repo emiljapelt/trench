@@ -30,6 +30,7 @@ field_state* create_board(char* map_data, const int x, const int y) {
             .player_data = 0,
             .enter_events = array_list.create(10),
             .exit_events = array_list.create(10),
+            .vehicle = NULL,
         };
         if (map_data) switch(map_data[(_y * x) + _x]) {
             case '+': {
@@ -48,6 +49,7 @@ field_state* create_board(char* map_data, const int x, const int y) {
             }
             case '~':
                 brd[(_y * x) + _x].type = OCEAN;
+                add_event(brd[(_y * x) + _x].enter_events, NONE_EVENT, events.ocean_drowning, NULL);
                 break;
             case 'T': 
                 brd[(_y * x) + _x].type = TREE;
@@ -96,54 +98,58 @@ int compile_player(const char* path, int stack_size, directive_info* result) {
 
 void load_instruction_settings(game_rules* gr, value settings) {
     value fireball_settings = Field(settings, 0);
-        gr->instr.fireball.range = Int_val(Field(fireball_settings, 0));
-        gr->instr.fireball.cost = Int_val(Field(fireball_settings, 1));
+        gr->settings.fireball.range = Int_val(Field(fireball_settings, 0));
+        gr->settings.fireball.cost = Int_val(Field(fireball_settings, 1));
 
     value shoot_settings = Field(settings, 1);
-        gr->instr.shoot.range = Int_val(Field(shoot_settings, 0));
+        gr->settings.shoot.range = Int_val(Field(shoot_settings, 0));
 
     value bomb_settings = Field(settings, 2);
-        gr->instr.bomb.range = Int_val(Field(bomb_settings, 0));
+        gr->settings.bomb.range = Int_val(Field(bomb_settings, 0));
 
     value meditate_settings = Field(settings, 3);
-        gr->instr.meditate.amount = Int_val(Field(meditate_settings, 0));
+        gr->settings.meditate.amount = Int_val(Field(meditate_settings, 0));
 
     value dispel_settings = Field(settings, 4);
-        gr->instr.dispel.cost = Int_val(Field(dispel_settings, 0));
+        gr->settings.dispel.cost = Int_val(Field(dispel_settings, 0));
 
     value mana_drain_settings = Field(settings, 5);
-        gr->instr.mana_drain.cost = Int_val(Field(mana_drain_settings, 0));
+        gr->settings.mana_drain.cost = Int_val(Field(mana_drain_settings, 0));
 
     value wall_settings = Field(settings, 6);
-        gr->instr.wall.cost = Int_val(Field(wall_settings, 0));
+        gr->settings.wall.cost = Int_val(Field(wall_settings, 0));
 
     value plant_tree_settings = Field(settings, 7);
-        gr->instr.plant_tree.delay = Int_val(Field(plant_tree_settings, 0));
+        gr->settings.plant_tree.delay = Int_val(Field(plant_tree_settings, 0));
 
     value bridge_settings = Field(settings, 8);
-        gr->instr.bridge.cost = Int_val(Field(bridge_settings, 0));
+        gr->settings.bridge.cost = Int_val(Field(bridge_settings, 0));
 
     value chop_settings = Field(settings, 9);
-        gr->instr.chop.wood_gain = Int_val(Field(chop_settings, 0));
-        gr->instr.chop.sapling_chance = Int_val(Field(chop_settings, 1));
+        gr->settings.chop.wood_gain = Int_val(Field(chop_settings, 0));
+        gr->settings.chop.sapling_chance = Int_val(Field(chop_settings, 1));
 
     value fortify_settings = Field(settings, 10);
-        gr->instr.fortify.cost = Int_val(Field(fortify_settings, 0));
+        gr->settings.fortify.cost = Int_val(Field(fortify_settings, 0));
 
     value projection_settings = Field(settings, 11);
-        gr->instr.projection.cost = Int_val(Field(projection_settings, 0));
-        gr->instr.projection.duration = Int_val(Field(projection_settings, 1));
+        gr->settings.projection.cost = Int_val(Field(projection_settings, 0));
+        gr->settings.projection.duration = Int_val(Field(projection_settings, 1));
 
     value freeze_settings = Field(settings, 12);
-        gr->instr.freeze.cost = Int_val(Field(freeze_settings, 0));
-        gr->instr.freeze.duration = Int_val(Field(freeze_settings, 1));
-        gr->instr.freeze.range = Int_val(Field(freeze_settings, 2));
+        gr->settings.freeze.cost = Int_val(Field(freeze_settings, 0));
+        gr->settings.freeze.duration = Int_val(Field(freeze_settings, 1));
+        gr->settings.freeze.range = Int_val(Field(freeze_settings, 2));
 
     value look_settings = Field(settings, 13);
-        gr->instr.look.range = Int_val(Field(look_settings, 0));
+        gr->settings.look.range = Int_val(Field(look_settings, 0));
 
     value scan_settings = Field(settings, 14);
-        gr->instr.scan.range = Int_val(Field(scan_settings, 0));
+        gr->settings.scan.range = Int_val(Field(scan_settings, 0));
+
+    value boat_settings = Field(settings, 15);
+        gr->settings.boat.capacity = Int_val(Field(boat_settings, 0));
+        gr->settings.boat.cost = Int_val(Field(boat_settings, 1));
 }
 
 int compile_game(const char* path, game_rules* gr, game_state* gs) {
@@ -257,6 +263,7 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 player->pre_death_events = array_list.create(10);
                 player->post_death_events = array_list.create(10);
                 player->resources = create_resource_registry(10, resource_count);
+                player->vehicle = NULL;
                 for(int r = 0; r < resource_count; r++) {
                     value resource = Field(Field(unwrapped_result, 11), r);
                     init_resource(player->resources, strdup(String_val(Field(resource, 0))), Int_val(Field(Field(resource, 1), 0)), Int_val(Field(Field(resource, 1), 1)));

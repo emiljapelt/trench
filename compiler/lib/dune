@@ -19,7 +19,7 @@
    toProgramRep
    typing
    transform
-   instr_settings
+   settings
    flags
    compile
  )

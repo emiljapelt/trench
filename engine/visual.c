@@ -154,6 +154,17 @@ field_visual get_field_visual(const int x, const int y, const field_state* field
 
     field_visual result = get_field_data_visual(x,y,field->type,field->data);
 
+    if (field->vehicle) {
+        switch (field->vehicle->type) {
+            case VEHICLE_BOAT: {
+                result.foreground_color = color_predefs.white;
+                result.symbol = BOAT_VISUAL;
+                //result.mod = BOLD;
+                break;
+            }
+        }
+    }
+
     if (_gs->board[(y * _gs->board_x) + x].symbol_overlay) {
         char* symbol = _gs->board[(y * _gs->board_x) + x].symbol_overlay;
         _gs->board[(y * _gs->board_x) + x].symbol_overlay = NULL;

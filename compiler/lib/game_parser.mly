@@ -48,7 +48,7 @@
 %token <string> WORD
 %token LPAR RPAR LBRACE RBRACE OF DOT
 %token COMMA SEMI COLON EOF STAR FEATURES COLOR INFINITE MANUAL
-%token PLAYER RESOURCES THEMES TIME_SCALE SEED ACTIONS STEPS MODE MAP NUKE NAME TEAM ORIGIN FILE EXEC_MODE SYNC ASYNC INSTRS 
+%token PLAYER RESOURCES THEMES TIME_SCALE SEED ACTIONS STEPS MODE MAP NUKE NAME TEAM ORIGIN FILE EXEC_MODE SYNC ASYNC SETTINGS
 /*Low precedence*/
 
 /*High precedence*/
@@ -113,13 +113,13 @@ game_setup_part:
   | EXEC_MODE COLON ASYNC SEMI? { ExecMode AsyncExec }
   | SEED COLON CSTINT SEMI? { Seed (Some $3) }
   | TIME_SCALE COLON CSTFLOAT SEMI? { TimeScale $3 }
-  | INSTRS COLON LBRACE instruction_rule* RBRACE SEMI? { InstructionSettingOverwrites $4 }
+  | SETTINGS COLON LBRACE setting_group* RBRACE SEMI? { SettingOverwrites $4 }
 ;
 
-instruction_rule:
-  | WORD COLON LBRACE instruction_rules* RBRACE SEMI? { ($1,$4) }
+setting_group:
+  | WORD COLON LBRACE setting* RBRACE SEMI? { ($1,$4) }
 ;
 
-instruction_rules:
+setting:
   | WORD COLON CSTINT SEMI? { ($1,$3) }
 ;

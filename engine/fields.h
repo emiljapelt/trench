@@ -4,6 +4,7 @@
 #include "event_list.h"
 #include "color.h"
 #include "damage.h"
+#include "vehicles.h"
 
 typedef enum {
     EMPTY,
@@ -42,11 +43,9 @@ typedef struct {
     unsigned int player : 1;
     unsigned int trapped : 1;
     unsigned int flammable : 1;
-    unsigned int meltable : 1;
-    unsigned int shelter : 1;
     unsigned int cover : 1;
-    unsigned int walkable: 1;
-
+    unsigned int shelter : 1;
+    unsigned int meltable : 1;
     unsigned int is_empty: 1;
     unsigned int is_trench: 1;
     unsigned int is_ice_block: 1;
@@ -55,7 +54,7 @@ typedef struct {
     unsigned int is_wall: 1;
     unsigned int is_bridge: 1;
 
-    unsigned int _ : 17;
+    unsigned int _ : 18;
 } field_scan;
 
 typedef struct field_state {
@@ -68,6 +67,7 @@ typedef struct field_state {
     int player_data; // Players can read and write here
     event_list_t* enter_events;
     event_list_t* exit_events;
+    vehicle_state* vehicle;
 } field_state;
 
 typedef struct field_builders {
@@ -83,7 +83,6 @@ typedef struct fields_namespace {
     field_property_check is_flammable;
     field_property_check is_shelter;
     field_property_check is_cover;
-    field_property_check is_walkable;
     field_property_check has_player;
     field_property_check has_trap;
     void (*const destroy_field)(const int x, const int y, char* death_msg);

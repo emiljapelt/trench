@@ -39,6 +39,7 @@ typedef struct events_namespace {
     event_function ice_block_melt;
     event_function mana_drain;
     event_function tree_grow;
+    event_function ocean_drowning;
 } events_namespace;
 extern const events_namespace events;
 

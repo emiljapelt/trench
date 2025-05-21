@@ -28,3 +28,12 @@ player_state* first_player(player_list_t* players, player_bool_function func) {
     }
     return NULL;
 }
+
+void remove_player_id(player_list_t* list, int id) {
+    for(int i = 0; i < list->count; i++) {
+        if (get_player(list, i)->id == id) {
+            array_list.remove(list, i, 0);
+            return;
+        }
+    }
+}
