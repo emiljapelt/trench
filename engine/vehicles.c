@@ -46,10 +46,12 @@ int get_vehicle_capacity(vehicle_type type) {
 
 void destroy_vehicle(vehicle_state* v, char* death_msg) {
     player_list_t* players = v->players;
+    int x = v->x;
+    int y = v->y;
 
     switch (v->type) {
         case VEHICLE_BOAT: {
-            get_field(v->x, v->y)->vehicle = NULL;
+            get_field(x, y)->vehicle = NULL;
             free(v);
         }
     }
@@ -58,6 +60,8 @@ void destroy_vehicle(vehicle_state* v, char* death_msg) {
         player_state* player = get_player(players, i);
         death_mark_player(player, death_msg);
         player->vehicle = NULL;
+        player->x = x;
+        player->y = y;
     }
 
     array_list.free(players);
