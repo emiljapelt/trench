@@ -71,7 +71,7 @@ int has_player(const int x, const int y) {
     unsigned int player_found;
     for(int i = 0; i < _gs->players->count; i++) {
         player_state* player = get_player(_gs->players, i);
-        if (player->alive && player->x == x && player->y == y)
+        if (player->alive && player_x(player) == x && player_y(player) == y)
             return 1;
     }
     return 0;
@@ -144,7 +144,7 @@ void destroy_field(const int x, const int y, char* death_msg) {
     }
     for(int i = 0; i < _gs->players->count; i++) {
         player_state* player = get_player(_gs->players, i);
-        if (player->x == x && player->y == y) {
+        if (player_x(player) == x && player_y(player) == y) {
             death_mark_player(player, death_msg);
         }
     }

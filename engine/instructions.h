@@ -16,6 +16,7 @@
 #include "events.h"
 #include "resource_registry.h"
 #include "fields.h"
+#include "entity.h"
 
 typedef enum {
   Meta_PlayerX = 0,
@@ -84,8 +85,8 @@ int instr_shoot(player_state* ps) {
     if(!spend_resource(ps->resources, "ammo", 1)) return 0;
     
     direction d = (direction)ps->stack[--ps->sp];
-    int x = ps->x;
-    int y = ps->y;
+    int x = player_x(ps);
+    int y = player_y(ps);
     
     move_coord(&x, &y, d, 1);
     int limit = _gr->settings.shoot.range;
@@ -101,7 +102,7 @@ int instr_shoot(player_state* ps) {
         else if (fields.has_player(x,y) && !(fields.is_cover(x,y) || fields.is_shelter(x,y))) {
             for(int i = 0; i < _gs->players->count; i++) {
                 player_state* player = get_player(_gs->players, i);
-                if (player->alive && player->x == x && player->y == y) 
+                if (player->alive && player_x(player) == x && player_y(player) == y) 
                     death_mark_player(player, "Got shot");
             }
             return 1;
@@ -117,8 +118,8 @@ int instr_look(player_state* ps) {
     int offset = ps->directive[ps->dp];
     ps->dp++;
 
-    int x = ps->x;
-    int y = ps->y;
+    int x = player_x(ps);
+    int y = player_y(ps);
     int i = 0;
     incr:
     i++;
@@ -133,8 +134,8 @@ int instr_look(player_state* ps) {
 }
 
 int instr_scan(player_state* ps) {
-    int x = ps->x;
-    int y = ps->y;
+    int x = player_x(ps);
+    int y = player_y(ps);
     direction p = (direction)ps->stack[--ps->sp];
     direction d = (direction)ps->stack[--ps->sp];
     int result = 0;
@@ -154,8 +155,8 @@ int instr_scan(player_state* ps) {
 int instr_mine(player_state* ps) {
     if(!spend_resource(ps->resources, "explosive", 1)) return 0;
 
-    int x = ps->x;
-    int y = ps->y;
+    int x = player_x(ps);
+    int y = player_y(ps);
     direction d = (direction)ps->stack[--ps->sp];
     move_coord(&x, &y, d, 1);
     if (!in_bounds(x,y)) return 0;
@@ -163,7 +164,7 @@ int instr_mine(player_state* ps) {
 
     for(int i = 0; i < _gs->players->count; i++) {
         player_state* player = get_player(_gs->players, i);
-        if (player->x == x && player->y == y) { 
+        if (player_x(player) == x && player_y(player) == y) { 
             death_mark_player(player, "Hit by a thrown mine"); 
             kill = 1; 
         }
@@ -187,26 +188,26 @@ int instr_move(player_state* ps) {
         return get_vehicle_move_func(ps->vehicle->type)(ps->vehicle, d);
     }
 
-    int x = ps->x;
-    int y = ps->y;
+    int x = player_x(ps);
+    int y = player_y(ps);
+    if (fields.is_obstruction(x, y)) return 0;
     move_coord(&x, &y, d, 1);
     if(!in_bounds(x,y)) return 0;
+    if (fields.is_obstruction(x, y)) return 0;
     field_state* field = get_field(x,y);
 
-    if (fields.is_obstruction(ps->x, ps->y) || fields.is_obstruction(x, y)) return 0;
-
-    update_events(ps, get_field(ps->x,ps->y)->exit_events);
+    update_events((entity){ENTITY_PLAYER, ps}, get_field(player_x(ps),player_y(ps))->exit_events);
     if (!ps->death_msg) {
         ps->x = x;
         ps->y = y;
-        update_events(ps, get_field(x,y)->enter_events);
+        update_events((entity){ENTITY_PLAYER, ps}, get_field(x,y)->enter_events);
     }
     return 1;
 }
 
 int instr_chop(player_state* ps) {
-    int x = ps->x;
-    int y = ps->y;
+    int x = player_x(ps);
+    int y = player_y(ps);
     direction d = (direction)ps->stack[--ps->sp];
     move_coord(&x, &y, d, 1);
     field_state* field = get_field(x,y);
@@ -214,7 +215,7 @@ int instr_chop(player_state* ps) {
     if (field->type == EMPTY)
         for(int i = 0; i < _gs->players->count; i++) {
             player_state* player = get_player(_gs->players, i);
-            if (player->x == x && player->y == y) 
+            if (player_x(player) == x && player_y(player) == y) 
                 death_mark_player(player, "Chopped to pieces");
         }
     else if (field->type == TREE) {
@@ -228,8 +229,8 @@ int instr_chop(player_state* ps) {
 }
 
 int instr_trench(player_state* ps) {
-    int x = ps->x;
-    int y = ps->y;
+    int x = player_x(ps);
+    int y = player_y(ps);
     direction d = (direction)ps->stack[--ps->sp];
     move_coord(&x, &y, d, 1);
     if (!in_bounds(x, y)) return 0;
@@ -246,8 +247,8 @@ int instr_trench(player_state* ps) {
 
 int instr_fortify(player_state* ps) {
     if(!spend_resource(ps->resources, "wood", _gr->settings.fortify.cost)) return 0;
-    int x = ps->x;
-    int y = ps->y;
+    int x = player_x(ps);
+    int y = player_y(ps);
     direction d = (direction)ps->stack[--ps->sp];
     move_coord(&x, &y, d, 1);
     return fields.fortify_field(x,y);
@@ -279,8 +280,8 @@ int instr_bomb(player_state* ps) {
     if(!spend_resource(ps->resources, "explosive", 1)) return 0;
 
     if (_gr->settings.bomb.range >= 0 && p > _gr->settings.bomb.range) p = _gr->settings.bomb.range;
-    int x = ps->x;
-    int y = ps->y;
+    int x = player_x(ps);
+    int y = player_y(ps);
     move_coord(&x, &y, d, p);
 
     if (!in_bounds(x,y)) return 0;
@@ -296,11 +297,11 @@ int instr_bomb(player_state* ps) {
 }
 
 int meta_player_x(player_state* ps) {
-    ps->stack[ps->sp++] = ps->x;
+    ps->stack[ps->sp++] = player_x(ps);
     return 0;
 }
 int meta_player_y(player_state* ps) {
-    ps->stack[ps->sp++] = ps->y;
+    ps->stack[ps->sp++] = player_y(ps);
     return 0;
 }
 int meta_board_x(player_state* ps) {
@@ -455,12 +456,12 @@ int instr_swap(player_state* ps) {
 }
 
 int instr_write(player_state* ps) {
-    get_field(ps->x, ps->y)->player_data = ps->stack[--ps->sp];
+    get_field(player_x(ps), player_y(ps))->player_data = ps->stack[--ps->sp];
     return 0;
 }
 
 int instr_read(player_state* ps) {
-    ps->stack[ps->sp++] = get_field(ps->x, ps->y)->player_data;
+    ps->stack[ps->sp++] = get_field(player_x(ps), player_y(ps))->player_data;
     return 0;
 }
 
@@ -473,7 +474,12 @@ int instr_projection(player_state* ps) {
     add_player(_gs->players, projection);
     if (projection->team)
         projection->team->members_alive++;
-    projection->vehicle = ps->vehicle;
+    if (ps->vehicle) {
+        projection->vehicle = ps->vehicle;
+        projection->x = -1;
+        projection->y = -1;
+        add_player(ps->vehicle->players, projection);
+    }
 
     countdown_args* args = malloc(sizeof(countdown_args));
     args->player_id = projection->id;
@@ -489,8 +495,8 @@ int instr_freeze(player_state* ps) {
     if(!spend_resource(ps->resources, "mana", _gr->settings.freeze.cost)) return 0;
 
     if (_gr->settings.freeze.range >= 0 &&p > _gr->settings.freeze.range) p = _gr->settings.freeze.range;
-    int x = ps->x;
-    int y = ps->y;
+    int x = player_x(ps);
+    int y = player_y(ps);
     move_coord(&x, &y, d, p);
 
     if(!in_bounds(x,y)) return 0;
@@ -521,8 +527,8 @@ int instr_freeze(player_state* ps) {
 int instr_fireball(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
     if(!spend_resource(ps->resources, "mana", _gr->settings.fireball.cost)) return 0;
-    int x = ps->x;
-    int y = ps->y;
+    int x = player_x(ps);
+    int y = player_y(ps);
 
     move_coord(&x, &y, d, 1);
     int limit = _gr->settings.fireball.range;
@@ -534,7 +540,7 @@ int instr_fireball(player_state* ps) {
         else if (fields.has_player(x,y) && !(fields.is_cover(x,y) || fields.is_shelter(x,y))) {
             for(int i = 0; i < _gs->players->count; i++) {
                 player_state* player = get_player(_gs->players, i);
-                if (player->alive && player->x == x && player->y == y) 
+                if (player->alive && player_x(player) == x && player_y(player) == y) 
                     death_mark_player(player, "Hit by a fireball");
             }
             return 1;
@@ -549,7 +555,7 @@ int instr_fireball(player_state* ps) {
 
 int instr_meditate(player_state* ps) {
     add_resource(ps->resources, "mana", _gr->settings.meditate.amount);
-    set_color_overlay(ps->x,ps->y,BACK,color_predefs.magic_purple);
+    set_color_overlay(player_x(ps), player_y(ps), BACK, color_predefs.magic_purple);
     return 1;
 }
 
@@ -557,8 +563,8 @@ int instr_dispel(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
     if(!spend_resource(ps->resources, "mana", _gr->settings.dispel.cost)) return 0;
 
-    int x = ps->x;
-    int y = ps->y;
+    int x = player_x(ps);
+    int y = player_y(ps);
     move_coord(&x, &y, d, 1);
     if (!in_bounds(x,y)) return 0;
 
@@ -583,8 +589,8 @@ int instr_dispel(player_state* ps) {
 int instr_disarm(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
 
-    int x = ps->x;
-    int y = ps->y;
+    int x = player_x(ps);
+    int y = player_y(ps);
     move_coord(&x, &y, d, 1);
     if (!in_bounds(x,y)) return 0;
 
@@ -609,8 +615,8 @@ int instr_mana_drain(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
     if(!spend_resource(ps->resources, "mana", _gr->settings.mana_drain.cost)) return 0;
 
-    int x = ps->x;
-    int y = ps->y;
+    int x = player_x(ps);
+    int y = player_y(ps);
     move_coord(&x, &y, d, 1);
     if (!in_bounds(x,y)) return 0;
 
@@ -656,8 +662,8 @@ int instr_pager_write(player_state* ps) {
 }
 
 int instr_wall(player_state* ps) {
-    int x = ps->x;
-    int y = ps->y;
+    int x = player_x(ps);
+    int y = player_y(ps);
     direction d = (direction)ps->stack[--ps->sp];
     move_coord(&x, &y, d, 1);
 
@@ -675,8 +681,8 @@ int instr_wall(player_state* ps) {
 }
 
 int instr_plant_tree(player_state* ps) {
-    int x = ps->x;
-    int y = ps->y;
+    int x = player_x(ps);
+    int y = player_y(ps);
     direction d = (direction)ps->stack[--ps->sp];
     move_coord(&x, &y, d, 1);
 
@@ -694,8 +700,8 @@ int instr_plant_tree(player_state* ps) {
 }
 
 int instr_bridge(player_state* ps) {
-    int x = ps->x;
-    int y = ps->y;
+    int x = player_x(ps);
+    int y = player_y(ps);
     direction d = (direction)ps->stack[--ps->sp];
     move_coord(&x, &y, d, 1);
 
@@ -709,8 +715,8 @@ int instr_bridge(player_state* ps) {
 }
 
 int instr_collect(player_state* ps) {
-    int x = ps->x;
-    int y = ps->y;
+    int x = player_x(ps);
+    int y = player_y(ps);
     direction d = (direction)ps->stack[--ps->sp];
     move_coord(&x, &y, d, 1);
 
@@ -736,8 +742,8 @@ int instr_say(player_state* ps) {
 
 int instr_mount(player_state* ps) {
     int d = ps->stack[--ps->sp];
-    int x = ps->x;
-    int y = ps->y;
+    int x = player_x(ps);
+    int y = player_y(ps);
     move_coord(&x, &y, d, 1);
 
     if (!in_bounds(x,y)) return 0;
@@ -754,8 +760,9 @@ int instr_mount(player_state* ps) {
 
 int instr_dismount(player_state* ps) {
     int d = ps->stack[--ps->sp];
-    int x = ps->vehicle->x;
-    int y = ps->vehicle->y;
+    if (!ps->vehicle) return 0;
+    int x = player_x(ps);
+    int y = player_y(ps);
     move_coord(&x, &y, d, 1);
 
     if (!in_bounds(x,y)) return 0;
@@ -764,15 +771,15 @@ int instr_dismount(player_state* ps) {
     ps->x = x;
     ps->y = y;
     ps->vehicle = NULL;
-    update_events(ps, get_field(x,y)->enter_events);
+    update_events((entity){ ENTITY_PLAYER, ps }, get_field(x,y)->enter_events);
 
     return 1;
 }
 
 int instr_boat(player_state* ps) {
     int d = ps->stack[--ps->sp];
-    int x = ps->x;
-    int y = ps->y;
+    int x = player_x(ps);
+    int y = player_y(ps);
     move_coord(&x, &y, d, 1);
 
     if (!in_bounds(x,y)) return 0;
@@ -787,6 +794,7 @@ int instr_boat(player_state* ps) {
     boat->x = x;
     boat->y = y;
     boat->type = VEHICLE_BOAT;
+    boat->destroy = 0;
     field->vehicle = boat;
     return 1;
 }

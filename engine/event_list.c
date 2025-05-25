@@ -1,6 +1,7 @@
 #include "event_list.h"
 #include "game_state.h"
 #include "array_list.h"
+#include "entity.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -23,12 +24,12 @@ void remove_event(event_list_t* events, int index) {
     array_list.remove(events, index, 0);
 }
 
-int update_events(player_state* player, event_list_t* events) {
+int update_events(entity entity, event_list_t* events) {
 
     int finished_count = 0;
     for(int i = 0; i < events->count; i++) {
         event* e = get_event(events, i);
-        if (e->func && e->func(player, e->data)) { 
+        if (e->func && e->func(entity, e->data)) { 
             e->func = NULL;
             finished_count++;
         }

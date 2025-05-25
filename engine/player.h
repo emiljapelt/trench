@@ -3,7 +3,6 @@
 
 #include "resource_registry.h"
 #include "array_list.h"
-//#include "vehicles.h"
 
 typedef array_list_t event_list_t;
 typedef struct team_state team_state;
@@ -40,5 +39,8 @@ typedef struct player_state {
 } player_state;
 
 player_state* copy_player_state(const player_state*);
+
+int player_x(const player_state*);
+int player_y(const player_state*);
 
 #endif

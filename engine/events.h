@@ -2,9 +2,10 @@
 #define EVENTS_H
 
 #include "player.h"
+#include "entity.h"
 
 // Return 1 if the event is finished, otherwise return 0.
-typedef int (*event_function)(player_state* ps, void* data);
+typedef int (*event_function)(entity e, void* data);
 
 typedef struct bomb_event_args {
     int x;

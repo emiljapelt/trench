@@ -139,7 +139,8 @@ field_visual get_field_data_visual(const int x, const int y, const field_type ty
         case EMPTY: {
             for(int i = 0; i < _gs->players->count; i++) {
                 player_state* player = get_player(_gs->players, i);
-                if (player->x == x && player->y == y && player->alive) {
+
+                if (player->alive && !player->vehicle && player->x == x && player->y == y) {
                     result.symbol = PERSON;
                     result.foreground_color = player->team ? player->team->color : color_predefs.white;
                 }

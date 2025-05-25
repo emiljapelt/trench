@@ -14,6 +14,11 @@ array_list_t* create(int init_size) {
     return new_list;
 }
 
+void free_array_list(array_list_t* list) {
+    free(list->list);
+    free(list);
+}
+
 void add(array_list_t* list, void* data) {
     if (list->count >= list->size) {
         void** new_list = malloc(sizeof(void*) * list->size * 2);
@@ -57,4 +62,5 @@ const array_list_namespace array_list = {
     .add = &add,
     .get = &get,
     .remove = &remove,
+    .free = &free_array_list,
 };
