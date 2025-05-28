@@ -63,4 +63,7 @@ static inline char in_bounds(const int x, const int y) {
 
 void move_coord(int* x, int* y, direction dir, unsigned int dist);
 
+void move_player_to_location(player_state*, location);
+
+
 #endif

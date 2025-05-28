@@ -32,22 +32,12 @@ player_state* copy_player_state(const player_state* ps) {
     new_player->directive = new_directive;
     new_player->directive_len = ps->directive_len;
     new_player->dp = ps->dp;
-    new_player->x = player_x(ps);
-    new_player->y = player_y(ps);
+    new_player->location = (location) { .type = VOID_LOCATION };
     new_player->pager_channel = ps->pager_channel;
     new_player->pager_msgs = array_list.create(10);
     new_player->pre_death_events = array_list.create(10);
     new_player->post_death_events = array_list.create(10);
     new_player->resources = copy_resource_registry(ps->resources);
-    new_player->vehicle = NULL;
 
     return new_player;
-}
-
-int player_x(const player_state* player) {
-    return player->vehicle ? player->vehicle->x : player->x;
-}
-
-int player_y(const player_state* player) {
-    return player->vehicle ? player->vehicle->y : player->y;
 }

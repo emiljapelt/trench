@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <stddef.h>
 
 #include "game_rules.h"
 #include "game_state.h"
@@ -44,8 +45,20 @@ void set_player_steps_and_actions(player_state* ps) {
 }
 
 void kill_player(player_state* ps) {
-    set_overlay(player_x(ps), player_y(ps), COFFIN);
-    set_color_overlay(player_x(ps), player_y(ps), FORE, color_predefs.white);
+    field_state* field = location_field(ps->location);
+    field->symbol_overlay = COFFIN;
+    field->foreground_color_overlay = color_predefs.white;
+    
+
+    switch (ps->location.type) {
+        case VEHICLE_LOCATION: 
+            remove_player_id(ps->location.vehicle->players, ps->id);
+            break;
+        case FIELD_LOCATION:
+            remove_player_id(field->players, ps->id);
+            break;
+    }   
+
     char msg[100];
     sprintf(msg, "%s (#%i) died: %s\n", ps->name, ps->id, (ps->death_msg) ? ps->death_msg : "Unknown reason");
     print_to_feed(msg);
@@ -66,5 +79,40 @@ void move_coord(int* x, int* y, direction dir, unsigned int dist) {
         case EAST: *x += dist; break;
         case SOUTH: *y += dist; break;
         case WEST: *x -= dist; break;
+    }
+}
+
+void move_player_to_location(player_state* player, location loc) {
+    switch (player->location.type) {
+        case VOID_LOCATION: break;
+        case FIELD_LOCATION: { 
+            field_state* field = player->location.field;
+            remove_player_id(field->players, player->id);
+            update_events((entity){ .type = ENTITY_PLAYER, .player = player}, field->exit_events);
+            break;
+        }
+        case VEHICLE_LOCATION: {
+            vehicle_state* vehicle = player->location.vehicle;
+            remove_player_id(vehicle->players, player->id);
+            break;
+        }
+    }
+
+    if (player->death_msg) return;
+
+    player->location = loc;
+    switch (loc.type) {
+        case VOID_LOCATION: break;
+        case FIELD_LOCATION: {
+            field_state* field = location_field(loc);
+            add_player(field->players, player);
+            update_events((entity){ .type = ENTITY_PLAYER, .player = player}, field->enter_events);
+            break;
+        }
+        case VEHICLE_LOCATION: {
+            vehicle_state* vehicle = loc.vehicle;
+            add_player(vehicle->players, player);
+            break;
+        }
     }
 }

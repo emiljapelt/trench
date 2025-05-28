@@ -65,6 +65,7 @@ typedef struct field_state {
     field_type type;
     field_data* data;
     int player_data; // Players can read and write here
+    player_list_t* players;
     event_list_t* enter_events;
     event_list_t* exit_events;
     vehicle_state* vehicle;

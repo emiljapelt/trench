@@ -68,13 +68,14 @@ int is_cover(const int x, const int y) {
 }
 
 int has_player(const int x, const int y) {
-    unsigned int player_found;
-    for(int i = 0; i < _gs->players->count; i++) {
-        player_state* player = get_player(_gs->players, i);
-        if (player->alive && player_x(player) == x && player_y(player) == y)
-            return 1;
-    }
-    return 0;
+    //unsigned int player_found;
+    //for(int i = 0; i < _gs->players->count; i++) {
+    //    player_state* player = get_player(_gs->players, i);
+    //    if (player->alive && player_x(player) == x && player_y(player) == y)
+    //        return 1;
+    //}
+    //return 0;
+    return get_field(x,y)->players->count > 0;
 }
 
 int has_trap(const int x, const int y) {
@@ -142,11 +143,9 @@ void destroy_field(const int x, const int y, char* death_msg) {
             break;
         }
     }
-    for(int i = 0; i < _gs->players->count; i++) {
-        player_state* player = get_player(_gs->players, i);
-        if (player_x(player) == x && player_y(player) == y) {
-            death_mark_player(player, death_msg);
-        }
+    for(int i = 0; i < field->players->count; i++) {
+        player_state* player = get_player(field->players, i);
+        death_mark_player(player, death_msg);
     }
 }
 

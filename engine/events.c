@@ -12,25 +12,27 @@
 
 int mine(entity entity, void* data) {
 
+    // TODO: Should not explode if there are still someone standing on the mine ???
     switch (entity.type) {
         case ENTITY_PLAYER: {
-            for(int i = 0; i < _gs->players->count; i++) {
-                player_state* player = get_player(_gs->players, i);
-                if (player_x(player) == player_x(entity.player) && player_y(player) == player_y(entity.player)) 
-                    death_mark_player(player, "Blown up by a mine");
+            
+            for(int i = 0; i < location_field(entity.player->location)->players->count; i++) {
+                player_state* player = get_player(location_field(entity.player->location)->players, i);
+                death_mark_player(player, "Blown up by a mine");
             }
-            set_overlay(player_x(entity.player), player_y(entity.player), EXPLOSION);
-            set_color_overlay(player_x(entity.player), player_x(entity.player), FORE, color_predefs.red);
-            set_mod_overlay(player_x(entity.player), player_y(entity.player), BOLD);
+
+            location_field(entity.player->location)->symbol_overlay = EXPLOSION;
+            location_field(entity.player->location)->foreground_color_overlay = color_predefs.red;
+            location_field(entity.player->location)->mod_overlay = BOLD;
             return 1;
         }
         
         case ENTITY_VEHICLE: {
             entity.vehicle->destroy = 1;
 
-            set_overlay(entity.vehicle->x, entity.vehicle->y, EXPLOSION);
-            set_color_overlay(entity.vehicle->x, entity.vehicle->y, FORE, color_predefs.red);
-            set_mod_overlay(entity.vehicle->x, entity.vehicle->y, BOLD);
+            location_field(entity.vehicle->location)->symbol_overlay = EXPLOSION;
+            location_field(entity.vehicle->location)->foreground_color_overlay = color_predefs.red;
+            location_field(entity.vehicle->location)->mod_overlay = BOLD;
             return 1;
         }
     }
