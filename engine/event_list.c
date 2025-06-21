@@ -24,7 +24,7 @@ void remove_event(event_list_t* events, int index) {
     array_list.remove(events, index, 0);
 }
 
-int update_events(entity entity, event_list_t* events) {
+int update_events(entity_t* entity, event_list_t* events) {
 
     int finished_count = 0;
     for(int i = 0; i < events->count; i++) {

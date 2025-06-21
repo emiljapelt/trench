@@ -3,7 +3,7 @@
 
 #include "direction.h"
 #include "location.h"
-#include "player_list.h"
+#include "entity_list.h"
 #include "player.h"
 
 typedef enum {
@@ -11,8 +11,9 @@ typedef enum {
 } vehicle_type;
 
 typedef struct vehicle_state {
+    int id;
     vehicle_type type;
-    player_list_t* players;
+    entity_list_t* entities;
     location location;
     unsigned int destroy : 1;
 } vehicle_state;

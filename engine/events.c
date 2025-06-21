@@ -10,29 +10,32 @@
 #include "player.h"
 #include "util.h"
 
-int mine(entity entity, void* data) {
+int mine(entity_t* entity, void* data) {
+    field_args* args = (field_args*)data;
+
+    //if (get_field(args->x, args->y)->players > 1) return 0;
 
     // TODO: Should not explode if there are still someone standing on the mine ???
-    switch (entity.type) {
+    switch (entity->type) {
         case ENTITY_PLAYER: {
             
-            for(int i = 0; i < location_field(entity.player->location)->players->count; i++) {
-                player_state* player = get_player(location_field(entity.player->location)->players, i);
+            for(int i = 0; i < location_field(entity->player->location)->entities->count; i++) {
+                player_state* player = get_player(location_field(entity->player->location)->entities, i);
                 death_mark_player(player, "Blown up by a mine");
             }
 
-            location_field(entity.player->location)->symbol_overlay = EXPLOSION;
-            location_field(entity.player->location)->foreground_color_overlay = color_predefs.red;
-            location_field(entity.player->location)->mod_overlay = BOLD;
+            location_field(entity->player->location)->symbol_overlay = EXPLOSION;
+            location_field(entity->player->location)->foreground_color_overlay = color_predefs.red;
+            location_field(entity->player->location)->mod_overlay = BOLD;
             return 1;
         }
         
         case ENTITY_VEHICLE: {
-            entity.vehicle->destroy = 1;
+            entity->vehicle->destroy = 1;
 
-            location_field(entity.vehicle->location)->symbol_overlay = EXPLOSION;
-            location_field(entity.vehicle->location)->foreground_color_overlay = color_predefs.red;
-            location_field(entity.vehicle->location)->mod_overlay = BOLD;
+            location_field(entity->vehicle->location)->symbol_overlay = EXPLOSION;
+            location_field(entity->vehicle->location)->foreground_color_overlay = color_predefs.red;
+            location_field(entity->vehicle->location)->mod_overlay = BOLD;
             return 1;
         }
     }
@@ -40,12 +43,12 @@ int mine(entity entity, void* data) {
     return 0;
 }
 
-int bomb(entity entity, void* data) {
+int bomb(entity_t* entity, void* data) {
 
-    switch (entity.type) {
+    switch (entity->type) {
         case ENTITY_PLAYER: {
             bomb_event_args* args = (bomb_event_args*)data;
-            if (args->player_id != entity.player->id) return 0;
+            if (args->player_id != entity->player->id) return 0;
             set_overlay(args->x,args->y,EXPLOSION);
             set_color_overlay(args->x,args->y,FORE,color_predefs.red);
             fields.destroy_field(args->x,args->y, "Got blown up");
@@ -56,14 +59,14 @@ int bomb(entity entity, void* data) {
     return 0;
 }
 
-int projection_death(entity entity, void* data) {
+int projection_death(entity_t* entity, void* data) {
 
-    switch (entity.type) {
+    switch (entity->type) {
         case ENTITY_PLAYER: {
             countdown_args* args = (countdown_args*)data;
-            if (!entity.player->alive || !args->player_id == entity.player->id) return 0;
+            if (!entity->player->alive || !args->player_id == entity->player->id) return 0;
             if (args->remaining <= 0) {
-                entity.player->death_msg = "Projection faded";
+                entity->player->death_msg = "Projection faded";
                 return 1;
             }
             else {
@@ -76,15 +79,15 @@ int projection_death(entity entity, void* data) {
     return 0;
 }
 
-int ice_block_melt(entity entity, void* data) {
+int ice_block_melt(entity_t* entity, void* data) {
 
-    switch (entity.type) {
+    switch (entity->type) {
         case ENTITY_PLAYER: {
             ice_block_melt_event_args* args = (ice_block_melt_event_args*)data;
             field_state* field = get_field(args->x, args->y);
 
             if (field->type != ICE_BLOCK) return 1;
-            if (args->player_id != entity.player->id) 
+            if (args->player_id != entity->player->id) 
                 return 0;
             if (args->remaining) {
                 args->remaining--;
@@ -99,11 +102,11 @@ int ice_block_melt(entity entity, void* data) {
     return 0;
 }
 
-int mana_drain(entity entity, void* data) {
+int mana_drain(entity_t* entity, void* data) {
 
-    switch (entity.type) {
+    switch (entity->type) {
         case ENTITY_PLAYER: {
-            spend_resource(entity.player->resources, "mana", peek_resource(entity.player->resources, "mana"));
+            spend_resource(entity->player->resources, "mana", peek_resource(entity->player->resources, "mana"));
             return 1;
         }
     }
@@ -111,12 +114,12 @@ int mana_drain(entity entity, void* data) {
     return 0;
 }
 
-int tree_grow(entity entity, void* data) {
+int tree_grow(entity_t* entity, void* data) {
 
-    switch (entity.type) {
+    switch (entity->type) {
         case ENTITY_PLAYER: {
             field_countdown_args* args = (field_countdown_args*)data;
-            if (entity.player->id != args->player_id) return 0;
+            if (entity->player->id != args->player_id) return 0;
 
             args->remaining--;
             if (args->remaining != 0) return 0;
@@ -131,11 +134,11 @@ int tree_grow(entity entity, void* data) {
     return 0;
 }
 
-int ocean_drowning(entity entity, void* data) {
+int ocean_drowning(entity_t* entity, void* data) {
 
-    switch (entity.type) {
+    switch (entity->type) {
         case ENTITY_PLAYER: {
-            death_mark_player(entity.player, "Drowned");
+            death_mark_player(entity->player, "Drowned");
             return 0;
         }
     }

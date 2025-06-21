@@ -101,9 +101,12 @@ int instr_shoot(player_state* ps) {
         }
         else if (fields.has_player(x,y) && !(fields.is_cover(x,y) || fields.is_shelter(x,y))) {
             field_state* field = get_field(x,y);
-            for(int i = 0; i < field->players->count; i++) {
-                player_state* player = get_player(field->players, i);
-                death_mark_player(player, "Got shot");
+            for(int i = 0; i < field->entities->count; i++) {
+                entity_t* e = get_entity(field->entities, i);
+                if (e->type == ENTITY_PLAYER) {
+                    death_mark_player(e->player, "Got shot");
+                    break;
+                }
             }
             return 1;
         }
@@ -163,10 +166,12 @@ int instr_mine(player_state* ps) {
     char kill = 0;
 
     field_state* field = get_field(x,y);
-    for(int i = 0; i < field->players->count; i++) {
-        player_state* player = get_player(field->players, i);
-        death_mark_player(player, "Hit by a thrown mine"); 
-        kill = 1; 
+    for(int i = 0; i < field->entities->count; i++) {
+        entity_t* e = get_entity(field->entities, i);
+        if (e->type == ENTITY_PLAYER) {
+            death_mark_player(e->player, "Hit by a thrown mine"); 
+            kill = 1; 
+        }
     }
 
     if (!kill) {
@@ -193,18 +198,9 @@ int instr_move(player_state* ps) {
     move_coord(&x, &y, d, 1);
     if(!in_bounds(x,y)) return 0;
     if (fields.is_obstruction(x, y)) return 0;
-    //field_state* field = get_field(x,y);
 
     move_player_to_location(ps, field_location_from_coords(x,y));
 
-    //update_events((entity){ENTITY_PLAYER, ps}, location_field(ps->location)->exit_events);
-    //if (!ps->death_msg) {
-    //    remove_player_id(location_field(ps->location)->players, ps->id);
-    //    field_state* new_field = get_field(x,y);
-    //    ps->location = field_location_from_field(new_field);
-    //    add_player(new_field->players, ps);
-    //    update_events((entity){ENTITY_PLAYER, ps}, location_field(ps->location)->enter_events);
-    //}
     return 1;
 }
 
@@ -216,9 +212,12 @@ int instr_chop(player_state* ps) {
     field_state* field = get_field(x,y);
 
     if (field->type == EMPTY)
-        for(int i = 0; i < field->players->count; i++) {
-            player_state* player = get_player(field->players, i);
-            death_mark_player(player, "Chopped to pieces");
+        for(int i = 0; i < field->entities->count; i++) {
+            entity_t* e = get_entity(field->entities, i);
+            if (e->type == ENTITY_PLAYER) {
+                death_mark_player(e->player, "Chopped to pieces");
+                break;
+            }
         }
     else if (field->type == TREE) {
         fields.remove_field(x,y);
@@ -473,7 +472,7 @@ int instr_read(player_state* ps) {
 
 int instr_projection(player_state* ps) {
     if (!spend_resource(ps->resources, "mana", _gr->settings.projection.cost)) return 0;
-    if (ps->location.type == VEHICLE_LOCATION && !(get_vehicle_capacity(ps->location.vehicle->type) > ps->location.vehicle->players->count)) return 0;
+    if (ps->location.type == VEHICLE_LOCATION && !(get_vehicle_capacity(ps->location.vehicle->type) > ps->location.vehicle->entities->count)) return 0;
 
     player_state* projection = copy_player_state(ps);
 
@@ -482,13 +481,6 @@ int instr_projection(player_state* ps) {
         projection->team->members_alive++;
 
     move_player_to_location(projection, ps->location);
-    // if (ps->vehicle) {
-    //     projection->vehicle = ps->vehicle;
-    //     add_player(ps->vehicle->players, projection);
-    // } else {
-    //     projection->location = ps->location;
-    //     add_player(location_field(ps->location)->players, projection);
-    // }
 
     countdown_args* args = malloc(sizeof(countdown_args));
     args->player_id = projection->id;
@@ -548,9 +540,12 @@ int instr_fireball(player_state* ps) {
         }
         else if (fields.has_player(x,y) && !(fields.is_cover(x,y) || fields.is_shelter(x,y))) {
             field_state* field = get_field(x,y);
-            for(int i = 0; i < field->players->count; i++) {
-                player_state* player = get_player(field->players, i);
-                death_mark_player(player, "Hit by a fireball");
+            for(int i = 0; i < field->entities->count; i++) {
+                entity_t* e = get_entity(field->entities, i);
+                if (e->type = ENTITY_PLAYER) {
+                    death_mark_player(e->player, "Hit by a fireball");
+                    break;
+                }
             }
             return 1;
         }
@@ -649,7 +644,6 @@ int instr_pager_read(player_state* ps) {
         ps->stack[ps->sp++] = 0;
     else {
         void* msg = array_list.get(ps->pager_msgs, 0);
-        //printf("\tread: %i\n", msg); wait(1);
         void** msg_bypass = &msg;
         ps->stack[ps->sp++] = *(int*)msg_bypass;
         array_list.remove(ps->pager_msgs, 0, 0);
@@ -757,12 +751,20 @@ int instr_mount(player_state* ps) {
 
     if (!in_bounds(x,y)) return 0;
     field_state* field = get_field(x,y);
-    if (field->vehicle == NULL) return 0;
-    if (!(field->vehicle->players->count < get_vehicle_capacity(field->vehicle->type))) return 0;
+    
+    vehicle_state* vehicle = NULL;
+    for(int i = 0; i < field->entities->count; i++) {
+        entity_t* e = get_entity(field->entities, i);
+        if (e->type == ENTITY_VEHICLE) 
+        vehicle = e->vehicle;
+    }
+    if (vehicle == NULL) return 0;
 
-    remove_player_id(location_field(ps->location)->players, ps->id);
-    ps->location = vehicle_location(field->vehicle);
-    add_player(field->vehicle->players, ps);
+    if (!(vehicle->entities->count < get_vehicle_capacity(vehicle->type))) return 0;
+
+    remove_entity(location_field(ps->location)->entities, ps->id);
+    ps->location = vehicle_location(vehicle);
+    add_entity(vehicle->entities, entity.of_player(ps));
     return 1;
 }
 
@@ -775,11 +777,11 @@ int instr_dismount(player_state* ps) {
 
     if (!in_bounds(x,y)) return 0;
 
-    remove_player_id(ps->location.vehicle->players, ps->id);
+    remove_entity(ps->location.vehicle->entities, ps->id);
     field_state* field = get_field(x,y);
     ps->location = field_location_from_field(field);
-    add_player(field->players, ps);
-    update_events((entity){ ENTITY_PLAYER, ps }, get_field(x,y)->enter_events);
+    add_entity(field->entities, entity.of_player(ps));
+    update_events(entity.of_player(ps), get_field(x,y)->enter_events);
 
     return 1;
 }
@@ -792,17 +794,17 @@ int instr_boat(player_state* ps) {
 
     if (!in_bounds(x,y)) return 0;
     field_state* field = get_field(x,y);
-    if (field->vehicle != NULL) return 0;
     if (field->type != OCEAN) return 0;
 
     if (!spend_resource(ps->resources, "wood", _gr->settings.boat.cost)) return 0;
 
     vehicle_state* boat = malloc(sizeof(vehicle_state));
-    boat->players = array_list.create(get_vehicle_capacity(VEHICLE_BOAT));
+    boat->id = _gs->id_counter++;
+    boat->entities = array_list.create(get_vehicle_capacity(VEHICLE_BOAT));
     boat->location = field_location_from_field(field);
     boat->type = VEHICLE_BOAT;
     boat->destroy = 0;
-    field->vehicle = boat;
+    add_entity(field->entities, entity.of_vehicle(boat));
     return 1;
 }
 

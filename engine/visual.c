@@ -137,13 +137,44 @@ field_visual get_field_data_visual(const int x, const int y, const field_type ty
             break;
         }
         case EMPTY: {
-            field_state* field = get_field(x,y);
-            if (field->players->count > 0) {
-                player_state* player = get_player(field->players, 0);
-                result.symbol = PERSON;
-                result.foreground_color = player->team ? player->team->color : color_predefs.white;
-            }
+            //field_state* field = get_field(x,y);
+            //if (field->entities->count > 0) {
+            //    entity_t* e = peek_entity(field->entities);
+            //    switch (e->type) {
+            //        case ENTITY_PLAYER:
+            //            result.symbol = PERSON;
+            //            result.foreground_color = e->player->team ? e->player->team->color : color_predefs.white;
+            //            break;
+            //        case ENTITY_VEHICLE:
+            //            switch (e->vehicle->type) {
+            //                case VEHICLE_BOAT:
+            //                    result.foreground_color = color_predefs.white;
+            //                    result.symbol = BOAT_VISUAL;
+            //                    break;
+            //            }
+            //            break;
+            //    }
+            //}
             break;
+        }
+    }
+
+    field_state* field = get_field(x,y);
+    if (field->entities->count > 0) {
+        entity_t* e = peek_entity(field->entities);
+        switch (e->type) {
+            case ENTITY_PLAYER:
+                result.symbol = PERSON;
+                result.foreground_color = e->player->team ? e->player->team->color : color_predefs.white;
+                break;
+            case ENTITY_VEHICLE:
+                switch (e->vehicle->type) {
+                    case VEHICLE_BOAT:
+                        result.foreground_color = color_predefs.white;
+                        result.symbol = BOAT_VISUAL;
+                        break;
+                }
+                break;
         }
     }
     return result;
@@ -153,16 +184,16 @@ field_visual get_field_visual(const int x, const int y, const field_state* field
 
     field_visual result = get_field_data_visual(x,y,field->type,field->data);
 
-    if (field->vehicle) {
-        switch (field->vehicle->type) {
-            case VEHICLE_BOAT: {
-                result.foreground_color = color_predefs.white;
-                result.symbol = BOAT_VISUAL;
-                //result.mod = BOLD;
-                break;
-            }
-        }
-    }
+    //if (field->vehicle) {
+    //    switch (field->vehicle->type) {
+    //        case VEHICLE_BOAT: {
+    //            result.foreground_color = color_predefs.white;
+    //            result.symbol = BOAT_VISUAL;
+    //            //result.mod = BOLD;
+    //            break;
+    //        }
+    //    }
+    //}
 
     if (_gs->board[(y * _gs->board_x) + x].symbol_overlay) {
         char* symbol = _gs->board[(y * _gs->board_x) + x].symbol_overlay;

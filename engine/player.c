@@ -24,7 +24,7 @@ player_state* copy_player_state(const player_state* ps) {
     new_player->death_msg = NULL;
     new_player->team = ps->team;
     new_player->name = strdup(ps->name);
-    new_player->id = _gs->players->count;
+    new_player->id = _gs->id_counter++;
     new_player->stack = new_stack;
     new_player->stack_len = ps->stack_len;
     new_player->sp = ps->sp;

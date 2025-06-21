@@ -2,6 +2,7 @@
 #define FIELDS_H
 
 #include "event_list.h"
+#include "entity_list.h"
 #include "color.h"
 #include "damage.h"
 #include "vehicles.h"
@@ -65,10 +66,11 @@ typedef struct field_state {
     field_type type;
     field_data* data;
     int player_data; // Players can read and write here
-    player_list_t* players;
+    //player_list_t* players;
+    entity_list_t* entities;
     event_list_t* enter_events;
     event_list_t* exit_events;
-    vehicle_state* vehicle;
+    //vehicle_state* vehicle;
 } field_state;
 
 typedef struct field_builders {

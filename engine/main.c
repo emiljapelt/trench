@@ -14,6 +14,7 @@
 #include "util.h"
 #include "instructions.h"
 #include "compiler_wrapper.h"
+#include "entity.h"
 
 void debug_print(player_state* ps) {
     fprintf(stderr,"\nPlayer %s(%i)\n%i\n", ps->name, ps->id, ps->directive[ps->dp]); wait(0.5);
@@ -25,10 +26,10 @@ void debug_print(player_state* ps) {
 
 void try_kill_player(player_state* ps) {
     if (ps->alive && ps->death_msg != NULL) {
-        update_events((entity){ENTITY_PLAYER, ps}, ps->pre_death_events);
+        update_events(entity.of_player(ps), ps->pre_death_events);
         if (ps->alive && ps->death_msg != NULL) {
             kill_player(ps);
-            update_events((entity){ENTITY_PLAYER, ps}, ps->post_death_events);
+            update_events(entity.of_player(ps), ps->post_death_events);
         }
     }
 }
@@ -376,7 +377,7 @@ void play_round_sync() {
         change = 0;
         for(i = 0; i < player_count; i++) {
             player_state* player = get_player(_gs->players, i);
-            int finished_events = update_events((entity) { ENTITY_PLAYER, player }, _gs->events);
+            int finished_events = update_events(entity.of_player(player), _gs->events);
             if (finished_events) change++;
         }
         if (change || _gs->feed_point) { print_board(); wait(1); }
@@ -451,7 +452,7 @@ void play_round_async() {
     const int player_count = _gs->players->count;
     for(int i = 0; i < player_count; i++) {
         player_state* player = get_player(_gs->players, i);
-        int finished_events = update_events((entity){ ENTITY_PLAYER, player }, _gs->events);
+        int finished_events = update_events(entity.of_player(player), _gs->events);
         if (finished_events) { print_board(); wait(1); }
         kill_players();
         if (_gs->feed_point) { print_board(); wait(1); }

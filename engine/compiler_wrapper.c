@@ -28,10 +28,9 @@ field_state* create_board(char* map_data, const int x, const int y) {
             .type = EMPTY,
             .data = NULL,
             .player_data = 0,
-            .players = array_list.create(4),
+            .entities = array_list.create(10),
             .enter_events = array_list.create(10),
             .exit_events = array_list.create(10),
-            .vehicle = NULL,
         };
         if (map_data) switch(map_data[(_y * x) + _x]) {
             case '+': {
@@ -217,6 +216,7 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 .round = 1,
                 .board_x = board_x,
                 .board_y = board_y,
+                .id_counter = 0,
                 .players = array_list.create(player_count + 1),
                 .board = board,// empty_board(board_x, board_y),
                 .feed_point = 0,
@@ -249,7 +249,7 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 player->death_msg = NULL;
                 player->team = &gs->team_states[Int_val(Field(player_info, 0))];
                 player->name = strdup(String_val(Field(player_info, 1)));
-                player->id = i;
+                player->id = gs->id_counter++;
                 player->stack = di.stack;
                 player->stack_len = di.regs + gr->stack_size;
                 player->sp = di.regs;
@@ -270,9 +270,9 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                     init_resource(player->resources, strdup(String_val(Field(resource, 0))), Int_val(Field(Field(resource, 1), 0)), Int_val(Field(Field(resource, 1), 1)));
                 }
                 add_player(gs->players, player);
-                add_player(
-                    get_field(player_x, player_y)->players,
-                    player
+                add_entity(
+                    get_field(player_x, player_y)->entities, 
+                    entity.of_player(player)
                 );
             }
             memset(gs->feed_buffer, 0, feed_size+1);

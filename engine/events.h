@@ -5,7 +5,7 @@
 #include "entity.h"
 
 // Return 1 if the event is finished, otherwise return 0.
-typedef int (*event_function)(entity e, void* data);
+typedef int (*event_function)(entity_t* e, void* data);
 
 typedef struct bomb_event_args {
     int x;
@@ -24,6 +24,11 @@ typedef struct field_countdown_args {
     int x;
     int y;
 } field_countdown_args;
+
+typedef struct field_args {
+    int x;
+    int y;
+} field_args;
 
 typedef struct ice_block_melt_event_args {
     int x;

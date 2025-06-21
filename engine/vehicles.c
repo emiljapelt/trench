@@ -13,16 +13,11 @@ int boat_move(vehicle_state* v, direction d) {
     move_coord(&x, &y, d, 1);
 
     field_state* target = get_field(x,y);
-    if (target->type == OCEAN && target->vehicle == NULL) {
-        update_events((entity) { ENTITY_VEHICLE, .vehicle = v }, location_field(v->location)->exit_events);
-        if (!v->destroy) {
-            location_field(v->location)->vehicle = NULL;
-            target->vehicle = v;
-            v->location = field_location_from_field(target);
-            update_events((entity) { ENTITY_VEHICLE, .vehicle = v }, target->enter_events);
-        }
-        else
-            destroy_vehicle(v, "AAAA boat gone!");
+    if (target->type == OCEAN) {
+
+        move_vehicle_to_location(v, field_location_from_field(target));
+        if (v->destroy)
+            destroy_vehicle(v, "The boat sank");
 
         return 1;
     }
@@ -44,22 +39,30 @@ int get_vehicle_capacity(vehicle_type type) {
 }
 
 void destroy_vehicle(vehicle_state* v, char* death_msg) {
-    player_list_t* players = v->players;
+    entity_list_t* entities = v->entities;
     location loc = v->location;
+
+    for(int i = 0; i < entities->count; i++) {    
+        entity_t* e = get_entity(entities, i);
+
+        move_entity_to_location(e, loc);
+        //switch (e->type) {
+        //    case ENTITY_PLAYER:
+        //        move_player_to_location(e->player, loc);
+        //        break;
+        //    
+        //    case ENTITY_VEHICLE:
+        //        move_vehicle_to_location(e->vehicle, loc);
+        //        break;
+        //}
+    }
 
     switch (v->type) {
         case VEHICLE_BOAT: {
-            location_field(loc)->vehicle = NULL;
+            move_vehicle_to_location(v, (location){ .type = VOID_LOCATION });
             free(v);
         }
     }
 
-    for(int i = 0; i < players->count; i++) {    
-        player_state* player = get_player(players, i);
-        death_mark_player(player, death_msg);
-        player->location = loc;
-        add_player(location_field(loc)->players, player);
-    }
-
-    array_list.free(players);
+    array_list.free(entities);
 }

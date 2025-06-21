@@ -27,6 +27,7 @@ typedef struct game_state {
     int round;
     int board_x;
     int board_y;
+    int id_counter;
     player_list_t* players;
     field_state* board;
     int feed_point;
@@ -64,6 +65,8 @@ static inline char in_bounds(const int x, const int y) {
 void move_coord(int* x, int* y, direction dir, unsigned int dist);
 
 void move_player_to_location(player_state*, location);
+void move_vehicle_to_location(vehicle_state*, location);
+void move_entity_to_location(entity_t*, location);
 
 
 #endif
