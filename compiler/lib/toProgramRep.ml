@@ -17,7 +17,6 @@ let fetch_var_index name vars =
   aux vars 0
 
 
-
 let rec compile_value val_expr (state:compile_state) acc =
   match val_expr with
   | Reference target -> compile_target_index target state (Instr_Access :: acc)
@@ -81,6 +80,19 @@ and compile_target_index target (state:compile_state) acc = match target with
     Instr_Place :: I(t_type_size) :: compile_value i state (Instr_Mul :: compile_target_index t state (Instr_Add :: acc))
 
 
+and compile_assignment target expr state acc =
+    let target_type = type_value state (Reference target) in
+    let expr_type = type_value state expr in
+    match target_type, expr_type, expr with
+    | T_Array(_,st), T_Array(_,se), Reference(e) -> (
+      let num = min st se in
+      List.init num (fun i -> i)
+      (*|> List.fold_left (fun acc i -> compile_target_index (Array(target, Int(i))) state (compile_value (Reference(Array(e,Int(i)))) state (Instr_Assign :: acc))) acc*)
+      |> List.fold_left (fun acc i -> compile_assignment (Array(target, Int(i))) (Reference(Array(e,Int(i)))) state acc) acc
+    )
+    | _,_,_ -> compile_target_index target state (compile_value expr state (Instr_Assign :: acc))
+
+
 and compile_stmt (Stmt(stmt,ln)) (state:compile_state) acc =
   try match stmt with
   | If (expr, s1, s2) -> (
@@ -122,10 +134,7 @@ and compile_stmt (Stmt(stmt,ln)) (state:compile_state) acc =
     | Some label -> Instr_GoTo :: LabelRef(label) :: acc
     | None -> raise_failure "Nothing to break out of"
   )
-  (*| Assign (Local target, aexpr) -> 
-    Instr_Place :: I(fetch_var_index target state.vars) :: compile_value aexpr state (Instr_Assign :: acc)*)
-  | Assign (target, expr) ->
-    compile_target_index target state (compile_value expr state (Instr_Assign :: acc))
+  | Assign (target, expr) -> compile_assignment target expr state acc
   | Label name -> Label name :: acc
   | Unit stmt -> (
     let instr = match stmt with

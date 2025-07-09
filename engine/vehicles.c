@@ -42,19 +42,8 @@ void destroy_vehicle(vehicle_state* v, char* death_msg) {
     entity_list_t* entities = v->entities;
     location loc = v->location;
 
-    for(int i = 0; i < entities->count; i++) {    
-        entity_t* e = get_entity(entities, i);
-
-        move_entity_to_location(e, loc);
-        //switch (e->type) {
-        //    case ENTITY_PLAYER:
-        //        move_player_to_location(e->player, loc);
-        //        break;
-        //    
-        //    case ENTITY_VEHICLE:
-        //        move_vehicle_to_location(e->vehicle, loc);
-        //        break;
-        //}
+    for(int i = 0; i < entities->count; i++) {
+        move_entity_to_location(get_entity(entities, i), loc);
     }
 
     switch (v->type) {

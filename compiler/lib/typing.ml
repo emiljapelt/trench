@@ -7,9 +7,16 @@ let rec type_string t = match t with
   | T_Field -> "field"
   | T_Array(t,_) -> (type_string t) ^ "[]"
 
+let rec type_eq t1 t2 = match t1,t2 with
+  | T_Int, T_Int
+  | T_Dir, T_Dir
+  | T_Field, T_Field -> true
+  | T_Array(st1,_), T_Array(st2,_) -> type_eq st1 st2
+  | _ -> false
+
 let require req_typ expr_t res = 
-  if req_typ = expr_t then res ()
-  else raise_failure ("required type: '" ^type_string req_typ ^"'")
+  if type_eq req_typ expr_t then res ()
+  else raise_failure ("required type: '" ^type_string req_typ^ "' but got :'" ^type_string expr_t^ "'")
 
 let var_type vars name = 
   match List.find_opt (fun (Var(_,vn)) -> vn = name) vars with
@@ -79,7 +86,7 @@ and type_meta m = match m with
     | BoardX      
     | BoardY 
     | PlayerID
-    | PlayerResource _ -> T_Int     
+    | PlayerResource _ -> T_Int
 
 
 let rec type_check_stmt_inner state stmt = match stmt with
