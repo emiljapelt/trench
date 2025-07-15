@@ -87,7 +87,6 @@ and compile_assignment target expr state acc =
     | T_Array(_,st), T_Array(_,se), Reference(e) -> (
       let num = min st se in
       List.init num (fun i -> i)
-      (*|> List.fold_left (fun acc i -> compile_target_index (Array(target, Int(i))) state (compile_value (Reference(Array(e,Int(i)))) state (Instr_Assign :: acc))) acc*)
       |> List.fold_left (fun acc i -> compile_assignment (Array(target, Int(i))) (Reference(Array(e,Int(i)))) state acc) acc
     )
     | _,_,_ -> compile_target_index target state (compile_value expr state (Instr_Assign :: acc))

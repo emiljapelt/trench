@@ -5,6 +5,7 @@ trench
 *.trg
 *.trc
 *.exe
+*.log
 .vscode
 node_modules
 package-lock.json

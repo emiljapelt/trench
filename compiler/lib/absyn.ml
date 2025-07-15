@@ -181,6 +181,7 @@ type game_setup_part =
     | TimeScale of float
     | Map of map
     | SettingOverwrites of setting_overwrites list
+    | Debug of bool
 
 type game_setup = GS of {
     teams: team_info list;
@@ -196,4 +197,5 @@ type game_setup = GS of {
     time_scale: float;
     map: map;
     setting_overwrites: setting_overwrites list;
+    debug: bool;
 }

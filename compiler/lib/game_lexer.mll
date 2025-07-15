@@ -27,6 +27,9 @@
                         "inf", INFINITE;
                         "of", OF;
                         "settings", SETTINGS;
+                        "false", FALSE;
+                        "true", TRUE;
+                        "debug", DEBUG;
                       ]
   
   let char_of_string s lexbuf = match s with

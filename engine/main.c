@@ -15,6 +15,7 @@
 #include "instructions.h"
 #include "compiler_wrapper.h"
 #include "entity.h"
+#include "log.h"
 
 void debug_print(player_state* ps) {
     fprintf(stderr,"\nPlayer %s(%i)\n%i\n", ps->name, ps->id, ps->directive[ps->dp]); wait(0.5);
@@ -44,6 +45,7 @@ void player_turn_async(player_state* ps) {
         if (ps->dp >= ps->directive_len) { return; }
         if (!use_resource(1,&ps->remaining_steps)) return;
         //debug_print(ps);
+        _log(DEBUG, "%s executes %i", ps->name, ps->directive[ps->dp]);
         switch (ps->directive[ps->dp++]) {
             case Meta_PlayerX: change = meta_player_x(ps);break;
             case Meta_PlayerY: change = meta_player_y(ps);break;
@@ -221,6 +223,7 @@ turn_action player_turn_sync(player_state* ps) {
         if (ps->dp >= ps->directive_len) return inactive();
         if (!use_resource(1,&ps->remaining_steps)) return inactive();
         // debug_print(ps);
+        _log(DEBUG, "%s executes %i", ps->name, ps->directive[ps->dp]);
         switch (ps->directive[ps->dp++]) {
             case Meta_PlayerX: meta_player_x(ps);break;
             case Meta_PlayerY: meta_player_y(ps);break;
@@ -353,12 +356,14 @@ char* first_team_alive() {
 void check_win_condition() {
     switch (teams_alive(_gs)) {
         case 0:
+            _log(INFO, "--- GAME END ---");
             printf("GAME OVER: Everyone is dead...\n"); 
             printf("seed: %i\n", _gr->seed);
             exit(0);
         case 1:
             if (_gs->team_count == 1) break;
             else {
+                _log(INFO, "--- GAME END ---");
                 printf("Team %s won!\n", first_team_alive()); 
                 printf("seed: %i\n", _gr->seed);
                 exit(0);
@@ -528,7 +533,7 @@ void manual_mode() {
 
 int main(int argc, char** argv) {
 
-    // srand((unsigned) time(NULL));
+    _log(INFO, "--- STARTING GAME ---");
 
     if (argc < 2) {
         printf("Too few arguments given, needs: <game_file_path>\n");
@@ -538,11 +543,15 @@ int main(int argc, char** argv) {
     _gr = malloc(sizeof(game_rules));
     _gs = malloc(sizeof(game_state));
 
+    _log(INFO, "--- COMPILING ----");
+
     if(!compile_game(argv[1], _gr, _gs)) return 1;
 
     clear_screen();
     print_board();
     wait(1);
+
+    _log(INFO, "--- RUNNING ---");
 
     if (_gr->mode == 0) static_mode();
     else if (_gr->mode < 0) manual_mode();

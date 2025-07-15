@@ -15,6 +15,7 @@
 #include "resource_registry.h"
 #include "player_list.h"
 #include "fields.h"
+#include "log.h"
 
 field_state* create_board(char* map_data, const int x, const int y) {
     int size = sizeof(field_state)*x*y;
@@ -175,6 +176,8 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 srand(seed);
             }
 
+            _log(INFO, "seed: %i", seed);            
+
             *gr = (game_rules) {
                 .actions = Int_val(Field(unwrapped_result, 0)),
                 .steps = Int_val(Field(unwrapped_result, 1)),
@@ -184,6 +187,7 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 .seed = seed,
                 .time_scale = (float)Double_val(Field(unwrapped_result, 13)),
                 .stack_size = 1000,
+                .debug = Bool_val(Field(unwrapped_result, 15)),
             };
 
             load_instruction_settings(gr, Field(unwrapped_result, 14));

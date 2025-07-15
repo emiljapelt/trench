@@ -77,6 +77,7 @@ let default_game_setup = GS {
   seed = None;
   time_scale = 1.0;
   setting_overwrites = [];
+  debug = false;
 }
 
 let valid_map_chars = ['\n'; '\r'; '.'; '+'; '~'; 'T'; 'w']
@@ -116,6 +117,7 @@ let to_game_setup gsps =
       | Seed s -> GS ({acc with seed = s})
       | TimeScale f -> if (f >= 0.0) then GS ({acc with time_scale = f}) else raise_failure "Time scale option cannot be negative"
       | SettingOverwrites so -> (GS ({acc with setting_overwrites = so}))
+      | Debug b -> (GS ({acc with debug = b}))
     )
   in
   aux gsps default_game_setup
@@ -192,6 +194,7 @@ type compiled_game_file = {
   seed: int option;
   time_scale: float;
   settings: settings;
+  debug: bool;
 }
 
 let compile_player_file path = try (
@@ -286,6 +289,7 @@ let format_game_setup (GS gs) =
     time_scale = gs.time_scale;
     map = gs.map;
     settings = overwrite_settings default_settings gs.setting_overwrites;
+    debug = gs.debug;
   }
 
 let check_resources (GS gs) = 
