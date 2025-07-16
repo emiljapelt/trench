@@ -533,7 +533,7 @@ void manual_mode() {
 
 int main(int argc, char** argv) {
 
-    _log(INFO, "--- STARTING GAME ---");
+    _log(INFO, "--- STARTING ---");
 
     if (argc < 2) {
         printf("Too few arguments given, needs: <game_file_path>\n");
@@ -552,6 +552,7 @@ int main(int argc, char** argv) {
     wait(1);
 
     _log(INFO, "--- RUNNING ---");
+    _log_force();
 
     if (_gr->mode == 0) static_mode();
     else if (_gr->mode < 0) manual_mode();

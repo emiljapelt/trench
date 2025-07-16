@@ -9,8 +9,8 @@
 #include "util.h"
 #include "visual.h"
 
-game_state* _gs;
-game_rules* _gr;
+game_state* _gs = NULL; 
+game_rules* _gr = NULL;
 
 
 void set_color_overlay(const int x, const int y, color_target ct, color* c) {
