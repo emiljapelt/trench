@@ -291,7 +291,10 @@ void get_new_directive(player_state* ps) {
         printf("%s#%i, change directive?:\n0: No change\n1: Reload file\n2: New file\n", ps->name, ps->id);
         scanf(" %c",&option);
         switch (option) {
-            case '0': return;
+            case '0': {
+                _log(INFO, "%s: no change", ps->name);
+                return;
+            }
             case '1': {
                 path = ps->path;
                 break;
@@ -308,7 +311,6 @@ void get_new_directive(player_state* ps) {
         }
 
         directive_info di;
-        printf("loading %s...\n", path);
         if (compile_player(path, _gr->stack_size, &di)) {
             if (do_free) free(ps->path);
             free(ps->directive);
@@ -319,6 +321,7 @@ void get_new_directive(player_state* ps) {
             ps->dp = 0;
             ps->directive_len = di.dir_len;
             ps->path = path;
+            _log(INFO, "%s: change to %s", ps->name, path);
             return;
         }
     }
@@ -356,16 +359,16 @@ char* first_team_alive() {
 void check_win_condition() {
     switch (teams_alive(_gs)) {
         case 0:
-            _log(INFO, "--- GAME END ---");
+            _log(INFO, "--- GAME END: Everyone is dead ---");
+            _log_force();
             printf("GAME OVER: Everyone is dead...\n"); 
-            printf("seed: %i\n", _gr->seed);
             exit(0);
         case 1:
             if (_gs->team_count == 1) break;
             else {
-                _log(INFO, "--- GAME END ---");
+                _log(INFO, "--- GAME END: %s won! ---", first_team_alive());
+                _log_force();
                 printf("Team %s won!\n", first_team_alive()); 
-                printf("seed: %i\n", _gr->seed);
                 exit(0);
             }
         default: break;
@@ -532,8 +535,6 @@ void manual_mode() {
 
 
 int main(int argc, char** argv) {
-
-    _log(INFO, "--- STARTING ---");
 
     if (argc < 2) {
         printf("Too few arguments given, needs: <game_file_path>\n");
