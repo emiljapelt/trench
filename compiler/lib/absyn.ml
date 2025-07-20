@@ -76,6 +76,7 @@ and directional_statement =
     | Mount
     | Dismount
     | Boat
+    | BearTrap
 
 and option_directional_statement =
     | Trench

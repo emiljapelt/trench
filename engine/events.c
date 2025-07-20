@@ -13,16 +13,11 @@
 int mine(entity_t* entity, void* data) {
     field_args* args = (field_args*)data;
 
-    //if (get_field(args->x, args->y)->players > 1) return 0;
+    if (get_field(args->x, args->y)->entities->count > 0) return 0;
 
-    // TODO: Should not explode if there are still someone standing on the mine ???
     switch (entity->type) {
         case ENTITY_PLAYER: {
-            
-            for(int i = 0; i < location_field(entity->player->location)->entities->count; i++) {
-                player_state* player = get_player(location_field(entity->player->location)->entities, i);
-                death_mark_player(player, "Blown up by a mine");
-            }
+            death_mark_player(entity->player, "Blown up by a mine");
 
             location_field(entity->player->location)->symbol_overlay = EXPLOSION;
             location_field(entity->player->location)->foreground_color_overlay = color_predefs.red;
@@ -146,6 +141,34 @@ int ocean_drowning(entity_t* entity, void* data) {
     return 0;
 }
 
+int bear_trap_escape(entity_t* entity, void* data) {
+    if (entity->type == ENTITY_PLAYER) {
+        player_event_args* args = (player_event_args*)data;
+        if (args->player_id != entity->player->id) return 0;
+        entity->player->remaining_actions = 0;
+        entity->player->remaining_steps = 0;
+        return 1;
+    }
+    return 1;
+}
+
+int bear_trap_trigger(entity_t* entity, void* data) {
+    if (entity->type == ENTITY_PLAYER) {
+        entity->player->remaining_actions = 0;
+        entity->player->remaining_steps = 0;
+
+        player_event_args* args = malloc(sizeof(player_event_args));
+        args->player_id = entity->player->id;
+        add_event(
+            _gs->events,
+            PHYSICAL_EVENT,
+            &bear_trap_escape,
+            args
+        );
+    }
+    return 1;
+}
+
 const events_namespace events = {
     .bomb = &bomb,
     .mine = &mine,
@@ -154,4 +177,6 @@ const events_namespace events = {
     .mana_drain = &mana_drain,
     .tree_grow = &tree_grow,
     .ocean_drowning = &ocean_drowning,
+    .bear_trap_trigger = &bear_trap_trigger,
+    .bear_trap_escape = &bear_trap_escape,
 };

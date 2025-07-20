@@ -160,6 +160,7 @@ and compile_stmt (Stmt(stmt,ln)) (state:compile_state) acc =
     | Mount -> Instr_Mount
     | Dismount -> Instr_Dismount
     | Boat -> Instr_Boat
+    | BearTrap -> Instr_BearTrap
     in
     compile_value dir state (instr :: acc)
   )

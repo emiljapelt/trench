@@ -171,11 +171,32 @@ void player_turn_async(player_state* ps) {
                 change = instr_bridge(ps);
                 break;
             }
-            case Instr_Collect: change = instr_collect(ps); break;
+            case Instr_Collect: {
+                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
+                change = instr_collect(ps); 
+                break;
+            }
             case Instr_Say: change = instr_say(ps); break;
-            case Instr_Mount: change = instr_mount(ps); break;
-            case Instr_Dismount: change = instr_dismount(ps); break;
-            case Instr_Boat: change = instr_boat(ps); break;
+            case Instr_Mount: {
+                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
+                change = instr_mount(ps); 
+                break;
+            }
+            case Instr_Dismount: {
+                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
+                change = instr_dismount(ps); 
+                break;
+            }
+            case Instr_Boat: {
+                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
+                change = instr_boat(ps); 
+                break;
+            } 
+            case Instr_BearTrap: {
+                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
+                change = instr_bear_trap(ps); 
+                break;
+            }
             default: return;
         }
 

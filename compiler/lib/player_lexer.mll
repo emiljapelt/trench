@@ -50,6 +50,7 @@
                         "mount", MOUNT;
                         "dismount", DISMOUNT;
                         "boat", BOAT;
+                        "bear_trap", BEAR_TRAP;
                       ] 
   
   let char_of_string s lexbuf = match s with

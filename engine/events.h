@@ -7,6 +7,10 @@
 // Return 1 if the event is finished, otherwise return 0.
 typedef int (*event_function)(entity_t* e, void* data);
 
+typedef struct player_event_args {
+    int player_id;
+} player_event_args;
+
 typedef struct bomb_event_args {
     int x;
     int y;
@@ -46,6 +50,8 @@ typedef struct events_namespace {
     event_function mana_drain;
     event_function tree_grow;
     event_function ocean_drowning;
+    event_function bear_trap_trigger;
+    event_function bear_trap_escape;
 } events_namespace;
 extern const events_namespace events;
 

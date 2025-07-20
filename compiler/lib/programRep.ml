@@ -64,6 +64,7 @@ type instruction =
   | Instr_Mount
   | Instr_Dismount
   | Instr_Boat
+  | Instr_BearTrap
 
 let instruction_to_int label_map instr = match instr with
     | I i -> Some i
@@ -127,6 +128,7 @@ let instruction_to_int label_map instr = match instr with
     | Instr_Mount -> Some 55
     | Instr_Dismount -> Some 56
     | Instr_Boat -> Some 57
+    | Instr_BearTrap -> Some 58
 
 let label_set pp =
   let rec aux pp set = match pp with

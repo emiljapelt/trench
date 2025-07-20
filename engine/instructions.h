@@ -77,6 +77,7 @@ typedef enum {
   Instr_Mount = 55,
   Instr_Dismount = 56,
   Instr_Boat = 57,
+  Instr_BearTrap = 58,
 } instruction;
 
 // all instructions return 1 if the board should be updated, and 0 if not.
@@ -176,10 +177,15 @@ int instr_mine(player_state* ps) {
 
     if (!kill) {
         field->symbol_overlay = MINE;
+        field->foreground_color_overlay = color_predefs.white;
+        field_args* args = malloc(sizeof(field_args));
+        args->x = x;
+        args->y = y;
         add_event(
             field->exit_events,
             PHYSICAL_EVENT,
-            events.mine, NULL
+            events.mine, 
+            args
         );
     }
     return 1;
@@ -805,6 +811,28 @@ int instr_boat(player_state* ps) {
     boat->type = VEHICLE_BOAT;
     boat->destroy = 0;
     add_entity(field->entities, entity.of_vehicle(boat));
+    return 1;
+}
+
+int instr_bear_trap(player_state* ps) {
+    direction d = (direction)ps->stack[--ps->sp];
+    // TODO: figure out a resource for this
+    //if(!spend_resource(ps->resources, "explosive", 1)) return 0;
+
+    int x, y;
+    location_coords(ps->location, &x, &y);
+    move_coord(&x, &y, d, 1);
+    if (!in_bounds(x,y)) return 0;
+    field_state* field = get_field(x,y);
+    
+    field->symbol_overlay = BEAR_TRAP;
+    field->foreground_color_overlay = color_predefs.white;
+    add_event(
+        field->enter_events,
+        PHYSICAL_EVENT,
+        events.bear_trap_trigger, NULL
+    );
+
     return 1;
 }
 

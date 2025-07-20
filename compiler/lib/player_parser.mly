@@ -46,7 +46,7 @@
 %token PAGER_READ PAGER_WRITE PAGER_SET
 %token IF ELSE IS REPEAT WHILE CONTINUE BREAK
 %token GOTO MEDITATE DISPEL DISARM MANA_DRAIN PLANT_TREE BRIDGE
-%token MOVE FORTIFY WAIT PASS TRENCH WALL PROJECTION FREEZE FIREBALL
+%token MOVE FORTIFY WAIT PASS TRENCH WALL PROJECTION FREEZE FIREBALL BEAR_TRAP
 %token NORTH EAST SOUTH WEST BOMB SHOOT LOOK SCAN MINE CHOP COLLECT
 %token INT DIR FIELD L_SHIFT R_SHIFT
 %token READ WRITE SAY MOUNT DISMOUNT BOAT
@@ -215,7 +215,7 @@ non_control_flow_stmt:
   | WRITE value                       { features ["ipc"] ; Write $2 }
   | PAGER_WRITE value                 { features ["ipc"] ; PagerWrite $2 }
   | PAGER_SET value                   { features ["ipc"] ; PagerSet $2 }
-  | SHOOT value                       { themeing ["military";"forestry"] ; Directional(Shoot, $2) }
+  | SHOOT value                       { themeing ["military"; "forestry"] ; Directional(Shoot, $2) }
   | MINE value                        { themeing ["military"] ; Directional(Mine, $2) }
   | BOMB simple_value simple_value    { themeing ["military"] ; Targeting(Bomb, $2, $3) }
   | FREEZE simple_value simple_value  { themeing ["wizardry"] ; Targeting(Freeze, $2, $3) }
@@ -231,6 +231,7 @@ non_control_flow_stmt:
   | MOUNT value                       { Directional(Mount, $2) }
   | DISMOUNT value                    { Directional(Dismount, $2) }
   | BOAT value                        { Directional(Boat, $2) }
+  | BEAR_TRAP value                   { themeing ["forestry"] ; Directional(BearTrap, $2) }
 ;
 
 direction:
