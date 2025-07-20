@@ -59,7 +59,7 @@ rule lex = parse
     |   "//" [^ '\n' '\r']* ('\r''\n' | '\n' | eof)       { incr_linenum lexbuf ; lex lexbuf }
     |  '-'? ['0'-'9']+ as lxm { CSTINT (int_of_string lxm) }
     |  '-'? ['0'-'9']+ '.' ['0'-'9']+ as lxm { CSTFLOAT (Float.of_string lxm) }
-    |   ['A'-'Z' 'a'-'z' '/' '.']['A'-'Z' 'a'-'z' '0'-'9' '/' '_' '.']* as id
+    |   ['A'-'Z' 'a'-'z' '/' '.' '_']['A'-'Z' 'a'-'z' '0'-'9' '/' '_' '.']* as id
                 { try
                     Hashtbl.find keyword_table id
                   with Not_found -> WORD id }
