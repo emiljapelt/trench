@@ -4,10 +4,10 @@
   open Themes
   open Features
   
-  let missing_player_info name file =
+  let missing_player_info name files =
     String.concat ", " ([
       if Option.is_none name then Some "name" else None;
-      if Option.is_none file then Some "file" else None;
+      if Option.is_none files then Some "files" else None;
     ] |> List.filter Option.is_some |> List.map Option.get)
 
   let missing_team_info name color players =
@@ -18,14 +18,14 @@
     ] |> List.filter Option.is_some |> List.map Option.get)
 
   let player_info_fields_to_player_info pifs =
-    let rec aux pifs name origin file = match pifs with
-      | [] -> ( match name, origin, file with
-        | Some name, origin, Some file -> (PI{team = -1; name = name; origin = origin; file = file;})
-        | _ -> raise_failure ("Player info missing: " ^ missing_player_info name file)
+    let rec aux pifs name origin files = match pifs with
+      | [] -> ( match name, origin, files with
+        | Some name, origin, Some files -> (PI{team = -1; name = name; origin = origin; files = files;})
+        | _ -> raise_failure ("Player info missing: " ^ missing_player_info name files)
       )
-      | PlayerName n :: t -> aux t (Some n) origin file
-      | PlayerOrigin(x,y) :: t -> aux t name (x,y) file
-      | PlayerFile f :: t -> aux t name origin (Some f)
+      | PlayerName n :: t -> aux t (Some n) origin files
+      | PlayerOrigin(x,y) :: t -> aux t name (x,y) files
+      | PlayerFiles f :: t -> aux t name origin (Some f)
     in
     aux pifs None (0,0) None
 
@@ -48,7 +48,7 @@
 %token <string> WORD
 %token LPAR RPAR LBRACE RBRACE OF DOT 
 %token COMMA SEMI COLON EOF STAR FEATURES COLOR INFINITE MANUAL TRUE FALSE DEBUG
-%token PLAYER RESOURCES THEMES TIME_SCALE SEED ACTIONS STEPS MODE MAP NUKE NAME TEAM ORIGIN FILE EXEC_MODE SYNC ASYNC SETTINGS
+%token PLAYER RESOURCES THEMES TIME_SCALE SEED ACTIONS STEPS MODE MAP NUKE NAME TEAM ORIGIN FILES EXEC_MODE SYNC ASYNC SETTINGS
 /*Low precedence*/
 
 /*High precedence*/
@@ -75,7 +75,7 @@ main:
 player_info:
   | NAME COLON WORD SEMI? { PlayerName $3 }
   | ORIGIN COLON CSTINT COMMA CSTINT SEMI? { PlayerOrigin($3, $5) }
-  | FILE COLON WORD SEMI? { PlayerFile $3 }
+  | FILES COLON seperated(COMMA, WORD) SEMI? { PlayerFiles $3 }
 ;
 
 team_info:

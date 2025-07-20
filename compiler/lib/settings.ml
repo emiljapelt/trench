@@ -61,9 +61,9 @@ type settings = {
   boat: capacity_cost_setting;
 }
 
-type 'a overwrite = (string * ('a -> int -> 'a)) list
+type ('a, 'b) overwrite = (string * ('a -> 'b -> 'a)) list
 
-let rec overwritter (def : 'a overwrite) (setting : 'a) (overwrites : (string * int) list) = match overwrites with
+let rec overwritter (def : ('a, 'b) overwrite) (setting : 'a) (overwrites : (string * 'b) list) = match overwrites with
   | [] -> setting
   | (name,value)::t -> (match List.find_opt (fun (n,_) -> n = name ) def with
     | Some(_,f) -> overwritter def (f setting value) t
@@ -111,7 +111,6 @@ let capacity_cost_setting_overwrite = overwritter [
   ("capacity", fun s v -> {s with capacity = v});
   ("cost", fun s v -> {s with cost = v})
 ]
-
 
 let rec overwrite_settings settings overwrites = 
   match overwrites with

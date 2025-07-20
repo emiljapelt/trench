@@ -176,6 +176,8 @@ type compiled_player_info = {
   position: int * int;
   file: string;
   directive: int array;
+  extra_files_count: int;
+  extra_files: string array;
 }
 
 type compiled_game_file = {
@@ -210,7 +212,14 @@ let compile_player_file path = try (
 | Failure _ as f -> Error(format_failure f)
 
 let game_setup_player (PI player) = 
-  let p = match compile_player_file player.file with
+  let (file, files) = match player.files with
+  | [] -> raise_failure ("Player with no files: " ^ player.name) 
+  | h::t -> (h,t)
+  in
+  let check_files = List.fold_left (fun acc file -> if (file = "_") then Ok([||])::acc else compile_player_file file :: acc) [] files in 
+  let failure = List.find_opt Result.is_error check_files in 
+  if Option.is_some failure then raise_failure (failure |> Option.get |> Result.get_error) else
+  let p = match compile_player_file file with
     | Ok p -> p
     | Error msg -> raise_failure msg
   in
@@ -218,8 +227,10 @@ let game_setup_player (PI player) =
     team = player.team;
     name = player.name;
     position = player.origin;
-    file = player.file;
+    file = List.hd player.files;
     directive = p;
+    extra_files_count = List.length files;
+    extra_files = files |> List.rev |> Array.of_list;
   }
 
 let set_themes ts =

@@ -35,7 +35,7 @@ typedef struct player_state {
     event_list_t* pre_death_events;
     event_list_t* post_death_events;
     resource_registry* resources;
-    //struct vehicle_state* vehicle;
+    array_list_t* extra_files;
 } player_state;
 
 player_state* copy_player_state(const player_state*);

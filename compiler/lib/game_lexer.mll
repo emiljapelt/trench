@@ -13,7 +13,7 @@
                         "team", TEAM;
                         "name", NAME;
                         "origin", ORIGIN;
-                        "file", FILE;
+                        "files", FILES;
                         "features", FEATURES;
                         "exec_mode", EXEC_MODE;
                         "sync", SYNC;

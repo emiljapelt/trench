@@ -64,7 +64,7 @@ void _log(log_entry_type type, char* format, ...) {
     va_end(args);
 }
 
-void _log_force() {
+void _log_flush() {
     FILE* file;
     if (_index) {
         file = fopen(log_path, "a");

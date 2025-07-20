@@ -144,7 +144,7 @@ let rec type_size t = match t with
 type player_info_field =
     | PlayerName of string
     | PlayerOrigin of int * int
-    | PlayerFile of string
+    | PlayerFiles of string list
 
 type team_info_field =
     | TeamName of string
@@ -152,7 +152,7 @@ type team_info_field =
     | TeamOrigin of int * int
     | TeamPlayer of player_info
 
-and player_info = PI of { team: int; name: string; origin: int * int; file: string }
+and player_info = PI of { team: int; name: string; origin: int * int; files: string list }
 type team_info = TI of { name: string; color: (int*int*int); origin: int * int; players: player_info list }
 
 type resource = string * (int * int)

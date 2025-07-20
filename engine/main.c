@@ -283,13 +283,30 @@ turn_action player_turn_sync(player_state* ps) {
     }
 }
 
-void get_new_directive(player_state* ps) {      
+void get_new_directive(player_state* ps) {
     while(1) {
         char* path;
         char option;
         int do_free = 0;
-        printf("%s#%i, change directive?:\n0: No change\n1: Reload file\n2: New file\n", ps->name, ps->id);
-        scanf(" %c",&option);
+
+        if (ps->extra_files->count) {
+            int index = ps->extra_files->count - 1;
+            char* next = array_list.get(ps->extra_files, index);
+            array_list.remove(ps->extra_files, index, 0);
+            if (strcmp("_", next) == 0) {
+                option = '0';
+            } 
+            else {
+                option = '1';
+                free(ps->path);
+                ps->path = next;
+            }
+        }
+        else {   
+            printf("%s#%i, change directive?:\n0: No change\n1: Reload file\n2: New file\n", ps->name, ps->id);
+            scanf(" %c",&option);
+        }
+
         switch (option) {
             case '0': {
                 _log(INFO, "%s: no change", ps->name);
@@ -360,14 +377,14 @@ void check_win_condition() {
     switch (teams_alive(_gs)) {
         case 0:
             _log(INFO, "--- GAME END: Everyone is dead ---");
-            _log_force();
+            _log_flush();
             printf("GAME OVER: Everyone is dead...\n"); 
             exit(0);
         case 1:
             if (_gs->team_count == 1) break;
             else {
                 _log(INFO, "--- GAME END: %s won! ---", first_team_alive());
-                _log_force();
+                _log_flush();
                 printf("Team %s won!\n", first_team_alive()); 
                 exit(0);
             }
@@ -482,6 +499,7 @@ void play_round() {
             play_round_sync();
             break;
     }
+    _log_flush();
 }
 
 // Mode: 0
@@ -553,7 +571,7 @@ int main(int argc, char** argv) {
     wait(1);
 
     _log(INFO, "--- RUNNING ---");
-    _log_force();
+    _log_flush();
 
     if (_gr->mode == 0) static_mode();
     else if (_gr->mode < 0) manual_mode();

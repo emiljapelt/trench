@@ -9,6 +9,6 @@ typedef enum {
 } log_entry_type;
 
 void _log(log_entry_type type, char* format, ...);
-void _log_force();
+void _log_flush();
 
 #endif
