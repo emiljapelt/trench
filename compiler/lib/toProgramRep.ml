@@ -3,6 +3,7 @@ open ProgramRep
 open Exceptions
 open Typing
 open Field_props
+open Transform
 
 (*** Compiling functions ***)
 
@@ -70,6 +71,18 @@ let rec compile_value val_expr (state:compile_state) acc =
   | Decrement(target, false) ->  compile_target_index target state (Instr_Copy :: Instr_Access :: Instr_Swap :: Instr_Copy :: Instr_Access :: Instr_Place :: I(1) :: Instr_Sub :: Instr_Assign :: acc)
   | PagerRead -> Instr_PagerRead :: acc
   | Read -> Instr_Read :: acc
+  | Func(_,params,body) -> (
+    let func_label = Helpers.new_label () in
+    let end_label = Helpers.new_label () in
+    let (vars,body) = pull_out_declarations body in
+    let new_state = {vars = (List.map (fun (t,n) -> Var(t,n)) params) @ vars; break = None; continue = None} in
+    let vars_instr = List.map (fun _ -> [Instr_Place ; I(0)]) vars |> List.flatten in
+    Instr_GoTo :: LabelRef(end_label) :: Label(func_label) :: vars_instr @ compile_stmt body new_state (Instr_Place :: I(0) :: Instr_Return :: Label(end_label) :: Instr_Place :: LabelRef(func_label) :: acc)
+  )
+  | Call(f,args) -> (
+    let comped_args = List.map (fun arg -> compile_value arg state []) args |> List.flatten in
+    comped_args @ (compile_value f state (Instr_Place :: I(List.length args) :: Instr_Call :: acc))
+  )
 
 
 and compile_target_index target (state:compile_state) acc = match target with
@@ -187,6 +200,7 @@ and compile_stmt (Stmt(stmt,ln)) (state:compile_state) acc =
   | PagerWrite v -> compile_value v state (Instr_PagerWrite :: acc)
   | Write v -> compile_value v state (Instr_Write :: acc)
   | Say v -> compile_value v state (Instr_Say :: acc)
+  | Return v -> compile_value v state (Instr_Return :: acc)
   | DeclareAssign _ -> failwith "DeclareAssign still present"
   with 
   | Failure(p,None,msg) -> raise (Failure(p,Some ln, msg))

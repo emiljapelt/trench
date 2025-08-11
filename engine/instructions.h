@@ -17,6 +17,7 @@
 #include "resource_registry.h"
 #include "fields.h"
 #include "entity.h"
+#include "log.h"
 
 typedef enum {
   Meta_PlayerX = 0,
@@ -78,6 +79,8 @@ typedef enum {
   Instr_Dismount = 56,
   Instr_Boat = 57,
   Instr_BearTrap = 58,
+  Instr_Call = 59,
+  Instr_Return = 60,
 } instruction;
 
 // all instructions return 1 if the board should be updated, and 0 if not.
@@ -340,7 +343,8 @@ int instr_access(player_state* ps) {
         death_mark_player(ps, "Had an aneurysm");
         return 0;
     }
-    ps->stack[ps->sp-1] = ps->stack[num];
+    ps->stack[ps->sp-1] = ps->stack[ps->bp + num];
+    _log(DEBUG, "ACCESS: v: %i, bp: %i, target: %i", ps->stack[ps->sp-1], ps->bp, num);
     return 0;
 }
 
@@ -353,7 +357,8 @@ int instr_goto_if(player_state* ps) {
     int v = ps->stack[--ps->sp];
     if (v)
         ps->dp = ps->directive[ps->dp];
-    else ps->dp++;
+    else 
+        ps->dp++;
     return 0;
 }
 
@@ -435,7 +440,8 @@ int instr_assign(player_state* ps) {
         death_mark_player(ps, "Had an aneurysm");
         return 0;
     }
-    ps->stack[target] = v;
+    ps->stack[ps->bp + target] = v;
+    _log(DEBUG, "ASSIGN: v: %i, bp: %i, target: %i", v, ps->bp, target);
     return 0;
 }
 
@@ -834,6 +840,37 @@ int instr_bear_trap(player_state* ps) {
     );
 
     return 1;
+}
+
+int instr_call(player_state* ps) {
+    int arg_count = ps->stack[--ps->sp];
+    int func_addr = ps->stack[--ps->sp];
+
+    int args[arg_count];
+    memcpy(args, &ps->stack[ps->sp - arg_count], sizeof(int) * arg_count);
+
+    ps->sp -= arg_count;
+    int old_bp = ps->bp;
+    int old_dp = ps->dp;
+
+    ps->stack[ps->sp++] = old_bp;
+    ps->stack[ps->sp++] = old_dp;
+    ps->bp = ps->sp;
+    memcpy(&ps->stack[ps->sp], args, sizeof(int) * arg_count);
+    ps->sp += arg_count;
+    ps->dp = func_addr;
+    _log(DEBUG, "f_addr: %i, args: %i", func_addr, arg_count);
+}
+
+int instr_return(player_state* ps) {
+    int ret = ps->stack[--ps->sp];
+    int old_dp = ps->stack[ps->bp - 1];
+    int old_bp = ps->stack[ps->bp - 2];
+
+    ps->dp = old_dp;
+    ps->bp = old_bp;
+    ps->stack[ps->sp++] = ret;
+    _log(DEBUG, "RETURN: ret:%i old_dp: %i, old_bp: %i", ret, old_dp, old_bp);
 }
 
 #endif

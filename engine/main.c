@@ -18,7 +18,7 @@
 #include "log.h"
 
 void debug_print(player_state* ps) {
-    fprintf(stderr,"\nPlayer %s(%i)\n%i\n", ps->name, ps->id, ps->directive[ps->dp]); wait(0.5);
+    fprintf(stderr,"\nPlayer %s(%i)\ninstr:%i\ndp:%i\nbp:%i\nsp:%i\n", ps->name, ps->id, ps->directive[ps->dp], ps->dp, ps->bp, ps->sp); wait(0.5);
     for(int i = 0; i < ps->sp; i++) {
         fprintf(stderr,"%i, ", ps->stack[i]); wait(0.1);
     }
@@ -197,6 +197,8 @@ void player_turn_async(player_state* ps) {
                 change = instr_bear_trap(ps); 
                 break;
             }
+            case Instr_Call: change = instr_call(ps); break;
+            case Instr_Return: change = instr_return(ps); break;
             default: return;
         }
 
@@ -503,6 +505,7 @@ void play_round_async() {
         kill_players();
         if (_gs->feed_point) { print_board(); wait(1); }
         if (player->alive) {
+            _log(DEBUG, "Turn: %s (#%i)", player->name, player->id);
             player_turn_async(player);
             set_player_steps_and_actions(player);
         }
@@ -521,6 +524,7 @@ void play_round() {
             break;
     }
     _log_flush();
+    clear_screen();
 }
 
 // Mode: 0

@@ -258,6 +258,7 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 player->id = gs->id_counter++;
                 player->stack = di.stack;
                 player->stack_len = di.regs + gr->stack_size;
+                player->bp = 0;
                 player->sp = di.regs;
                 player->path = strdup(String_val(Field(player_info, 3)));
                 player->directive = di.directive;

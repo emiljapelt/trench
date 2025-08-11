@@ -155,7 +155,7 @@ let default_settings : settings = {
   bridge = { cost = 20 };
   chop = { sapling_chance = 30; wood_gain = 10; };
   fortify = { cost = 5 };
-  projection = { cost = 50; duration = 3 };
+  projection = { cost = 50; duration = 10 };
   freeze = { cost = 25; duration = 2; range = 5; };
   look = { range = -1; };
   scan = { range = -1; };

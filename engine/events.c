@@ -59,7 +59,7 @@ int projection_death(entity_t* entity, void* data) {
     switch (entity->type) {
         case ENTITY_PLAYER: {
             countdown_args* args = (countdown_args*)data;
-            if (!entity->player->alive || !args->player_id == entity->player->id) return 0;
+            if (!entity->player->alive || args->player_id != entity->player->id) return 0;
             if (args->remaining <= 0) {
                 entity->player->death_msg = "Projection faded";
                 return 1;
@@ -133,6 +133,7 @@ int ocean_drowning(entity_t* entity, void* data) {
 
     switch (entity->type) {
         case ENTITY_PLAYER: {
+            if (location_field(entity->player->location)->type != OCEAN) return 0;
             death_mark_player(entity->player, "Drowned");
             return 0;
         }

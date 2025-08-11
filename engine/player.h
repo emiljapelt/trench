@@ -22,6 +22,7 @@ typedef struct player_state {
     char* name;
     int* stack;
     int stack_len;
+    int bp;
     int sp;
     char* path;
     int* directive;

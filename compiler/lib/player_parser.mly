@@ -44,12 +44,12 @@
 %token COMMA SEMI COLON DOT EOF
 %token QMARK PLUSPLUS MINUSMINUS
 %token PAGER_READ PAGER_WRITE PAGER_SET
-%token IF ELSE IS REPEAT WHILE CONTINUE BREAK
+%token IF ELSE IS REPEAT WHILE CONTINUE BREAK LET
 %token GOTO MEDITATE DISPEL DISARM MANA_DRAIN PLANT_TREE BRIDGE
 %token MOVE FORTIFY WAIT PASS TRENCH WALL PROJECTION FREEZE FIREBALL BEAR_TRAP
 %token NORTH EAST SOUTH WEST BOMB SHOOT LOOK SCAN MINE CHOP COLLECT
 %token INT DIR FIELD L_SHIFT R_SHIFT
-%token READ WRITE SAY MOUNT DISMOUNT BOAT
+%token READ WRITE SAY MOUNT DISMOUNT BOAT RETURN
 
 /*Low precedence*/
 %left LOGIC_OR
@@ -80,11 +80,17 @@ main:
   stmt* EOF     { (File ([],$1)) }
 ;
 
-typ:
+simple_typ:
   | INT { T_Int }
   | DIR { T_Dir }
   | FIELD { T_Field }
+  //| LPAR typ RPAR { $2 }
+;
+
+typ:
   | typ LBRAKE CSTINT RBRAKE { T_Array($1,$3) }
+  | simple_typ COLON LPAR seperated_or_empty(COMMA, simple_typ) RPAR { T_Func($1, $4) }
+  | simple_typ { $1 }
 ;
 
 block:
@@ -94,7 +100,7 @@ block:
 const_value:
   | CSTINT      { Int $1 }
   | direction   { Direction $1 }
-  | error { raise (Failure(Some $symbolstartpos.pos_fname, Some $symbolstartpos.pos_lnum, "Expected a constant value")) }
+  //| error { raise (Failure(Some $symbolstartpos.pos_fname, Some $symbolstartpos.pos_lnum, "Expected a constant value")) }
 ;
 
 simple_value:
@@ -120,6 +126,12 @@ value:
   | target PLUSPLUS                    { features ["sugar"] ; Increment($1, false)}
   | MINUSMINUS target                  { features ["sugar"] ; Decrement($2, true)}
   | target MINUSMINUS                  { features ["sugar"] ; Decrement($1, false)}
+  | simple_typ COLON LPAR seperated_or_empty(COMMA,func_arg) RPAR stmt           { features ["func"] ; Func($1, $4, $6) }
+  | simple_value LPAR seperated_or_empty(COMMA, value) RPAR { features ["func"] ; Call($1, $3) }
+;
+
+func_arg:
+  | simple_typ NAME { ($1,$2) }
 ;
 
 %inline binop:
@@ -168,9 +180,10 @@ stmt1_inner:
   | BREAK SEMI                                { features ["loops"] ; Break }
   | CONTINUE SEMI                             { features ["loops"] ; Continue }
   | GOTO NAME SEMI                            { GoTo $2 }
-  | LABEL                                     { Label $1 }
+  | NAME COLON                                { Label $1 }
   | REPEAT CSTINT stmt1                       { features ["loops"] ; Block(List.init $2 (fun _ -> $3)) }
   | REPEAT LPAR CSTINT RPAR stmt1             { features ["loops"] ; Block(List.init $3 (fun _ -> $5)) }
+  | RETURN value SEMI                         { features ["func"] ; Return $2 }
   | non_control_flow_stmt SEMI                { $1 }
 ;
 
@@ -199,7 +212,8 @@ non_control_flow_stmt:
   | target L_SHIFT EQ value  { features ["memory"; "sugar"] ; Assign ($1, Binary_op("<<", Reference $1, $4)) }
   | target R_SHIFT EQ value  { features ["memory"; "sugar"] ; Assign ($1, Binary_op(">>", Reference $1, $4)) }
   | typ NAME               { features ["memory"] ; Declare($1,$2) }
-  | typ NAME EQ value      { features ["memory"] ; DeclareAssign($1,$2,$4) }
+  | typ NAME EQ value      { features ["memory"] ; DeclareAssign(Some $1, $2, $4) }
+  | LET NAME EQ value      { features ["memory"; "sugar"] ; DeclareAssign(None, $2, $4) }
   | target PLUSPLUS        { features ["memory"; "sugar"] ; Assign ($1, Binary_op("+", Reference $1, Int 1)) }
   | PLUSPLUS target        { features ["memory"; "sugar"] ; Assign ($2, Binary_op("+", Reference $2, Int 1)) }
   | target MINUSMINUS      { features ["memory"; "sugar"] ; Assign ($1, Binary_op("-", Reference $1, Int 1)) }

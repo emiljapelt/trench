@@ -140,7 +140,7 @@ let compile parser lexer transforms checks compiler stringer path =
   with 
   | Failure(None,ln,msg) -> raise (Failure(Some path,ln,msg))
   | Failure _ as f -> raise f
-  | _ -> raise (Failure(Some path, None, "Parser error"))
+  (*| _ -> raise (Failure(Some path, None, "Parser error"))*)
   
 
 let check_vars_unique (File(regs,_)) =

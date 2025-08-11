@@ -26,6 +26,7 @@ and typ =
     | T_Dir
     | T_Field
     | T_Array of typ * int
+    | T_Func of typ * typ list
 
 and statement =
     | Stmt of statement_inner * int
@@ -45,7 +46,7 @@ and statement_inner =
     | Label of string
     | GoTo of string
     | Declare of typ * string
-    | DeclareAssign of typ * string * value
+    | DeclareAssign of typ option * string * value
     | Write of value
     | PagerSet of value
     | PagerWrite of value
@@ -54,6 +55,7 @@ and statement_inner =
     | OptionDirectional of option_directional_statement * value option
     | Targeting of targeting_statement * value * value
     | Say of value
+    | Return of value
 
 and unit_statement =
     | Wait
@@ -103,6 +105,8 @@ and value =
     | FieldProp of value * field_prop
     | Read
     | PagerRead
+    | Func of typ * (typ * string) list * statement
+    | Call of value * value list
 
 and meta_data =
     | PlayerX     (* #x *)
@@ -139,6 +143,7 @@ let int_of_dir d = match d with
 let rec type_size t = match t with
     | T_Int 
     | T_Dir 
+    | T_Func _
     | T_Field -> 1
     | T_Array(t,s) -> s * (type_size t)
 

@@ -8,6 +8,7 @@
 #include "player.h"
 #include "util.h"
 #include "visual.h"
+#include "log.h"
 
 game_state* _gs = NULL; 
 game_rules* _gr = NULL;
@@ -62,6 +63,7 @@ void kill_player(player_state* ps) {
     char msg[100];
     sprintf(msg, "%s (#%i) died: %s\n", ps->name, ps->id, (ps->death_msg) ? ps->death_msg : "Unknown reason");
     print_to_feed(msg);
+    _log(INFO, msg);
     ps->alive = 0;
     ps->death_msg = NULL;
     if (ps->team)

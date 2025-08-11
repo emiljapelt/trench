@@ -69,11 +69,13 @@ let rec optimize_value expr =
   | Read
   | Reference Local _ -> expr
   | Reference(Array(_,_)) -> expr
+  | Func(ret,args,body) -> Func(ret,args,optimize_stmt body)
+  | Call(f,args) -> Call(optimize_value f, List.map optimize_value args)
 
-let optimize_assign_target tar = match tar with
-      | _ -> tar
+and optimize_assign_target tar = match tar with
+  | _ -> tar
 
-let rec optimize_stmt (Stmt(stmt_i,ln) as stmt) = 
+and optimize_stmt (Stmt(stmt_i,ln) as stmt) = 
   try (match stmt_i with
   | If(c,a,b) -> ( match optimize_value c with
     | Int 0 -> optimize_stmt b
@@ -93,6 +95,7 @@ let rec optimize_stmt (Stmt(stmt_i,ln) as stmt) =
   | Directional(stmt,d) -> Stmt(Directional(stmt,optimize_value d),ln)
   | OptionDirectional(stmt,d) -> Stmt(OptionDirectional(stmt,Option.map optimize_value d),ln)
   | Targeting(stmt,dir,dis) -> Stmt(Targeting(stmt,optimize_value dir, optimize_value dis),ln)
+  | Return v -> Stmt(Return(optimize_value v),ln)
   | Declare _
   | GoTo _
   | Label _

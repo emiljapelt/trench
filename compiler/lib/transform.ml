@@ -27,7 +27,8 @@ let rec pull_out_declarations stmt = match stmt with
     let (regsi,si) = pull_out_declarations si in
     (regs@regsi,Stmt(While(v,s,Some si),ln))
   | Stmt(Declare(typ,n),ln) -> ([Var(typ,n)], Stmt(Block [],ln))
-  | Stmt(DeclareAssign(typ,n,v),ln) -> ([Var(typ,n)], Stmt(Assign(Local n, v),ln))
+  | Stmt(DeclareAssign(Some typ,n,v),ln) -> ([Var(typ,n)], Stmt(Assign(Local n, v),ln))
+  | Stmt(DeclareAssign(None,_,_),_) -> (failwith "Untyped declaration meet in declaration pull out phase")
   | _ -> ([], stmt)
 
 let pull_out_declarations_of_file (File(_,stmts)) = 
@@ -52,6 +53,11 @@ and rename_variables_of_value map v = match v with
   | FieldProp(v,f) -> FieldProp(rename_variables_of_value map v, f)
   | Decrement(target,pre) -> Decrement(rename_variables_of_target map target, pre)
   | Increment(target,pre) -> Increment(rename_variables_of_target map target, pre)
+  | Func(ret,params,body) -> (
+    let (_,_,renamed_body) = rename_variables_of_stmt 0 (StringMap.of_list(List.map (fun (_,n) -> (n,n)) params)) body in
+    Func(ret,params,renamed_body)
+  )
+  | Call(f,args) -> Call(rename_variables_of_value map f, List.map (rename_variables_of_value map) args)
   | _ -> v
 
 and rename_variables_of_stmt i map (Stmt(stmt,ln)) = match stmt with
@@ -101,6 +107,7 @@ and rename_variables_of_stmt i map (Stmt(stmt,ln)) = match stmt with
     let new_name = n^"_"^string_of_int i in
     (i+1,StringMap.add n new_name map,Stmt(DeclareAssign(t,new_name,rename_variables_of_value map v),ln))
   | Say v -> (i,map,Stmt(Say(rename_variables_of_value map v),ln))
+  | Return v -> (i,map,Stmt(Return(rename_variables_of_value map v),ln))
   | _ -> (i,map,Stmt(stmt,ln))
 
 let rename_variables_of_file (File(regs,stmts)) =

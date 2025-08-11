@@ -27,6 +27,7 @@ player_state* copy_player_state(const player_state* ps) {
     new_player->id = _gs->id_counter++;
     new_player->stack = new_stack;
     new_player->stack_len = ps->stack_len;
+    new_player->bp = ps->bp;
     new_player->sp = ps->sp;
     new_player->path = strdup(ps->path);
     new_player->directive = new_directive;
@@ -38,6 +39,8 @@ player_state* copy_player_state(const player_state* ps) {
     new_player->pre_death_events = array_list.create(10);
     new_player->post_death_events = array_list.create(10);
     new_player->resources = copy_resource_registry(ps->resources);
+    new_player->remaining_actions = _gr->actions;
+    new_player->remaining_steps = _gr->steps;
 
     return new_player;
 }

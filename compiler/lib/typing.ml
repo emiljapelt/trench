@@ -6,25 +6,35 @@ let rec type_string t = match t with
   | T_Dir -> "dir"
   | T_Field -> "field"
   | T_Array(t,_) -> (type_string t) ^ "[]"
+  | T_Func(r,args) -> (type_string r) ^ ":(" ^ (args |> List.map type_string |> String.concat ",")  ^ ")"
 
 let rec type_eq t1 t2 = match t1,t2 with
   | T_Int, T_Int
   | T_Dir, T_Dir
   | T_Field, T_Field -> true
   | T_Array(st1,_), T_Array(st2,_) -> type_eq st1 st2
+  | T_Func(ret, params), T_Func(ret', params') -> 
+    List.length params = List.length params' 
+    && List.combine params params' |> List.for_all (fun (p,p') -> type_eq p p')
+    && type_eq ret ret'  
   | _ -> false
 
 let require req_typ expr_t res = 
   if type_eq req_typ expr_t then res ()
   else raise_failure ("required type: '" ^type_string req_typ^ "' but got :'" ^type_string expr_t^ "'")
 
+let _string_of_vars vars = 
+  vars 
+  |> List.map (fun (Var(_,n)) -> n) 
+  |> String.concat ", "
+
 let var_type vars name = 
   match List.find_opt (fun (Var(_,vn)) -> vn = name) vars with
   | Some Var(t,_) -> t
-  | None -> raise_failure ("No such variable: "^name)
+  | None -> raise_failure ("No such variable: "^name ^ ":::" ^ _string_of_vars vars)
 
-let rec type_value (state:compile_state) v = match v with
-    | Reference Local n -> var_type state.vars n  
+let rec type_value state v = match v with
+    | Reference Local n -> var_type state.vars n
     | Reference Array(target,idx) -> (
       require T_Int (type_value state idx) (fun () -> ()) ;
       match type_value state (Reference target) with 
@@ -79,6 +89,22 @@ let rec type_value (state:compile_state) v = match v with
     )
     | PagerRead
     | Read -> T_Int
+    | Func(ret,args,_) -> T_Func(ret, List.map fst args)
+    | Call(f,args) -> (
+      let f_type = type_value state f in match f_type with
+      | T_Func(ret, params) -> (
+        if List.length params != List.length args then raise_failure "Incorrect amount of arguments"
+        else if not (
+          args 
+          |> List.map (type_value state) 
+          |> List.combine params
+          |> List.for_all (fun (p, a) -> type_eq p a)
+        )
+        then raise_failure "Argument type mismatch"
+        else ret
+      )
+      | _ -> raise_failure "Not a callable type"
+    )
 
 and type_meta m = match m with
     | PlayerX     
@@ -90,57 +116,69 @@ and type_meta m = match m with
 
 
 let rec type_check_stmt_inner state stmt = match stmt with
-  | If(c,a,b) -> require T_Int (type_value state c) (fun () -> type_check_stmt state a |> ignore ; type_check_stmt state b |> ignore ; state)
+  | If(c,a,b) -> require T_Int (type_value state c) (fun () -> type_check_stmt state a |> ignore ; type_check_stmt state b |> ignore ; (stmt, state))
   | IfIs(v,alts,opt) -> 
     let v_typ = type_value state v in
     let (alt_vs, alt_stmts) = List.split alts in
     let _ = List.iter (fun v -> require v_typ (type_value state v) (fun _ -> state) |> ignore) alt_vs in
     type_check_stmts state alt_stmts |> ignore ;
     Option.map (type_check_stmt state) opt |> ignore ;
-    state
-  | Block stmts -> type_check_stmts state stmts
+    (stmt, state)
+  | Block stmts -> (
+    let (state', stmts') = type_check_stmts state stmts in
+    (Block stmts', state')
+  )
   | While(v,s,None) -> 
-    require T_Int (type_value state v) (fun () -> type_check_stmt state s |> ignore ; state)
+    require T_Int (type_value state v) (fun () -> type_check_stmt state s |> ignore ; (stmt,state))
   | While(v,s,Some si) -> 
-    require T_Int (type_value state v) (fun () -> type_check_stmt state s |> ignore ; type_check_stmt state si |> ignore ; state)
-  | Assign(Local n,e) -> require (var_type state.vars n) (type_value state e) (fun () -> state)
-
+    require T_Int (type_value state v) (fun () -> type_check_stmt state s |> ignore ; type_check_stmt state si |> ignore ; (stmt, state))
+  | Assign(Local n,e) -> require (var_type state.vars n) (type_value state e) (fun () -> (stmt,state))
   | Assign(Array(target, index), e) -> (
     require T_Int (type_value state index) (fun () -> 
       match type_value state (Reference target) with
-      | T_Array(t,_) -> require (t) (type_value state e) (fun () -> state)
+      | T_Array(t,_) -> require (t) (type_value state e) (fun () -> (stmt,state))
       | _ -> raise_failure "array assignment to non-array"
     )
   )
-
-  | Directional(_,dir) -> require T_Dir (type_value state dir) (fun () -> state)
-  | OptionDirectional(_,None) -> state
-  | OptionDirectional(_,Some dir) -> require T_Dir (type_value state dir) (fun () -> state)
+  | Directional(_,dir) -> require T_Dir (type_value state dir) (fun () -> (stmt,state))
+  | OptionDirectional(_,None) -> (stmt,state)
+  | OptionDirectional(_,Some dir) -> require T_Dir (type_value state dir) (fun () -> (stmt,state))
   | Targeting(_,dir,dis) -> 
     require T_Dir (type_value state dir) (fun () -> 
-      require T_Int (type_value state dis) (fun () -> state)
+      require T_Int (type_value state dis) (fun () -> (stmt,state))
     )
-  | DeclareAssign(t,n,v) -> require t (type_value state v) (fun () -> {state with vars = Var(t,n)::state.vars})
-  | Declare(t,n) -> {state with vars = Var(t,n)::state.vars}
+  | DeclareAssign(Some t,n,v) -> require t (type_value state v) (fun () -> (stmt, {state with vars = Var(t,n)::state.vars}))
+  | DeclareAssign(None, n, v) -> (
+    let typ = type_value state v in
+    (DeclareAssign(Some typ, n, v), {state with vars = Var(typ,n)::state.vars})
+  )
+  | Declare(t,n) -> (stmt, {state with vars = Var(t,n)::state.vars})
   | GoTo _
   | Label _
   | Continue
   | Break
-  | Unit _ -> state
+  | Unit _ -> (stmt, state)
   | PagerSet v
   | PagerWrite v
-  | Write v -> require T_Int (type_value state v) (fun () -> state)
-  | Say v -> require T_Int (type_value state v) (fun () -> state)
+  | Write v -> require T_Int (type_value state v) (fun () -> (stmt, state))
+  | Say v -> require T_Int (type_value state v) (fun () -> (stmt, state))
+  | Return _ -> (stmt, state) (* Need actual typing, maybe save a type option in the state, containing the return of the current func *)
 
 and type_check_stmt regs (Stmt(stmt,ln)) = 
   try 
-    type_check_stmt_inner regs stmt
+    let (stmt', state') = type_check_stmt_inner regs stmt in
+    (Stmt(stmt', ln), state')
   with 
   | Failure(p, None, msg) -> raise (Failure(p, Some ln, msg))
   | e -> raise e
 
-and type_check_stmts regs stmts =
-  List.fold_left (fun regs stmt -> type_check_stmt regs stmt) regs stmts |> ignore ; regs
+and type_check_stmts state stmts =
+  let (state, stmts) = List.fold_left (fun (state, stmts) stmt -> 
+    let (stmt', state') = type_check_stmt state stmt in 
+    (state', stmt'::stmts)
+  ) (state,[]) stmts 
+  in
+  (state, List.rev stmts)
 
 let type_check_program (File(vars,prog)) =
-  type_check_stmts {vars = vars; break = None; continue = None} prog |> ignore ; File(vars,prog)
+  let (_, prog') = type_check_stmts {vars = vars; break = None; continue = None} prog in File(vars,prog')
