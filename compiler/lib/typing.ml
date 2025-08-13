@@ -1,4 +1,5 @@
 open Absyn
+open ProgramRep
 open Exceptions
 
 let rec type_string t = match t with
@@ -162,7 +163,13 @@ let rec type_check_stmt_inner state stmt = match stmt with
   | PagerWrite v
   | Write v -> require T_Int (type_value state v) (fun () -> (stmt, state))
   | Say v -> require T_Int (type_value state v) (fun () -> (stmt, state))
-  | Return _ -> (stmt, state) (* Need actual typing, maybe save a type option in the state, containing the return of the current func *)
+  | Return v -> ( match state.ret_type with
+      | None -> raise_failure "Return statement outside function"
+      | Some ret_type -> 
+        let v_type = type_value state v in
+        if not(type_eq ret_type v_type) then raise_failure ("Return type mismatch: expected '" ^type_string ret_type^ "', but got '" ^type_string v_type^ "'")
+        else (stmt, state)
+  )
 
 and type_check_stmt regs (Stmt(stmt,ln)) = 
   try 
@@ -181,4 +188,4 @@ and type_check_stmts state stmts =
   (state, List.rev stmts)
 
 let type_check_program (File(vars,prog)) =
-  let (_, prog') = type_check_stmts {vars = vars; break = None; continue = None} prog in File(vars,prog')
+  let (_, prog') = type_check_stmts {vars = vars; labels = available_labels (Stmt(Block prog,0)); break = None; continue = None; ret_type = None;} prog in File(vars,prog')

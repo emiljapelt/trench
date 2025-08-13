@@ -124,8 +124,10 @@ and file =
 
 type compile_state = {
     vars: variable list;
+    labels: StringSet.t;
     break: string option;
     continue: string option;
+    ret_type: typ option;
 }
 
 let string_of_dir d = match d with

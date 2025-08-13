@@ -71,13 +71,14 @@ let rec compile_value val_expr (state:compile_state) acc =
   | Decrement(target, false) ->  compile_target_index target state (Instr_Copy :: Instr_Access :: Instr_Swap :: Instr_Copy :: Instr_Access :: Instr_Place :: I(1) :: Instr_Sub :: Instr_Assign :: acc)
   | PagerRead -> Instr_PagerRead :: acc
   | Read -> Instr_Read :: acc
-  | Func(_,params,body) -> (
+  | Func(ret,params,body) -> (
     let func_label = Helpers.new_label () in
     let end_label = Helpers.new_label () in
+    let new_state = {vars = (List.map (fun (t,n) -> Var(t,n)) params) ; labels = available_labels body; break = None; continue = None; ret_type = Some ret;} in
+    let (body,_) = type_check_stmt new_state body in
     let (vars,body) = pull_out_declarations body in
-    let new_state = {vars = (List.map (fun (t,n) -> Var(t,n)) params) @ vars; break = None; continue = None} in
     let vars_instr = List.map (fun _ -> [Instr_Place ; I(0)]) vars |> List.flatten in
-    Instr_GoTo :: LabelRef(end_label) :: Label(func_label) :: vars_instr @ compile_stmt body new_state (Instr_Place :: I(0) :: Instr_Return :: Label(end_label) :: Instr_Place :: LabelRef(func_label) :: acc)
+    Instr_GoTo :: LabelRef(end_label) :: Label(func_label) :: vars_instr @ compile_stmt body {new_state with vars = new_state.vars @ vars} (Instr_Place :: I(0) :: Instr_Return :: Label(end_label) :: Instr_Place :: LabelRef(func_label) :: acc)
   )
   | Call(f,args) -> (
     let comped_args = List.map (fun arg -> compile_value arg state []) args |> List.flatten in
@@ -194,7 +195,10 @@ and compile_stmt (Stmt(stmt,ln)) (state:compile_state) acc =
     in
     compile_value dir state (compile_value dis state (instr :: acc))
   )
-  | GoTo n -> Instr_GoTo :: LabelRef n :: acc
+  | GoTo n -> 
+    if StringSet.mem n state.labels
+    then Instr_GoTo :: LabelRef n :: acc
+    else raise_failure ("Unavailable label: "^n)
   | Declare _ -> Instr_Place :: I(0) :: acc
   | PagerSet v -> compile_value v state (Instr_PagerSet :: acc)
   | PagerWrite v -> compile_value v state (Instr_PagerWrite :: acc)
@@ -206,7 +210,7 @@ and compile_stmt (Stmt(stmt,ln)) (state:compile_state) acc =
   | Failure(p,None,msg) -> raise (Failure(p,Some ln, msg))
   | a -> raise a
 
-let compile_player absyn =
-  let File(vars,program) = absyn in
-  (vars,List.fold_right (fun stmt acc -> compile_stmt stmt {vars = vars; break = None; continue = None} acc) program [])
+let compile_player (File(vars, program)) =
+  let labels = available_labels (Stmt(Block program,0)) in
+  (vars,compile_stmt (Stmt(Block program,0)) {vars = vars; labels = labels; break = None; continue = None; ret_type = None;} [])
 
