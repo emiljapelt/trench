@@ -52,6 +52,7 @@
 %token READ WRITE SAY MOUNT DISMOUNT BOAT RETURN
 
 /*Low precedence*/
+%left COLON
 %left LOGIC_OR
 %left LOGIC_AND 
 %left EQ NEQ IS
@@ -128,6 +129,7 @@ value:
   | target MINUSMINUS                  { features ["sugar"] ; Decrement($1, false)}
   | simple_typ COLON LPAR seperated_or_empty(COMMA,func_arg) RPAR stmt           { features ["func"] ; Func($1, $4, $6) }
   | simple_value LPAR seperated_or_empty(COMMA, value) RPAR { features ["func"] ; Call($1, $3) }
+  | simple_value QMARK value COLON value { Ternary($1,$3,$5) }
 ;
 
 func_arg:

@@ -106,6 +106,13 @@ let rec type_value state v = match v with
       )
       | _ -> raise_failure "Not a callable type"
     )
+    | Ternary(c,a,b) -> 
+      require T_Int (type_value state c) (fun () -> ()) ;
+      let a_typ = type_value state a in
+      let b_typ = type_value state b in
+      if not(type_eq a_typ b_typ) then raise_failure "Type mismatch"
+      else a_typ;
+      
 
 and type_meta m = match m with
     | PlayerX     

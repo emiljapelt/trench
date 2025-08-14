@@ -84,6 +84,11 @@ let rec compile_value val_expr (state:compile_state) acc =
     let comped_args = List.map (fun arg -> compile_value arg state []) args |> List.flatten in
     comped_args @ (compile_value f state (Instr_Place :: I(List.length args) :: Instr_Call :: acc))
   )
+  | Ternary(c,a,b) -> (
+    let label_true = Helpers.new_label () in
+    let label_stop = Helpers.new_label () in
+    compile_value c state (Instr_GoToIf :: LabelRef(label_true) :: (compile_value b state (Instr_GoTo :: LabelRef(label_stop) :: Label(label_true) :: (compile_value a state (Label(label_stop) :: acc)))))
+  )
 
 
 and compile_target_index target (state:compile_state) acc = match target with

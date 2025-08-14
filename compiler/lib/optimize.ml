@@ -71,6 +71,14 @@ let rec optimize_value expr =
   | Reference(Array(_,_)) -> expr
   | Func(ret,args,body) -> Func(ret,args,optimize_stmt body)
   | Call(f,args) -> Call(optimize_value f, List.map optimize_value args)
+  | Ternary(c,a,b) -> 
+    let c_opt = optimize_value c in
+    let a_opt = optimize_value a in
+    let b_opt = optimize_value b in
+    match c_opt with
+    | Int 0 -> b_opt
+    | Int _ -> a_opt
+    | _ -> Ternary(c_opt, a_opt, b_opt)
 
 and optimize_assign_target tar = match tar with
   | _ -> tar

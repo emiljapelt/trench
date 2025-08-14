@@ -58,6 +58,7 @@ and rename_variables_of_value map v = match v with
     Func(ret,params,renamed_body)
   )
   | Call(f,args) -> Call(rename_variables_of_value map f, List.map (rename_variables_of_value map) args)
+  | Ternary(c,a,b) -> Ternary(rename_variables_of_value map c, rename_variables_of_value map a, rename_variables_of_value map b)
   | _ -> v
 
 and rename_variables_of_stmt i map (Stmt(stmt,ln)) = match stmt with

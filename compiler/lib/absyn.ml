@@ -107,6 +107,7 @@ and value =
     | PagerRead
     | Func of typ * (typ * string) list * statement
     | Call of value * value list
+    | Ternary of value * value * value
 
 and meta_data =
     | PlayerX     (* #x *)
