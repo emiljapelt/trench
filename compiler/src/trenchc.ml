@@ -20,7 +20,7 @@ let () = match handle_cmd_line Sys.argv with
       | Ok _ -> Printf.printf "Game file compiled\n" 
       | Error msg -> (Printf.printf "%s\n" msg ; exit 1)
     else if String.ends_with ~suffix:"r" path then
-      match Trenchclib.Compile.compile_player_file path with
+      match Trenchclib.Compile.compile_player_file path 0 with
       | Ok p -> Array.iter (Printf.printf "%i ") p
       | Error msg -> (Printf.printf "%s\n" msg ; exit 1)
     else (Printf.printf "Dont know what to do with: %s\n" path ; exit 1)

@@ -10,6 +10,7 @@ typedef struct game_rules {
     int seed;
     float time_scale;
     int stack_size;
+    int program_size_limit;
     int debug: 1;
 
     struct settings {

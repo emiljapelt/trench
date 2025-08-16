@@ -199,6 +199,7 @@ void player_turn_async(player_state* ps) {
             }
             case Instr_Call: change = instr_call(ps); break;
             case Instr_Return: change = instr_return(ps); break;
+            case Instr_Declare: change = instr_declare(ps); break;
             default: return;
         }
 
@@ -241,6 +242,7 @@ turn_action move_action() {
     return (turn_action) {.action_type = MOVE, .action = '\0'};
 }
 
+/* No longer supported correctly */
 turn_action player_turn_sync(player_state* ps) {
     while(1) {
         if (ps->dp >= ps->directive_len) return inactive();
@@ -351,13 +353,14 @@ void get_new_directive(player_state* ps) {
         }
 
         directive_info di;
-        if (compile_player(path, _gr->stack_size, &di)) {
+        if (compile_player(path, _gr->stack_size, _gr->program_size_limit, &di)) {
             if (do_free) free(ps->path);
             free(ps->directive);
             free(ps->stack);
             ps->directive = di.directive;
             ps->stack = di.stack;
-            ps->sp = di.regs;
+            ps->sp = 0;
+            ps->bp = 0;
             ps->dp = 0;
             ps->directive_len = di.dir_len;
             ps->path = path;

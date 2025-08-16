@@ -42,6 +42,11 @@ type cost_and_duration_setting = {
   duration: int;
 }
 
+type program_setting = {
+  stack_size: int;
+  size_limit: int;
+}
+
 type settings = {
   fireball: range_and_cost_setting;
   shoot: range_setting;
@@ -59,6 +64,7 @@ type settings = {
   look: range_setting;
   scan: range_setting;
   boat: capacity_cost_setting;
+  program: program_setting;
 }
 
 type ('a, 'b) overwrite = (string * ('a -> 'b -> 'a)) list
@@ -112,6 +118,11 @@ let capacity_cost_setting_overwrite = overwritter [
   ("cost", fun s v -> {s with cost = v})
 ]
 
+let program_setting_overwrite = overwritter [
+  ("size_limit", fun s v -> {s with size_limit = v});
+  ("stack_size", fun s v -> {s with stack_size = v})
+]
+
 let rec overwrite_settings settings overwrites = 
   match overwrites with
   | [] -> settings
@@ -135,11 +146,12 @@ let rec overwrite_settings settings overwrites =
           | "look" ->       ({ settings with look = range_setting_overwrite settings.look setting_overwrites })
           | "scan" ->       ({ settings with scan = range_setting_overwrite settings.scan setting_overwrites })
           | "boat" ->       ({ settings with boat = capacity_cost_setting_overwrite settings.boat setting_overwrites })
+          | "program" ->    ({ settings with program = program_setting_overwrite settings.program setting_overwrites })
           | _ -> raise_failure ("No settings for instruction: '" ^ name ^ "'")
         )
       )
     with 
-    | Failure (f,ln,msg) -> raise (Failure(f,ln, "Instruction '" ^ name ^ "' has no such setting: " ^ msg))
+    | Failure (f,ln,msg) -> raise (Failure(f,ln, "'" ^ name ^ "' has no such setting: " ^ msg))
   )
 
 
@@ -160,4 +172,8 @@ let default_settings : settings = {
   look = { range = -1; };
   scan = { range = -1; };
   boat = { cost = 30; capacity = 4; };
+  program = {
+    stack_size = 1000;
+    size_limit = 0;
+  };
 }

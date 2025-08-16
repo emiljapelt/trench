@@ -166,16 +166,15 @@ let check_no_negative_arrays (File(regs,_)) =
   in
   aux regs
 
-let player_to_program ((regs: variable list), program) = 
-  let program_list = program_to_int_list program in
-  List.length program_list :: (List.fold_left (fun acc (Var(ty,_)) -> acc + type_size ty) 0 regs) :: program_list |> Array.of_list
+let player_to_program (vars, program) = 
+  let program_list = program_to_int_list (Instr_Declare :: I(List.length vars) :: program) in
+  List.length program_list :: program_list |> Array.of_list
 
 type compiled_player_info = {
   team: int;
   name: string;
   position: int * int;
   file: string;
-  directive: int array;
   extra_files_count: int;
   extra_files: string array;
 }
@@ -199,38 +198,35 @@ type compiled_game_file = {
   debug: bool;
 }
 
-let compile_player_file path = try (
+let compile_player_file path size_limit = try (
   check_path path [".tr"] ;
-  Ok(compile Player_parser.main Player_lexer.start [
+  let result = (compile Player_parser.main Player_lexer.start [
     type_check_program;
     rename_variables_of_file;
     optimize_program;
     pull_out_declarations_of_file
   ] [check_vars_unique;check_no_negative_arrays] compile_player player_to_program path)
+in
+if size_limit > 0 && Array.length result - 1 > size_limit then raise_failure ("Program too large" ^ string_of_int size_limit ^ " " ^ string_of_int (Array.length result - 1))
+else Ok(result)
 ) with
 | Failure(None,ln,msg) -> Error(format_failure (Failure(Some path, ln, msg)))
 | Failure _ as f -> Error(format_failure f)
 
 let game_setup_player (PI player) = 
-  let (file, files) = match player.files with
-  | [] -> raise_failure ("Player with no files: " ^ player.name) 
-  | h::t -> (h,t)
-  in
-  let check_files = List.fold_left (fun acc file -> if (file = "_") then Ok([||])::acc else compile_player_file file :: acc) [] files in 
+  if (List.length player.files < 1) then raise_failure ("Player with no files: " ^ player.name)
+  else
+  (* simpler checking??? Just type checking??? *)
+  (*let check_files = List.fold_left (fun acc file -> if (file = "_") then Ok([||])::acc else compile_player_file file :: acc) [] player.files in 
   let failure = List.find_opt Result.is_error check_files in 
-  if Option.is_some failure then raise_failure (failure |> Option.get |> Result.get_error) else
-  let p = match compile_player_file file with
-    | Ok p -> p
-    | Error msg -> raise_failure msg
-  in
+  if Option.is_some failure then raise_failure (failure |> Option.get |> Result.get_error) else*)
   {
     team = player.team;
     name = player.name;
     position = player.origin;
     file = List.hd player.files;
-    directive = p;
-    extra_files_count = List.length files;
-    extra_files = files |> List.rev |> Array.of_list;
+    extra_files_count = List.length player.files - 1;
+    extra_files = List.tl player.files |> List.rev |> Array.of_list;
   }
 
 let set_themes ts =

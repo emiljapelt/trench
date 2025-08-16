@@ -11,7 +11,6 @@
 #include "fields.h"
 
 typedef struct directive_info {
-    int regs;
     int dir_len;
     int* stack;
     int* directive;

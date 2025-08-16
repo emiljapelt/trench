@@ -4,6 +4,6 @@
 #include "game_state.h"
 
 int compile_game(const char* path, game_rules* gr, game_state* gs);
-int compile_player(const char* path, int stack_size, directive_info* result);
+int compile_player(const char* path, int stack_size, int size_limit, directive_info* result);
 
 #endif

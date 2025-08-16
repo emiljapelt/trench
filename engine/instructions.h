@@ -81,6 +81,7 @@ typedef enum {
   Instr_BearTrap = 58,
   Instr_Call = 59,
   Instr_Return = 60,
+  Instr_Declare = 61,
 } instruction;
 
 // all instructions return 1 if the board should be updated, and 0 if not.
@@ -339,7 +340,7 @@ int meta_player_id(player_state* ps) {
 
 int instr_access(player_state* ps) {
     int num = ps->stack[ps->sp-1];
-    if (num < 0 || num >= ps->stack_len) {
+    if (num < 0 || num >= _gr->stack_size) {
         death_mark_player(ps, "Had an aneurysm");
         return 0;
     }
@@ -436,7 +437,7 @@ int instr_and(player_state* ps) {
 int instr_assign(player_state* ps) { 
     int v = ps->stack[--ps->sp];
     int target = ps->stack[--ps->sp];
-    if (target < 0 || target >= ps->stack_len) {
+    if (target < 0 || target >= _gr->stack_size) {
         death_mark_player(ps, "Had an aneurysm");
         return 0;
     }
@@ -871,6 +872,14 @@ int instr_return(player_state* ps) {
     ps->bp = old_bp;
     ps->stack[ps->sp++] = ret;
     _log(DEBUG, "RETURN: ret:%i old_dp: %i, old_bp: %i", ret, old_dp, old_bp);
+}
+
+int instr_declare(player_state* ps) {
+    int n = ps->directive[ps->dp];
+    memset(ps->stack + ps->sp, 0, sizeof(int) * n);
+    ps->sp += n;
+    ps->dp++;
+    return 0;
 }
 
 #endif

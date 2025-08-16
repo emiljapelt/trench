@@ -65,26 +65,23 @@ field_state* create_board(char* map_data, const int x, const int y) {
 
 directive_info load_directive_to_struct(value comp, int stack_size) {
     int dir_len = Int_val(Field(comp, 0));
-    int regs = Int_val(Field(comp, 1));
-    int* stack = malloc(sizeof(int) * (regs + stack_size));
-    memset(stack, 0, sizeof(int)*regs);
-
+    int* stack = malloc(sizeof(int) * stack_size);
     int* dir = malloc(sizeof(int) * dir_len);
+
     for(int i = 0; i < dir_len; i++)
-        dir[i] = Int_val(Field(comp, i+2));
+        dir[i] = Int_val(Field(comp, i+1));
 
     return (directive_info) {
-        .regs = regs,
         .stack = stack,
         .directive = dir,
         .dir_len = dir_len
     };
 }
 
-int compile_player(const char* path, int stack_size, directive_info* result) {
+int compile_player(const char* path, int stack_size, int size_limit, directive_info* result) {
     static const value* compile_player_closure = NULL;
     if(compile_player_closure == NULL) compile_player_closure = caml_named_value("compile_player_file");
-    value callback_result = caml_callback(*compile_player_closure, caml_copy_string(path));
+    value callback_result = caml_callback2(*compile_player_closure, caml_copy_string(path), Val_int(size_limit));
     
     switch (Tag_val(callback_result)) {
         case 0: { // Ok
@@ -99,60 +96,98 @@ int compile_player(const char* path, int stack_size, directive_info* result) {
     }
 }
 
-void load_instruction_settings(game_rules* gr, value settings) {
-    value fireball_settings = Field(settings, 0);
+void load_settings_struct(game_rules* gr, value settings) {
+    {
+        value fireball_settings = Field(settings, 0);
         gr->settings.fireball.range = Int_val(Field(fireball_settings, 0));
         gr->settings.fireball.cost = Int_val(Field(fireball_settings, 1));
+    }
 
-    value shoot_settings = Field(settings, 1);
+    {
+        value shoot_settings = Field(settings, 1);
         gr->settings.shoot.range = Int_val(Field(shoot_settings, 0));
+    }
 
-    value bomb_settings = Field(settings, 2);
+    {
+        value bomb_settings = Field(settings, 2);
         gr->settings.bomb.range = Int_val(Field(bomb_settings, 0));
+    }
 
-    value meditate_settings = Field(settings, 3);
+    {
+        value meditate_settings = Field(settings, 3);
         gr->settings.meditate.amount = Int_val(Field(meditate_settings, 0));
+    }
 
-    value dispel_settings = Field(settings, 4);
+    {
+        value dispel_settings = Field(settings, 4);
         gr->settings.dispel.cost = Int_val(Field(dispel_settings, 0));
+    }
 
-    value mana_drain_settings = Field(settings, 5);
+    {
+        value mana_drain_settings = Field(settings, 5);
         gr->settings.mana_drain.cost = Int_val(Field(mana_drain_settings, 0));
+    }
 
-    value wall_settings = Field(settings, 6);
+    {
+        value wall_settings = Field(settings, 6);
         gr->settings.wall.cost = Int_val(Field(wall_settings, 0));
+    }
 
-    value plant_tree_settings = Field(settings, 7);
+    {
+        value plant_tree_settings = Field(settings, 7);
         gr->settings.plant_tree.delay = Int_val(Field(plant_tree_settings, 0));
+    }
 
-    value bridge_settings = Field(settings, 8);
+    {
+        value bridge_settings = Field(settings, 8);
         gr->settings.bridge.cost = Int_val(Field(bridge_settings, 0));
+    }
 
-    value chop_settings = Field(settings, 9);
+    {
+        value chop_settings = Field(settings, 9);
         gr->settings.chop.wood_gain = Int_val(Field(chop_settings, 0));
         gr->settings.chop.sapling_chance = Int_val(Field(chop_settings, 1));
+    }
 
-    value fortify_settings = Field(settings, 10);
+    {
+        value fortify_settings = Field(settings, 10);
         gr->settings.fortify.cost = Int_val(Field(fortify_settings, 0));
+    }
 
-    value projection_settings = Field(settings, 11);
+    {
+        value projection_settings = Field(settings, 11);
         gr->settings.projection.cost = Int_val(Field(projection_settings, 0));
         gr->settings.projection.duration = Int_val(Field(projection_settings, 1));
+    }
 
-    value freeze_settings = Field(settings, 12);
+    {
+        value freeze_settings = Field(settings, 12);
         gr->settings.freeze.cost = Int_val(Field(freeze_settings, 0));
         gr->settings.freeze.duration = Int_val(Field(freeze_settings, 1));
         gr->settings.freeze.range = Int_val(Field(freeze_settings, 2));
+    }
 
-    value look_settings = Field(settings, 13);
+    {
+        value look_settings = Field(settings, 13);
         gr->settings.look.range = Int_val(Field(look_settings, 0));
+    }
 
-    value scan_settings = Field(settings, 14);
+    {
+        value scan_settings = Field(settings, 14);
         gr->settings.scan.range = Int_val(Field(scan_settings, 0));
+    }
 
-    value boat_settings = Field(settings, 15);
+    {
+        value boat_settings = Field(settings, 15);
         gr->settings.boat.capacity = Int_val(Field(boat_settings, 0));
         gr->settings.boat.cost = Int_val(Field(boat_settings, 1));
+    }
+
+    {
+        value program_settings = Field(settings, 16);
+        gr->stack_size = Int_val(Field(program_settings, 0));
+        gr->program_size_limit = Int_val(Field(program_settings, 1));
+    }
 }
 
 int compile_game(const char* path, game_rules* gr, game_state* gs) {
@@ -190,7 +225,7 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 .debug = Bool_val(Field(unwrapped_result, 15)),
             };
 
-            load_instruction_settings(gr, Field(unwrapped_result, 14));
+            load_settings_struct(gr, Field(unwrapped_result, 14));
 
             value map = Field(unwrapped_result, 4);
             field_state* board = NULL;
@@ -247,7 +282,14 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
 
             for(int i = 0; i < player_count; i++) {
                 value player_info = Field(Field(unwrapped_result, 6),i);
-                directive_info di = load_directive_to_struct(Field(player_info, 4), gr->stack_size);
+                
+                directive_info di;// = load_directive_to_struct(Field(player_info, 4), gr->stack_size);
+
+                char* file_path = strdup(String_val(Field(player_info, 3)));
+                int success = compile_player(file_path, gr->stack_size, gr->program_size_limit, &di);
+
+                if (!success) exit(1);              
+                
                 player_state* player = malloc(sizeof(player_state));
                 int player_x = Int_val(Field(Field(player_info, 2), 0));
                 int player_y = Int_val(Field(Field(player_info, 2), 1));
@@ -257,10 +299,9 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 player->name = strdup(String_val(Field(player_info, 1)));
                 player->id = gs->id_counter++;
                 player->stack = di.stack;
-                player->stack_len = di.regs + gr->stack_size;
                 player->bp = 0;
-                player->sp = di.regs;
-                player->path = strdup(String_val(Field(player_info, 3)));
+                player->sp = 0;
+                player->path = file_path;
                 player->directive = di.directive;
                 player->directive_len = di.dir_len;
                 player->dp = 0;
@@ -276,9 +317,9 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                     value resource = Field(Field(unwrapped_result, 11), r);
                     init_resource(player->resources, strdup(String_val(Field(resource, 0))), Int_val(Field(Field(resource, 1), 0)), Int_val(Field(Field(resource, 1), 1)));
                 }
-                player->extra_files = array_list.create(Int_val(Field(player_info, 5)));
+                player->extra_files = array_list.create(Int_val(Field(player_info, 4)));
                 for(int f = 0; f < player->extra_files->size; f++) {
-                    array_list.add(player->extra_files, strdup(String_val(Field((Field(player_info, 6)), f))));
+                    array_list.add(player->extra_files, strdup(String_val(Field((Field(player_info, 5)), f))));
                 }
                 add_player(gs->players, player);
                 add_entity(

@@ -24,15 +24,10 @@ let require req_typ expr_t res =
   if type_eq req_typ expr_t then res ()
   else raise_failure ("required type: '" ^type_string req_typ^ "' but got :'" ^type_string expr_t^ "'")
 
-let _string_of_vars vars = 
-  vars 
-  |> List.map (fun (Var(_,n)) -> n) 
-  |> String.concat ", "
-
 let var_type vars name = 
   match List.find_opt (fun (Var(_,vn)) -> vn = name) vars with
   | Some Var(t,_) -> t
-  | None -> raise_failure ("No such variable: "^name ^ ":::" ^ _string_of_vars vars)
+  | None -> raise_failure ("No such variable: "^name)
 
 let rec type_value state v = match v with
     | Reference Local n -> var_type state.vars n
@@ -90,7 +85,12 @@ let rec type_value state v = match v with
     )
     | PagerRead
     | Read -> T_Int
-    | Func(ret,args,_) -> T_Func(ret, List.map fst args)
+    | Func(ret,args,body) -> (
+      (* Not super good, any transformation incured by the typing, is lost because type_value does not return a value *)
+      (* Instead the type check is done again in toProgramRep... *)
+      let _ = type_check_stmt ({vars = List.map (fun (t,n) -> Var(t,n)) args; ret_type = Some ret; continue = None; break = None; labels = StringSet.empty}) body in
+      T_Func(ret, List.map fst args)
+    )
     | Call(f,args) -> (
       let f_type = type_value state f in match f_type with
       | T_Func(ret, params) -> (
@@ -123,7 +123,7 @@ and type_meta m = match m with
     | PlayerResource _ -> T_Int
 
 
-let rec type_check_stmt_inner state stmt = match stmt with
+and type_check_stmt_inner state stmt = match stmt with
   | If(c,a,b) -> require T_Int (type_value state c) (fun () -> type_check_stmt state a |> ignore ; type_check_stmt state b |> ignore ; (stmt, state))
   | IfIs(v,alts,opt) -> 
     let v_typ = type_value state v in

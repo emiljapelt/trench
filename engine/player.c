@@ -14,7 +14,7 @@ player_state* copy_player_state(const player_state* ps) {
     player_state* new_player = malloc(sizeof(player_state));
 
     int dir_bytes = sizeof(int) * ps->directive_len;
-    int stack_bytes = sizeof(int) * ps->stack_len;
+    int stack_bytes = sizeof(int) * _gr->stack_size;
     int* new_directive = malloc(dir_bytes);
     int* new_stack = malloc(stack_bytes);
     memcpy(new_directive, ps->directive, dir_bytes);
@@ -26,7 +26,6 @@ player_state* copy_player_state(const player_state* ps) {
     new_player->name = strdup(ps->name);
     new_player->id = _gs->id_counter++;
     new_player->stack = new_stack;
-    new_player->stack_len = ps->stack_len;
     new_player->bp = ps->bp;
     new_player->sp = ps->sp;
     new_player->path = strdup(ps->path);
