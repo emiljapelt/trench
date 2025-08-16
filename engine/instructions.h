@@ -86,6 +86,12 @@ typedef enum {
 
 // all instructions return 1 if the board should be updated, and 0 if not.
 
+int limit_range(int given, int limit) {
+    if (given < 0) return 0;
+    if (given <= limit) return given;
+    else return limit;
+}
+
 int instr_shoot(player_state* ps) {
     if(!spend_resource(ps->resources, "ammo", 1)) return 0;
     
@@ -290,7 +296,9 @@ int instr_bomb(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
     if(!spend_resource(ps->resources, "explosive", 1)) return 0;
 
-    if (_gr->settings.bomb.range >= 0 && p > _gr->settings.bomb.range) p = _gr->settings.bomb.range;
+    //if (_gr->settings.bomb.range >= 0 && p > _gr->settings.bomb.range) p = _gr->settings.bomb.range;
+
+    p = limit_range(p, _gr->settings.bomb.range);
     int x, y;
     location_coords(ps->location, &x, &y);
     move_coord(&x, &y, d, p);
@@ -508,7 +516,7 @@ int instr_freeze(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
     if(!spend_resource(ps->resources, "mana", _gr->settings.freeze.cost)) return 0;
 
-    if (_gr->settings.freeze.range >= 0 &&p > _gr->settings.freeze.range) p = _gr->settings.freeze.range;
+    p = limit_range(p, _gr->settings.freeze.range);
     int x, y;
     location_coords(ps->location, &x, &y);
     move_coord(&x, &y, d, p);

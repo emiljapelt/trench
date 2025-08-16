@@ -73,7 +73,7 @@ let rec overwritter (def : ('a, 'b) overwrite) (setting : 'a) (overwrites : (str
   | [] -> setting
   | (name,value)::t -> (match List.find_opt (fun (n,_) -> n = name ) def with
     | Some(_,f) -> overwritter def (f setting value) t
-    | None -> raise_failure name
+    | None -> raise_failure ("No such setting: " ^name)
   )
 
 let range_setting_overwrite = overwritter [
@@ -120,7 +120,10 @@ let capacity_cost_setting_overwrite = overwritter [
 
 let program_setting_overwrite = overwritter [
   ("size_limit", fun s v -> {s with size_limit = v});
-  ("stack_size", fun s v -> {s with stack_size = v})
+  ("stack_size", fun s v -> 
+    if v < 0 then raise_failure ("stack_size must be greater than 0, but was " ^ string_of_int v) 
+    else {s with stack_size = v}
+  )
 ]
 
 let rec overwrite_settings settings overwrites = 
@@ -147,11 +150,11 @@ let rec overwrite_settings settings overwrites =
           | "scan" ->       ({ settings with scan = range_setting_overwrite settings.scan setting_overwrites })
           | "boat" ->       ({ settings with boat = capacity_cost_setting_overwrite settings.boat setting_overwrites })
           | "program" ->    ({ settings with program = program_setting_overwrite settings.program setting_overwrites })
-          | _ -> raise_failure ("No settings for instruction: '" ^ name ^ "'")
+          | _ -> raise_failure ("No setting group: '" ^ name ^ "'")
         )
       )
     with 
-    | Failure (f,ln,msg) -> raise (Failure(f,ln, "'" ^ name ^ "' has no such setting: " ^ msg))
+    | Failure (f,ln,msg) -> raise (Failure(f,ln,msg))
   )
 
 
