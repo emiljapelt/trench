@@ -74,7 +74,7 @@ let rec compile_value val_expr (state:compile_state) acc =
   | Func(ret,params,body) -> (
     let func_label = Helpers.new_label () in
     let end_label = Helpers.new_label () in
-    let new_state = {vars = (List.map (fun (t,n) -> Var(t,n)) params) ; labels = available_labels body; break = None; continue = None; ret_type = Some ret;} in
+    let new_state = {vars = (Var(T_Func(ret, List.map fst params), "this") :: List.map (fun (t,n) -> Var(t,n)) params) ; labels = available_labels body; break = None; continue = None; ret_type = Some ret;} in
     let (body,_) = type_check_stmt new_state body in
     let (vars,body) = pull_out_declarations body in
     Instr_GoTo :: LabelRef(end_label) :: Label(func_label) :: Instr_Declare :: I(List.length vars) :: compile_stmt body {new_state with vars = new_state.vars @ vars} (Instr_Place :: I(0) :: Instr_Return :: Label(end_label) :: Instr_Place :: LabelRef(func_label) :: acc)

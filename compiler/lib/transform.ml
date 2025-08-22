@@ -54,7 +54,7 @@ and rename_variables_of_value map v = match v with
   | Decrement(target,pre) -> Decrement(rename_variables_of_target map target, pre)
   | Increment(target,pre) -> Increment(rename_variables_of_target map target, pre)
   | Func(ret,params,body) -> (
-    let (_,_,renamed_body) = rename_variables_of_stmt 0 (StringMap.of_list(List.map (fun (_,n) -> (n,n)) params)) body in
+    let (_,_,renamed_body) = rename_variables_of_stmt 0 (StringMap.of_list(List.map (fun (_,n) -> (n,n)) params @ [("this","this")])) body in
     Func(ret,params,renamed_body)
   )
   | Call(f,args) -> Call(rename_variables_of_value map f, List.map (rename_variables_of_value map) args)

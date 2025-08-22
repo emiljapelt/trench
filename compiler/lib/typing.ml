@@ -88,8 +88,9 @@ let rec type_value state v = match v with
     | Func(ret,args,body) -> (
       (* Not super good, any transformation incured by the typing, is lost because type_value does not return a value *)
       (* Instead the type check is done again in toProgramRep... *)
-      let _ = type_check_stmt ({vars = List.map (fun (t,n) -> Var(t,n)) args; ret_type = Some ret; continue = None; break = None; labels = StringSet.empty}) body in
-      T_Func(ret, List.map fst args)
+      let typ = T_Func(ret, List.map fst args) in
+      let _ = type_check_stmt ({vars = List.map (fun (t,n) -> Var(t,n)) args @ [Var(typ, "this")]; ret_type = Some ret; continue = None; break = None; labels = StringSet.empty}) body in
+      typ
     )
     | Call(f,args) -> (
       let f_type = type_value state f in match f_type with

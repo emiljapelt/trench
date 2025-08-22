@@ -865,8 +865,9 @@ int instr_call(player_state* ps) {
     ps->stack[ps->sp++] = old_bp;
     ps->stack[ps->sp++] = old_dp;
     ps->bp = ps->sp;
-    memcpy(&ps->stack[ps->sp], args, sizeof(int) * arg_count);
-    ps->sp += arg_count;
+    ps->stack[ps->sp] = func_addr;
+    memcpy(&ps->stack[ps->sp + 1], args, sizeof(int) * arg_count);
+    ps->sp += arg_count + 1;
     ps->dp = func_addr;
     _log(DEBUG, "f_addr: %i, args: %i", func_addr, arg_count);
 }
@@ -877,7 +878,9 @@ int instr_return(player_state* ps) {
     int old_bp = ps->stack[ps->bp - 2];
 
     ps->dp = old_dp;
+    ps->sp = ps->bp - 2;
     ps->bp = old_bp;
+
     ps->stack[ps->sp++] = ret;
     _log(DEBUG, "RETURN: ret:%i old_dp: %i, old_bp: %i", ret, old_dp, old_bp);
 }
