@@ -84,6 +84,10 @@ typedef enum {
   Instr_Declare = 61,
 } instruction;
 
+const char* stack_overflow_msg = "Had an aneurysm (STACK_OVERFLOW)";
+const char* frame_break_msg = "Had an aneurysm (FRAME_BREAK)";
+const char* div_zero_msg = "Had an aneurysm (DIV_BY_ZERO)";
+
 // all instructions return 1 if the board should be updated, and 0 if not.
 
 int limit_range(int given, int limit) {
@@ -272,6 +276,11 @@ int instr_fortify(player_state* ps) {
 }
 
 int instr_random_int(player_state* ps) { 
+    if (ps->sp + 1 >= _gr->stack_size) {
+        death_mark_player(ps, stack_overflow_msg);
+        return 0;
+    }
+
     ps->stack[ps->sp++] = rand();
     return 0;
 }
@@ -286,6 +295,11 @@ int instr_random_range(player_state* ps) {
 }
 
 int instr_place(player_state* ps) {
+    if (ps->sp + 1 >= _gr->stack_size) {
+        death_mark_player(ps, stack_overflow_msg);
+        return 0;
+    }
+
     ps->stack[ps->sp++] = ps->directive[ps->dp];
     ps->dp++;
     return 0;
@@ -316,40 +330,70 @@ int instr_bomb(player_state* ps) {
 }
 
 int meta_player_x(player_state* ps) {
+    if (ps->sp + 1 >= _gr->stack_size) {
+        death_mark_player(ps, stack_overflow_msg);
+        return 0;
+    }
+
     int x, y;
     location_coords(ps->location, &x, &y);
     ps->stack[ps->sp++] = x;
     return 0;
 }
 int meta_player_y(player_state* ps) {
+    if (ps->sp + 1 >= _gr->stack_size) {
+        death_mark_player(ps, stack_overflow_msg);
+        return 0;
+    }
+
     int x, y;
     location_coords(ps->location, &x, &y);
     ps->stack[ps->sp++] = y;
     return 0;
 }
 int meta_board_x(player_state* ps) {
+    if (ps->sp + 1 >= _gr->stack_size) {
+        death_mark_player(ps, stack_overflow_msg);
+        return 0;
+    }
+
     ps->stack[ps->sp++] = _gs->board_x;
     return 0;
 }
 int meta_board_y(player_state* ps) {
+    if (ps->sp + 1 >= _gr->stack_size) {
+        death_mark_player(ps, stack_overflow_msg);
+        return 0;
+    }
+
     ps->stack[ps->sp++] = _gs->board_y;
     return 0;
 }
 int meta_resource(player_state* ps) {
+    if (ps->sp + 1 >= _gr->stack_size) {
+        death_mark_player(ps, stack_overflow_msg);
+        return 0;
+    }
+
     int index = ps->directive[ps->dp];
     ps->dp++;
     ps->stack[ps->sp++] = peek_resource_index(ps->resources, index);
     return 0;
 }
 int meta_player_id(player_state* ps) {
+    if (ps->sp + 1 >= _gr->stack_size) {
+        death_mark_player(ps, stack_overflow_msg);
+        return 0;
+    }
+
     ps->stack[ps->sp++] = ps->id;
     return 0;
 }
 
 int instr_access(player_state* ps) {
     int num = ps->stack[ps->sp-1];
-    if (num < 0 || num >= _gr->stack_size) {
-        death_mark_player(ps, "Had an aneurysm");
+    if (num < 0 || num >= ps->sp) {
+        death_mark_player(ps, frame_break_msg);
         return 0;
     }
     ps->stack[ps->sp-1] = ps->stack[ps->bp + num];
@@ -409,7 +453,7 @@ int instr_mul(player_state* ps) {
 int instr_div(player_state* ps) { 
     int v0 = ps->stack[--ps->sp];
     int v1 = ps->stack[--ps->sp];
-    if (v1 == 0) { death_mark_player(ps, "Mental break down (div by 0)"); return 0; }
+    if (v1 == 0) { death_mark_player(ps, div_zero_msg); return 0; }
     ps->stack[ps->sp++] = v0 / v1;
     return 0;
 }
@@ -417,7 +461,7 @@ int instr_div(player_state* ps) {
 int instr_mod(player_state* ps) {
     int v0 = ps->stack[--ps->sp];
     int v1 = ps->stack[--ps->sp];
-    if (v1 == 0) { death_mark_player(ps, "Mental break down (div by 0)"); return 0; }
+    if (v1 == 0) { death_mark_player(ps, div_zero_msg); return 0; }
     ps->stack[ps->sp++] = ((v0%v1) + v1)%v1;
     return 0;
 }
@@ -444,13 +488,13 @@ int instr_and(player_state* ps) {
 
 int instr_assign(player_state* ps) { 
     int v = ps->stack[--ps->sp];
-    int target = ps->stack[--ps->sp];
-    if (target < 0 || target >= _gr->stack_size) {
-        death_mark_player(ps, "Had an aneurysm");
+    int n = ps->stack[--ps->sp];
+    if (n < 0 || n >= ps->sp) {
+        death_mark_player(ps, frame_break_msg);
         return 0;
     }
-    ps->stack[ps->bp + target] = v;
-    _log(DEBUG, "ASSIGN: v: %i, bp: %i, target: %i", v, ps->bp, target);
+    ps->stack[ps->bp + n] = v;
+    _log(DEBUG, "ASSIGN: v: %i, bp: %i, target: %i", v, ps->bp, n);
     return 0;
 }
 
@@ -468,6 +512,11 @@ int instr_dec_stack(player_state* ps) {
 }
 
 int instr_copy(player_state* ps) {
+    if (ps->sp + 1 >= _gr->stack_size) {
+        death_mark_player(ps, stack_overflow_msg);
+        return 1;
+    }
+
     ps->stack[ps->sp] = ps->stack[ps->sp - 1];
     ps->sp++;
     return 0;
@@ -487,6 +536,11 @@ int instr_write(player_state* ps) {
 }
 
 int instr_read(player_state* ps) {
+    if (ps->sp + 1 >= _gr->stack_size) {
+        death_mark_player(ps, stack_overflow_msg);
+        return 0;
+    }
+
     ps->stack[ps->sp++] = location_field(ps->location)->player_data;
     return 0;
 }
@@ -661,6 +715,11 @@ int instr_pager_set(player_state* ps) {
 }
 
 int instr_pager_read(player_state* ps) {
+    if (ps->sp + 1 >= _gr->stack_size) {
+        death_mark_player(ps, stack_overflow_msg);
+        return 0;
+    }
+
     if (ps->pager_msgs->count <= 0) 
         ps->stack[ps->sp++] = 0;
     else {
@@ -855,6 +914,11 @@ int instr_call(player_state* ps) {
     int arg_count = ps->stack[--ps->sp];
     int func_addr = ps->stack[--ps->sp];
 
+    if (ps->sp + arg_count + 3 >= _gr->stack_size) {
+        death_mark_player(ps, stack_overflow_msg);
+        return 0;
+    }
+
     int args[arg_count];
     memcpy(args, &ps->stack[ps->sp - arg_count], sizeof(int) * arg_count);
 
@@ -887,6 +951,10 @@ int instr_return(player_state* ps) {
 
 int instr_declare(player_state* ps) {
     int n = ps->directive[ps->dp];
+    if (ps->sp + n >= _gr->stack_size) {
+        death_mark_player(ps, stack_overflow_msg);
+        return 0;
+    }
     memset(ps->stack + ps->sp, 0, sizeof(int) * n);
     ps->sp += n;
     ps->dp++;
