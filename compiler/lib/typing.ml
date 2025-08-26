@@ -178,6 +178,21 @@ and type_check_stmt_inner state stmt = match stmt with
         if not(type_eq ret_type v_type) then raise_failure ("Return type mismatch: expected '" ^type_string ret_type^ "', but got '" ^type_string v_type^ "'")
         else (stmt, state)
   )
+  | CallStmt(f,args) -> (
+    let f_type = type_value state f in match f_type with
+      | T_Func(_, params) -> (
+        if List.length params != List.length args then raise_failure "Incorrect amount of arguments"
+        else if not (
+          args 
+          |> List.map (type_value state) 
+          |> List.combine params
+          |> List.for_all (fun (p, a) -> type_eq p a)
+        )
+        then raise_failure "Argument type mismatch"
+        else (stmt, state)
+      )
+      | _ -> raise_failure "Not a callable type"
+  )
 
 and type_check_stmt regs (Stmt(stmt,ln)) = 
   try 

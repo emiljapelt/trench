@@ -104,6 +104,7 @@ and optimize_stmt (Stmt(stmt_i,ln) as stmt) =
   | OptionDirectional(stmt,d) -> Stmt(OptionDirectional(stmt,Option.map optimize_value d),ln)
   | Targeting(stmt,dir,dis) -> Stmt(Targeting(stmt,optimize_value dir, optimize_value dis),ln)
   | Return v -> Stmt(Return(optimize_value v),ln)
+  | CallStmt(f,args) -> Stmt(CallStmt(optimize_value f, List.map optimize_value args),ln)
   | Declare _
   | GoTo _
   | Label _

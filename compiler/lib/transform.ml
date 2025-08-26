@@ -109,6 +109,7 @@ and rename_variables_of_stmt i map (Stmt(stmt,ln)) = match stmt with
     (i+1,StringMap.add n new_name map,Stmt(DeclareAssign(t,new_name,rename_variables_of_value map v),ln))
   | Say v -> (i,map,Stmt(Say(rename_variables_of_value map v),ln))
   | Return v -> (i,map,Stmt(Return(rename_variables_of_value map v),ln))
+  | CallStmt(f,args) -> (i,map,Stmt(CallStmt(rename_variables_of_value map f, List.map (rename_variables_of_value map) args),ln))
   | _ -> (i,map,Stmt(stmt,ln))
 
 let rename_variables_of_file (File(regs,stmts)) =

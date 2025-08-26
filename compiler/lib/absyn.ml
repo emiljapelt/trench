@@ -56,6 +56,7 @@ and statement_inner =
     | Targeting of targeting_statement * value * value
     | Say of value
     | Return of value
+    | CallStmt of value * value list
 
 and unit_statement =
     | Wait

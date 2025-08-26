@@ -212,6 +212,7 @@ and compile_stmt (Stmt(stmt,ln)) (state:compile_state) acc =
   | Write v -> compile_value v state (Instr_Write :: acc)
   | Say v -> compile_value v state (Instr_Say :: acc)
   | Return v -> compile_value v state (Instr_Return :: acc)
+  | CallStmt(f,args) -> compile_value (Call(f,args)) state (Instr_DecStack :: acc)
   | DeclareAssign _ -> failwith "DeclareAssign still present"
   with 
   | Failure(p,None,msg) -> raise (Failure(p,Some ln, msg))

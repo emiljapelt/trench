@@ -37,11 +37,10 @@
 %token <int> CSTINT
 %token <string> NAME
 %token <string> META_NAME
-%token <string> LABEL
 %token LPAR RPAR LBRACE RBRACE LBRAKE RBRAKE
 %token PLUS MINUS TIMES EQ NEQ LT GT LTEQ GTEQ
 %token LOGIC_AND LOGIC_OR FSLASH PCT EXCLAIM
-%token COMMA SEMI COLON DOT EOF
+%token COMMA SEMI COLON EOF
 %token QMARK PLUSPLUS MINUSMINUS
 %token PAGER_READ PAGER_WRITE PAGER_SET
 %token IF ELSE IS REPEAT WHILE CONTINUE BREAK LET
@@ -101,15 +100,14 @@ block:
 const_value:
   | CSTINT      { Int $1 }
   | direction   { Direction $1 }
-  //| error { raise (Failure(Some $symbolstartpos.pos_fname, Some $symbolstartpos.pos_lnum, "Expected a constant value")) }
 ;
 
 simple_value:
   | const_value                        { $1 }
   | QMARK                              { features ["random"] ; Random }
   | QMARK LPAR simple_value+ RPAR      { features ["random"] ; RandomSet $3 }
-  | MINUS simple_value                 { Binary_op ("-", Int 0, $2) } %prec EXCLAIM
-  | EXCLAIM simple_value                 { Unary_op ("!", $2) }
+  | MINUS simple_value                 { Binary_op ("-", Int 0, $2) } 
+  | EXCLAIM simple_value               { Unary_op ("!", $2) }
   | target                             { Reference($1) }
   | META_NAME                          { MetaReference (meta_name $1) }
   | READ                               { features ["ipc"] ; Read }
@@ -248,6 +246,7 @@ non_control_flow_stmt:
   | DISMOUNT value                    { Directional(Dismount, $2) }
   | BOAT value                        { Directional(Boat, $2) }
   | BEAR_TRAP value                   { themeing ["forestry"] ; Directional(BearTrap, $2) }
+  | target LPAR seperated_or_empty(COMMA, value) RPAR { features ["func"] ; CallStmt(Reference $1, $3) }
 ;
 
 direction:

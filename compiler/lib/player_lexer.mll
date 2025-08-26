@@ -111,7 +111,6 @@ rule lex = parse
     |   '}'           { RBRACE }
     |   '['           { LBRAKE }
     |   ']'           { RBRAKE }
-    |   '.'           { DOT }
     |   ','           { COMMA }
     |   ';'           { SEMI }
     |   ':'           { COLON }
