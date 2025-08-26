@@ -166,8 +166,8 @@ let check_no_negative_arrays (File(regs,_)) =
   in
   aux regs
 
-let player_to_program (vars, program) = 
-  let program_list = program_to_int_list (Instr_Declare :: I(List.length vars) :: program) in
+let player_to_program program = 
+  let program_list = program_to_int_list program in
   List.length program_list :: program_list |> Array.of_list
 
 type compiled_player_info = {
