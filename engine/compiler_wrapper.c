@@ -157,7 +157,7 @@ void load_settings_struct(game_rules* gr, value settings) {
     {
         value projection_settings = Field(settings, 11);
         gr->settings.projection.cost = Int_val(Field(projection_settings, 0));
-        gr->settings.projection.duration = Int_val(Field(projection_settings, 1));
+        gr->settings.projection.upkeep = Int_val(Field(projection_settings, 1));
     }
 
     {
@@ -275,7 +275,6 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                     .r = (Int_val(Field(Field(team_info, 1), 0))),
                     .g = (Int_val(Field(Field(team_info, 1), 1))),
                     .b = (Int_val(Field(Field(team_info, 1), 2))),
-                    .predef = 1
                 };
                 gs->team_states[i].members_alive = Int_val(Field(team_info, 2));
             }
@@ -294,6 +293,7 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 int player_x = Int_val(Field(Field(player_info, 2), 0));
                 int player_y = Int_val(Field(Field(player_info, 2), 1));
                 player->alive = 1;
+                player->is_original_player = 1;
                 player->death_msg = NULL;
                 player->team = &gs->team_states[Int_val(Field(player_info, 0))];
                 player->name = strdup(String_val(Field(player_info, 1)));

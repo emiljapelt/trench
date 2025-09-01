@@ -16,6 +16,7 @@ typedef struct player_init {
 
 typedef struct player_state {
     unsigned char alive: 1;
+    unsigned char is_original_player: 1;
     const char* death_msg;
     int id;
     team_state* team;

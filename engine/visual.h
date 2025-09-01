@@ -62,6 +62,12 @@
 #define DOTS_EW "\u22ef"
 #define HOUSE_VISUAL "\u2302"
 
+#define SINGLE_DOT "\u2022"
+#define DOUBLE_DOT "\u205a"
+#define TRIPLE_DOT "\u2056"
+#define QUAD_DOT "\u2058"
+#define PENTA_DOT "\u2059"
+
 // ****
 
 typedef enum {

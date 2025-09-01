@@ -5,7 +5,6 @@ typedef struct color {
     unsigned int r : 8;
     unsigned int g : 8;
     unsigned int b : 8;
-    unsigned int predef: 1;
 } color;
 
 typedef enum print_mod {
@@ -29,6 +28,7 @@ typedef struct color_predef {
     color* magic_purple;
     color* dark_grey;
     color* wood_brown;
+    color* clay_brown;
 } color_predef;
 
 extern const color_predef color_predefs;

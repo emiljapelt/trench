@@ -549,7 +549,8 @@ void dynamic_mode() {
             for (int i = 0; i < player_count; i++) {
                 player_state* player = get_player(_gs->players, i);
                 if (!player->alive) continue; 
-                get_new_directive(player);
+                if (player->is_original_player)
+                    get_new_directive(player);
                 clear_screen();
                 print_board();
             }
@@ -566,8 +567,9 @@ void manual_mode() {
         const int player_count = _gs->players->count;
         for(int i = 0; i < player_count; i++) {
             player_state* player = get_player(_gs->players, i);
-            if (!player->alive) continue; 
-            get_new_directive(player);
+            if (!player->alive) continue;
+            if (player->is_original_player)
+                get_new_directive(player);
             clear_screen();
             print_board();
             player_turn_async(player);

@@ -54,19 +54,16 @@ int bomb(entity_t* entity, void* data) {
     return 0;
 }
 
-int projection_death(entity_t* entity, void* data) {
+int projection_upkeep(entity_t* entity, void* data) {
 
     switch (entity->type) {
         case ENTITY_PLAYER: {
-            countdown_args* args = (countdown_args*)data;
+            player_event_args* args = (player_event_args*)data;
             if (!entity->player->alive || args->player_id != entity->player->id) return 0;
-            if (args->remaining <= 0) {
+
+            if (!spend_resource(entity->player->resources, "mana", _gr->settings.projection.upkeep)) {
                 entity->player->death_msg = "Projection faded";
                 return 1;
-            }
-            else {
-                args->remaining--;
-                return 0;
             }
         }
     }
@@ -174,7 +171,7 @@ const events_namespace events = {
     .bomb = &bomb,
     .mine = &mine,
     .ice_block_melt = &ice_block_melt,
-    .projection_death = &projection_death,
+    .projection_upkeep = &projection_upkeep,
     .mana_drain = &mana_drain,
     .tree_grow = &tree_grow,
     .ocean_drowning = &ocean_drowning,

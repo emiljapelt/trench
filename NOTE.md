@@ -1,15 +1,18 @@
 # Stack safety
 Might needs better stack limit checking...
 - instructions:
-    - declare
-    - meta_*
-    - place
-    - return
-    - read
-    - pager_read
-    - copy
+    - declare X
+    - meta_* X
+    - place X
+    - return ???
+    - read X
+    - pager_read X
+    - copy X
     - random_int
-    - access
+    - access X
+    - call X
+
+
 
 # Optimize
 - None: 0

@@ -548,6 +548,7 @@ int instr_read(player_state* ps) {
 
 int instr_projection(player_state* ps) {
     if (!spend_resource(ps->resources, "mana", _gr->settings.projection.cost)) return 0;
+    if (!ps->is_original_player) return 0;
     if (ps->location.type == VEHICLE_LOCATION && !(get_vehicle_capacity(ps->location.vehicle->type) > ps->location.vehicle->entities->count)) return 0;
 
     player_state* projection = copy_player_state(ps);
@@ -558,10 +559,9 @@ int instr_projection(player_state* ps) {
 
     move_player_to_location(projection, ps->location);
 
-    countdown_args* args = malloc(sizeof(countdown_args));
+    player_event_args* args = malloc(sizeof(player_event_args));
     args->player_id = projection->id;
-    args->remaining = _gr->settings.projection.duration;
-    add_event(_gs->events, MAGICAL_EVENT, events.projection_death, args);
+    add_event(_gs->events, MAGICAL_EVENT, events.projection_upkeep, args);
 
     return 0;
 }

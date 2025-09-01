@@ -37,9 +37,9 @@ type freeze_setting = {
   range: int;
 }
 
-type cost_and_duration_setting = {
+type cost_and_upkeep_setting = {
   cost: int;
-  duration: int;
+  upkeep: int;
 }
 
 type program_setting = {
@@ -59,7 +59,7 @@ type settings = {
   bridge: cost_setting;
   chop: chop_setting;
   fortify: cost_setting;
-  projection: cost_and_duration_setting;
+  projection: cost_and_upkeep_setting;
   freeze: freeze_setting; 
   look: range_setting;
   scan: range_setting;
@@ -108,9 +108,9 @@ let freeze_setting_overwrite = overwritter [
   ("range", fun s v -> {s with range = v} );
 ]
 
-let cost_and_duration_setting_overwrite = overwritter [
+let cost_and_upkeep_setting_overwrite = overwritter [
   ("cost", fun s v -> {s with cost = v} );
-  ("duration", fun s v -> {s with duration = v} );
+  ("upkeep", fun s v -> {s with upkeep = v} );
 ]
 
 let capacity_cost_setting_overwrite = overwritter [
@@ -144,7 +144,7 @@ let rec overwrite_settings settings overwrites =
           | "bridge" ->     ({ settings with bridge = cost_setting_overwrite settings.bridge setting_overwrites })
           | "chop" ->       ({ settings with chop = chop_setting_overwrite settings.chop setting_overwrites })
           | "fortify" ->    ({ settings with fortify = cost_setting_overwrite settings.fortify setting_overwrites })
-          | "projection" -> ({ settings with projection = cost_and_duration_setting_overwrite settings.projection setting_overwrites })
+          | "projection" -> ({ settings with projection = cost_and_upkeep_setting_overwrite settings.projection setting_overwrites })
           | "freeze" ->     ({ settings with freeze = freeze_setting_overwrite settings.freeze setting_overwrites })
           | "look" ->       ({ settings with look = range_setting_overwrite settings.look setting_overwrites })
           | "scan" ->       ({ settings with scan = range_setting_overwrite settings.scan setting_overwrites })
@@ -162,7 +162,7 @@ let default_settings : settings = {
   fireball = { range = 5; cost = 10 };
   shoot  = { range = 6 };
   bomb = { range = 4 };
-  meditate = { amount = 10 };
+  meditate = { amount = 20 };
   dispel = { cost = 5 };
   mana_drain = { cost = 20 };
   wall = { cost = 10 };
@@ -170,7 +170,7 @@ let default_settings : settings = {
   bridge = { cost = 20 };
   chop = { sapling_chance = 30; wood_gain = 10; };
   fortify = { cost = 5 };
-  projection = { cost = 50; duration = 10 };
+  projection = { cost = 50; upkeep = 10 };
   freeze = { cost = 25; duration = 2; range = 5; };
   look = { range = -1; };
   scan = { range = -1; };

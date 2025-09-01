@@ -62,7 +62,7 @@ typedef struct game_rules {
 
         struct {
             int cost;
-            int duration;
+            int upkeep;
         } projection;
 
         struct {

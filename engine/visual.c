@@ -69,7 +69,7 @@ char* f_char_lookup[] = {
 
 
 color rgb_color(int r, int g, int b) {
-    return (color) { .r = r, .g = g, .b = b, .predef = 0 };
+    return (color) { .r = r, .g = g, .b = b };
 }
 
 void set_color(color c, color_target ct) {
@@ -229,17 +229,11 @@ void print_board() {
         for(int x = 0; x < _gs->board_x; x++) {
             field_visual visual = get_field_visual(x,y,get_field(x,y));
 
-            if (visual.foreground_color) {
+            if (visual.foreground_color)
                 set_color(*visual.foreground_color, FORE);
-                if (!visual.foreground_color->predef)
-                    free(visual.foreground_color);
-            }
 
-            if (visual.background_color) {
+            if (visual.background_color) 
                 set_color(*visual.background_color, BACK);
-                if (!visual.background_color->predef) 
-                    free(visual.background_color);
-            }
 
             if (visual.mod)
                 set_print_mod(visual.mod);
