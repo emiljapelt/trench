@@ -59,7 +59,8 @@ int projection_upkeep(entity_t* entity, void* data) {
     switch (entity->type) {
         case ENTITY_PLAYER: {
             player_event_args* args = (player_event_args*)data;
-            if (!entity->player->alive || args->player_id != entity->player->id) return 0;
+            if (args->player_id != entity->player->id) return 0;
+            if (!entity->player->alive) return 1;
 
             if (!spend_resource(entity->player->resources, "mana", _gr->settings.projection.upkeep)) {
                 entity->player->death_msg = "Projection faded";
