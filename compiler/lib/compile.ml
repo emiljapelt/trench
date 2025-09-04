@@ -143,7 +143,7 @@ let compile parser lexer transforms checks compiler stringer path =
   (*| _ -> raise (Failure(Some path, None, "Parser error"))*)
   
 
-let check_vars_unique (File(regs,_)) =
+(*let check_vars_unique (File(regs,_)) =
   let rec aux regs set = match regs with
   | [] -> ()
   | Var(_,n)::t -> 
@@ -164,7 +164,7 @@ let check_no_negative_arrays (File(regs,_)) =
     if check_type ty then aux t
     else raise_failure (n ^ " contains a negative sized array")
   in
-  aux regs
+  aux regs*)
 
 let player_to_program program = 
   let program_list = program_to_int_list program in
@@ -204,8 +204,7 @@ let compile_player_file path size_limit = try (
     type_check_program;
     rename_variables_of_file;
     optimize_program;
-    pull_out_declarations_of_file
-  ] [check_vars_unique;check_no_negative_arrays] compile_player player_to_program path)
+  ] (*[check_vars_unique;check_no_negative_arrays]*)[] compile_player player_to_program path)
 in
 if size_limit > 0 && Array.length result - 1 > size_limit then raise_failure ("Program too large" ^ string_of_int size_limit ^ " " ^ string_of_int (Array.length result - 1))
 else Ok(result)

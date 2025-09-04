@@ -77,7 +77,7 @@
 ;
 
 main:
-  stmt* EOF     { (File ([],$1)) }
+  stmt* EOF     { (File $1) }
 ;
 
 simple_typ:

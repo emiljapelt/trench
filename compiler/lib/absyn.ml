@@ -6,6 +6,10 @@ type direction =
     | South
     | West
 
+type scope =
+    | LocalScope
+    | GlobalScope
+
 type field_prop = 
     | Obstruction_Prop
     | Player_Prop
@@ -122,10 +126,15 @@ and variable =
     | Var of typ * string
 
 and file = 
-    | File of variable list * statement list
+    | File of statement list
+
+type scopes = {
+    local: variable list;
+    global: variable list option;
+}
 
 type compile_state = {
-    vars: variable list;
+    scopes: scopes;
     labels: StringSet.t;
     break: string option;
     continue: string option;

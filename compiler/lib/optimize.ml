@@ -118,5 +118,5 @@ and optimize_stmt (Stmt(stmt_i,ln) as stmt) =
 and optimize_stmts stmts =
   List.map optimize_stmt stmts
 
-let optimize_program (File(regs,prog)) =
-  File(regs,optimize_stmts prog)
+let optimize_program (File prog) =
+  File(optimize_stmts prog)

@@ -82,6 +82,8 @@ typedef enum {
   Instr_Call = 59,
   Instr_Return = 60,
   Instr_Declare = 61,
+  Instr_GlobalAccess = 62,
+  Instr_GlobalAssign = 63,
 } instruction;
 
 const char* stack_overflow_msg = "Had an aneurysm (STACK_OVERFLOW)";
@@ -402,6 +404,17 @@ int instr_access(player_state* ps) {
     return 0;
 }
 
+int instr_global_access(player_state* ps) {
+    int n = ps->stack[ps->sp-1];
+    if (n < 0 /*|| n >= (ps->sp - ps->bp)*/) {
+        death_mark_player(ps, frame_break_msg);
+        return 0;
+    }
+    ps->stack[ps->sp-1] = ps->stack[n];
+    _log(DEBUG, "GLOBAL ACCESS: v: %i, bp: %i, target: %i", ps->stack[ps->sp-1], ps->bp, n);
+    return 0;
+}
+
 int instr_goto(player_state* ps) {
     ps->dp = ps->directive[ps->dp];
     return 0;
@@ -496,6 +509,18 @@ int instr_assign(player_state* ps) {
     }
     ps->stack[ps->bp + n] = v;
     _log(DEBUG, "ASSIGN: v: %i, bp: %i, target: %i", v, ps->bp, n);
+    return 0;
+}
+
+int instr_global_assign(player_state* ps) { 
+    int v = ps->stack[--ps->sp];
+    int n = ps->stack[--ps->sp];
+    if (n < 0 /*|| n >= (ps->sp - ps->bp)*/) {
+        death_mark_player(ps, frame_break_msg);
+        return 0;
+    }
+    ps->stack[n] = v;
+    _log(DEBUG, "GLOBAL ASSIGN: v: %i, bp: %i, target: %i", v, ps->bp, n);
     return 0;
 }
 

@@ -24,13 +24,17 @@ let require req_typ expr_t res =
   if type_eq req_typ expr_t then res ()
   else raise_failure ("required type: '" ^type_string req_typ^ "' but got :'" ^type_string expr_t^ "'")
 
-let var_type vars name = 
-  match List.find_opt (fun (Var(_,vn)) -> vn = name) vars with
+let var_type scopes name = 
+  match List.find_opt (fun (Var(_,vn)) -> vn = name) scopes.local with
   | Some Var(t,_) -> t
-  | None -> raise_failure ("No such variable: "^name)
+  | None -> (
+    match Option.map (List.find_opt (fun (Var(_,vn)) -> vn = name)) scopes.global |> Option.join with
+    | Some Var(t,_) -> t
+    | None -> raise_failure ("No such variable: "^name)
+  )
 
 let rec type_value state v = match v with
-    | Reference Local n -> var_type state.vars n
+    | Reference Local n -> var_type state.scopes n
     | Reference Array(target,idx) -> (
       require T_Int (type_value state idx) (fun () -> ()) ;
       match type_value state (Reference target) with 
@@ -89,7 +93,11 @@ let rec type_value state v = match v with
       (* Not super good, any transformation incured by the typing, is lost because type_value does not return a value *)
       (* Instead the type check is done again in toProgramRep... *)
       let typ = T_Func(ret, List.map fst args) in
-      let _ = type_check_stmt ({vars = List.map (fun (t,n) -> Var(t,n)) args @ [Var(typ, "this")]; ret_type = Some ret; continue = None; break = None; labels = StringSet.empty}) body in
+      let func_scope = { 
+        local = List.map (fun (t,n) -> Var(t,n)) args @ [Var(typ, "this")] ; 
+        global = if state.scopes.global = None then Some(state.scopes.local) else state.scopes.global
+      } in
+      let _ = type_check_stmt ({scopes = func_scope; ret_type = Some ret; continue = None; break = None; labels = StringSet.empty}) body in
       typ
     )
     | Call(f,args) -> (
@@ -141,7 +149,7 @@ and type_check_stmt_inner state stmt = match stmt with
     require T_Int (type_value state v) (fun () -> type_check_stmt state s |> ignore ; (stmt,state))
   | While(v,s,Some si) -> 
     require T_Int (type_value state v) (fun () -> type_check_stmt state s |> ignore ; type_check_stmt state si |> ignore ; (stmt, state))
-  | Assign(Local n,e) -> require (var_type state.vars n) (type_value state e) (fun () -> (stmt,state))
+  | Assign(Local n,e) -> require (var_type state.scopes n) (type_value state e) (fun () -> (stmt,state))
   | Assign(Array(target, index), e) -> (
     require T_Int (type_value state index) (fun () -> 
       match type_value state (Reference target) with
@@ -156,12 +164,12 @@ and type_check_stmt_inner state stmt = match stmt with
     require T_Dir (type_value state dir) (fun () -> 
       require T_Int (type_value state dis) (fun () -> (stmt,state))
     )
-  | DeclareAssign(Some t,n,v) -> require t (type_value state v) (fun () -> (stmt, {state with vars = Var(t,n)::state.vars}))
+  | DeclareAssign(Some t, n, v) -> require t (type_value state v) (fun () -> (stmt, {state with scopes = { local = Var(t,n)::state.scopes.local; global = state.scopes.global } }))
   | DeclareAssign(None, n, v) -> (
     let typ = type_value state v in
-    (DeclareAssign(Some typ, n, v), {state with vars = Var(typ,n)::state.vars})
+    (DeclareAssign(Some typ, n, v), {state with scopes = { local = Var(typ,n)::state.scopes.local; global = state.scopes.global } })
   )
-  | Declare(t,n) -> (stmt, {state with vars = Var(t,n)::state.vars})
+  | Declare(t,n) -> (stmt, {state with scopes = { local = Var(t,n)::state.scopes.local; global = state.scopes.global } })
   | GoTo _
   | Label _
   | Continue
@@ -210,5 +218,5 @@ and type_check_stmts state stmts =
   in
   (state, List.rev stmts)
 
-let type_check_program (File(vars,prog)) =
-  let (_, prog') = type_check_stmts {vars = vars; labels = available_labels (Stmt(Block prog,0)); break = None; continue = None; ret_type = None;} prog in File(vars,prog')
+let type_check_program (File prog) =
+  let (_, prog') = type_check_stmts {scopes = { local = []; global = None}; labels = available_labels (Stmt(Block prog,0)); break = None; continue = None; ret_type = None;} prog in File prog'

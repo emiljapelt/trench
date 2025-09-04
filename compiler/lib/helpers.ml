@@ -4,7 +4,18 @@ module StringMap = Map.Make(String)
 
 type environment = string list
 
-type label_generator = { mutable next : int }
+type int_generator = { mutable next : int }
+
+(* Names *)
+let ng = ( {next = 0}) 
+
+let rename n =
+  let number = ng.next in
+  let () = ng.next <- ng.next+1 in
+  n ^ "_" ^ Int.to_string number
+
+let reset_rename_generator () = 
+  ng.next <- 0
 
 (* Labels *)
 let lg = ( {next = 0;} )

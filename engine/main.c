@@ -200,6 +200,8 @@ void player_turn_async(player_state* ps) {
             case Instr_Call: change = instr_call(ps); break;
             case Instr_Return: change = instr_return(ps); break;
             case Instr_Declare: change = instr_declare(ps); break;
+            case Instr_GlobalAccess: change = instr_global_access(ps); break;
+            case Instr_GlobalAssign: change = instr_global_assign(ps); break;
             default: return;
         }
 

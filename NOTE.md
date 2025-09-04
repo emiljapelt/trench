@@ -1,17 +1,8 @@
-# Stack safety
-Might needs better stack limit checking...
-- instructions:
-    - declare X
-    - meta_* X
-    - place X
-    - return ???
-    - read X
-    - pager_read X
-    - copy X
-    - random_int
-    - access X
-    - call X
-
+# Global scope
+    - Missing stack frame upper bound checks for global_access and global_assign
+        - Analyse stack return information to find the limit.
+    - Declaration order is messing with stuff.
+        - With a global var 'v', and a local var 'v', only the local variable is accessible even before it is declares...
 
 
 # Optimize

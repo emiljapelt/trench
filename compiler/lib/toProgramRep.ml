@@ -9,21 +9,55 @@ open Transform
 
 module StringSet = Set.Make(String)
 
-let fetch_var_index name vars = 
-  let rec aux vars i = match vars with
-    | [] -> raise_failure ("No such register: "^name)
-    | Var(ty,n)::t ->
-      if n = name then i else aux t (i+type_size ty)
+let target_scope target scopes : scope = 
+  let rec find_name target = match target with
+    | Local n -> n
+    | Array(t, _) -> find_name t
   in
-  aux vars 0
+  let name = find_name target in
+  let rec aux vars = match vars with
+    | [] -> false
+    | Var(_,n)::t ->
+      if n = name then true else aux t
+  in
+  match aux scopes.local with
+  | true -> LocalScope
+  | false -> (
+    match Option.map (fun scope -> aux scope) scopes.global with
+    | Some true -> GlobalScope
+    | _ -> raise_failure ("No such register: "^name)
+  )
+
+let instr_access target scopes = match target_scope target scopes with
+  | LocalScope -> Instr_Access
+  | GlobalScope -> Instr_GlobalAccess
+
+let instr_assign target scopes = match target_scope target scopes with
+  | LocalScope -> Instr_Assign
+  | GlobalScope -> Instr_GlobalAssign
+
+
+let fetch_var_index name scopes = 
+  let rec aux vars i = match vars with
+    | [] -> None
+    | Var(ty,n)::t ->
+      if n = name then Some i else aux t (i+type_size ty)
+  in
+  match aux scopes.local 0 with
+  | Some i -> i
+  | None -> (
+    match Option.map (fun scope -> aux scope 0) scopes.global |> Option.join with
+    | Some i -> i
+    | None -> raise_failure ("No such register: "^name)
+  )
+  
 
 let size_of_vars (vars : variable list) =
   List.fold_left (fun acc (Var(t,_)) -> acc + type_size t) 0 vars
 
-
 let rec compile_value val_expr (state:compile_state) acc =
   match val_expr with
-  | Reference target -> compile_target_index target state (Instr_Access :: acc)
+  | Reference target -> compile_target_index target state (instr_access target state.scopes :: acc)
   | MetaReference md -> ( match md with
     | PlayerX -> Meta_PlayerX :: acc
     | PlayerY -> Meta_PlayerY :: acc
@@ -68,19 +102,30 @@ let rec compile_value val_expr (state:compile_state) acc =
   )
   | FieldProp(v,f) -> compile_value v state (Instr_FieldProp :: I(prop_index f) :: acc)
   (* true = pre*)
-  | Increment(target, true)  ->  compile_target_index target state (Instr_Copy :: Instr_Copy :: Instr_Access :: Instr_Place :: I(1) :: Instr_Add :: Instr_Assign :: Instr_Access :: acc)
-  | Increment(target, false) ->  compile_target_index target state (Instr_Copy :: Instr_Access :: Instr_Swap :: Instr_Copy :: Instr_Access :: Instr_Place :: I(1) :: Instr_Add :: Instr_Assign :: acc)
-  | Decrement(target, true)  ->  compile_target_index target state (Instr_Copy :: Instr_Copy :: Instr_Access :: Instr_Place :: I(1) :: Instr_Sub :: Instr_Assign :: Instr_Access :: acc)
-  | Decrement(target, false) ->  compile_target_index target state (Instr_Copy :: Instr_Access :: Instr_Swap :: Instr_Copy :: Instr_Access :: Instr_Place :: I(1) :: Instr_Sub :: Instr_Assign :: acc)
+  | Increment(target, true)  ->  compile_target_index target state (Instr_Copy :: Instr_Copy :: instr_access target state.scopes :: Instr_Place :: I(1) :: Instr_Add :: instr_assign target state.scopes :: instr_access target state.scopes :: acc)
+  | Increment(target, false) ->  compile_target_index target state (Instr_Copy :: instr_access target state.scopes :: Instr_Swap :: Instr_Copy :: instr_access target state.scopes :: Instr_Place :: I(1) :: Instr_Add :: instr_assign target state.scopes :: acc)
+  | Decrement(target, true)  ->  compile_target_index target state (Instr_Copy :: Instr_Copy :: instr_access target state.scopes :: Instr_Place :: I(1) :: Instr_Sub :: instr_assign target state.scopes :: instr_access target state.scopes :: acc)
+  | Decrement(target, false) ->  compile_target_index target state (Instr_Copy :: instr_access target state.scopes :: Instr_Swap :: Instr_Copy :: instr_access target state.scopes :: Instr_Place :: I(1) :: Instr_Sub :: instr_assign target state.scopes :: acc)
   | PagerRead -> Instr_PagerRead :: acc
   | Read -> Instr_Read :: acc
-  | Func(ret,params,body) -> (
+  | Func(ret,args,body) -> (
     let func_label = Helpers.new_label () in
     let end_label = Helpers.new_label () in
-    let new_state = {vars = (Var(T_Func(ret, List.map fst params), "this") :: List.map (fun (t,n) -> Var(t,n)) params) ; labels = available_labels body; break = None; continue = None; ret_type = Some ret;} in
+    let func_scope = { 
+      local = (Var(T_Func(ret, List.map fst args), "this") :: List.map (fun (t,n) -> Var(t,n)) args) ; 
+      global =  if state.scopes.global = None then Some(state.scopes.local) else state.scopes.global ;
+    } in
+    let new_state = {
+      scopes = func_scope;  
+      labels = available_labels body; 
+      break = None; 
+      continue = None; 
+      ret_type = Some ret;
+    } 
+  in
     let (body,_) = type_check_stmt new_state body in
-    let (vars,body) = pull_out_declarations body in
-    Instr_GoTo :: LabelRef(end_label) :: Label(func_label) :: Instr_Declare :: I(size_of_vars vars) :: compile_stmt body {new_state with vars = new_state.vars @ vars} (Instr_Place :: I(0) :: Instr_Return :: Label(end_label) :: Instr_Place :: LabelRef(func_label) :: acc)
+    let vars = extract_declarations body in
+    Instr_GoTo :: LabelRef(end_label) :: Label(func_label) :: Instr_Declare :: I(size_of_vars vars) :: compile_stmt body {new_state with scopes = ({ local = new_state.scopes.local @ vars; global = new_state.scopes.global })} (Instr_Place :: I(0) :: Instr_Return :: Label(end_label) :: Instr_Place :: LabelRef(func_label) :: acc)
   )
   | Call(f,args) -> (
     let comped_args = List.map (fun arg -> compile_value arg state []) args |> List.flatten in
@@ -94,7 +139,7 @@ let rec compile_value val_expr (state:compile_state) acc =
 
 
 and compile_target_index target (state:compile_state) acc = match target with
-  | Local name -> Instr_Place :: I(fetch_var_index name state.vars) :: acc
+  | Local name -> Instr_Place :: I(fetch_var_index name state.scopes) :: acc
   | Array(t,i) -> 
     let t_type = type_value state (Reference target) in
     let t_type_size = type_size t_type in
@@ -110,10 +155,10 @@ and compile_assignment target expr state acc =
       List.init num (fun i -> i)
       |> List.fold_left (fun acc i -> compile_assignment (Array(target, Int(i))) (Reference(Array(e,Int(i)))) state acc) acc
     )
-    | _,_,_ -> compile_target_index target state (compile_value expr state (Instr_Assign :: acc))
+    | _,_,_ -> compile_target_index target state (compile_value expr state (instr_assign target state.scopes :: acc))
 
 
-and compile_stmt (Stmt(stmt,ln)) (state:compile_state) acc =
+and compile_stmt (Stmt(stmt,ln)) state acc =
   try match stmt with
   | If (expr, s1, s2) -> (
     let label_true = Helpers.new_label () in
@@ -155,6 +200,7 @@ and compile_stmt (Stmt(stmt,ln)) (state:compile_state) acc =
     | None -> raise_failure "Nothing to break out of"
   )
   | Assign (target, expr) -> compile_assignment target expr state acc
+  | DeclareAssign (_, name, expr) -> compile_assignment (Local name) expr state acc
   | Label name -> Label name :: acc
   | Unit stmt -> (
     let instr = match stmt with
@@ -206,19 +252,21 @@ and compile_stmt (Stmt(stmt,ln)) (state:compile_state) acc =
     if StringSet.mem n state.labels
     then Instr_GoTo :: LabelRef n :: acc
     else raise_failure ("Unavailable label: "^n)
-  | Declare _ -> Instr_Place :: I(0) :: acc
+  | Declare _ -> acc
   | PagerSet v -> compile_value v state (Instr_PagerSet :: acc)
   | PagerWrite v -> compile_value v state (Instr_PagerWrite :: acc)
   | Write v -> compile_value v state (Instr_Write :: acc)
   | Say v -> compile_value v state (Instr_Say :: acc)
   | Return v -> compile_value v state (Instr_Return :: acc)
   | CallStmt(f,args) -> compile_value (Call(f,args)) state (Instr_DecStack :: acc)
-  | DeclareAssign _ -> failwith "DeclareAssign still present"
   with 
   | Failure(p,None,msg) -> raise (Failure(p,Some ln, msg))
   | a -> raise a
 
-let compile_player (File(vars, program)) =
-  let labels = available_labels (Stmt(Block program,0)) in
-  Instr_Declare :: I(size_of_vars vars) :: compile_stmt (Stmt(Block program,0)) {vars = vars; labels = labels; break = None; continue = None; ret_type = None;} []
+let compile_player (File program) =
+  let program = Stmt(Block program,0) in
+  let vars = extract_declarations program in
+  let labels = available_labels program in
+  let state = {scopes = { local = vars ; global = None }; labels = labels; break = None; continue = None; ret_type = None;} in
+  Instr_Declare :: I(size_of_vars vars) :: compile_stmt program state []
 
