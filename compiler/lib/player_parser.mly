@@ -84,12 +84,12 @@ simple_typ:
   | INT { T_Int }
   | DIR { T_Dir }
   | FIELD { T_Field }
-  //| LPAR typ RPAR { $2 }
+  | LPAR typ RPAR { $2 }
+  | typ COLON LPAR seperated_or_empty(COMMA, simple_typ) RPAR { T_Func($1, $4) }
 ;
 
 typ:
   | typ LBRAKE CSTINT RBRAKE { T_Array($1,$3) }
-  | simple_typ COLON LPAR seperated_or_empty(COMMA, simple_typ) RPAR { T_Func($1, $4) }
   | simple_typ { $1 }
 ;
 

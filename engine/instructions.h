@@ -99,6 +99,16 @@ int limit_range(int given, int limit) {
     else return limit;
 }
 
+int global_scope_sp(player_state* ps, int bp, int sp) {
+    while (bp != 0) {
+        sp = bp - 2;
+        bp = ps->stack[bp - 2];
+    }
+    return sp;
+}
+
+
+
 int instr_shoot(player_state* ps) {
     if(!spend_resource(ps->resources, "ammo", 1)) return 0;
     
@@ -406,12 +416,13 @@ int instr_access(player_state* ps) {
 
 int instr_global_access(player_state* ps) {
     int n = ps->stack[ps->sp-1];
-    if (n < 0 /*|| n >= (ps->sp - ps->bp)*/) {
+    _log(DEBUG, "GLOBAL ACCESS: bp: %i, target: %i", ps->bp, n);
+    if (n < 0 || n >= global_scope_sp(ps, ps->bp, ps->sp)) {
         death_mark_player(ps, frame_break_msg);
         return 0;
     }
     ps->stack[ps->sp-1] = ps->stack[n];
-    _log(DEBUG, "GLOBAL ACCESS: v: %i, bp: %i, target: %i", ps->stack[ps->sp-1], ps->bp, n);
+    _log(DEBUG, "found %i", ps->stack[ps->sp-1]);
     return 0;
 }
 
@@ -515,7 +526,7 @@ int instr_assign(player_state* ps) {
 int instr_global_assign(player_state* ps) { 
     int v = ps->stack[--ps->sp];
     int n = ps->stack[--ps->sp];
-    if (n < 0 /*|| n >= (ps->sp - ps->bp)*/) {
+    if (n < 0 || n >= global_scope_sp(ps, ps->bp, ps->sp)) {
         death_mark_player(ps, frame_break_msg);
         return 0;
     }
