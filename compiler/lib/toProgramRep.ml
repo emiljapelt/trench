@@ -140,10 +140,13 @@ let rec compile_value val_expr (state:compile_state) acc =
 
 and compile_target_index target (state:compile_state) acc = match target with
   | Local name -> Instr_Place :: I(fetch_var_index name state.scopes) :: acc
-  | Array(t,i) -> 
-    let t_type = type_value state (Reference target) in
-    let t_type_size = type_size t_type in
-    Instr_Place :: I(t_type_size) :: compile_value i state (Instr_Mul :: compile_target_index t state (Instr_Add :: acc))
+  | Array(t,i) -> (
+    match type_value state (Reference t) with
+    | T_Array(element_type, array_size) -> 
+      let element_size = type_size element_type in
+      compile_target_index t state (compile_value i state (Instr_Index :: I(array_size) :: I(element_size)  :: acc))
+    | _ -> raise_failure "Not an array"
+  )
 
 
 and compile_assignment target expr state acc =

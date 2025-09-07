@@ -71,6 +71,7 @@ type instruction =
   | Instr_Declare
   | Instr_GlobalAccess
   | Instr_GlobalAssign
+  | Instr_Index
 
 let instruction_to_int label_map instr = match instr with
     | I i -> Some i
@@ -140,6 +141,7 @@ let instruction_to_int label_map instr = match instr with
     | Instr_Declare -> Some 61
     | Instr_GlobalAccess -> Some 62
     | Instr_GlobalAssign -> Some 63
+    | Instr_Index -> Some 64
 
 let label_set pp =
   let rec aux pp set = match pp with

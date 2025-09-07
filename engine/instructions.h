@@ -84,12 +84,14 @@ typedef enum {
   Instr_Declare = 61,
   Instr_GlobalAccess = 62,
   Instr_GlobalAssign = 63,
+  Instr_Index = 64,
 } instruction;
 
 const char* stack_overflow_msg = "Had an aneurysm (STACK_OVERFLOW)";
 const char* frame_break_msg = "Had an aneurysm (FRAME_BREAK)";
 const char* div_zero_msg = "Had an aneurysm (DIV_BY_ZERO)";
 const char* null_call_msg = "Had an aneurysm (NULL_CALL)";
+const char* out_of_bounds_msg = "Had an aneurysm (OUT_OF_BOUNDS)";
 
 // all instructions return 1 if the board should be updated, and 0 if not.
 
@@ -514,24 +516,24 @@ int instr_and(player_state* ps) {
 int instr_assign(player_state* ps) { 
     int v = ps->stack[--ps->sp];
     int n = ps->stack[--ps->sp];
+    _log(DEBUG, "ASSIGN: v: %i, bp: %i, target: %i", v, ps->bp, n);
     if (n < 0 || n >= (ps->sp - ps->bp)) {
         death_mark_player(ps, frame_break_msg);
         return 0;
     }
     ps->stack[ps->bp + n] = v;
-    _log(DEBUG, "ASSIGN: v: %i, bp: %i, target: %i", v, ps->bp, n);
     return 0;
 }
 
 int instr_global_assign(player_state* ps) { 
     int v = ps->stack[--ps->sp];
     int n = ps->stack[--ps->sp];
+    _log(DEBUG, "GLOBAL ASSIGN: v: %i, bp: %i, target: %i", v, ps->bp, n);
     if (n < 0 || n >= global_scope_sp(ps, ps->bp, ps->sp)) {
         death_mark_player(ps, frame_break_msg);
         return 0;
     }
     ps->stack[n] = v;
-    _log(DEBUG, "GLOBAL ASSIGN: v: %i, bp: %i, target: %i", v, ps->bp, n);
     return 0;
 }
 
@@ -1000,6 +1002,24 @@ int instr_declare(player_state* ps) {
     memset(ps->stack + ps->sp, 0, sizeof(int) * n);
     ps->sp += n;
     ps->dp++;
+    return 0;
+}
+
+int instr_index(player_state* ps) {
+    int idx = ps->stack[--ps->sp];
+    int arr = ps->stack[--ps->sp];
+    int arr_size = ps->directive[ps->dp++];
+    int elem_size = ps->directive[ps->dp++];
+
+    _log(DEBUG, "idx: %i, arr: %i, arr_size: %i, elem_size: %i", idx, arr, arr_size, elem_size);
+
+    if (idx < 0 || idx >= arr_size) {
+        death_mark_player(ps, out_of_bounds_msg);
+        return 0;
+    }
+
+    ps->stack[ps->sp++] = arr + idx * elem_size;
+
     return 0;
 }
 
