@@ -22,5 +22,6 @@
    settings
    flags
    compile
+   builtins
  )
 )

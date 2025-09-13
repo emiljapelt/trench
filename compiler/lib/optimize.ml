@@ -55,18 +55,15 @@ let rec optimize_value expr =
     | ("!", Int i) -> Int(if i = 0 then 1 else 0)
     | _ -> Unary_op(op, opte)
   )
-  | Scan(d,p) -> Scan(optimize_value d, optimize_value p) 
-  | Look _
   | Direction _
   | Random
   | RandomSet _
-  | Int _ -> expr
+  | Int _
+  | Prop _
   | MetaReference _
   | FieldProp _ 
   | Decrement _ 
   | Increment _
-  | PagerRead
-  | Read
   | Reference Local _ -> expr
   | Reference(Array(_,_)) -> expr
   | Func(ret,args,body) -> Func(ret,args,optimize_stmt body)
@@ -96,21 +93,13 @@ and optimize_stmt (Stmt(stmt_i,ln) as stmt) =
   | While(v,s,Some si) -> Stmt(While(optimize_value v,optimize_stmt s,Some(optimize_stmt si)),ln)
   | Assign(n,e) -> Stmt(Assign(optimize_assign_target n,optimize_value e),ln)
   | DeclareAssign(ty,n,v) -> Stmt(DeclareAssign(ty,n,optimize_value v), ln)
-  | PagerSet v -> Stmt(PagerSet(optimize_value v),ln)
-  | PagerWrite v -> Stmt(PagerWrite(optimize_value v),ln)
-  | Say v -> Stmt(Say(optimize_value v),ln)
-  | Write v -> Stmt(Write(optimize_value v),ln)
-  | Directional(stmt,d) -> Stmt(Directional(stmt,optimize_value d),ln)
-  | OptionDirectional(stmt,d) -> Stmt(OptionDirectional(stmt,Option.map optimize_value d),ln)
-  | Targeting(stmt,dir,dis) -> Stmt(Targeting(stmt,optimize_value dir, optimize_value dis),ln)
   | Return v -> Stmt(Return(optimize_value v),ln)
   | CallStmt(f,args) -> Stmt(CallStmt(optimize_value f, List.map optimize_value args),ln)
   | Declare _
   | GoTo _
   | Label _
   | Continue
-  | Break
-  | Unit _ -> stmt)
+  | Break -> stmt)
   with
   | Failure (f, None, msg) -> raise (Failure(f,Some ln,msg))
   | e -> raise e

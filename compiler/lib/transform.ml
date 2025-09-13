@@ -1,4 +1,5 @@
 open Absyn
+open Builtins
 open Helpers
 
 let rec count_declarations stmt : int = match stmt with
@@ -64,10 +65,8 @@ and rename_variables_of_value map v = match v with
   | Reference target -> Reference(rename_variables_of_target map target)
   | Binary_op(op,v0,v1) -> Binary_op(op,rename_variables_of_value map v0, rename_variables_of_value map v1)
   | Unary_op(op,v) -> Unary_op(op, rename_variables_of_value map v)
-  | Scan(v0,v1) -> Scan(rename_variables_of_value map v0, rename_variables_of_value map v1)
-  | Look(v,f) -> Look(rename_variables_of_value map v,f)
   | RandomSet vs -> RandomSet(List.map (rename_variables_of_value map) vs)
-  | FieldProp(v,f) -> FieldProp(rename_variables_of_value map v, f)
+  | FieldProp(v,fp) -> FieldProp(rename_variables_of_value map v, rename_variables_of_value map fp)
   | Decrement(target,pre) -> Decrement(rename_variables_of_target map target, pre)
   | Increment(target,pre) -> Increment(rename_variables_of_target map target, pre)
   | Func(ret,params,body) -> (    
@@ -117,25 +116,19 @@ and rename_variables_of_stmt map (Stmt(stmt,ln)) = match stmt with
   | Assign(target,v) -> 
      (map,Stmt(Assign(rename_variables_of_target map target, rename_variables_of_value map v),ln))
   | Label s ->  (map,Stmt(Label s,ln))
-  | Directional(stmt,dir) ->  (map,Stmt(Directional(stmt,rename_variables_of_value map dir),ln))
-  | OptionDirectional(stmt,dir) -> (map,Stmt(OptionDirectional(stmt,Option.map (rename_variables_of_value map) dir),ln))
-  | Targeting(stmt,dir,dis) ->  (map,Stmt(Targeting(stmt,rename_variables_of_value map dir,rename_variables_of_value map dis),ln))
-  | PagerSet v ->  (map,Stmt(PagerSet(rename_variables_of_value map v),ln))
-  | PagerWrite v ->  (map,Stmt(PagerWrite(rename_variables_of_value map v),ln))
-  | Write v ->  (map,Stmt(Write(rename_variables_of_value map v),ln))
   | Declare(t,n) -> 
     let new_name = rename n in
     (StringMap.add n new_name map,Stmt(Declare(t,new_name),ln))
   | DeclareAssign(t,n,v) ->
     let new_name = rename n in
     (StringMap.add n new_name map,Stmt(DeclareAssign(t,new_name,rename_variables_of_value map v),ln))
-  | Say v ->  (map,Stmt(Say(rename_variables_of_value map v),ln))
   | Return v ->  (map,Stmt(Return(rename_variables_of_value map v),ln))
   | CallStmt(f,args) ->  (map,Stmt(CallStmt(rename_variables_of_value map f, List.map (rename_variables_of_value map) args),ln))
   | _ ->  (map,Stmt(stmt,ln))
 
+
 let rename_variables_of_file (File stmts) =
   reset_rename_generator () ;
-  match rename_variables_of_stmt StringMap.empty (Stmt(Block stmts,0)) with
+  match rename_variables_of_stmt instruction_rename_map (Stmt(Block stmts,0)) with
   | (_,Stmt(Block stmts,_)) -> File stmts
   | _ -> failwith "Renaming failed"

@@ -11,46 +11,15 @@
                         "while", WHILE;
                         "break", BREAK;
                         "continue", CONTINUE;
-                        "move", MOVE;
-                        "trench", TRENCH;
-                        "wall", WALL;
-                        "fortify", FORTIFY;
-                        "scan", SCAN;
-                        "look", LOOK;
-                        "bomb", BOMB;
-                        "wait", WAIT;
-                        "pass", PASS;
                         "N", NORTH;
                         "E", EAST;
                         "S", SOUTH;
                         "W", WEST;
                         "goto", GOTO;
-                        "shoot", SHOOT;
-                        "mine", MINE;
-                        "chop", CHOP;
                         "int", INT;
                         "dir", DIR;
                         "field", FIELD;
-                        "read", READ;
-                        "write", WRITE;
-                        "pager_read", PAGER_READ;
-                        "pager_write", PAGER_WRITE;
-                        "pager_set", PAGER_SET;
-                        "projection", PROJECTION;
-                        "freeze", FREEZE;
-                        "fireball", FIREBALL;
-                        "meditate", MEDITATE;
-                        "dispel", DISPEL;
-                        "disarm", DISARM;
-                        "mana_drain", MANA_DRAIN;
-                        "plant_tree", PLANT_TREE;
-                        "bridge", BRIDGE;
-                        "collect", COLLECT;
-                        "say", SAY;
-                        "mount", MOUNT;
-                        "dismount", DISMOUNT;
-                        "boat", BOAT;
-                        "bear_trap", BEAR_TRAP;
+                        "prop", PROP;
                         "let", LET;
                         "return", RETURN;
                       ] 
@@ -82,6 +51,7 @@ rule lex = parse
     |   "//" [^ '\n' '\r']* ('\r''\n' | '\n' | eof)       { incr_linenum lexbuf ; lex lexbuf }
     |   ['0'-'9']+ as lxm { CSTINT (int_of_string lxm) }
     |   '#' ['A'-'Z' 'a'-'z' '''] ['A'-'Z' 'a'-'z' '0'-'9' '_'] * as id { META_NAME (String.sub id 1 (String.length id - 1)) }
+    |   '@' ['A'-'Z' 'a'-'z' '''] ['A'-'Z' 'a'-'z' '0'-'9' '_'] * as id { FIELD_PROP (String.sub id 1 (String.length id - 1)) }
     |   ['A'-'Z' 'a'-'z' '''] ['A'-'Z' 'a'-'z' '0'-'9' '_'] * as id
                 { try
                     Hashtbl.find keyword_table id

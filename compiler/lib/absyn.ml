@@ -29,6 +29,7 @@ and typ =
     | T_Int
     | T_Dir
     | T_Field
+    | T_Prop
     | T_Array of typ * int
     | T_Func of typ * typ list
 
@@ -51,48 +52,8 @@ and statement_inner =
     | GoTo of string
     | Declare of typ * string
     | DeclareAssign of typ option * string * value
-    | Write of value
-    | PagerSet of value
-    | PagerWrite of value
-    | Unit of unit_statement
-    | Directional of directional_statement * value
-    | OptionDirectional of option_directional_statement * value option
-    | Targeting of targeting_statement * value * value
-    | Say of value
     | Return of value
     | CallStmt of value * value list
-
-and unit_statement =
-    | Wait
-    | Pass
-    | Projection
-    | Meditate
-
-and directional_statement =
-    | Shoot
-    | Mine
-    | Fireball
-    | Move
-    | Chop
-    | Dispel
-    | Disarm
-    | ManaDrain
-    | Wall
-    | Bridge
-    | PlantTree
-    | Mount
-    | Dismount
-    | Boat
-    | BearTrap
-
-and option_directional_statement =
-    | Trench
-    | Fortify
-    | Collect
-
-and targeting_statement =
-    | Bomb
-    | Freeze
 
 and value =
     | Reference of target
@@ -102,14 +63,11 @@ and value =
     | Binary_op of string * value * value
     | Unary_op of string * value
     | Int of int
-    | Scan of value * value
-    | Look of value * field_prop
+    | Prop of field_prop
     | Direction of direction
     | Random
     | RandomSet of value list
-    | FieldProp of value * field_prop
-    | Read
-    | PagerRead
+    | FieldProp of value * value
     | Func of typ * (typ * string) list * statement
     | Call of value * value list
     | Ternary of value * value * value
@@ -156,9 +114,31 @@ let int_of_dir d = match d with
 let rec type_size t = match t with
     | T_Int 
     | T_Dir 
+    | T_Prop
     | T_Func _
     | T_Field -> 1
     | T_Array(t,s) -> s * (type_size t)
+
+let rec type_string t = match t with
+  | T_Int -> "int"
+  | T_Dir -> "dir"
+  | T_Field -> "field"
+  | T_Prop -> "prop"
+  | T_Array(t,_) -> (type_string t) ^ "[]"
+  | T_Func(r,args) -> (type_string r) ^ ":(" ^ (args |> List.map type_string |> String.concat ",")  ^ ")"
+
+let rec type_eq t1 t2 = match t1,t2 with
+  | T_Int, T_Int
+  | T_Dir, T_Dir
+  | T_Prop, T_Prop
+  | T_Field, T_Field -> true
+  | T_Array(st1,_), T_Array(st2,_) -> type_eq st1 st2
+  | T_Func(ret, params), T_Func(ret', params') -> 
+    List.length params = List.length params' 
+    && List.combine params params' |> List.for_all (fun (p,p') -> type_eq p p')
+    && type_eq ret ret'  
+  | _ -> false
+
 
 type player_info_field =
     | PlayerName of string

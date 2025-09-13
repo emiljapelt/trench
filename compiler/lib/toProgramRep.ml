@@ -4,6 +4,7 @@ open Exceptions
 open Typing
 open Field_props
 open Transform
+open Builtins
 
 (*** Compiling functions ***)
 
@@ -50,7 +51,6 @@ let fetch_var_index name scopes =
     | Some i -> i
     | None -> raise_failure ("No such register: "^name)
   )
-  
 
 let size_of_vars (vars : variable list) =
   List.fold_left (fun acc (Var(t,_)) -> acc + type_size t) 0 vars
@@ -70,12 +70,11 @@ let rec compile_value val_expr (state:compile_state) acc =
     )
   )
   | Int i -> Instr_Place :: I(i) :: acc
+  | Prop fp -> Instr_Place :: I(prop_index fp) :: acc
   | Random -> Instr_Random :: acc
   | RandomSet vals -> 
     List.fold_left (fun acc v -> compile_value v state acc) (Instr_RandomSet :: I(List.length vals) :: acc) vals
   | Direction d -> Instr_Place :: I(int_of_dir d) :: acc
-  | Look(d,f) -> compile_value d state (Instr_Look :: I(prop_index f) :: acc)
-  | Scan(d,p) -> compile_value d state (compile_value p state (Instr_Scan :: acc))
   | Binary_op (op, e1, e2) -> ( match op, type_value state e1, type_value state e2 with
     | "+", T_Int, T_Int -> compile_value e1 state (compile_value e2 state (Instr_Add :: acc))
     | "-", T_Int, T_Int -> compile_value e1 state (compile_value e2 state (Instr_Sub :: acc))
@@ -100,14 +99,12 @@ let rec compile_value val_expr (state:compile_state) acc =
       | "!" -> compile_value e state (Instr_Not :: acc)
       | _ -> raise_failure "Unknown unary operation"
   )
-  | FieldProp(v,f) -> compile_value v state (Instr_FieldProp :: I(prop_index f) :: acc)
+  | FieldProp(v,f) -> compile_value v state (compile_value f state (Instr_FieldProp :: acc))
   (* true = pre*)
   | Increment(target, true)  ->  compile_target_index target state (Instr_Copy :: Instr_Copy :: instr_access target state.scopes :: Instr_Place :: I(1) :: Instr_Add :: instr_assign target state.scopes :: instr_access target state.scopes :: acc)
   | Increment(target, false) ->  compile_target_index target state (Instr_Copy :: instr_access target state.scopes :: Instr_Swap :: Instr_Copy :: instr_access target state.scopes :: Instr_Place :: I(1) :: Instr_Add :: instr_assign target state.scopes :: acc)
   | Decrement(target, true)  ->  compile_target_index target state (Instr_Copy :: Instr_Copy :: instr_access target state.scopes :: Instr_Place :: I(1) :: Instr_Sub :: instr_assign target state.scopes :: instr_access target state.scopes :: acc)
   | Decrement(target, false) ->  compile_target_index target state (Instr_Copy :: instr_access target state.scopes :: Instr_Swap :: Instr_Copy :: instr_access target state.scopes :: Instr_Place :: I(1) :: Instr_Sub :: instr_assign target state.scopes :: acc)
-  | PagerRead -> Instr_PagerRead :: acc
-  | Read -> Instr_Read :: acc
   | Func(ret,args,body) -> (
     let func_label = Helpers.new_label () in
     let end_label = Helpers.new_label () in
@@ -126,6 +123,15 @@ let rec compile_value val_expr (state:compile_state) acc =
     let (body,_) = type_check_stmt new_state body in
     let vars = extract_declarations body |> List.rev in
     Instr_GoTo :: LabelRef(end_label) :: Label(func_label) :: Instr_Declare :: I(size_of_vars vars) :: compile_stmt body {new_state with scopes = ({ local = new_state.scopes.local @ vars; global = new_state.scopes.global })} (Instr_Place :: I(0) :: Instr_Return :: Label(end_label) :: Instr_Place :: LabelRef(func_label) :: acc)
+  )
+  | Call(Reference(Local name), args) when not(is_var name state.scopes) -> (match lookup_builtin_info name (List.map (type_value state) args) with
+    | Some builtin -> (match builtin.comp with
+      | FixedComp comp -> comp acc
+      | FuncComp instr ->
+        let comped_args = List.map (fun arg -> compile_value arg state []) args |> List.flatten in
+        comped_args @ (instr :: acc)
+    )
+    | _ -> raise_failure ("Unknown instruction: "^name)
   )
   | Call(f,args) -> (
     let comped_args = List.map (fun arg -> compile_value arg state []) args |> List.flatten in
@@ -205,61 +211,11 @@ and compile_stmt (Stmt(stmt,ln)) state acc =
   | Assign (target, expr) -> compile_assignment target expr state acc
   | DeclareAssign (_, name, expr) -> compile_assignment (Local name) expr state acc
   | Label name -> Label name :: acc
-  | Unit stmt -> (
-    let instr = match stmt with
-    | Wait -> Instr_Wait
-    | Pass -> Instr_Pass
-    | Projection -> Instr_Projection
-    | Meditate -> Instr_Meditate
-    in
-    instr :: acc
-  )
-  | Directional(stmt, dir) -> (
-    let instr = match stmt with
-    | Shoot -> Instr_Shoot
-    | Mine -> Instr_Mine
-    | Fireball -> Instr_Fireball
-    | Move -> Instr_Move
-    | Chop -> Instr_Chop
-    | Dispel -> Instr_Dispel
-    | Disarm -> Instr_Disarm
-    | ManaDrain -> Instr_ManaDrain
-    | Wall -> Instr_Wall
-    | Bridge -> Instr_Bridge
-    | PlantTree -> Instr_PlantTree
-    | Mount -> Instr_Mount
-    | Dismount -> Instr_Dismount
-    | Boat -> Instr_Boat
-    | BearTrap -> Instr_BearTrap
-    in
-    compile_value dir state (instr :: acc)
-  )
-  | OptionDirectional(stmt, dir_opt) -> (
-    let instr = match stmt with
-    | Trench -> Instr_Trench
-    | Fortify -> Instr_Fortify
-    | Collect -> Instr_Collect
-    in
-    match dir_opt with
-    | Some dir -> compile_value dir state (instr :: acc)
-    | None ->  Instr_Place :: I(4) :: instr :: acc
-  )
-  | Targeting(stmt, dir, dis) -> (
-    let instr = match stmt with
-    | Bomb -> Instr_Bomb
-    | Freeze -> Instr_Freeze
-    in
-    compile_value dir state (compile_value dis state (instr :: acc))
-  )
   | GoTo n -> 
     if StringSet.mem n state.labels
     then Instr_GoTo :: LabelRef n :: acc
     else raise_failure ("Unavailable label: "^n)
   | Declare _ -> acc
-  | PagerSet v -> compile_value v state (Instr_PagerSet :: acc)
-  | PagerWrite v -> compile_value v state (Instr_PagerWrite :: acc)
-  | Write v -> compile_value v state (Instr_Write :: acc)
-  | Say v -> compile_value v state (Instr_Say :: acc)
   | Return v -> compile_value v state (Instr_Return :: acc)
   | CallStmt(f,args) -> compile_value (Call(f,args)) state (Instr_DecStack :: acc)
   with 

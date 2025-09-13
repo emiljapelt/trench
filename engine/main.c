@@ -55,9 +55,13 @@ void player_turn_async(player_state* ps) {
             case Meta_PlayerID: change = meta_player_id(ps);break;
             case Instr_Wait: {
                 if(!use_resource(1,&ps->remaining_actions)) {ps->dp--;return;}
+                ps->stack[ps->sp++] = 1;
                 break;
             }
-            case Instr_Pass: return;
+            case Instr_Pass: {
+                ps->stack[ps->sp++] = 1;
+                return;
+            }
             case Instr_Shoot: { 
                 if(!use_resource(1,&ps->remaining_actions)) {ps->dp--;return;}
                 change = instr_shoot(ps);

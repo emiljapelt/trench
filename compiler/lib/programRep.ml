@@ -184,3 +184,13 @@ let available_labels stmt =
     | _ -> set
   in
     aux stmt StringSet.empty
+
+
+let is_var name scopes =
+  match List.find_opt (fun (Var(_,n)) -> n = name) scopes.local with
+  | Some _ -> true
+  | None -> (
+    match Option.map (fun scope -> List.find_opt (fun (Var(_,n)) -> n = name) scope) scopes.global |> Option.join with
+    | Some _ -> true
+    | _ -> false
+  )

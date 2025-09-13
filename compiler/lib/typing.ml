@@ -1,28 +1,11 @@
 open Absyn
 open ProgramRep
 open Exceptions
-
-let rec type_string t = match t with
-  | T_Int -> "int"
-  | T_Dir -> "dir"
-  | T_Field -> "field"
-  | T_Array(t,_) -> (type_string t) ^ "[]"
-  | T_Func(r,args) -> (type_string r) ^ ":(" ^ (args |> List.map type_string |> String.concat ",")  ^ ")"
-
-let rec type_eq t1 t2 = match t1,t2 with
-  | T_Int, T_Int
-  | T_Dir, T_Dir
-  | T_Field, T_Field -> true
-  | T_Array(st1,_), T_Array(st2,_) -> type_eq st1 st2
-  | T_Func(ret, params), T_Func(ret', params') -> 
-    List.length params = List.length params' 
-    && List.combine params params' |> List.for_all (fun (p,p') -> type_eq p p')
-    && type_eq ret ret'  
-  | _ -> false
+open Builtins
 
 let require req_typ expr_t res = 
   if type_eq req_typ expr_t then res ()
-  else raise_failure ("required type: '" ^type_string req_typ^ "' but got :'" ^type_string expr_t^ "'")
+  else raise_failure ("required type: '" ^type_string req_typ^ "' but got: '" ^type_string expr_t^ "'")
 
 let var_type scopes name = 
   match List.find_opt (fun (Var(_,vn)) -> vn = name) scopes.local with
@@ -65,6 +48,7 @@ let rec type_value state v = match v with
     | Unary_op _
     | Random
     | Int _ -> T_Int
+    | Prop _ -> T_Prop
     | Decrement(target,_) -> (match type_value state (Reference target) with 
       | T_Int -> T_Int
       | _ -> raise_failure ("Only int and dir can be decremented")
@@ -73,12 +57,10 @@ let rec type_value state v = match v with
       | T_Int -> T_Int
       | _ -> raise_failure ("Only int and dir can be incremented")
     )
-    | FieldProp(v,_) -> require T_Field (type_value state v) (fun () -> T_Int)
-    | Scan(d,p)  ->
-      require T_Dir (type_value state d) (fun () -> ()) ;
-      require T_Int (type_value state p) (fun () -> ()) ;
-      T_Field
-    | Look(e,_) -> require T_Dir (type_value state e) (fun () -> T_Int)
+    | FieldProp(v,fp) -> 
+      require T_Field (type_value state v) (fun () -> ()) ;
+      require T_Prop (type_value state fp) (fun () -> ()) ;
+      T_Int
     | Direction _ -> T_Dir
     | RandomSet vals -> (match vals with
       | [] -> raise_failure "Empty random set"
@@ -87,8 +69,6 @@ let rec type_value state v = match v with
         List.iter (fun h -> require ty (type_value state h) (fun () -> ())) t ;
         ty
     )
-    | PagerRead
-    | Read -> T_Int
     | Func(ret,args,body) -> (
       (* Not super good, any transformation incured by the typing, is lost because type_value does not return a value *)
       (* Instead the type check is done again in toProgramRep... *)
@@ -99,6 +79,12 @@ let rec type_value state v = match v with
       } in
       let _ = type_check_stmt ({scopes = func_scope; ret_type = Some ret; continue = None; break = None; labels = StringSet.empty}) body in
       typ
+    )
+    | Call(Reference(Local name), args) when not (is_var name state.scopes) -> (
+      let arg_types = List.map (type_value state) args in
+      match lookup_builtin_info name arg_types with
+        | Some ii -> ii.ret
+        | _ -> raise_failure ("Unknown instruction: "^name^"("^String.concat "," (List.map type_string arg_types) ^")")
     )
     | Call(f,args) -> (
       let f_type = type_value state f in match f_type with
@@ -157,13 +143,6 @@ and type_check_stmt_inner state stmt = match stmt with
       | _ -> raise_failure "array assignment to non-array"
     )
   )
-  | Directional(_,dir) -> require T_Dir (type_value state dir) (fun () -> (stmt,state))
-  | OptionDirectional(_,None) -> (stmt,state)
-  | OptionDirectional(_,Some dir) -> require T_Dir (type_value state dir) (fun () -> (stmt,state))
-  | Targeting(_,dir,dis) -> 
-    require T_Dir (type_value state dir) (fun () -> 
-      require T_Int (type_value state dis) (fun () -> (stmt,state))
-    )
   | DeclareAssign(Some t, n, v) -> require t (type_value state v) (fun () -> (stmt, {state with scopes = { local = Var(t,n)::state.scopes.local; global = state.scopes.global } }))
   | DeclareAssign(None, n, v) -> (
     let typ = type_value state v in
@@ -173,12 +152,7 @@ and type_check_stmt_inner state stmt = match stmt with
   | GoTo _
   | Label _
   | Continue
-  | Break
-  | Unit _ -> (stmt, state)
-  | PagerSet v
-  | PagerWrite v
-  | Write v -> require T_Int (type_value state v) (fun () -> (stmt, state))
-  | Say v -> require T_Int (type_value state v) (fun () -> (stmt, state))
+  | Break -> (stmt, state)
   | Return v -> ( match state.ret_type with
       | None -> raise_failure "Return statement outside function"
       | Some ret_type -> 
@@ -186,21 +160,8 @@ and type_check_stmt_inner state stmt = match stmt with
         if not(type_eq ret_type v_type) then raise_failure ("Return type mismatch: expected '" ^type_string ret_type^ "', but got '" ^type_string v_type^ "'")
         else (stmt, state)
   )
-  | CallStmt(f,args) -> (
-    let f_type = type_value state f in match f_type with
-      | T_Func(_, params) -> (
-        if List.length params != List.length args then raise_failure "Incorrect amount of arguments"
-        else if not (
-          args 
-          |> List.map (type_value state) 
-          |> List.combine params
-          |> List.for_all (fun (p, a) -> type_eq p a)
-        )
-        then raise_failure "Argument type mismatch"
-        else (stmt, state)
-      )
-      | _ -> raise_failure "Not a callable type"
-  )
+  | CallStmt(f,args) -> 
+    type_value state (Call(f,args)) |> ignore ; (stmt, state)
 
 and type_check_stmt regs (Stmt(stmt,ln)) = 
   try 
