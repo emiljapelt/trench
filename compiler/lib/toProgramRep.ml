@@ -131,7 +131,7 @@ let rec compile_value val_expr (state:compile_state) acc =
         let comped_args = List.map (fun arg -> compile_value arg state []) args |> List.flatten in
         comped_args @ (instr :: acc)
     )
-    | _ -> raise_failure ("Unknown instruction: "^name)
+    | _ -> raise_failure ("Unknown function: "^name)
   )
   | Call(f,args) -> (
     let comped_args = List.map (fun arg -> compile_value arg state []) args |> List.flatten in

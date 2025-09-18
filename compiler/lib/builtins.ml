@@ -7,301 +7,325 @@ type builtin_compile =
   | FixedComp of (instruction list -> instruction list)
   | FuncComp of instruction
 
-type builtin_info = {
-  name: string;
+type builtin_version = {
   args: typ list;
   ret: typ;
-  themes: string list;
-  features: string list;
   comp: builtin_compile;
 }
 
-let instruction_infos : builtin_info list = [
-  {
-    name = "move";
-    args = [T_Dir];
-    ret = T_Int;
+type builtin_info = {
+  themes: string list;
+  features: string list;
+  versions: builtin_version list;
+}
+
+let instruction_infos : builtin_info StringMap.t = StringMap.of_list [
+  ("move", {
     themes = []; 
     features = [];
-    comp = FuncComp Instr_Move;
-  };
-  {
-    name = "trench";
-    args = [T_Dir];
-    ret = T_Int;
+    versions = [{
+      args = [T_Dir];
+      ret = T_Int;
+      comp = FuncComp Instr_Move;
+    }];
+  });
+  ("trench", {
     themes = []; 
     features = [];
-    comp = FuncComp Instr_Trench;
-  };
-  {
-    name = "trench";
-    args = [];
-    ret = T_Int;
+    versions = [{
+      args = [T_Dir];
+      ret = T_Int;
+      comp = FuncComp Instr_Trench;
+    };{
+      args = [];
+      ret = T_Int;
+      comp = FixedComp (fun acc -> Instr_Place :: I(4) :: Instr_Trench :: acc);
+    }]
+  });
+  ("fortify", {
     themes = []; 
     features = [];
-    comp = FixedComp (fun acc -> Instr_Place :: I(4) :: Instr_Trench :: acc);
-  };
-  {
-    name = "fortify";
-    args = [T_Dir];
-    ret = T_Int;
+    versions = [{
+      args = [T_Dir];
+      ret = T_Int;
+      comp = FuncComp Instr_Fortify;
+    };{
+      args = [];
+      ret = T_Int;
+      comp = FixedComp (fun acc -> Instr_Place :: I(4) :: Instr_Fortify :: acc);
+    };]
+  });
+  ("wait", {
     themes = []; 
     features = [];
-    comp = FuncComp Instr_Fortify;
-  };
-  {
-    name = "fortify";
-    args = [];
-    ret = T_Int;
+    versions = [{
+      args = [];
+      ret = T_Int;
+      comp = FuncComp Instr_Wait;
+    }];
+  });
+  ("pass", {
     themes = []; 
     features = [];
-    comp = FixedComp (fun acc -> Instr_Place :: I(4) :: Instr_Fortify :: acc);
-  };
-  {
-    name = "wait";
-    args = [];
-    ret = T_Int;
-    themes = []; 
-    features = [];
-    comp = FuncComp Instr_Wait;
-  };
-  {
-    name = "pass";
-    args = [];
-    ret = T_Int;
-    themes = []; 
-    features = [];
-    comp = FuncComp Instr_Pass;
-  };
-  {
-    name = "meditate";
-    args = [];
-    ret = T_Int;
+    versions = [{
+      args = [];
+      ret = T_Int;
+      comp = FuncComp Instr_Pass;
+    }];
+  });
+  ("meditate", {
     themes = ["wizardry"];
     features = [];
-    comp = FuncComp Instr_Meditate;
-  };
-  {
-    name = "projection";
-    args = [];
-    ret = T_Int;
+    versions = [{
+      args = [];
+      ret = T_Int;
+      comp = FuncComp Instr_Meditate;
+    }];
+  });
+  ("projection", {
     themes = ["wizardry"];
     features = [];
-    comp = FuncComp Instr_Projection;
-  };
-  {
-    name = "collect";
-    args = [];
-    ret = T_Int;
+    versions = [{
+      args = [];
+      ret = T_Int;
+      comp = FuncComp Instr_Projection;
+    }];
+  });
+  ("collect", {
     themes = []; 
     features = [];
-    comp = FuncComp Instr_Collect;
-  };
-  {
-    name = "collect";
-    args = [];
-    ret = T_Int;
-    themes = []; 
-    features = [];
-    comp = FixedComp (fun acc -> Instr_Place :: I(4) :: Instr_Collect :: acc);
-  };
-  {
-    name = "bomb";
-    args = [T_Dir; T_Int];
-    ret = T_Int;
+    versions = [{
+      args = [];
+      ret = T_Int;
+      comp = FuncComp Instr_Collect;
+    };{
+      args = [];
+      ret = T_Int;
+      comp = FixedComp (fun acc -> Instr_Place :: I(4) :: Instr_Collect :: acc);
+    }];
+  });
+  ("bomb", {
     themes = ["military"];
     features = [];
-    comp = FuncComp Instr_Bomb;
-  };
-  {
-    name = "freeze";
-    args = [T_Dir; T_Int];
-    ret = T_Int;
+    versions = [{
+      args = [T_Dir; T_Int];
+      ret = T_Int;
+      comp = FuncComp Instr_Bomb;
+    }];
+  });
+  ("freeze", {
     themes = ["wizardry"];
     features = [];
-    comp = FuncComp Instr_Freeze;
-  };
-  {
-    name = "shoot";
-    args = [T_Dir];
-    ret = T_Int;
+    versions = [{
+      args = [T_Dir; T_Int];
+      ret = T_Int;
+      comp = FuncComp Instr_Freeze;
+    }];
+  });
+  ("shoot", {
     themes = ["military"; "forestry"];
     features = [];
-    comp = FuncComp Instr_Shoot;
-  };
-  {
-    name = "mine";
-    args = [T_Dir];
-    ret = T_Int;
+    versions = [{
+      args = [T_Dir];
+      ret = T_Int;
+      comp = FuncComp Instr_Shoot;
+    }];
+  });
+  ("mine", {
     themes = ["military"];
     features = [];
-    comp = FuncComp Instr_Mine;
-  };
-  {
-    name = "fireball";
-    args = [T_Dir];
-    ret = T_Int;
+    versions = [{
+      args = [T_Dir];
+      ret = T_Int;
+      comp = FuncComp Instr_Mine;
+    }];
+  });
+  ("fireball", {
     themes = ["wizardry"];
     features = [];
-    comp = FuncComp Instr_Fireball;
-  };
-  {
-    name = "chop";
-    args = [T_Dir];
-    ret = T_Int;
+    versions = [{
+      args = [T_Dir];
+      ret = T_Int;
+      comp = FuncComp Instr_Fireball;
+    }];
+  });
+  ("chop", {
     themes = ["forestry"];
     features = [];
-    comp = FuncComp Instr_Chop;
-  };
-  {
-    name = "dispel";
-    args = [T_Dir];
-    ret = T_Int;
+    versions = [{
+      args = [T_Dir];
+      ret = T_Int;
+      comp = FuncComp Instr_Chop;
+    }];
+  });
+  ("dispel", {
     themes = ["wizardry"];
     features = [];
-    comp = FuncComp Instr_Dispel;
-  };
-  {
-    name = "disarm";
-    args = [T_Dir];
-    ret = T_Int;
+    versions = [{
+      args = [T_Dir];
+      ret = T_Int;
+      comp = FuncComp Instr_Dispel;
+    }];
+  });
+  ("disarm", {
     themes = ["forestry"; "military"];
     features = [];
-    comp = FuncComp Instr_Disarm;
-  };
-  {
-    name = "mana_drain";
-    args = [T_Dir];
-    ret = T_Int;
+    versions = [{
+      args = [T_Dir];
+      ret = T_Int;
+      comp = FuncComp Instr_Disarm;
+    }];
+  });
+  ("mana_drain", {
     themes = ["wizardry"];
     features = [];
-    comp = FuncComp Instr_ManaDrain;
-  };
-  {
-    name = "wall";
-    args = [T_Dir];
-    ret = T_Int;
+    versions = [{
+      args = [T_Dir];
+      ret = T_Int;
+      comp = FuncComp Instr_ManaDrain;
+    }];
+  });
+  ("wall", {
     themes = []; 
     features = [];
-    comp = FuncComp Instr_Wall;
-  };
-  {
-    name = "bridge";
-    args = [T_Dir];
-    ret = T_Int;
+    versions = [{
+      args = [T_Dir];
+      ret = T_Int;
+      comp = FuncComp Instr_Wall;
+    }];
+  });
+  ("bridge", {
     themes = []; 
     features = [];
-    comp = FuncComp Instr_Bridge;
-  };
-  {
-    name = "plant_tree";
-    args = [T_Dir];
-    ret = T_Int;
+    versions = [{
+      args = [T_Dir];
+      ret = T_Int;
+      comp = FuncComp Instr_Bridge;
+    }];
+  });
+  ("plant_tree", {
     themes = ["forestry"];
     features = [];
-    comp = FuncComp Instr_PlantTree;
-  };
-  {
-    name = "mount";
-    args = [T_Dir];
-    ret = T_Int;
+    versions = [{
+      args = [T_Dir];
+      ret = T_Int;
+      comp = FuncComp Instr_PlantTree;
+    }];
+  });
+  ("mount", {
     themes = []; 
     features = [];
-    comp = FuncComp Instr_Mount;
-  };
-  {
-    name = "dismount";
-    args = [T_Dir];
-    ret = T_Int;
+    versions = [{
+      args = [T_Dir];
+      ret = T_Int;
+      comp = FuncComp Instr_Mount;
+    }];
+  });
+  ("dismount", {
     themes = [];
     features = [];
-    comp = FuncComp Instr_Dismount;
-  };
-  {
-    name = "boat";
-    args = [T_Dir];
-    ret = T_Int;
+    versions = [{
+      args = [T_Dir];
+      ret = T_Int;
+      comp = FuncComp Instr_Dismount;
+    }];
+  });
+  ("boat", {
     themes = [];
     features = [];
-    comp = FuncComp Instr_Boat;
-  };
-  {
-    name = "bear_trap";
-    args = [T_Dir];
-    ret = T_Int;
+    versions = [{
+      args = [T_Dir];
+      ret = T_Int;
+      comp = FuncComp Instr_Boat;
+    }];
+  });
+  ("bear_trap", {
     themes = ["forestry"];
     features = [];
-    comp = FuncComp Instr_BearTrap;
-  };
-  {
-    name = "write";
-    args = [T_Int];
-    ret = T_Int;
+    versions = [{
+      args = [T_Dir];
+      ret = T_Int;
+      comp = FuncComp Instr_BearTrap;
+    }];
+  });
+  ("write", {
     themes = [];
     features = ["ipc"];
-    comp = FuncComp Instr_Write;
-  };
-  {
-    name = "pager_write";
-    args = [T_Int];
-    ret = T_Int;
+    versions = [{
+      args = [T_Int];
+      ret = T_Int;
+      comp = FuncComp Instr_Write;
+    }];
+  });
+  ("pager_write", {
     themes = [];
     features = ["ipc"];
-    comp = FuncComp Instr_PagerWrite;
-  };
-  {
-    name = "pager_set";
-    args = [T_Int];
-    ret = T_Int;
+    versions = [{
+      args = [T_Int];
+      ret = T_Int;
+      comp = FuncComp Instr_PagerWrite;
+    }];
+  });
+  ("pager_set", {
     themes = [];
     features = ["ipc"];
-    comp = FuncComp Instr_PagerSet;
-  };
-  {
-    name = "say";
-    args = [T_Int];
-    ret = T_Int;
+    versions = [{
+      args = [T_Int];
+      ret = T_Int;
+      comp = FuncComp Instr_PagerSet;
+    }];
+  });
+  ("say", {
     themes = [];
     features = [];
-    comp = FuncComp Instr_Say;
-  };
-  {
-    name = "pager_read";
-    args = [];
-    ret = T_Int;
+    versions = [{
+      args = [T_Int];
+      ret = T_Int;
+      comp = FuncComp Instr_Say;
+    }];
+  });
+  ("pager_read", {
     themes = [];
     features = [];
-    comp = FuncComp Instr_PagerRead;
-  };
-  {
-    name = "read";
-    args = [];
-    ret = T_Int;
+    versions = [{
+      args = [];
+      ret = T_Int;
+      comp = FuncComp Instr_PagerRead;
+    }];
+  });
+  ("read", {
     themes = [];
     features = ["ipc"];
-    comp = FuncComp Instr_Read;
-  };
-  {
-    name = "scan";
-    args = [T_Dir; T_Int];
-    ret = T_Field;
+    versions = [{
+      args = [];
+      ret = T_Int;
+      comp = FuncComp Instr_Read;
+    }];
+  });
+  ("scan", {
     themes = [];
     features = [];
-    comp = FuncComp Instr_Scan;
-  };
-  {
-    name = "look";
-    args = [T_Dir; T_Prop];
-    ret = T_Int;
+    versions = [{
+      args = [T_Dir; T_Int];
+      ret = T_Field;
+      comp = FuncComp Instr_Scan;
+    }];
+  });
+  ("look", {
     themes = [];
     features = [];
-    comp = FuncComp Instr_Look;
-  };
+    versions = [{
+      args = [T_Dir; T_Prop];
+      ret = T_Int;
+      comp = FuncComp Instr_Look;
+    }];
+  });
 ]
 
 let instruction_rename_map = 
   instruction_infos
-  |> List.map (fun ii -> (ii.name, ii.name))
+  |> StringMap.bindings
+  |> List.map (fun ii -> (fst ii, fst ii))
   |> StringMap.of_list
 
 
@@ -318,13 +342,15 @@ let features fs =
 
 
 let lookup_builtin_info name arg_types = 
-  let builtin_opt = 
-    instruction_infos
-    |> List.find_opt (fun ii -> 
-      ii.name = name
-      && List.length arg_types = List.length ii.args
-      && List.for_all (fun (a,b) -> type_eq a b) (List.combine arg_types ii.args)
-    )
-  in match builtin_opt with
-  | Some builtin -> (features builtin.features ; themes builtin.themes ; Some builtin)
+  match StringMap.find_opt name instruction_infos with
   | None -> None
+  | Some builtin -> 
+    match
+      builtin.versions |>
+      List.find_opt (fun builtin -> 
+        List.length arg_types = List.length builtin.args
+        && List.for_all (fun (a,b) -> type_eq a b) (List.combine arg_types builtin.args))
+    with 
+    | None -> None
+    | Some version -> (features builtin.features ; themes builtin.themes ; Some version)
+  
