@@ -78,6 +78,7 @@ let default_game_setup = GS {
   time_scale = 1.0;
   setting_overwrites = [];
   debug = false;
+  viewport = (20,20);
 }
 
 let valid_map_chars = ['\n'; '\r'; '.'; '+'; '~'; 'T'; 'w']
@@ -118,6 +119,7 @@ let to_game_setup gsps =
       | TimeScale f -> if (f >= 0.0) then GS ({acc with time_scale = f}) else raise_failure "Time scale option cannot be negative"
       | SettingOverwrites so -> (GS ({acc with setting_overwrites = so}))
       | Debug b -> (GS ({acc with debug = b}))
+      | Viewport(w,h) -> if w > 0 || h > 0  then (GS ({acc with viewport = (w,h)})) else raise_failure "Viewport must be two non-zero ints"
     )
   in
   aux gsps default_game_setup
@@ -196,6 +198,7 @@ type compiled_game_file = {
   time_scale: float;
   settings: settings;
   debug: bool;
+  viewport: int * int;
 }
 
 let compile_player_file path size_limit = try (
@@ -296,6 +299,7 @@ let format_game_setup (GS gs) =
     map = gs.map;
     settings = overwrite_settings default_settings gs.setting_overwrites;
     debug = gs.debug;
+    viewport = gs.viewport
   }
 
 let check_resources (GS gs) = 

@@ -30,6 +30,7 @@
                         "false", FALSE;
                         "true", TRUE;
                         "debug", DEBUG;
+                        "viewport", VIEWPORT;
                       ]
   
   let char_of_string s lexbuf = match s with

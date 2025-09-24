@@ -12,4 +12,13 @@ static inline int use_resource(int amount, int* avail) {
     *avail -= amount;
 }
 
+void terminal_echo_off();
+void terminal_echo_on();
+
+void terminal_blocking_read_off();
+void terminal_blocking_read_on();
+
+void terminal_canonical_off();
+void terminal_canonical_on();
+
 #endif

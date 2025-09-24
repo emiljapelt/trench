@@ -181,6 +181,7 @@ type game_setup_part =
     | Map of map
     | SettingOverwrites of setting_overwrites list
     | Debug of bool
+    | Viewport of int * int
 
 type game_setup = GS of {
     teams: team_info list;
@@ -197,4 +198,5 @@ type game_setup = GS of {
     map: map;
     setting_overwrites: setting_overwrites list;
     debug: bool;
+    viewport: int * int;
 }

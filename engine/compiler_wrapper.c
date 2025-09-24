@@ -223,6 +223,12 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 .time_scale = (float)Double_val(Field(unwrapped_result, 13)),
                 .stack_size = 1000,
                 .debug = Bool_val(Field(unwrapped_result, 15)),
+                .viewport = {
+                    .x = 0,
+                    .y = 0,
+                    .width = Int_val(Field(Field(unwrapped_result, 16), 0)),
+                    .height = Int_val(Field(Field(unwrapped_result, 16), 1)),
+                },
             };
 
             load_settings_struct(gr, Field(unwrapped_result, 14));

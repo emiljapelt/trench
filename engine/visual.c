@@ -214,20 +214,31 @@ field_visual get_field_visual(const int x, const int y, const field_state* field
     return result; 
 }
 
+field_visual empty_visual() {
+    return (field_visual){
+        .background_color = NULL,
+        .foreground_color = NULL,
+        .mod = 0,
+        .symbol = " "
+    };
+}
+
 void print_board() {
     reset_cursor();
     int feed_index = 0;
 
     printf("Round: %i", _gs->round);
-    for(int i = 0; i < _gs->board_x-5; i++) putchar(' ');
+    for(int i = 0; i < _gr->viewport.width-5; i++) putchar(' ');
     putchar('\n');
     printf("%s", SE);
-    for(int i = 0; i < _gs->board_x+2; i++) printf("%s", EW);
+    for(int i = 0; i < _gr->viewport.width+2; i++) printf("%s", EW);
     printf("%s\n", SW);
-    for(int y = 0; y < _gs->board_y; (putchar('\n'), y++)) {
+    for(int y = 0; y < _gr->viewport.height; (putchar('\n'), y++)) {
         printf("%s ", NS);
-        for(int x = 0; x < _gs->board_x; x++) {
-            field_visual visual = get_field_visual(x,y,get_field(x,y));
+        for(int x = 0; x < _gr->viewport.width; x++) {
+            int actual_x = _gr->viewport.x + x;
+            int actual_y = _gr->viewport.y + y;
+            field_visual visual = in_bounds(actual_x, actual_y) ? get_field_visual(actual_x, actual_y, get_field(actual_x, actual_y)) : empty_visual();
 
             if (visual.foreground_color)
                 set_color(*visual.foreground_color, FORE);
@@ -251,8 +262,8 @@ void print_board() {
         } 
     }
     printf("%s", NE);
-    for(int i = 0; i < _gs->board_x+2; i++) printf("%s", EW);
+    for(int i = 0; i < _gr->viewport.width+2; i++) printf("%s", EW);
     printf("%s\n", NW);
-    // TODO: Print feed to the right of the board maybe ???
+
     clear_feed();
 }

@@ -336,7 +336,10 @@ void get_new_directive(player_state* ps) {
         }
         else {   
             printf("%s#%i, change directive?:\n0: No change\n1: Reload file\n2: New file\n", ps->name, ps->id);
+
+            terminal_blocking_read_on();
             scanf(" %c",&option);
+            terminal_blocking_read_off();
         }
 
         switch (option) {
@@ -502,6 +505,57 @@ void play_round_sync() {
         free(acts);
 }
 
+void handle_input() {
+    char buf[1];
+    while (1) {
+        int read_status = read(STDIN_FILENO, &buf, 1);
+
+        if (read_status == -1 || read_status == 0) return;
+
+        switch (buf[0]) {
+            case '+':
+                _gr->time_scale += 0.1;
+                break;
+            case '-': 
+                _gr->time_scale -= 0.1;
+                if (_gr->time_scale < 0) _gr->time_scale = 0;
+                break;
+            case '\033': {
+                char special_buf[2];
+                read(STDIN_FILENO, &special_buf, 2);
+                switch (special_buf[1]) {
+                    case 'A': // UP
+                        _gr->viewport.y--;
+                        break;
+                    case 'B': // DOWN
+                        _gr->viewport.y++;
+                        break;
+                    case 'C': // RIGHT
+                        _gr->viewport.x++;
+                        break;
+                    case 'D': // LEFT
+                        _gr->viewport.x--;
+                        break;
+                }
+            }
+            break;
+            case ' ': { 
+                // TODO: Non-blocking pause?
+                char pause_buf[1];
+                while(1) {
+                    read_status = read(STDIN_FILENO, &pause_buf, 1);
+                    if (read_status == -1) continue;
+                    if (pause_buf[0] == ' ') break;
+                }
+            }
+            break;
+            case 'q': 
+                exit(0);
+                break;
+        }
+    }
+}
+
 /*
     Players complete their turn seperately one at a time. 
     Once each player has taken a turn, a round has passed.
@@ -509,6 +563,7 @@ void play_round_sync() {
 void play_round_async() {
     const int player_count = _gs->players->count;
     for(int i = 0; i < player_count; i++) {
+        handle_input();
         player_state* player = get_player(_gs->players, i);
         int finished_events = update_events(entity.of_player(player), _gs->events);
         if (finished_events) { print_board(); wait(1); }
@@ -530,7 +585,7 @@ void play_round() {
             play_round_async();
             break;
         case 1:
-            play_round_sync();
+            play_round_sync(); // Not supported
             break;
     }
     _log_flush();
@@ -603,8 +658,13 @@ int main(int argc, char** argv) {
 
     if(!compile_game(argv[1], _gr, _gs)) return 1;
 
+    terminal_echo_off();
+    terminal_blocking_read_off();
+    terminal_canonical_off();
+
     clear_screen();
     print_board();
+
     wait(1);
 
     _log(INFO, "--- RUNNING ---");

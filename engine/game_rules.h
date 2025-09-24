@@ -13,8 +13,15 @@ typedef struct game_rules {
     int program_size_limit;
     int debug: 1;
 
+    struct {
+        int x;
+        int y;
+        int width;
+        int height;
+    } viewport;
+
     struct settings {
-        struct{
+        struct {
             int range;
             int cost;
         } fireball;
