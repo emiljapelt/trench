@@ -550,6 +550,9 @@ void handle_input() {
             }
             break;
             case 'q': 
+                terminal_echo_on();
+                terminal_blocking_read_on();
+                terminal_canonical_on();
                 exit(0);
                 break;
         }
