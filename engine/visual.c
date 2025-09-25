@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <stdarg.h>
 
 #include "game_state.h"
 #include "player.h"
@@ -72,6 +74,19 @@ color rgb_color(int r, int g, int b) {
     return (color) { .r = r, .g = g, .b = b };
 }
 
+int view_buf_size;
+char* view_buf = NULL;
+
+void buffer(char* format, ...) {
+    va_list args;
+    char buf[MAX_SYMBOL_SIZE];
+
+    va_start(args, format);
+
+    vsnprintf(buf, MAX_SYMBOL_SIZE, format, args);
+    strcat(view_buf, buf);
+}
+
 void set_color(color c, color_target ct) {
     char target;
     switch (ct) {
@@ -79,15 +94,15 @@ void set_color(color c, color_target ct) {
         case BACK: target = '4'; break;
     }
 
-    printf("\033[%c8;2;%i;%i;%im", target, c.r, c.g, c.b);
+    buffer("\033[%c8;2;%i;%i;%im\0", target, c.r, c.g, c.b);
 }
 
 void set_print_mod(print_mod m) {
-    printf("\033[%im", m);
+    buffer("\033[%im\0", m);
 }
 
 void reset_print() {
-    printf("\033[0m");
+    buffer("\033[0m\0");
 }
 
 field_visual get_field_data_visual(const int x, const int y, const field_type type, const field_data* data) {
@@ -227,14 +242,22 @@ void print_board() {
     reset_cursor();
     int feed_index = 0;
 
-    printf("Round: %i", _gs->round);
-    for(int i = 0; i < _gr->viewport.width-5; i++) putchar(' ');
-    putchar('\n');
-    printf("%s", SE);
-    for(int i = 0; i < _gr->viewport.width+2; i++) printf("%s", EW);
-    printf("%s\n", SW);
-    for(int y = 0; y < _gr->viewport.height; (putchar('\n'), y++)) {
-        printf("%s ", NS);
+    if (view_buf == NULL) {
+        int view_buf_size = _gr->viewport.height * (_gr->viewport.width+1) * MAX_SYMBOL_SIZE;
+        view_buf = malloc(view_buf_size + 1);
+    }
+
+    memset(view_buf, 0, view_buf_size + 1);
+
+    buffer("Round: %i", _gs->round);
+    for(int i = 0; i < _gr->viewport.width-5; i++) buffer(" ");
+    buffer("\n");
+
+    buffer("%s", SE);
+    for(int i = 0; i < _gr->viewport.width+2; i++) buffer("%s", EW);
+    buffer("%s\n", SW);
+    for(int y = 0; y < _gr->viewport.height; (buffer("\n"), y++)) {
+        buffer("%s ", NS);
         for(int x = 0; x < _gr->viewport.width; x++) {
             int actual_x = _gr->viewport.x + x;
             int actual_y = _gr->viewport.y + y;
@@ -249,21 +272,23 @@ void print_board() {
             if (visual.mod)
                 set_print_mod(visual.mod);
 
-            printf("%s", visual.symbol);
+            buffer("%s", visual.symbol);
             reset_print();
         }
-        printf(" %s ", NS);
+        buffer(" %s ", NS);
         while(feed_index < _gs->feed_point) {
             if (_gs->feed_buffer[feed_index] == '\n') {
                 feed_index++; break;
             }
-            putchar(_gs->feed_buffer[feed_index]);
+            buffer("%c", _gs->feed_buffer[feed_index]);
             feed_index++;
         } 
     }
-    printf("%s", NE);
-    for(int i = 0; i < _gr->viewport.width+2; i++) printf("%s", EW);
-    printf("%s\n", NW);
+    buffer("%s", NE);
+    for(int i = 0; i < _gr->viewport.width+2; i++) buffer("%s", EW);
+    buffer("%s\n", NW);
+
+    printf("%s", view_buf);
 
     clear_feed();
 }

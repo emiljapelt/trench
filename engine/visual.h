@@ -70,6 +70,8 @@
 
 // ****
 
+#define MAX_SYMBOL_SIZE 48
+
 typedef enum {
     FORE,
     BACK,
