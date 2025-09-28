@@ -522,7 +522,7 @@ void handle_input() {
                 break;
             case '-': 
                 _gr->time_scale -= 0.1;
-                if (_gr->time_scale < 0.01) _gr->time_scale = 0.01;
+                if (_gr->time_scale < 0.1) _gr->time_scale = 0.1;
                 break;
             case '0':
                 _gr->time_scale = 0;
