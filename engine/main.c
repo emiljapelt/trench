@@ -507,10 +507,14 @@ void play_round_sync() {
 
 void handle_input() {
     char buf[1];
+    int pause = 0;
     while (1) {
         int read_status = read(STDIN_FILENO, &buf, 1);
 
-        if (read_status == -1 || read_status == 0) return;
+        if (read_status == -1 || read_status == 0) {
+            if (pause) continue;
+            else return;
+        }
 
         switch (buf[0]) {
             case '+':
@@ -518,7 +522,10 @@ void handle_input() {
                 break;
             case '-': 
                 _gr->time_scale -= 0.1;
-                if (_gr->time_scale < 0) _gr->time_scale = 0;
+                if (_gr->time_scale < 0.01) _gr->time_scale = 0.01;
+                break;
+            case '0':
+                _gr->time_scale = 0;
                 break;
             case '\033': {
                 char special_buf[2];
@@ -537,18 +544,12 @@ void handle_input() {
                         _gr->viewport.x--;
                         break;
                 }
+                print_board();
             }
             break;
-            case ' ': { 
-                // TODO: Non-blocking pause?
-                char pause_buf[1];
-                while(1) {
-                    read_status = read(STDIN_FILENO, &pause_buf, 1);
-                    if (read_status == -1) continue;
-                    if (pause_buf[0] == ' ') break;
-                }
-            }
-            break;
+            case ' ': 
+                pause = !pause;
+                break;
             case 'q': 
                 terminal_echo_on();
                 terminal_blocking_read_on();

@@ -288,7 +288,7 @@ void print_board() {
     for(int i = 0; i < _gr->viewport.width+2; i++) buffer("%s", EW);
     buffer("%s\n", NW);
 
-    printf("%s", view_buf);
+    puts(view_buf);
 
     clear_feed();
 }
