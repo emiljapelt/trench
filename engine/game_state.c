@@ -89,7 +89,7 @@ void move_player_to_location(player_state* player, location loc) {
         case VOID_LOCATION: break;
         case FIELD_LOCATION: { 
             field_state* field = player->location.field;
-            update_events(entity.of_player(player), field->exit_events);
+            update_events(entity.of_player(player), field->exit_events, (situation){ .type = MOVEMENT_SITUATION, .movement.loc = loc });
             remove_entity(field->entities, player->id);
             break;
         }
@@ -102,13 +102,16 @@ void move_player_to_location(player_state* player, location loc) {
 
     if (player->death_msg) return;
 
+    
+    location prev_loc = player->location;
+
     player->location = loc;
     switch (loc.type) {
         case VOID_LOCATION: break;
         case FIELD_LOCATION: {
             field_state* field = location_field(loc);
             add_entity(field->entities, entity.of_player(player));
-            update_events(entity.of_player(player), field->enter_events);
+            update_events(entity.of_player(player), field->enter_events, (situation){ .type = MOVEMENT_SITUATION, .movement.loc = prev_loc });
             break;
         }
         case VEHICLE_LOCATION: {
@@ -124,7 +127,7 @@ void move_vehicle_to_location(vehicle_state* vehicle, location loc) {
         case VOID_LOCATION: break;
         case FIELD_LOCATION: { 
             field_state* field = vehicle->location.field;
-            update_events(entity.of_vehicle(vehicle), field->exit_events);
+            update_events(entity.of_vehicle(vehicle), field->exit_events, (situation){ .type = MOVEMENT_SITUATION, .movement.loc = loc });
             remove_entity(field->entities, vehicle->id);
             break;
         }
@@ -136,13 +139,15 @@ void move_vehicle_to_location(vehicle_state* vehicle, location loc) {
 
     if (vehicle->destroy) return;
 
+    location prev_loc = vehicle->location;
+
     vehicle->location = loc;
     switch (loc.type) {
         case VOID_LOCATION: break;
         case FIELD_LOCATION: {
             field_state* field = location_field(loc);
             add_entity(field->entities, entity.of_vehicle(vehicle));
-            update_events(entity.of_vehicle(vehicle), field->enter_events);
+            update_events(entity.of_vehicle(vehicle), field->enter_events, (situation){ .type = MOVEMENT_SITUATION, .movement.loc = prev_loc });
             break;
         }
         case VEHICLE_LOCATION: {
@@ -159,7 +164,7 @@ void move_entity_to_location(entity_t* e, location loc) {
         case VOID_LOCATION: break;
         case FIELD_LOCATION: { 
             field_state* field = curr.field;
-            update_events(e, field->exit_events);
+            update_events(e, field->exit_events, (situation){ .type = MOVEMENT_SITUATION, .movement.loc = loc });
             remove_entity(field->entities, entity.get_id(e));
             break;
         }
@@ -171,6 +176,8 @@ void move_entity_to_location(entity_t* e, location loc) {
 
     if ((e->type == ENTITY_PLAYER && e->player->death_msg) || (e->type == ENTITY_VEHICLE && e->vehicle->destroy))
         return;
+
+    location prev_loc = entity.get_location(e);
     
     entity.set_location(e, loc);
     switch (loc.type) {
@@ -178,7 +185,7 @@ void move_entity_to_location(entity_t* e, location loc) {
         case FIELD_LOCATION: {
             field_state* field = location_field(loc);
             add_entity(field->entities, e);
-            update_events(e, field->enter_events);
+            update_events(e, field->enter_events, (situation){ .type = MOVEMENT_SITUATION, .movement.loc = prev_loc });
             break;
         }
         case VEHICLE_LOCATION: {

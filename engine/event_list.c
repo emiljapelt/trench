@@ -24,12 +24,12 @@ void remove_event(event_list_t* events, int index) {
     array_list.remove(events, index, 0);
 }
 
-int update_events(entity_t* entity, event_list_t* events) {
+int update_events(entity_t* entity, event_list_t* events, situation situ) {
 
     int finished_count = 0;
     for(int i = 0; i < events->count; i++) {
         event* e = get_event(events, i);
-        if (e->func && e->func(entity, e->data)) { 
+        if (e->func && e->func(entity, e->data, situ)) { 
             e->func = NULL;
             finished_count++;
         }
@@ -38,11 +38,19 @@ int update_events(entity_t* entity, event_list_t* events) {
     for(int i = 0; i < events->count; i++) {
         event* e = get_event(events, i);
         if (e->func == NULL) {
-            remove_event(events, i);
+            remove_event(events, i--);
             free(e->data);
             free(e);
         }
     }
 
     return finished_count;
+}
+
+void remove_events_of_kind(event_list_t* events, event_kind kind) {
+    for (int i = 0; i < events->count; i++) {
+        event* e = get_event(events, i);
+        if (e->kind == kind)
+            e->func = NULL;
+    }
 }

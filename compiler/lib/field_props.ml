@@ -15,6 +15,7 @@ let string_to_prop s = match s with
   | "ocean" -> IsOcean_Prop
   | "wall" -> IsWall_Prop
   | "bridge" -> IsBridge_Prop
+  | "clay" -> IsClay_Prop
   | _ -> raise_failure ("Unknown field property: "^s)
 
 
@@ -32,3 +33,4 @@ let prop_index p = match p with
   | IsOcean_Prop -> 11
   | IsWall_Prop -> 12
   | IsBridge_Prop -> 13
+  | IsClay_Prop -> 14

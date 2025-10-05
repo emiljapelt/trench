@@ -15,6 +15,7 @@ typedef enum {
     OCEAN,
     WALL,
     BRIDGE,
+    CLAY,
 } field_type;
 
 
@@ -35,6 +36,10 @@ typedef union field_data {
         field_data* inner;
         field_type inner_type;
     } ice_block;
+
+    struct {
+        int amount;
+    } clay_pit;
     
 } field_data;
 
@@ -54,8 +59,9 @@ typedef struct {
     unsigned int is_ocean: 1;
     unsigned int is_wall: 1;
     unsigned int is_bridge: 1;
+    unsigned int is_clay: 1;
 
-    unsigned int _ : 18;
+    unsigned int _ : 17;
 } field_scan;
 
 typedef struct field_state {
@@ -77,6 +83,8 @@ typedef struct field_builders {
     void (*const trench)(const int x, const int y);
     void (*const wall)(const int x, const int y);
     void (*const tree)(const int x, const int y);
+    void (*const clay_pit)(const int x, const int y);
+    void (*const ocean)(const int x, const int y);
 } field_builders;
 
 typedef struct fields_namespace {

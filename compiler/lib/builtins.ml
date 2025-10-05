@@ -95,7 +95,7 @@ let instruction_infos : builtin_info StringMap.t = StringMap.of_list [
     themes = []; 
     features = [];
     versions = [{
-      args = [];
+      args = [T_Dir];
       ret = T_Int;
       comp = FuncComp Instr_Collect;
     };{
@@ -318,6 +318,15 @@ let instruction_infos : builtin_info StringMap.t = StringMap.of_list [
       args = [T_Dir; T_Prop];
       ret = T_Int;
       comp = FuncComp Instr_Look;
+    }];
+  });
+  ("throw_clay", {
+    themes = ["pottery"];
+    features = [];
+    versions = [{
+      args = [T_Dir; T_Int];
+      ret = T_Int;
+      comp = FuncComp Instr_ThrowClay;
     }];
   });
 ]

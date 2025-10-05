@@ -90,6 +90,15 @@ typedef struct game_rules {
             int capacity;
             int cost;
         } boat;
+
+        struct {
+            int cost;
+            int range;
+        } throw_clay;
+
+        struct {
+            int spread_limit;
+        } clay_pit;
     } settings;
 } game_rules;
 

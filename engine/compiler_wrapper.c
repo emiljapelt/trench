@@ -52,10 +52,17 @@ field_state* create_board(char* map_data, const int x, const int y) {
             }
             case '~':
                 brd[(_y * x) + _x].type = OCEAN;
-                add_event(brd[(_y * x) + _x].enter_events, NONE_EVENT, events.ocean_drowning, NULL);
+                add_event(brd[(_y * x) + _x].enter_events, FIELD_EVENT, events.ocean_drowning, NULL);
                 break;
             case 'T': 
                 brd[(_y * x) + _x].type = TREE;
+                break;
+            case 'C':
+                field_data* data = malloc(sizeof(field_data));
+                data->clay_pit.amount = 0;
+                brd[(_y * x) + _x].type = CLAY;
+                brd[(_y * x) + _x].data = data;
+                add_event(brd[(_y * x) + _x].exit_events, FIELD_EVENT, events.clay_spread, NULL);
                 break;
         }
     }
@@ -187,6 +194,17 @@ void load_settings_struct(game_rules* gr, value settings) {
         value program_settings = Field(settings, 16);
         gr->stack_size = Int_val(Field(program_settings, 0));
         gr->program_size_limit = Int_val(Field(program_settings, 1));
+    }
+
+    {
+        value throw_clay_settings = Field(settings, 17);
+        gr->settings.throw_clay.range = Int_val(Field(throw_clay_settings, 0));
+        gr->settings.throw_clay.cost = Int_val(Field(throw_clay_settings, 1));
+    }
+
+    {
+        value clay_pit_settings = Field(settings, 18);
+        gr->settings.clay_pit.spread_limit = Int_val(Field(clay_pit_settings, 0));
     }
 }
 

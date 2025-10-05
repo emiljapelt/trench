@@ -47,6 +47,10 @@ type program_setting = {
   size_limit: int;
 }
 
+type clay_pit_setting = {
+  spread_limit: int;
+}
+
 type settings = {
   fireball: range_and_cost_setting;
   shoot: range_setting;
@@ -65,6 +69,8 @@ type settings = {
   scan: range_setting;
   boat: capacity_cost_setting;
   program: program_setting;
+  throw_clay: range_and_cost_setting;
+  clay: clay_pit_setting;
 }
 
 type ('a, 'b) overwrite = (string * ('a -> 'b -> 'a)) list
@@ -126,6 +132,10 @@ let program_setting_overwrite = overwritter [
   )
 ]
 
+let clay_setting_overwrite = overwritter  [
+  ("spread_limit", fun _ v -> {spread_limit = v});
+]
+
 let rec overwrite_settings settings overwrites = 
   match overwrites with
   | [] -> settings
@@ -150,6 +160,8 @@ let rec overwrite_settings settings overwrites =
           | "scan" ->       ({ settings with scan = range_setting_overwrite settings.scan setting_overwrites })
           | "boat" ->       ({ settings with boat = capacity_cost_setting_overwrite settings.boat setting_overwrites })
           | "program" ->    ({ settings with program = program_setting_overwrite settings.program setting_overwrites })
+          | "throw_clay" -> ({ settings with throw_clay = range_and_cost_setting_overwrite settings.throw_clay setting_overwrites })
+          | "clay" ->       ({ settings with clay = clay_setting_overwrite settings.clay setting_overwrites })
           | _ -> raise_failure ("No setting group: '" ^ name ^ "'")
         )
       )
@@ -179,4 +191,6 @@ let default_settings : settings = {
     stack_size = 1000;
     size_limit = 0;
   };
+  throw_clay = { range = 3; cost = 1 };
+  clay = { spread_limit = 1 };
 }

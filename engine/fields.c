@@ -14,6 +14,57 @@ void set_field(const int x, const int y, field_state* f) {
     _gs->board[(y * _gs->board_x) + x] = *f;
 }
 
+
+
+void build_trench(const int x, const int y) {
+    field_state* field = get_field(x,y);
+
+    field_data* data = malloc(sizeof(field_data));
+    data->trench.fortified = 0;
+
+    field->type = TRENCH;
+    field->data = data;
+}
+
+void build_wall(const int x, const int y) {
+    field_state* field = get_field(x,y);
+
+    field_data* data = malloc(sizeof(field_data));
+    data->wall.fortified = 0;
+
+    field->type = WALL;
+    field->data = data;
+}
+
+void build_tree(const int x, const int y) {
+    field_state* field = get_field(x,y);
+
+    field->type = TREE;
+}
+
+void build_clay_pit(const int x, const int y) {
+    field_state* field = get_field(x,y);
+
+    field_data* data = malloc(sizeof(field_data));
+    data->clay_pit.amount = 0;
+
+    field->type = CLAY;
+    field->data = data;
+
+    add_event(field->exit_events, FIELD_EVENT, events.clay_spread, NULL);
+}
+
+void build_ocean(const int x, const int y) {
+    field_state* field = get_field(x,y);
+
+    field->type = OCEAN;
+
+    add_event(field->enter_events, FIELD_EVENT, events.ocean_drowning, NULL);
+}
+
+
+
+
 // Something that cannot be passed through
 int is_obstruction(const int x, const int y) {
     switch (get_field(x,y)->type) {
@@ -99,11 +150,16 @@ field_scan scan_field(const int x, const int y) {
         .is_ocean = field->type == OCEAN,
         .is_wall = field->type == WALL,
         .is_bridge = field->type == BRIDGE,
+        .is_clay = field->type == CLAY,
     };
 }
 
 void destroy_field(const int x, const int y, char* death_msg) {
     field_state* field = get_field(x,y);
+
+    remove_events_of_kind(field->enter_events, FIELD_EVENT);
+    remove_events_of_kind(field->exit_events, FIELD_EVENT);
+
     switch (field->type) {
         case OCEAN:
             break;
@@ -112,7 +168,7 @@ void destroy_field(const int x, const int y, char* death_msg) {
             break;
         }
         case BRIDGE: {
-            field->type = OCEAN;
+            build_ocean(x,y);
             break;
         }
         case WALL: {
@@ -133,6 +189,7 @@ void destroy_field(const int x, const int y, char* death_msg) {
             free(field->data);
             break;
         }
+        case CLAY:
         case ICE_BLOCK: {
             field->type = EMPTY;
             free(field->data);
@@ -148,6 +205,10 @@ void destroy_field(const int x, const int y, char* death_msg) {
 
 void remove_field(const int x, const int y) {
     field_state* field = get_field(x,y);
+
+    remove_events_of_kind(field->enter_events, FIELD_EVENT);
+    remove_events_of_kind(field->exit_events, FIELD_EVENT);
+
     switch (field->type) {
         case OCEAN:
         case TREE: {
@@ -155,9 +216,10 @@ void remove_field(const int x, const int y) {
             break;
         }
         case BRIDGE: {
-            field->type = OCEAN;
+            build_ocean(x,y);
             break;
         }
+        case CLAY:
         case WALL:
         case TRENCH: {
             field->type = EMPTY;
@@ -172,6 +234,8 @@ void remove_field(const int x, const int y) {
             break;
         }
     }
+
+
 }
 
 void damage_field(const int x, const int y, damage_t d_type, char* death_msg) {
@@ -197,33 +261,6 @@ int fortify_field(const int x, const int y) {
     }
 }
 
-
-void build_trench(const int x, const int y) {
-    field_state* field = get_field(x,y);
-
-    field_data* data = malloc(sizeof(field_data));
-    data->trench.fortified = 0;
-
-    field->type = TRENCH;
-    field->data = data;
-}
-
-void build_wall(const int x, const int y) {
-    field_state* field = get_field(x,y);
-
-    field_data* data = malloc(sizeof(field_data));
-    data->wall.fortified = 0;
-
-    field->type = WALL;
-    field->data = data;
-}
-
-void build_tree(const int x, const int y) {
-    field_state* field = get_field(x,y);
-
-    field->type = TREE;
-}
-
 const fields_namespace fields = {
     .get = &get_field,
     .set = &set_field,
@@ -242,5 +279,7 @@ const fields_namespace fields = {
         .trench = &build_trench,
         .wall = &build_wall,
         .tree = &build_tree,
+        .clay_pit = &build_clay_pit,
+        .ocean = &build_ocean,
     },
 };

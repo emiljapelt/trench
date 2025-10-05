@@ -85,6 +85,7 @@ typedef enum {
   Instr_GlobalAccess = 62,
   Instr_GlobalAssign = 63,
   Instr_Index = 64,
+  Instr_ThrowClay = 65,
 } instruction;
 
 const char* stack_overflow_msg = "Had an aneurysm (STACK_OVERFLOW)";
@@ -112,12 +113,13 @@ int global_scope_sp(player_state* ps, int bp, int sp) {
 
 
 int instr_shoot(player_state* ps) {
+    direction d = (direction)ps->stack[--ps->sp];
+
     if(!spend_resource(ps->resources, "ammo", 1)) {
         ps->stack[ps->sp++] = 0;
         return 0;
     }
     
-    direction d = (direction)ps->stack[--ps->sp];
     int x, y;
     location_coords(ps->location, &x, &y);
     
@@ -356,8 +358,6 @@ int instr_bomb(player_state* ps) {
         ps->stack[ps->sp++] = 0;
         return 0;
     }
-
-    //if (_gr->settings.bomb.range >= 0 && p > _gr->settings.bomb.range) p = _gr->settings.bomb.range;
 
     p = limit_range(p, _gr->settings.bomb.range);
     int x, y;
@@ -938,6 +938,9 @@ int instr_bridge(player_state* ps) {
         return 0;
     }
 
+    remove_events_of_kind(field->enter_events, FIELD_EVENT);
+    remove_events_of_kind(field->exit_events, FIELD_EVENT);
+
     field->type = BRIDGE;
     ps->stack[ps->sp++] = 1;
     return 1;
@@ -960,6 +963,18 @@ int instr_collect(player_state* ps) {
             add_resource(ps->resources, "sapling", 1);
             ps->stack[ps->sp++] = 1;
             return 0;
+        case CLAY:
+            switch (field->data->clay_pit.amount) {
+                case 0:
+                    fields.remove_field(x,y);
+                    break;
+                default:
+                    field->data->clay_pit.amount--;
+                    break;
+            }
+            add_resource(ps->resources, "clay", 1);
+            ps->stack[ps->sp++] = 1;
+            return 1;
         default:
             ps->stack[ps->sp++] = 0;
             return 0;
@@ -1027,9 +1042,10 @@ int instr_dismount(player_state* ps) {
 
     remove_entity(ps->location.vehicle->entities, ps->id);
     field_state* field = get_field(x,y);
+    location prev_loc = ps->location;
     ps->location = field_location_from_field(field);
     add_entity(field->entities, entity.of_player(ps));
-    update_events(entity.of_player(ps), get_field(x,y)->enter_events);
+    update_events(entity.of_player(ps), get_field(x,y)->enter_events, (situation){ .type = MOVEMENT_SITUATION, .movement.loc = prev_loc });
 
     ps->stack[ps->sp++] = 1;
     return 1;
@@ -1165,6 +1181,63 @@ int instr_index(player_state* ps) {
     ps->stack[ps->sp++] = arr + idx * elem_size;
 
     return 0;
+}
+
+int instr_throw_clay(player_state* ps) {
+    int p = ps->stack[--ps->sp];
+    direction d = (direction)ps->stack[--ps->sp];
+
+    if(!spend_resource(ps->resources, "clay", _gr->settings.throw_clay.cost)) {
+        ps->stack[ps->sp++] = 0;
+        return 0;
+    }
+
+    p = limit_range(p, _gr->settings.throw_clay.range);
+    
+    int x, y;
+    location_coords(ps->location, &x, &y);
+    
+    move_coord(&x, &y, d, 1);
+    while (p-- && in_bounds(x,y)) { 
+        set_overlay(x,y,FILLED_CIRCLE);
+        set_color_overlay(x,y,FORE,color_predefs.clay_brown);
+        print_board(); wait(0.02);
+
+        if (fields.is_obstruction(x,y)) {
+            fields.damage_field(x, y, KINETIC_DMG & PROJECTILE_DMG, "Got shot");
+            ps->stack[ps->sp++] = 1;
+            return 1;
+        }
+        else if (fields.has_player(x,y) && !(fields.is_cover(x,y) || fields.is_shelter(x,y))) {
+            field_state* field = get_field(x,y);
+            for(int i = 0; i < field->entities->count; i++) {
+                entity_t* e = get_entity(field->entities, i);
+                if (e->type == ENTITY_PLAYER) {
+                    death_mark_player(e->player, "Got shot");
+                    break;
+                }
+            }
+            ps->stack[ps->sp++] = 1;
+            return 1;
+        }
+
+        move_coord(&x, &y, d, 1);
+    }
+
+    // clayify field
+    field_state* field = get_field(x,y);
+    switch (field->type) {
+        case EMPTY:
+            fields.build.clay_pit(x,y);
+            break;
+        case CLAY:
+            field->data->clay_pit.amount++;
+            break;
+    }
+
+
+    ps->stack[ps->sp++] = 1;
+    return 1;
 }
 
 #endif

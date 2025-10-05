@@ -24,6 +24,7 @@ type field_prop =
     | IsOcean_Prop
     | IsWall_Prop
     | IsBridge_Prop
+    | IsClay_Prop
 
 and typ =
     | T_Int

@@ -4,8 +4,23 @@
 #include "player.h"
 #include "entity.h"
 
+typedef enum situation_type {
+    NO_SITUATION,
+    MOVEMENT_SITUATION,
+} situation_type;
+
+typedef struct situation {
+    situation_type type;
+    union {
+        struct {
+            location loc;
+        } movement;
+    };
+} situation;
+
+
 // Return 1 if the event is finished, otherwise return 0.
-typedef int (*event_function)(entity_t* e, void* data);
+typedef int (*event_function)(entity_t* e, void* data, situation situ);
 
 typedef struct player_event_args {
     int player_id;
@@ -52,6 +67,7 @@ typedef struct events_namespace {
     event_function ocean_drowning;
     event_function bear_trap_trigger;
     event_function bear_trap_escape;
+    event_function clay_spread;
 } events_namespace;
 extern const events_namespace events;
 

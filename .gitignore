@@ -10,5 +10,6 @@ trench
 node_modules
 package-lock.json
 package.json
+web_view
 
 !logo.tr

@@ -27,10 +27,10 @@ void debug_print(player_state* ps) {
 
 void try_kill_player(player_state* ps) {
     if (ps->alive && ps->death_msg != NULL) {
-        update_events(entity.of_player(ps), ps->pre_death_events);
+        update_events(entity.of_player(ps), ps->pre_death_events, (situation){ .type = NO_SITUATION});
         if (ps->alive && ps->death_msg != NULL) {
             kill_player(ps);
-            update_events(entity.of_player(ps), ps->post_death_events);
+            update_events(entity.of_player(ps), ps->post_death_events, (situation){ .type = NO_SITUATION});
         }
     }
 }
@@ -207,6 +207,11 @@ void player_turn_async(player_state* ps) {
             case Instr_GlobalAccess: change = instr_global_access(ps); break;
             case Instr_GlobalAssign: change = instr_global_assign(ps); break;
             case Instr_Index: change = instr_index(ps); break;
+            case Instr_ThrowClay: {
+                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
+                change = instr_throw_clay(ps); 
+                break;
+            }
             default: return;
         }
 
@@ -415,6 +420,9 @@ void check_win_condition() {
             _log(INFO, "--- GAME END: Everyone is dead ---");
             _log_flush();
             printf("GAME OVER: Everyone is dead...\n"); 
+            terminal_echo_on();
+            terminal_blocking_read_on();
+            terminal_canonical_on();
             exit(0);
         case 1:
             if (_gs->team_count == 1) break;
@@ -422,6 +430,9 @@ void check_win_condition() {
                 _log(INFO, "--- GAME END: %s won! ---", first_team_alive());
                 _log_flush();
                 printf("Team %s won!\n", first_team_alive()); 
+                terminal_echo_on();
+                terminal_blocking_read_on();
+                terminal_canonical_on();
                 exit(0);
             }
         default: break;
@@ -438,7 +449,7 @@ void play_round_sync() {
         change = 0;
         for(i = 0; i < player_count; i++) {
             player_state* player = get_player(_gs->players, i);
-            int finished_events = update_events(entity.of_player(player), _gs->events);
+            int finished_events = update_events(entity.of_player(player), _gs->events, (situation){ .type = NO_SITUATION});
             if (finished_events) change++;
         }
         if (change || _gs->feed_point) { print_board(); wait(1); }
@@ -569,7 +580,7 @@ void play_round_async() {
     for(int i = 0; i < player_count; i++) {
         handle_input();
         player_state* player = get_player(_gs->players, i);
-        int finished_events = update_events(entity.of_player(player), _gs->events);
+        int finished_events = update_events(entity.of_player(player), _gs->events, (situation){ .type = NO_SITUATION});
         if (finished_events) { print_board(); wait(1); }
         kill_players();
         if (_gs->feed_point) { print_board(); wait(1); }

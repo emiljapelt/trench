@@ -10,7 +10,7 @@
 #include "player.h"
 #include "util.h"
 
-int mine(entity_t* entity, void* data) {
+int mine(entity_t* entity, void* data, situation situ) {
     field_args* args = (field_args*)data;
 
     if (get_field(args->x, args->y)->entities->count > 0) return 0;
@@ -38,7 +38,7 @@ int mine(entity_t* entity, void* data) {
     return 0;
 }
 
-int bomb(entity_t* entity, void* data) {
+int bomb(entity_t* entity, void* data, situation situ) {
 
     switch (entity->type) {
         case ENTITY_PLAYER: {
@@ -54,7 +54,7 @@ int bomb(entity_t* entity, void* data) {
     return 0;
 }
 
-int projection_upkeep(entity_t* entity, void* data) {
+int projection_upkeep(entity_t* entity, void* data, situation situ) {
 
     switch (entity->type) {
         case ENTITY_PLAYER: {
@@ -72,7 +72,7 @@ int projection_upkeep(entity_t* entity, void* data) {
     return 0;
 }
 
-int ice_block_melt(entity_t* entity, void* data) {
+int ice_block_melt(entity_t* entity, void* data, situation situ) {
 
     switch (entity->type) {
         case ENTITY_PLAYER: {
@@ -95,7 +95,7 @@ int ice_block_melt(entity_t* entity, void* data) {
     return 0;
 }
 
-int mana_drain(entity_t* entity, void* data) {
+int mana_drain(entity_t* entity, void* data, situation situ) {
 
     switch (entity->type) {
         case ENTITY_PLAYER: {
@@ -107,7 +107,7 @@ int mana_drain(entity_t* entity, void* data) {
     return 0;
 }
 
-int tree_grow(entity_t* entity, void* data) {
+int tree_grow(entity_t* entity, void* data, situation situ) {
 
     switch (entity->type) {
         case ENTITY_PLAYER: {
@@ -127,11 +127,10 @@ int tree_grow(entity_t* entity, void* data) {
     return 0;
 }
 
-int ocean_drowning(entity_t* entity, void* data) {
+int ocean_drowning(entity_t* entity, void* data, situation situ) {
 
     switch (entity->type) {
         case ENTITY_PLAYER: {
-            if (location_field(entity->player->location)->type != OCEAN) return 0;
             death_mark_player(entity->player, "Drowned");
             return 0;
         }
@@ -140,7 +139,7 @@ int ocean_drowning(entity_t* entity, void* data) {
     return 0;
 }
 
-int bear_trap_escape(entity_t* entity, void* data) {
+int bear_trap_escape(entity_t* entity, void* data, situation situ) {
     if (entity->type == ENTITY_PLAYER) {
         player_event_args* args = (player_event_args*)data;
         if (args->player_id != entity->player->id) return 0;
@@ -151,7 +150,7 @@ int bear_trap_escape(entity_t* entity, void* data) {
     return 1;
 }
 
-int bear_trap_trigger(entity_t* entity, void* data) {
+int bear_trap_trigger(entity_t* entity, void* data, situation situ) {
     if (entity->type == ENTITY_PLAYER) {
         entity->player->remaining_actions = 0;
         entity->player->remaining_steps = 0;
@@ -168,6 +167,27 @@ int bear_trap_trigger(entity_t* entity, void* data) {
     return 1;
 }
 
+int clay_spread(entity_t* entity, void* data, situation situ) {
+    if (entity->type == ENTITY_PLAYER) {
+        field_state* field = location_field(situ.movement.loc);
+        field_state* clay_field = location_field(entity->player->location);
+        if (clay_field->data->clay_pit.amount >= _gr->settings.clay_pit.spread_limit)
+        switch (field->type) {
+            case EMPTY:
+                int x, y;
+                location_coords(situ.movement.loc, &x, &y);
+                fields.build.clay_pit(x,y);
+                break;
+            case CLAY:
+                field->data->clay_pit.amount++;
+                clay_field->data->clay_pit.amount--;
+                break;
+        }
+    }
+
+    return 0;
+}
+
 const events_namespace events = {
     .bomb = &bomb,
     .mine = &mine,
@@ -178,4 +198,5 @@ const events_namespace events = {
     .ocean_drowning = &ocean_drowning,
     .bear_trap_trigger = &bear_trap_trigger,
     .bear_trap_escape = &bear_trap_escape,
+    .clay_spread = &clay_spread
 };

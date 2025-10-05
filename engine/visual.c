@@ -151,6 +151,34 @@ field_visual get_field_data_visual(const int x, const int y, const field_type ty
             result.symbol = "~";
             break;
         }
+        case CLAY: {
+            result.background_color = color_predefs.clay_brown;
+            result.foreground_color = color_predefs.wood_brown;
+            switch (data->clay_pit.amount) {
+                case 0:
+                    result.symbol = " ";
+                    break;
+                case 1:
+                    result.symbol = SINGLE_DOT;
+                    break;
+                case 2:
+                    result.symbol = DOUBLE_DOT;
+                    break;
+                case 3:
+                    result.symbol = TRIPLE_DOT;
+                    break;
+                case 4:
+                    result.symbol = QUAD_DOT;
+                    break;
+                case 5:
+                    result.symbol = PENTA_DOT;
+                    break;
+                default:
+                    result.symbol = "*";
+                    break;
+            }
+            break;
+        }
         case EMPTY: {
             //field_state* field = get_field(x,y);
             //if (field->entities->count > 0) {
