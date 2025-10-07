@@ -98,7 +98,12 @@ typedef struct game_rules {
 
         struct {
             int spread_limit;
+            int contain_limit;
         } clay_pit;
+
+        struct {
+            int cost;
+        } clay_golem;
     } settings;
 } game_rules;
 

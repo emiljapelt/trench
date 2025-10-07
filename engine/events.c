@@ -179,8 +179,10 @@ int clay_spread(entity_t* entity, void* data, situation situ) {
                 fields.build.clay_pit(x,y);
                 break;
             case CLAY:
-                field->data->clay_pit.amount++;
-                clay_field->data->clay_pit.amount--;
+                if (field->data->clay_pit.amount < _gr->settings.clay_pit.contain_limit) {
+                    field->data->clay_pit.amount++;
+                    clay_field->data->clay_pit.amount--;
+                }
                 break;
         }
     }

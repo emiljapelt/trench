@@ -205,7 +205,26 @@ void load_settings_struct(game_rules* gr, value settings) {
     {
         value clay_pit_settings = Field(settings, 18);
         gr->settings.clay_pit.spread_limit = Int_val(Field(clay_pit_settings, 0));
+        gr->settings.clay_pit.contain_limit = Int_val(Field(clay_pit_settings, 1));
     }
+
+    {
+        value clay_golem_settings = Field(settings, 19);
+        gr->settings.clay_golem.cost = Int_val(Field(clay_golem_settings, 0));
+    }
+}
+
+resource_registry* create_empty_resource_registy(int size, int resource_count, value resources) {
+    
+    resource_registry* reg = create_resource_registry(size, resource_count);
+
+    for(int r = 0; r < resource_count; r++) {
+        value resource = Field(resources, r);
+        char* resource_name = strdup(String_val(Field(resource, 0)));
+        init_resource(reg, resource_name, Int_val(Field(Field(resource, 1), 1)));
+    }
+
+    return reg;
 }
 
 int compile_game(const char* path, game_rules* gr, game_state* gs) {
@@ -303,6 +322,8 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 gs->team_states[i].members_alive = Int_val(Field(team_info, 2));
             }
 
+            set_empty_resource_registy(create_empty_resource_registy(10, resource_count, Field(unwrapped_result, 11)));
+
             for(int i = 0; i < player_count; i++) {
                 value player_info = Field(Field(unwrapped_result, 6),i);
                 
@@ -336,10 +357,11 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 player->pager_msgs = array_list.create(10);
                 player->pre_death_events = array_list.create(10);
                 player->post_death_events = array_list.create(10);
-                player->resources = create_resource_registry(10, resource_count);
+                player->resources = get_empty_resource_registy();
                 for(int r = 0; r < resource_count; r++) {
                     value resource = Field(Field(unwrapped_result, 11), r);
-                    init_resource(player->resources, strdup(String_val(Field(resource, 0))), Int_val(Field(Field(resource, 1), 0)), Int_val(Field(Field(resource, 1), 1)));
+                    char* resource_name = strdup(String_val(Field(resource, 0)));
+                    add_resource(player->resources, resource_name, Int_val(Field(Field(resource, 1), 0)));
                 }
                 player->extra_files = array_list.create(Int_val(Field(player_info, 4)));
                 for(int f = 0; f < player->extra_files->size; f++) {

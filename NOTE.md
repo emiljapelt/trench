@@ -5,14 +5,6 @@ Assign a priority (render layer) to field_visual. Such that players can hide in 
 - Consider naming of stuff
 - Player start/end turn events (so fewer checks are needed)
 
-
-
-# Pottery theme
-- Clay fields that spread
-- Clay throwing
-- Clay golems, that are not on your team
-
-
 # Optimize
 - None: 0
 - Simple/Size: 1, Removes uneassesary program parts, reducing the resulting instruction list size

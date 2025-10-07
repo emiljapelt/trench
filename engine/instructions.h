@@ -86,6 +86,7 @@ typedef enum {
   Instr_GlobalAssign = 63,
   Instr_Index = 64,
   Instr_ThrowClay = 65,
+  Instr_ClayGolem = 66,
 } instruction;
 
 const char* stack_overflow_msg = "Had an aneurysm (STACK_OVERFLOW)";
@@ -631,6 +632,7 @@ int instr_projection(player_state* ps) {
     }  
 
     player_state* projection = copy_player_state(ps);
+    projection->resources = copy_resource_registry(ps->resources);
 
     add_player(_gs->players, projection);
     if (projection->team)
@@ -643,7 +645,7 @@ int instr_projection(player_state* ps) {
     add_event(_gs->events, MAGICAL_EVENT, events.projection_upkeep, args);
 
     ps->stack[ps->sp++] = 1;
-    projection->stack[projection->sp++] = 1;
+    projection->stack[projection->sp++] = 0;
     return 0;
 }
 
@@ -1211,13 +1213,37 @@ int instr_throw_clay(player_state* ps) {
             fields.build.clay_pit(x,y);
             break;
         case CLAY:
-            field->data->clay_pit.amount++;
+            if (field->data->clay_pit.amount < _gr->settings.clay_pit.contain_limit)
+                field->data->clay_pit.amount++;
             break;
     }
 
 
     ps->stack[ps->sp++] = 1;
     return 1;
+}
+
+int instr_clay_golem(player_state* ps) {
+    if (
+        !spend_resource(ps->resources, "clay", _gr->settings.clay_golem.cost)
+        || !ps->is_original_player
+        || ps->location.type == VEHICLE_LOCATION && !(get_vehicle_capacity(ps->location.vehicle->type) > ps->location.vehicle->entities->count)
+    ) {
+        ps->stack[ps->sp++] = 0;
+        return 0;
+    }  
+
+    player_state* golem = copy_player_state(ps);
+    golem->team = NULL;
+    golem->resources = get_empty_resource_registy();
+
+    add_player(_gs->players, golem);
+
+    move_player_to_location(golem, ps->location);
+
+    ps->stack[ps->sp++] = 1;
+    golem->stack[golem->sp++] = 0;
+    return 0;
 }
 
 #endif

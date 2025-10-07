@@ -329,6 +329,15 @@ let instruction_infos : builtin_info StringMap.t = StringMap.of_list [
       comp = FuncComp Instr_ThrowClay;
     }];
   });
+  ("clay_golem", {
+    themes = ["pottery"];
+    features = [];
+    versions = [{
+      args = [];
+      ret = T_Int;
+      comp = FuncComp Instr_ClayGolem;
+    }];
+  });
 ]
 
 let instruction_rename_map = 

@@ -212,6 +212,11 @@ void player_turn_async(player_state* ps) {
                 change = instr_throw_clay(ps); 
                 break;
             }
+            case Instr_ClayGolem: {
+                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
+                change = instr_clay_golem(ps); 
+                break;
+            }
             default: return;
         }
 

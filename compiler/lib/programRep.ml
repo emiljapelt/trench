@@ -73,6 +73,7 @@ type instruction =
   | Instr_GlobalAssign
   | Instr_Index
   | Instr_ThrowClay
+  | Instr_ClayGolem
 
 let instruction_to_int label_map instr = match instr with
     | I i -> Some i
@@ -144,6 +145,7 @@ let instruction_to_int label_map instr = match instr with
     | Instr_GlobalAssign -> Some 63
     | Instr_Index -> Some 64
     | Instr_ThrowClay -> Some 65
+    | Instr_ClayGolem -> Some 66
 
 let label_set pp =
   let rec aux pp set = match pp with

@@ -24,10 +24,14 @@ resource_registry;
 
 resource_registry* create_resource_registry(int size, int max_count);
 resource_registry* copy_resource_registry(resource_registry* old_registry);
-void init_resource(resource_registry* registry, const char* name, int init_amount, int max_amount);
+void init_resource(resource_registry* registry, const char* name, int max_amount);
 char spend_resource(resource_registry* registry, const char* name, int amount);
 int peek_resource(resource_registry* registry, const char* name);
 int peek_resource_index(resource_registry* registry, const int index);
 void add_resource(resource_registry* registry, const char* name, unsigned int amount);
+
+
+resource_registry* get_empty_resource_registy();
+void set_empty_resource_registy(resource_registry* reg);
 
 #endif

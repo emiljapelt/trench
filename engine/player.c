@@ -38,7 +38,7 @@ player_state* copy_player_state(const player_state* ps) {
     new_player->pager_msgs = array_list.create(10);
     new_player->pre_death_events = array_list.create(10);
     new_player->post_death_events = array_list.create(10);
-    new_player->resources = copy_resource_registry(ps->resources);
+    new_player->resources = NULL;
     new_player->remaining_actions = _gr->actions;
     new_player->remaining_steps = _gr->steps;
 

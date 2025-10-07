@@ -49,6 +49,7 @@ type program_setting = {
 
 type clay_pit_setting = {
   spread_limit: int;
+  contain_limit: int
 }
 
 type settings = {
@@ -71,6 +72,7 @@ type settings = {
   program: program_setting;
   throw_clay: range_and_cost_setting;
   clay: clay_pit_setting;
+  clay_golem: cost_setting;
 }
 
 type ('a, 'b) overwrite = (string * ('a -> 'b -> 'a)) list
@@ -133,7 +135,8 @@ let program_setting_overwrite = overwritter [
 ]
 
 let clay_setting_overwrite = overwritter  [
-  ("spread_limit", fun _ v -> {spread_limit = v});
+  ("spread_limit", fun s v -> {s with spread_limit = v});
+  ("amount_limit", fun s v -> {s with contain_limit = v});
 ]
 
 let rec overwrite_settings settings overwrites = 
@@ -162,6 +165,7 @@ let rec overwrite_settings settings overwrites =
           | "program" ->    ({ settings with program = program_setting_overwrite settings.program setting_overwrites })
           | "throw_clay" -> ({ settings with throw_clay = range_and_cost_setting_overwrite settings.throw_clay setting_overwrites })
           | "clay" ->       ({ settings with clay = clay_setting_overwrite settings.clay setting_overwrites })
+          | "clay_golem" -> ({ settings with clay_golem = cost_setting_overwrite settings.clay_golem setting_overwrites })
           | _ -> raise_failure ("No setting group: '" ^ name ^ "'")
         )
       )
@@ -192,5 +196,6 @@ let default_settings : settings = {
     size_limit = 0;
   };
   throw_clay = { range = 3; cost = 1 };
-  clay = { spread_limit = 1 };
+  clay = { spread_limit = 1; contain_limit = 100; };
+  clay_golem = { cost = 5; }
 }
