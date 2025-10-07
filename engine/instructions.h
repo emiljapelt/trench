@@ -123,9 +123,9 @@ int instr_shoot(player_state* ps) {
     int x, y;
     location_coords(ps->location, &x, &y);
     
-    move_coord(&x, &y, d, 1);
     int limit = _gr->settings.shoot.range;
     while (limit-- && in_bounds(x,y)) { 
+        move_coord(&x, &y, d, 1);
         set_overlay(x,y,BULLET);
         set_color_overlay(x,y,FORE,color_predefs.yellow);
         print_board(); wait(0.02);
@@ -147,8 +147,6 @@ int instr_shoot(player_state* ps) {
             ps->stack[ps->sp++] = 1;
             return 1;
         }
-
-        move_coord(&x, &y, d, 1);
     }
     ps->stack[ps->sp++] = 1;
     return 1;
@@ -703,9 +701,10 @@ int instr_fireball(player_state* ps) {
 
     int x, y;
     location_coords(ps->location, &x, &y);
-    move_coord(&x, &y, d, 1);
+
     int limit = _gr->settings.fireball.range;
     while(limit-- && in_bounds(x,y)) {
+        move_coord(&x, &y, d, 1);
         if (fields.is_obstruction(x,y)) {
             fields.damage_field(x, y, FIRE_DMG & PROJECTILE_DMG, "Hit by a fireball");
             ps->stack[ps->sp++] = 1;
@@ -727,7 +726,6 @@ int instr_fireball(player_state* ps) {
         set_color_overlay(x,y,FORE,color_predefs.red);
         set_overlay(x,y,FILLED_CIRCLE);
         print_board(); wait(0.05);
-        move_coord(&x, &y, d, 1);
     }
 
     ps->stack[ps->sp++] = 1;
@@ -757,16 +755,8 @@ int instr_dispel(player_state* ps) {
     }
 
     field_state* field = get_field(x,y);
-    for (int i = 0; i < field->enter_events->count; i++) {
-        event* e = get_event(field->enter_events,i);
-        if (e->kind == MAGICAL_EVENT)
-            e->func = NULL;
-    }
-    for (int i = 0; i < field->exit_events->count; i++) {
-        event* e = get_event(field->exit_events,i);
-        if (e->kind == MAGICAL_EVENT)
-            e->func = NULL;
-    }
+    remove_events_of_kind(field->enter_events, MAGICAL_EVENT);
+    remove_events_of_kind(field->exit_events, MAGICAL_EVENT);
 
     set_overlay(x,y,LARGE_X);
     set_color_overlay(x,y,FORE,color_predefs.magic_purple);
@@ -787,16 +777,8 @@ int instr_disarm(player_state* ps) {
     }
 
     field_state* field = get_field(x,y);
-    for (int i = 0; i < field->enter_events->count; i++) {
-        event* e = get_event(field->enter_events,i);
-        if (e->kind == PHYSICAL_EVENT)
-            e->func = NULL;
-    }
-    for (int i = 0; i < field->exit_events->count; i++) {
-        event* e = get_event(field->exit_events,i);
-        if (e->kind == PHYSICAL_EVENT)
-            e->func = NULL;
-    }
+    remove_events_of_kind(field->enter_events, PHYSICAL_EVENT);
+    remove_events_of_kind(field->exit_events, PHYSICAL_EVENT);
 
     set_overlay(x,y,LARGE_X);
     print_board(); wait(0.5);
@@ -1197,12 +1179,12 @@ int instr_throw_clay(player_state* ps) {
     int x, y;
     location_coords(ps->location, &x, &y);
     
-    move_coord(&x, &y, d, 1);
     while (p-- && in_bounds(x,y)) { 
+        move_coord(&x, &y, d, 1);
         set_overlay(x,y,FILLED_CIRCLE);
         set_color_overlay(x,y,FORE,color_predefs.clay_brown);
         print_board(); wait(0.02);
-
+        
         if (fields.is_obstruction(x,y)) {
             fields.damage_field(x, y, KINETIC_DMG & PROJECTILE_DMG, "Got shot");
             ps->stack[ps->sp++] = 1;
@@ -1219,9 +1201,7 @@ int instr_throw_clay(player_state* ps) {
             }
             ps->stack[ps->sp++] = 1;
             return 1;
-        }
-
-        move_coord(&x, &y, d, 1);
+        }    
     }
 
     // clayify field

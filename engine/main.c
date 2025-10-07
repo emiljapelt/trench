@@ -44,7 +44,7 @@ void player_turn_async(player_state* ps) {
         int change = 0;
         if (ps->dp >= ps->directive_len) { return; }
         if (!use_resource(1,&ps->remaining_steps)) return;
-        //debug_print(ps);
+        // debug_print(ps);
         _log(DEBUG, "%s executes %i", ps->name, ps->directive[ps->dp]);
         switch (ps->directive[ps->dp++]) {
             case Meta_PlayerX: change = meta_player_x(ps);break;

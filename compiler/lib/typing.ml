@@ -132,9 +132,16 @@ and type_check_stmt_inner state stmt = match stmt with
     (Block stmts', state')
   )
   | While(v,s,None) -> 
-    require T_Int (type_value state v) (fun () -> type_check_stmt state s |> ignore ; (stmt,state))
+    require T_Int (type_value state v) (fun () -> 
+      let (s,_) = type_check_stmt state s in 
+      (While(v,s,None),state)
+    )
   | While(v,s,Some si) -> 
-    require T_Int (type_value state v) (fun () -> type_check_stmt state s |> ignore ; type_check_stmt state si |> ignore ; (stmt, state))
+    require T_Int (type_value state v) (fun () -> 
+      let (s,_) = type_check_stmt state s in 
+      let (si,_) = type_check_stmt state si in 
+      (While(v,s,Some si), state)
+    )
   | Assign(Local n,e) -> require (var_type state.scopes n) (type_value state e) (fun () -> (stmt,state))
   | Assign(Array(target, index), e) -> (
     require T_Int (type_value state index) (fun () -> 
