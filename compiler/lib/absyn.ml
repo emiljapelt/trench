@@ -158,8 +158,7 @@ type team_info = TI of { name: string; color: (int*int*int); origin: int * int; 
 type resource = string * (int * int)
 
 type exec_mode =
-    | AsyncExec
-    | SyncExec
+    | DefaultExec
 
 type map =
     | EmptyMap of int * int

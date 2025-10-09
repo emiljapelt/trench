@@ -16,8 +16,7 @@
                         "files", FILES;
                         "features", FEATURES;
                         "exec_mode", EXEC_MODE;
-                        "sync", SYNC;
-                        "async", ASYNC;
+                        "default", DEFAULT;
                         "themes", THEMES;
                         "resources", RESOURCES;
                         "seed", SEED;
