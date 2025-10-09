@@ -942,27 +942,33 @@ int instr_collect(player_state* ps) {
     }
     field_state* field = get_field(x,y);
 
+    int success = 0;
     switch (field->type) {
         case TREE:
             add_resource(ps->resources, "sapling", 1);
-            ps->stack[ps->sp++] = 1;
-            return 0;
+            success = 1;
+            break;
         case CLAY:
             switch (field->data->clay_pit.amount) {
-                case 0:
+                case 0: {
                     fields.remove_field(x,y);
+                    add_resource(ps->resources, "clay", 1);
+                    success = 1;
                     break;
-                default:
-                    field->data->clay_pit.amount--;
+                }
+                default: {
+                    int collected = field->data->clay_pit.amount > _gr->settings.clay_pit.collect_max ? _gr->settings.clay_pit.collect_max : field->data->clay_pit.amount;
+                    field->data->clay_pit.amount -= collected;
+                    add_resource(ps->resources, "clay", collected);
+                    success = 1;
                     break;
+                }
             }
-            add_resource(ps->resources, "clay", 1);
-            ps->stack[ps->sp++] = 1;
-            return 1;
-        default:
-            ps->stack[ps->sp++] = 0;
-            return 0;
+            break;
     }
+
+    ps->stack[ps->sp++] = success;
+    return success;
 }
 
 int instr_say(player_state* ps) {

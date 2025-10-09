@@ -420,7 +420,7 @@ char* first_team_alive() {
 }
 
 void check_win_condition() {
-    switch (teams_alive(_gs)) {
+    switch (teams_alive()) {
         case 0:
             _log(INFO, "--- GAME END: Everyone is dead ---");
             _log_flush();
@@ -625,7 +625,7 @@ void static_mode() {
 // Players can change directive after 'x' rounds
 void dynamic_mode() {
     while(1) {
-        play_round(_gr);
+        play_round();
         if (_gs->round % _gr->mode == 0) {
             const int player_count = _gs->players->count;
             for (int i = 0; i < player_count; i++) {

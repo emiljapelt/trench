@@ -206,6 +206,7 @@ void load_settings_struct(game_rules* gr, value settings) {
         value clay_pit_settings = Field(settings, 18);
         gr->settings.clay_pit.spread_limit = Int_val(Field(clay_pit_settings, 0));
         gr->settings.clay_pit.contain_limit = Int_val(Field(clay_pit_settings, 1));
+        gr->settings.clay_pit.collect_max = Int_val(Field(clay_pit_settings, 2));
     }
 
     {

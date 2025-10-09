@@ -99,6 +99,7 @@ typedef struct game_rules {
         struct {
             int spread_limit;
             int contain_limit;
+            int collect_max;
         } clay_pit;
 
         struct {

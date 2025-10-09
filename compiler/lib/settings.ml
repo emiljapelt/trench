@@ -49,7 +49,8 @@ type program_setting = {
 
 type clay_pit_setting = {
   spread_limit: int;
-  contain_limit: int
+  contain_limit: int;
+  collect_max: int;
 }
 
 type settings = {
@@ -137,6 +138,7 @@ let program_setting_overwrite = overwritter [
 let clay_setting_overwrite = overwritter  [
   ("spread_limit", fun s v -> {s with spread_limit = v});
   ("amount_limit", fun s v -> {s with contain_limit = v});
+  ("collect_max", fun s v -> {s with collect_max = v});
 ]
 
 let rec overwrite_settings settings overwrites = 
@@ -196,6 +198,6 @@ let default_settings : settings = {
     size_limit = 0;
   };
   throw_clay = { range = 3; cost = 1 };
-  clay = { spread_limit = 1; contain_limit = 100; };
+  clay = { spread_limit = 1; contain_limit = 100; collect_max = 5; };
   clay_golem = { cost = 5; }
 }
