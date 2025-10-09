@@ -39,7 +39,7 @@ void kill_players() {
     each_player(_gs->players, &try_kill_player);
 }
 
-void player_turn_async(player_state* ps) {
+void player_turn_default(player_state* ps) {
     while(1) {
         int change = 0;
         if (ps->dp >= ps->directive_len) { return; }
@@ -406,7 +406,7 @@ void handle_input() {
     Players complete their turn seperately one at a time. 
     Once each player has taken a turn, a round has passed.
 */
-void play_round_async() {
+void play_round_default() {
     const int player_count = _gs->players->count;
     for(int i = 0; i < player_count; i++) {
         handle_input();
@@ -417,7 +417,7 @@ void play_round_async() {
         if (_gs->feed_point) { print_board(); wait(1); }
         if (player->alive) {
             _log(DEBUG, "Turn: %s (#%i)", player->name, player->id);
-            player_turn_async(player);
+            player_turn_default(player);
             set_player_steps_and_actions(player);
         }
         check_win_condition();
@@ -428,7 +428,7 @@ void play_round_async() {
 void play_round() {
     switch (_gr->exec_mode) {
         case 0:
-            play_round_async();
+            play_round_default();
             break;
     }
     _log_flush();
@@ -477,7 +477,7 @@ void manual_mode() {
                 get_new_directive(player);
             clear_screen();
             print_board();
-            player_turn_async(player);
+            player_turn_default(player);
             check_win_condition();
         }
 
