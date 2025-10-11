@@ -13,3 +13,4 @@ package.json
 web_view
 
 !logo.tr
+!extensions/trench-highlighting/package.json

@@ -1,0 +1,29 @@
+{
+  "name": "trench-highlighting",
+  "displayName": "Trench highlighting",
+  "description": "Syntax highlighting for the Trench langauge",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.82.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [{
+      "id": "trench",
+      "aliases": ["trench", "Trench"],
+      "icon": {
+        "light": "./icons/trench-light.png",
+        "dark": "./icons/trench-dark.png"
+      },
+      "extensions": [".tr"],
+      "configuration": "./language-configuration.json"
+    }],
+    "grammars": [{
+      "language": "trench",
+      "scopeName": "source.tr",
+      "path": "./syntaxes/trench.tmLanguage.json"
+    }]
+  }
+}

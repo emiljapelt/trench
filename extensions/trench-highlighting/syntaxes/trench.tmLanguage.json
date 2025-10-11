@@ -1,0 +1,43 @@
+{
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "trench",
+	"patterns": [
+		{ "include": "#comments" },
+		{ "include": "#main" }
+	],
+	"repository": {
+		"main": {
+			"patterns": [{
+				"name": "keyword",
+				"match": "\\b(let)\\b"
+			},{
+				"name": "keyword.control",
+				"match": "\\b(while|break|continue|return|goto|if|is|else|repeat)\\b"
+			},{
+				"name": "support.type",
+				"match": "\\b(int|dir|field|prop)\\b"
+			},{
+				"name": "constant.language",
+				"match": "\\b(N|S|E|W)\\b"
+			},{
+				"name": "constant.numeric",
+				"match": "\\b(-?[0-9]+)\\b"
+			},{
+				"name": "support.constant",
+				"match": "\\b(#(x|y|board_x|board_y|id|clay|explosive|ammo|mana|sapling|wood))\\b"
+			},{
+				"name": "support.constant",
+				"match": "\\b(@(obstruction|player|trapped|flammable|cover|shelter|empty|trench|ice_block|tree|ocean|wall|bridge|clay))\\b"
+			},{
+				"name": "support.function",
+				"match": "\\b(move|trench|fortify|wait|pass|meditate|projection|collect|bomb|freeze|shoot|mine|fireball|chop|dispel|disarm|mana_drain|wall|bridge|plant_tree|mount|dismount|boat|bear_trap|write|pager_write|pager_set|say|pager_read|read|scan|look|throw_clay|clay_golem)\\b"
+			}]
+		},
+		"comments": {
+			"name": "comment.line",
+			"begin": "//",
+			"end": "\\n"
+		}
+	},
+	"scopeName": "source.tr"
+}
