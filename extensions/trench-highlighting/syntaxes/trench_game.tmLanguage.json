@@ -1,0 +1,90 @@
+{
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "trench game",
+	"patterns": [
+		{ "include": "#comments" },
+		{ "include": "#main" }
+	],
+	"repository": {
+		"main": {
+			"patterns": [{
+				"name": "keyword",
+				"match": "\\b(actions|mode|time_scale|map|themes|features|debug|viewport|nuke)\\b"
+			},{
+				"include": "#constants"
+			},{
+				"begin": "(resources) *: *{",
+				"end": "}",
+				"patterns": [{
+					"include": "#resources"
+				}],
+				"beginCaptures": {
+					"1": {
+						"name": "keyword"
+					}
+				}
+			},{
+				"begin": "(team) *: *{",
+				"end": "}",
+				"patterns": [{
+					"include": "#team"
+				}],
+				"beginCaptures": {
+					"1": {
+						"name": "keyword"
+					}
+				}
+			}]
+		},
+		"constants": {
+			"patterns": [{
+				"name": "constant.language",
+				"match": "\\b(true|false)\\b"
+			},{
+				"name": "constant.numeric",
+				"match": "\\b(-?[0-9]+)\\b"
+			}]
+		},
+		"resources": {
+			"patterns": [{
+				"name": "keyword",
+				"match": "\\b(mana|wood|explosive|ammo|sapling|clay|of)\\b"
+			},{
+				"include": "#constants"
+			}]
+		},
+		"team": {
+			"patterns": [{
+				"name": "keyword",
+				"match": "\\b(name|color|origin)\\b"
+			},{
+				"include": "#constants"
+			},{
+				"begin": "(player) *: *{",
+				"end": "}",
+				"patterns": [{
+					"include": "#player"
+				}],
+				"beginCaptures": {
+					"1": {
+						"name": "keyword"
+					}
+				}
+			}]
+		},
+		"player": {
+			"patterns": [{
+				"name": "keyword",
+				"match": "\\b(name|files|origin)\\b"
+			},{
+				"include": "#constants"
+			}]
+		},
+		"comments": {
+			"name": "comment.line",
+			"begin": "//",
+			"end": "\\n"
+		}
+	},
+	"scopeName": "source.trg"
+}

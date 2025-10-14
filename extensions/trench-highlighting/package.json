@@ -1,7 +1,7 @@
 {
   "name": "trench-highlighting",
   "displayName": "Trench highlighting",
-  "description": "Syntax highlighting for the Trench langauge",
+  "description": "Syntax highlighting for the Trench language",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.82.0"
@@ -19,11 +19,24 @@
       },
       "extensions": [".tr"],
       "configuration": "./language-configuration.json"
+    },{
+      "id": "trench_game",
+      "aliases": ["trench game", "Trench game"],
+      "icon": {
+        "light": "./icons/trench-light.png",
+        "dark": "./icons/trench-dark.png"
+      },
+      "extensions": [".trg"],
+      "configuration": "./language-configuration.json"
     }],
     "grammars": [{
       "language": "trench",
       "scopeName": "source.tr",
       "path": "./syntaxes/trench.tmLanguage.json"
+    },{
+      "language": "trench_game",
+      "scopeName": "source.trg",
+      "path": "./syntaxes/trench_game.tmLanguage.json"
     }]
   }
 }
