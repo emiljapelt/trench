@@ -23,14 +23,17 @@
 				"name": "constant.numeric",
 				"match": "\\b(-?[0-9]+)\\b"
 			},{
-				"name": "support.constant",
-				"match": "\\b(#(x|y|board_x|board_y|id|clay|explosive|ammo|mana|sapling|wood))\\b"
+				"name": "constant.language",
+				"match": "(#(x|y|board_x|board_y|id|clay|explosive|ammo|mana|sapling|wood))\\b"
 			},{
-				"name": "support.constant",
-				"match": "\\b(@(obstruction|player|trapped|flammable|cover|shelter|empty|trench|ice_block|tree|ocean|wall|bridge|clay))\\b"
+				"name": "constant.language",
+				"match": "(@(obstruction|player|trapped|flammable|cover|shelter|empty|trench|ice_block|tree|ocean|wall|bridge|clay))\\b"
 			},{
 				"name": "support.function",
 				"match": "\\b(move|trench|fortify|wait|pass|meditate|projection|collect|bomb|freeze|shoot|mine|fireball|chop|dispel|disarm|mana_drain|wall|bridge|plant_tree|mount|dismount|boat|bear_trap|write|pager_write|pager_set|say|pager_read|read|scan|look|throw_clay|clay_golem)\\b"
+			},{
+				"name": "variable.name",
+				"match": "\\b([A-Za-z'][A-Za-z0-9_]*)\\b"
 			}]
 		},
 		"comments": {
