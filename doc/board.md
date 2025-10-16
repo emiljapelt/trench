@@ -1,4 +1,4 @@
-[Back to overview](main.md)
+[Back to overview](../README.md)
 
 # The board
 The board is the world in which the game takes place. It is 2D with 4 directions, and a fixed size. Each field has a type, with some properties, which describes how they behave.
@@ -82,4 +82,4 @@ A Predefined map can be written in a .trm-file. Map files must contains a rectan
 
 ---
 
-[Back to overview](main.md)
+[Back to overview](../README.md)

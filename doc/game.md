@@ -1,4 +1,4 @@
-[Back to overview](main.md)
+[Back to overview](../README.md)
 
 # The Game file
 
@@ -174,4 +174,4 @@ Player configurations:
 
 ---
 
-[Back to overview](main.md)
+[Back to overview](../README.md)

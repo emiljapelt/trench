@@ -13,7 +13,7 @@
 int mine(entity_t* entity, void* data, situation situ) {
     field_args* args = (field_args*)data;
 
-    if (get_field(args->x, args->y)->entities->count > 0) return 0;
+    if (fields.get(args->x, args->y)->entities->count > 0) return 0;
 
     switch (entity->type) {
         case ENTITY_PLAYER: {
@@ -46,7 +46,7 @@ int bomb(entity_t* entity, void* data, situation situ) {
             if (args->player_id != entity->player->id) return 0;
             set_overlay(args->x,args->y,EXPLOSION);
             set_color_overlay(args->x,args->y,FORE,color_predefs.red);
-            fields.destroy_field(args->x,args->y, "Got blown up");
+            fields.destroy_field(fields.get(args->x,args->y), "Got blown up");
             return 1;
         }
     }
@@ -77,7 +77,7 @@ int ice_block_melt(entity_t* entity, void* data, situation situ) {
     switch (entity->type) {
         case ENTITY_PLAYER: {
             ice_block_melt_event_args* args = (ice_block_melt_event_args*)data;
-            field_state* field = get_field(args->x, args->y);
+            field_state* field = fields.get(args->x, args->y);
 
             if (field->type != ICE_BLOCK) return 1;
             if (args->player_id != entity->player->id) 
@@ -87,7 +87,7 @@ int ice_block_melt(entity_t* entity, void* data, situation situ) {
                 return 0;
             }
 
-            fields.remove_field(args->x, args->y);
+            fields.remove_field(field);
             return 1;
         }
     }
@@ -117,8 +117,9 @@ int tree_grow(entity_t* entity, void* data, situation situ) {
             args->remaining--;
             if (args->remaining != 0) return 0;
 
-            if (get_field(args->x, args->y)->type == EMPTY)
-                fields.build.tree(args->x, args->y);
+            field_state* field = fields.get(args->x, args->y);
+            if (field->type == EMPTY)
+                fields.build.tree(field);
                 
             return 1;
         }
@@ -176,7 +177,7 @@ int clay_spread(entity_t* entity, void* data, situation situ) {
             case EMPTY:
                 int x, y;
                 location_coords(situ.movement.loc, &x, &y);
-                fields.build.clay_pit(x,y);
+                fields.build.clay_pit(field);
                 break;
             case CLAY:
                 if (field->data->clay_pit.amount < _gr->settings.clay_pit.contain_limit) {

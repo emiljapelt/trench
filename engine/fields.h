@@ -6,6 +6,7 @@
 #include "color.h"
 #include "damage.h"
 #include "vehicles.h"
+#include "events.h"
 
 typedef enum {
     EMPTY,
@@ -17,9 +18,6 @@ typedef enum {
     BRIDGE,
     CLAY,
 } field_type;
-
-
-typedef int (*const field_property_check)(const int x, const int y);
 
 typedef union field_data field_data;
 
@@ -35,6 +33,7 @@ typedef union field_data {
     struct {
         field_data* inner;
         field_type inner_type;
+        ice_block_melt_event_args* melt_event_args;
     } ice_block;
 
     struct {
@@ -62,7 +61,7 @@ typedef struct {
     unsigned int is_clay: 1;
 
     unsigned int _ : 17;
-} field_scan;
+} field_properties;
 
 typedef struct field_state {
     color* foreground_color_overlay;
@@ -80,27 +79,22 @@ typedef struct field_state {
 } field_state;
 
 typedef struct field_builders {
-    void (*const trench)(const int x, const int y);
-    void (*const wall)(const int x, const int y);
-    void (*const tree)(const int x, const int y);
-    void (*const clay_pit)(const int x, const int y);
-    void (*const ocean)(const int x, const int y);
+    void (*const trench)(field_state* field);
+    void (*const wall)(field_state* field);
+    void (*const tree)(field_state* field);
+    void (*const clay_pit)(field_state* field);
+    void (*const ocean)(field_state* field);
 } field_builders;
 
 typedef struct fields_namespace {
     field_state* (*const get)(const int x, const int y);
     void (*const set)(const int x, const int y, field_state* f);
-    field_property_check is_obstruction;
-    field_property_check is_flammable;
-    field_property_check is_shelter;
-    field_property_check is_cover;
-    field_property_check has_player;
-    field_property_check has_trap;
-    void (*const destroy_field)(const int x, const int y, char* death_msg);
-    void (*const damage_field)(const int x, const int y, damage_t d_type, char* death_msg);
-    void (*const remove_field)(const int x, const int y);
-    int (*const fortify_field)(const int x, const int y);
-    field_scan (*const scan)(const int x, const int y);
+    void (*const destroy_field)(field_state* field, char* death_msg);
+    void (*const damage_field)(field_state* field, damage_t d_type, char* death_msg);
+    void (*const remove_field)(field_state* field);
+    int (*const fortify_field)(field_state* field);
+    field_properties (*const properties_of_field)(field_state* field);
+    field_properties (*const properties)(const int x, const int y);
     field_builders build;
 } fields_namespace;
 

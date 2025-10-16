@@ -6,7 +6,7 @@
 location field_location_from_coords(int x, int y) {
     return (location) {
         .type = FIELD_LOCATION,
-        .field = get_field(x,y),
+        .field = fields.get(x,y),
     };
 }
 
@@ -43,7 +43,7 @@ void location_coords(location loc, int* x, int* y) {
 struct field_state* location_field(location loc) {
     int x, y;
     location_coords(loc, &x, &y);
-    return get_field(x,y);
+    return fields.get(x,y);
 }
 
 

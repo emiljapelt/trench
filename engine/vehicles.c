@@ -12,7 +12,7 @@ int boat_move(vehicle_state* v, direction d) {
     location_coords(v->location, &x, &y);
     move_coord(&x, &y, d, 1);
 
-    field_state* target = get_field(x,y);
+    field_state* target = fields.get(x,y);
     if (target->type == OCEAN) {
 
         move_vehicle_to_location(v, field_location_from_field(target));

@@ -1,4 +1,4 @@
-[Back to overview](main.md)
+[Back to overview](../README.md)
 
 # The trench language
 
@@ -47,9 +47,11 @@ E
 W
 ```
 
-### field
+### prop / field
 
-Contains information about a field. The available information is:
+a value of the ```prop``` type is a property that a field may have. a value of the ```field``` type is a collection of properties describing a specific field.
+
+The available properties are:
 
 | Name | Description |
 | --- | --- |
@@ -58,10 +60,17 @@ Contains information about a field. The available information is:
 | trapped | This field is trapped in some way |
 | flammable | This field can be destroyed by fire |
 | cover | This field will protect players from projectiles |
-| shelter | This field will protect players from above |
-| walkable | The player can move onto this field |
+| shelter | This field will protect players from above | 
+| empty | This field is empty |
+| trench | This field is a trench |
+| ice_block | This field is an ice block |
+| tree | This field is a tree |
+| ocean | This field is an ocean |
+| wall | This field is a wall |
+| bridge | This field is a bridge |
+| clay | This field is a clay pit |
 
-These properties of the field can be queried for, using the 'is' expression.
+These properties of a field can be queried using the ```is``` expression.
 
 ## Expressions
 
@@ -156,49 +165,6 @@ These are operation on two values, with the operation symbol placed between the 
 
 ---
 
-### Read
-**type:** int
-
-**syntax:** `read`
-
-**features:** ipc
-
-Every field can contain an *int* value, which is set  using the `write` statement. `read` evaluates to the value set on the field the player is standing on.
-
----
-
-### Pager Read
-**type:** int
-
-**syntax:** `pager_read`
-
-**features:** ipc
-
-Every player is equiped with a pager. It can the set a channel using `pager_set`, and messages are send on the channel using `pager_write`. Received messages can be read using `pager_read`, starting with the oldest message. Read a message also removes it from the pager.
-
-If there is no new messages, this evaluates to `0`.
-
----
-
-### Scan
-**type:** field
-
-**syntax:** `scan d i`
-
-Takes a snapshot of the properties of the field in direction `d`, at a distance of `i` fields. It is possible to scan past an obstruction.
-
----
-
-
-### Look
-**type:** int
-
-**syntax:** `look` *dir* *property*
-
-Evaluates to the distance to the nearest field in the given direction, which has the given property.
-
----
-
 ### Is
 **type:** int
 
@@ -285,120 +251,6 @@ Where *x* is a constant integer. Compiles the given statement *x* times
 ### Continue
 **features:** loops
 
-### Wait <sub><small>action</small></sub>
-**syntax:** `wait;`
-
-Spend an action doing nothing.
-
----
-
-### Pass
-**syntax:** `pass;`
-
-Ends the current turn.
-
----
-
-### Move <sub><small>action</small></sub>
-**syntax:** `move` *dir* `;`
 
 
-Moves the player one field in the given direction, if that field is walkable, unobstructed and in bounds of the board.
-
----
-
-### Trench <sub><small>action</small></sub>
-**syntax:** `trench d?`
-
-### Fortify <sub><small>action</small></sub>
-**syntax:** `fortify d?`
-
-### Write
-**features:** ipc
-
-**syntax:** `write i`
-
-### Pager Write
-**features:** ipc
-
-**syntax:** `pager_write i`
-
-### Pager Set
-**features:** ipc
-
-**syntax:** `pager_set i`
-
-### Collect
-**syntax:** `collect d`
-
-### Say
-**syntax:** `say i`
-
-### Shoot <sub><small>action</small></sub>
-**themes:** military
-
-**syntax:** `shoot d`
-
-### Bomb <sub><small>action</small></sub>
-**themes:** military
-
-**syntax:** `bomb d i`
-
-### Mine <sub><small>action</small></sub>
-**themes:** military
-
-**syntax:** `mine d`
-
-### Disarm <sub><small>action</small></sub>
-**themes:** military
-
-**syntax:** `disarm d?`
-
-### Plant Tree <sub><small>action</small></sub>
-**themes:** forestry
-
-**syntax:** `plant_tree d`
-
-### Chop <sub><small>action</small></sub>
-**themes:** forestry
-
-**syntax:** `chop d`
-
-### Wall <sub><small>action</small></sub>
-**themes:** forestry
-
-**syntax:** `wall d`
-
-### Bridge <sub><small>action</small></sub>
-**themes:** forestry
-
-**syntax:** `brdige d`
-
-### Meditate <sub><small>action</small></sub>
-**themes:** wizardry
-
-**syntax:** `meditate`
-
-### Fireball <sub><small>action</small></sub>
-**themes:** wizardry
-
-**syntax:** `fireball d`
-
-### Freeze <sub><small>action</small></sub>
-**themes:** wizardry
-
-**syntax:** `freeze d i`
-
-### Dispel <sub><small>action</small></sub>
-**themes:** wizardry
-**syntax:** `dispel d`
-
-### Mana Drain <sub><small>action</small></sub>
-**themes:** wizardry
-
-### Projection <sub><small>action</small></sub>
-**themes:** wizardry
-
-
-
-[Back to overview](main.md)
+[Back to overview](../README.md)

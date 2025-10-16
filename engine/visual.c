@@ -20,7 +20,7 @@ inline void reset_cursor(void) {
 static inline char line_connects(int x, int y, field_type field) {
     return (!in_bounds(x,y)) 
         ? 0 
-        : get_field(x,y)->type == field;
+        : fields.get(x,y)->type == field;
 }
 
 int connection_lookup(int x, int y, field_type field) {
@@ -180,7 +180,7 @@ field_visual get_field_data_visual(const int x, const int y, const field_type ty
             break;
         }
         case EMPTY: {
-            //field_state* field = get_field(x,y);
+            //field_state* field = fields.get(x,y);
             //if (field->entities->count > 0) {
             //    entity_t* e = peek_entity(field->entities);
             //    switch (e->type) {
@@ -202,7 +202,7 @@ field_visual get_field_data_visual(const int x, const int y, const field_type ty
         }
     }
 
-    field_state* field = get_field(x,y);
+    field_state* field = fields.get(x,y);
     if (field->entities->count > 0) {
         entity_t* e = peek_entity(field->entities);
         switch (e->type) {
@@ -289,7 +289,7 @@ void print_board() {
         for(int x = 0; x < _gr->viewport.width; x++) {
             int actual_x = _gr->viewport.x + x;
             int actual_y = _gr->viewport.y + y;
-            field_visual visual = in_bounds(actual_x, actual_y) ? get_field_visual(actual_x, actual_y, get_field(actual_x, actual_y)) : empty_visual();
+            field_visual visual = in_bounds(actual_x, actual_y) ? get_field_visual(actual_x, actual_y, fields.get(actual_x, actual_y)) : empty_visual();
 
             if (visual.foreground_color)
                 set_color(*visual.foreground_color, FORE);

@@ -35,6 +35,7 @@ type freeze_setting = {
   cost: int;
   duration: int;
   range: int;
+  refreeze: int;
 }
 
 type cost_and_upkeep_setting = {
@@ -115,6 +116,7 @@ let freeze_setting_overwrite = overwritter [
   ("cost", fun (s: freeze_setting) v -> {s with cost = v} );
   ("duration", fun s v -> {s with duration = v} );
   ("range", fun s v -> {s with range = v} );
+  ("refreeze", fun s v -> {s with refreeze = v} );
 ]
 
 let cost_and_upkeep_setting_overwrite = overwritter [
@@ -189,7 +191,7 @@ let default_settings : settings = {
   chop = { sapling_chance = 30; wood_gain = 10; };
   fortify = { cost = 5 };
   projection = { cost = 50; upkeep = 10 };
-  freeze = { cost = 25; duration = 2; range = 5; };
+  freeze = { cost = 25; duration = 2; range = 5; refreeze = 0; };
   look = { range = -1; };
   scan = { range = -1; };
   boat = { cost = 30; capacity = 4; };

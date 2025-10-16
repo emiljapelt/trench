@@ -39,11 +39,6 @@ typedef struct game_state {
 extern game_state* _gs;
 extern game_rules* _gr;
 
-field_state* get_field(const int x, const int y);
-void set_field(const int x, const int y, field_state* f);
-int fortify_field(const int x, const int y);
-void build_trench_field(const int x, const int y);
-
 void death_mark_player(player_state* ps, const char* reason);
 void kill_player(player_state* ps);
 void set_player_steps_and_actions(player_state* ps);

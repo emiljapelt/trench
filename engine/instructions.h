@@ -131,13 +131,15 @@ int instr_shoot(player_state* ps) {
         set_color_overlay(x,y,FORE,color_predefs.yellow);
         print_board(); wait(0.02);
 
-        if (fields.is_obstruction(x,y)) {
-            fields.damage_field(x, y, KINETIC_DMG & PROJECTILE_DMG, "Got shot");
+        field_state* field = fields.get(x,y);
+        field_properties props = fields.properties_of_field(field);
+
+        if (props.obstruction) {
+            fields.damage_field(field, KINETIC_DMG | PROJECTILE_DMG, "Got shot");
             ps->stack[ps->sp++] = 1;
             return 1;
         }
-        else if (fields.has_player(x,y) && !(fields.is_cover(x,y) || fields.is_shelter(x,y))) {
-            field_state* field = get_field(x,y);
+        else if (props.player && !(props.cover || props.shelter)) {
             for(int i = 0; i < field->entities->count; i++) {
                 entity_t* e = get_entity(field->entities, i);
                 if (e->type == ENTITY_PLAYER) {
@@ -166,10 +168,10 @@ int instr_look(player_state* ps) {
     if (_gr->settings.look.range >= 0 && i > _gr->settings.look.range) { ps->stack[ps->sp++] = 0; return 0; }
     move_coord(&x, &y, d, 1);
     if (!in_bounds(x,y)) { ps->stack[ps->sp++] = 0; return 0; }
-    field_scan scan = fields.scan(x,y);
-    field_scan* bypass = &scan;
+    field_properties props = fields.properties(x,y);
+    field_properties* bypass = &props;
     if ((*(int*)bypass) & (1 << offset)) { ps->stack[ps->sp++] = i; return 0; }
-    if (fields.is_obstruction(x,y)) { ps->stack[ps->sp++] = 0; return 0; }
+    if (fields.properties(x,y).obstruction) { ps->stack[ps->sp++] = 0; return 0; }
     goto incr;
 }
 
@@ -183,8 +185,8 @@ int instr_scan(player_state* ps) {
     if (_gr->settings.bomb.range >= 0 && p > _gr->settings.bomb.range) p = _gr->settings.bomb.range;
     move_coord(&x, &y, d, p);
     if (in_bounds(x, y)) {   
-        field_scan scan = fields.scan(x,y);
-        field_scan* bypass = &scan;
+        field_properties props = fields.properties(x,y);
+        field_properties* bypass = &props;
         result = *(int*)bypass;
     }
 
@@ -208,7 +210,7 @@ int instr_mine(player_state* ps) {
     }
     char kill = 0;
 
-    field_state* field = get_field(x,y);
+    field_state* field = fields.get(x,y);
     for(int i = 0; i < field->entities->count; i++) {
         entity_t* e = get_entity(field->entities, i);
         if (e->type == ENTITY_PLAYER) {
@@ -243,12 +245,12 @@ int instr_move(player_state* ps) {
 
     int x, y;
     location_coords(ps->location, &x, &y);
-    if (fields.is_obstruction(x, y)) {
+    if (fields.properties(x,y).obstruction) {
         ps->stack[ps->sp++] = 0;
         return 0;
     }
     move_coord(&x, &y, d, 1);
-    if(!in_bounds(x,y) || fields.is_obstruction(x, y)) {
+    if(!in_bounds(x,y) || fields.properties(x,y).obstruction) {
         ps->stack[ps->sp++] = 0;
         return 0; 
     }
@@ -264,7 +266,7 @@ int instr_chop(player_state* ps) {
     int x, y;
     location_coords(ps->location, &x, &y);
     move_coord(&x, &y, d, 1);
-    field_state* field = get_field(x,y);
+    field_state* field = fields.get(x,y);
 
     if (field->type == EMPTY)
         for(int i = 0; i < field->entities->count; i++) {
@@ -275,7 +277,7 @@ int instr_chop(player_state* ps) {
             }
         }
     else if (field->type == TREE) {
-        fields.remove_field(x,y);
+        fields.remove_field(field);
         add_resource(ps->resources, "wood", _gr->settings.chop.wood_gain);
         int got_sapling = rand() % 100 > _gr->settings.chop.sapling_chance;
         if (got_sapling) add_resource(ps->resources, "sapling", 1);
@@ -294,10 +296,10 @@ int instr_trench(player_state* ps) {
         return 0;
     }
 
-    field_state* field = get_field(x,y);
+    field_state* field = fields.get(x,y);
     switch (field->type) {
         case EMPTY: {
-            fields.build.trench(x,y);
+            fields.build.trench(field);
             ps->stack[ps->sp++] = 1;
             return 1;
         }
@@ -315,7 +317,7 @@ int instr_fortify(player_state* ps) {
     location_coords(ps->location, &x, &y);
     direction d = (direction)ps->stack[--ps->sp];
     move_coord(&x, &y, d, 1);
-    int result = fields.fortify_field(x,y);
+    int result = fields.fortify_field(fields.get(x,y));
     ps->stack[ps->sp++] = result;
     return result;
 }
@@ -666,8 +668,9 @@ int instr_freeze(player_state* ps) {
         ps->stack[ps->sp++] = 0;
         return 0;
     }
-    field_state* field = get_field(x,y);
+    field_state* field = fields.get(x,y);
     if(field->type == ICE_BLOCK) {
+        field->data->ice_block.melt_event_args->remaining += _gr->settings.freeze.refreeze;
         ps->stack[ps->sp++] = 1;
         return 0;
     }
@@ -687,6 +690,7 @@ int instr_freeze(player_state* ps) {
     field_data* new_data = malloc(sizeof(field_data));
     new_data->ice_block.inner = field->data;
     new_data->ice_block.inner_type = field->type;
+    new_data->ice_block.melt_event_args = args;
     field->type = ICE_BLOCK;
     field->data = new_data;
 
@@ -707,13 +711,16 @@ int instr_fireball(player_state* ps) {
     int limit = _gr->settings.fireball.range;
     while(limit-- && in_bounds(x,y)) {
         move_coord(&x, &y, d, 1);
-        if (fields.is_obstruction(x,y)) {
-            fields.damage_field(x, y, FIRE_DMG & PROJECTILE_DMG, "Hit by a fireball");
+
+        field_state* field = fields.get(x,y);
+        field_properties props = fields.properties_of_field(field);
+
+        if (props.obstruction) {
+            fields.damage_field(field, FIRE_DMG | PROJECTILE_DMG, "Hit by a fireball");
             ps->stack[ps->sp++] = 1;
             return 1;
         }
-        else if (fields.has_player(x,y) && !(fields.is_cover(x,y) || fields.is_shelter(x,y))) {
-            field_state* field = get_field(x,y);
+        else if (props.player && !(props.cover || props.shelter)) {
             for(int i = 0; i < field->entities->count; i++) {
                 entity_t* e = get_entity(field->entities, i);
                 if (e->type = ENTITY_PLAYER) {
@@ -756,7 +763,7 @@ int instr_dispel(player_state* ps) {
         return 0;
     }
 
-    field_state* field = get_field(x,y);
+    field_state* field = fields.get(x,y);
     remove_events_of_kind(field->enter_events, MAGICAL_EVENT);
     remove_events_of_kind(field->exit_events, MAGICAL_EVENT);
 
@@ -778,7 +785,7 @@ int instr_disarm(player_state* ps) {
         return 0;
     }
 
-    field_state* field = get_field(x,y);
+    field_state* field = fields.get(x,y);
     remove_events_of_kind(field->enter_events, PHYSICAL_EVENT);
     remove_events_of_kind(field->exit_events, PHYSICAL_EVENT);
 
@@ -806,7 +813,7 @@ int instr_mana_drain(player_state* ps) {
     set_overlay(x,y,EMPTY_DIAMOND);
     set_color_overlay(x,y,FORE,color_predefs.magic_purple);
     add_event(
-        get_field(x,y)->enter_events,
+        fields.get(x,y)->enter_events,
         MAGICAL_EVENT,
         events.mana_drain, NULL
     );
@@ -865,10 +872,10 @@ int instr_wall(player_state* ps) {
         return 0;
     }
 
-    field_state* field = get_field(x,y);
+    field_state* field = fields.get(x,y);
     switch (field->type) {
         case EMPTY: {
-            fields.build.wall(x,y);
+            fields.build.wall(field);
             ps->stack[ps->sp++] = 1;
             return 1;
         }
@@ -913,7 +920,7 @@ int instr_bridge(player_state* ps) {
         ps->stack[ps->sp++] = 0;
         return 0;
     }
-    field_state* field = get_field(x,y);
+    field_state* field = fields.get(x,y);
     if (
         field->type != OCEAN
         || !spend_resource(ps->resources, "wood", _gr->settings.bridge.cost)
@@ -940,7 +947,7 @@ int instr_collect(player_state* ps) {
         return 0;
         ps->stack[ps->sp++] = 0;
     }
-    field_state* field = get_field(x,y);
+    field_state* field = fields.get(x,y);
 
     int success = 0;
     switch (field->type) {
@@ -951,7 +958,7 @@ int instr_collect(player_state* ps) {
         case CLAY:
             switch (field->data->clay_pit.amount) {
                 case 0: {
-                    fields.remove_field(x,y);
+                    fields.remove_field(field);
                     add_resource(ps->resources, "clay", 1);
                     success = 1;
                     break;
@@ -990,7 +997,7 @@ int instr_mount(player_state* ps) {
         ps->stack[ps->sp++] = 0;
         return 0;
     } 
-    field_state* field = get_field(x,y);
+    field_state* field = fields.get(x,y);
     
     vehicle_state* vehicle = NULL;
     for(int i = 0; i < field->entities->count; i++) {
@@ -1031,11 +1038,11 @@ int instr_dismount(player_state* ps) {
     }
 
     remove_entity(ps->location.vehicle->entities, ps->id);
-    field_state* field = get_field(x,y);
+    field_state* field = fields.get(x,y);
     location prev_loc = ps->location;
     ps->location = field_location_from_field(field);
     add_entity(field->entities, entity.of_player(ps));
-    update_events(entity.of_player(ps), get_field(x,y)->enter_events, (situation){ .type = MOVEMENT_SITUATION, .movement.loc = prev_loc });
+    update_events(entity.of_player(ps), fields.get(x,y)->enter_events, (situation){ .type = MOVEMENT_SITUATION, .movement.loc = prev_loc });
 
     ps->stack[ps->sp++] = 1;
     return 1;
@@ -1051,7 +1058,7 @@ int instr_boat(player_state* ps) {
         ps->stack[ps->sp++] = 0;
         return 0;
     }
-    field_state* field = get_field(x,y);
+    field_state* field = fields.get(x,y);
     if (field->type != OCEAN) {
         ps->stack[ps->sp++] = 0;
         return 0;
@@ -1085,7 +1092,7 @@ int instr_bear_trap(player_state* ps) {
         ps->stack[ps->sp++] = 0;
         return 0;
     }
-    field_state* field = get_field(x,y);
+    field_state* field = fields.get(x,y);
     
     field->symbol_overlay = BEAR_TRAP;
     field->foreground_color_overlay = color_predefs.white;
@@ -1193,13 +1200,15 @@ int instr_throw_clay(player_state* ps) {
         set_color_overlay(x,y,FORE,color_predefs.clay_brown);
         print_board(); wait(0.02);
         
-        if (fields.is_obstruction(x,y)) {
-            fields.damage_field(x, y, KINETIC_DMG & PROJECTILE_DMG, "Got shot");
+        field_state* field = fields.get(x,y);
+        field_properties props = fields.properties_of_field(field);
+
+        if (props.obstruction) {
+            fields.damage_field(field, KINETIC_DMG | PROJECTILE_DMG, "Got shot");
             ps->stack[ps->sp++] = 1;
             return 1;
         }
-        else if (fields.has_player(x,y) && !(fields.is_cover(x,y) || fields.is_shelter(x,y))) {
-            field_state* field = get_field(x,y);
+        else if (props.player && !(props.cover || props.shelter)) {
             for(int i = 0; i < field->entities->count; i++) {
                 entity_t* e = get_entity(field->entities, i);
                 if (e->type == ENTITY_PLAYER) {
@@ -1213,10 +1222,10 @@ int instr_throw_clay(player_state* ps) {
     }
 
     // clayify field
-    field_state* field = get_field(x,y);
+    field_state* field = fields.get(x,y);
     switch (field->type) {
         case EMPTY:
-            fields.build.clay_pit(x,y);
+            fields.build.clay_pit(field);
             break;
         case CLAY:
             if (field->data->clay_pit.amount < _gr->settings.clay_pit.contain_limit)

@@ -296,7 +296,7 @@ void get_new_directive(player_state* ps) {
 void nuke_board() {
     for(int y = 0; y < _gs->board_y; y++)
     for(int x = 0; x < _gs->board_x; x++) 
-        fields.destroy_field(x, y, "Got nuked");
+        fields.destroy_field(fields.get(x,y), "Got nuked");
 }
 
 int teams_alive() {

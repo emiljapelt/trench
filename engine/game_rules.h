@@ -76,6 +76,7 @@ typedef struct game_rules {
             int cost;
             int duration;
             int range;
+            int refreeze;
         } freeze;
 
         struct {

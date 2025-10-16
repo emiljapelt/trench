@@ -172,6 +172,7 @@ void load_settings_struct(game_rules* gr, value settings) {
         gr->settings.freeze.cost = Int_val(Field(freeze_settings, 0));
         gr->settings.freeze.duration = Int_val(Field(freeze_settings, 1));
         gr->settings.freeze.range = Int_val(Field(freeze_settings, 2));
+        gr->settings.freeze.refreeze = Int_val(Field(freeze_settings, 3));
     }
 
     {
@@ -370,7 +371,7 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 }
                 add_player(gs->players, player);
                 add_entity(
-                    get_field(player_x, player_y)->entities, 
+                    fields.get(player_x, player_y)->entities, 
                     entity.of_player(player)
                 );
             }

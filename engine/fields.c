@@ -16,9 +16,7 @@ void set_field(const int x, const int y, field_state* f) {
 
 
 
-void build_trench(const int x, const int y) {
-    field_state* field = get_field(x,y);
-
+void build_trench(field_state* field) {
     field_data* data = malloc(sizeof(field_data));
     data->trench.fortified = 0;
 
@@ -26,9 +24,7 @@ void build_trench(const int x, const int y) {
     field->data = data;
 }
 
-void build_wall(const int x, const int y) {
-    field_state* field = get_field(x,y);
-
+void build_wall(field_state* field) {
     field_data* data = malloc(sizeof(field_data));
     data->wall.fortified = 0;
 
@@ -36,15 +32,11 @@ void build_wall(const int x, const int y) {
     field->data = data;
 }
 
-void build_tree(const int x, const int y) {
-    field_state* field = get_field(x,y);
-
+void build_tree(field_state* field) {
     field->type = TREE;
 }
 
-void build_clay_pit(const int x, const int y) {
-    field_state* field = get_field(x,y);
-
+void build_clay_pit(field_state* field) {
     field_data* data = malloc(sizeof(field_data));
     data->clay_pit.amount = 0;
 
@@ -54,9 +46,7 @@ void build_clay_pit(const int x, const int y) {
     add_event(field->exit_events, FIELD_EVENT, events.clay_spread, NULL);
 }
 
-void build_ocean(const int x, const int y) {
-    field_state* field = get_field(x,y);
-
+void build_ocean(field_state* field) {
     field->type = OCEAN;
 
     add_event(field->enter_events, FIELD_EVENT, events.ocean_drowning, NULL);
@@ -65,98 +55,71 @@ void build_ocean(const int x, const int y) {
 
 
 
-// Something that cannot be passed through
-int is_obstruction(const int x, const int y) {
-    switch (get_field(x,y)->type) {
-        case WALL:
-        case TREE:
-        case ICE_BLOCK:
-            return 1;
-        default:
-            return 0;
-    }
-}
-
-// Something which is destroyed by fire
-int is_flammable(const int x, const int y) {
-    switch (get_field(x,y)->type) {
-        case WALL:
-        case TREE:
-            return 1;
-        default:
-            return 0;
-    }
-}
-
-// Something which is removed by heat
-int is_meltable(const int x, const int y) {
-    switch (get_field(x,y)->type) {
-        case ICE_BLOCK:
-            return 1;
-        default:
-            return 0;
-    }
-}
-
-// Something which protects from falling things. e.g. bombs and rocks
-int is_shelter(const int x, const int y) {
-    field_state* field = get_field(x,y);
-    switch (field->type) {
-        case TRENCH:
-            return field->data->trench.fortified;
-        default:
-            return 0;
-    }
-}
-
-int is_cover(const int x, const int y) {
-    switch (get_field(x,y)->type) {
-        case TRENCH:
-            return 1;
-        default:
-            return 0;
-    }
-}
-
-int has_player(const int x, const int y) {
-    entity_list_t* list = get_field(x,y)->entities;
+int has_player(field_state* field) {
+    entity_list_t* list = field->entities;
     for(int i = 0; i < list->count; i++)
         if (get_entity(list, i)->type == ENTITY_PLAYER) return 1;
     return 0;
 }
 
-int has_trap(const int x, const int y) {
-    field_state* field = get_field(x,y);
+int has_trap(field_state* field) {
     return 
         (field->enter_events->count || field->exit_events->count)
             ? 1 : 0;
 }
 
-field_scan scan_field(const int x, const int y) {
-    field_state* field = get_field(x,y);
-    return (field_scan) {
-        ._ = 0,
-        .obstruction = is_obstruction(x,y),
-        .player = has_player(x,y),
-        .trapped = has_trap(x,y),
-        .flammable = is_flammable(x,y),
-        .meltable = is_meltable(x,y),
-        .cover = is_cover(x,y),
-        .shelter = is_shelter(x,y),
-        .is_empty = field->type == EMPTY,
-        .is_trench = field->type == TRENCH,
-        .is_ice_block = field->type == ICE_BLOCK,
-        .is_tree = field->type == TREE,
-        .is_ocean = field->type == OCEAN,
-        .is_wall = field->type == WALL,
-        .is_bridge = field->type == BRIDGE,
-        .is_clay = field->type == CLAY,
-    };
+field_properties scan_field(field_type type, field_data* data) {
+    field_properties result = {0};
+    switch (type) {
+        case TRENCH:
+            result.is_trench = 1;
+            result.cover = 1;
+            break;
+        case WALL:
+            result.is_wall = 1;
+            result.obstruction = 1;
+            result.flammable = 1;
+            break;
+        case TREE:
+            result.is_tree = 1;
+            result.obstruction = 1;
+            result.flammable = 1;
+            break;
+        case CLAY:
+            result.is_clay = 1;
+            break;
+        case OCEAN:
+            result.is_ocean = 1;
+            break;
+        case BRIDGE:
+            result.is_bridge = 1;
+            break;
+        case ICE_BLOCK: {
+            result = scan_field(data->ice_block.inner_type, data->ice_block.inner);
+            result.is_ice_block = 1;
+            result.obstruction = 1;
+            break;
+        }
+        case EMPTY:
+        default:
+            result.is_empty = 1;
+            break;
+    }
+    return result;
 }
 
-void destroy_field(const int x, const int y, char* death_msg) {
-    field_state* field = get_field(x,y);
+field_properties properties_of_field(field_state* field) {
+    field_properties result = scan_field(field->type, field->data);
+    result.player = has_player(field);
+    result.trapped = has_trap(field);
+    return result;
+}
 
+field_properties properties(const int x, const int y) {
+    return properties_of_field(fields.get(x,y));
+}
+
+void destroy_field(field_state* field, char* death_msg) {
     remove_events_of_kind(field->enter_events, FIELD_EVENT);
     remove_events_of_kind(field->exit_events, FIELD_EVENT);
 
@@ -168,7 +131,7 @@ void destroy_field(const int x, const int y, char* death_msg) {
             break;
         }
         case BRIDGE: {
-            build_ocean(x,y);
+            build_ocean(field);
             break;
         }
         case WALL: {
@@ -203,9 +166,7 @@ void destroy_field(const int x, const int y, char* death_msg) {
     }
 }
 
-void remove_field(const int x, const int y) {
-    field_state* field = get_field(x,y);
-
+void remove_field(field_state* field) {
     remove_events_of_kind(field->enter_events, FIELD_EVENT);
     remove_events_of_kind(field->exit_events, FIELD_EVENT);
 
@@ -216,7 +177,7 @@ void remove_field(const int x, const int y) {
             break;
         }
         case BRIDGE: {
-            build_ocean(x,y);
+            build_ocean(field);
             break;
         }
         case CLAY:
@@ -234,20 +195,17 @@ void remove_field(const int x, const int y) {
             break;
         }
     }
-
-
 }
 
-void damage_field(const int x, const int y, damage_t d_type, char* death_msg) {
-    field_scan scan = scan_field(x,y);
-    if (scan.flammable && IS_DAMAGE_TYPE(FIRE_DMG, d_type))
-        destroy_field(x,y,death_msg);
-    else if (scan.meltable && IS_DAMAGE_TYPE(FIRE_DMG, d_type))
-        remove_field(x,y);
+void damage_field(field_state* field, damage_t d_type, char* death_msg) {
+    field_properties props = properties_of_field(field);
+    if (props.flammable && IS_DAMAGE_TYPE(FIRE_DMG, d_type))
+        destroy_field(field, death_msg);
+    else if (props.meltable && IS_DAMAGE_TYPE(FIRE_DMG, d_type))
+        remove_field(field);
 }
 
-int fortify_field(const int x, const int y) {
-    field_state* field = get_field(x,y);
+int fortify_field(field_state* field) {
     switch (field->type) {
         case TRENCH: {
             field->data->trench.fortified = 1;
@@ -264,13 +222,8 @@ int fortify_field(const int x, const int y) {
 const fields_namespace fields = {
     .get = &get_field,
     .set = &set_field,
-    .is_obstruction = &is_obstruction,
-    .is_flammable = &is_flammable,
-    .is_cover = &is_cover,
-    .is_shelter = &is_shelter,
-    .has_player = &has_player,
-    .has_trap = &has_trap,
-    .scan = &scan_field,
+    .properties = &properties,
+    .properties_of_field = &properties_of_field,
     .destroy_field = &destroy_field,
     .damage_field = &damage_field,
     .remove_field = &remove_field,
