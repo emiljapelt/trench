@@ -72,6 +72,76 @@ The available properties are:
 
 These properties of a field can be queried using the ```is``` expression.
 
+### array
+
+Arrays are fixed sized lists of values belonging to a single type. The size is given at declaration, and values can be indexed, starting at 0. Arrays cannot be given as argument to a function, nor can they be the return type.
+
+```
+// Declare
+int[2] my_array;
+
+// Assign
+my_array[0] = 57;
+
+// Access
+say(my_array[0]);
+```
+
+### function
+
+Functions are useful for encapsulating logic. The type is written as such:
+
+```type:(type, ...)```
+
+and a function is specified as such:
+
+```type:(type name, ...)```
+
+The first type is the return type, all functions must have one. Inside the parentheses are the function parameters, which there may be zero or more of.
+
+Examples:
+
+```
+int:(int,int) add = int:(int a, int b) {
+    return a + b;
+};
+
+let move = int:(dir d) {
+    if (look(d, @trapped) = 1) move(d);
+};
+
+let random_move = int:() {
+    move(?(N S E W));
+};
+
+```
+
+Notice that even though all function have a return type, not all of these examples have a return statement. This is because all functions have an implicit return statement at the end, returning the default value of their return type.
+
+Inside of a function only the parameters, localy declared and global variables are available. Additionally the local variable ```this``` is implicitly declared in all functions, and refer to the function itself, enabling recursion.
+
+```
+let a = 0;
+
+let f1 = int:(int b) {
+
+    let c = 0;
+
+    let f2 = int:(int d) {
+        let e = 0;
+        // can reach: a, d, e
+    };
+
+    let f = 0;
+
+};
+
+let g = 0;
+
+```
+
+
+
 ## Expressions
 
 ### Variables

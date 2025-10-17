@@ -176,13 +176,13 @@ int instr_look(player_state* ps) {
 }
 
 int instr_scan(player_state* ps) {
-    direction p = (direction)ps->stack[--ps->sp];
+    int p = ps->stack[--ps->sp];
     direction d = (direction)ps->stack[--ps->sp];
     int x, y;
     location_coords(ps->location, &x, &y);
     int result = 0;
 
-    if (_gr->settings.bomb.range >= 0 && p > _gr->settings.bomb.range) p = _gr->settings.bomb.range;
+    p = limit_range(p, _gr->settings.scan.range);
     move_coord(&x, &y, d, p);
     if (in_bounds(x, y)) {   
         field_properties props = fields.properties(x,y);
@@ -822,8 +822,10 @@ int instr_mana_drain(player_state* ps) {
 }
 
 int instr_pager_set(player_state* ps) {
-    ps->pager_channel = ps->stack[--ps->sp];
-    ps->stack[ps->sp++] = 1;
+    int new_channel = ps->stack[--ps->sp];
+    int change = new_channel == ps->pager_channel;
+    ps->pager_channel = new_channel;
+    ps->stack[ps->sp++] = change;
     return 0;
 }
 
@@ -848,13 +850,15 @@ int instr_pager_write(player_state* ps) {
     int msg = ps->stack[--ps->sp];
     int* msg_bypass = &msg;
     int channel = ps->pager_channel;
+    int hits = 0;
     for(int i = 0; i < _gs->players->count; i++) {
         player_state* other = array_list.get(_gs->players, i);
         if (other->id != ps->id && other->pager_channel == channel) {
+            hits++;
             array_list.add(other->pager_msgs, *(void**)msg_bypass);
         }
     }
-    ps->stack[ps->sp++] = 1;
+    ps->stack[ps->sp++] = hits > 0 ? 1 : 0;
     return 0;
 }
 

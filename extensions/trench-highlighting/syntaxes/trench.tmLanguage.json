@@ -11,20 +11,20 @@
 				"name": "keyword",
 				"match": "\\b(let)\\b"
 			},{
-				"name": "keyword.control",
-				"match": "\\b(while|break|continue|return|goto|if|is|else|repeat)\\b"
-			},{
-				"name": "keyword.other",
-				"match": "\\b([A-Za-z'][A-Za-z0-9_]*):"
-			},{
 				"name": "support.type",
 				"match": "\\b(int|dir|field|prop)\\b"
+			},{
+				"name": "keyword.control",
+				"match": "\\b(while|break|continue|return|goto|if|is|else|repeat)\\b"
 			},{
 				"name": "constant.language",
 				"match": "\\b(N|S|E|W)\\b"
 			},{
 				"name": "constant.numeric",
 				"match": "\\b(-?[0-9]+)\\b"
+			},{
+				"name": "keyword.other",
+				"match": "\\b([A-Za-z'][A-Za-z0-9_]*):"
 			},{
 				"name": "constant.language",
 				"match": "(#(x|y|board_x|board_y|id|clay|explosive|ammo|mana|sapling|wood))\\b"
