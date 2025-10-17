@@ -14,6 +14,9 @@
 				"name": "keyword.control",
 				"match": "\\b(while|break|continue|return|goto|if|is|else|repeat)\\b"
 			},{
+				"name": "keyword.other",
+				"match": "\\b([A-Za-z'][A-Za-z0-9_]*):"
+			},{
 				"name": "support.type",
 				"match": "\\b(int|dir|field|prop)\\b"
 			},{
