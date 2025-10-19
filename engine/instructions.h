@@ -99,6 +99,7 @@ const char* out_of_bounds_msg = "Had an aneurysm (OUT_OF_BOUNDS)";
 
 int limit_range(int given, int limit) {
     if (given < 0) return 0;
+    if (limit < 0) return given;
     if (given <= limit) return given;
     else return limit;
 }
@@ -156,9 +157,8 @@ int instr_shoot(player_state* ps) {
 }
 
 int instr_look(player_state* ps) {
-    int offset = ps->stack[--ps->sp]; //ps->directive[ps->dp];
+    int offset = ps->stack[--ps->sp];
     direction d = (direction)ps->stack[--ps->sp];
-    //ps->dp++;
 
     int x, y;
     location_coords(ps->location, &x, &y);
@@ -575,7 +575,7 @@ int instr_global_assign(player_state* ps) {
 int instr_field_prop(player_state* ps) { 
     int offset = ps->stack[--ps->sp];
     int v = ps->stack[--ps->sp];
-    ps->stack[ps->sp++] = v & (1 << offset);
+    ps->stack[ps->sp++] = v & (1 << offset) ? 1 : 0;
     return 0;
 }
 
