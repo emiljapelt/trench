@@ -1,27 +1,44 @@
 #ifndef PLAYER_H
 #define PLAYER_H
 
+#include "resource_registry.h"
+#include "array_list.h"
+#include "location.h"
+
+typedef array_list_t event_list_t;
+typedef struct team_state team_state;
+
 typedef struct player_init {
-    char* directive;
+    int* directive;
     int x;
     int y;
 } player_init;
 
 typedef struct player_state {
     unsigned char alive: 1;
+    unsigned char is_original_player: 1;
     const char* death_msg;
-    int team;
+    int id;
+    team_state* team;
     char* name;
     int* stack;
+    int bp;
     int sp;
     char* path;
-    char* directive;
+    int* directive;
     int directive_len;
     int dp;
-    int x;
-    int y;
-    int bombs;
-    int shots;
+    location location;
+    int remaining_steps;
+    int remaining_actions;
+    int pager_channel;
+    array_list_t* pager_msgs;
+    event_list_t* pre_death_events;
+    event_list_t* post_death_events;
+    resource_registry* resources;
+    array_list_t* extra_files;
 } player_state;
+
+player_state* copy_player_state(const player_state*);
 
 #endif

@@ -1,8 +1,8 @@
 %{
   open Absyn
-  open Exceptions
   open Lexing
-  open Flags
+  open Field_props
+  open Builtins
 
   (*type var_name_generator = { mutable next : int }
   let vg = ( {next = 0;} )
@@ -11,42 +11,44 @@
     let () = vg.next <- vg.next+1 in
     Int.to_string number*)
 
-  let meta_name n fn ln = match n with
+  let meta_name n = match n with
     | "x" -> PlayerX
     | "y" -> PlayerY
-    | "bombs" -> PlayerBombs
-    | "shots" -> PlayerShots
     | "board_x" -> BoardX
     | "board_y" -> BoardY
-    | "array_size" ->  GlobalArraySize
-    | _ -> raise (Failure(Some fn, Some ln, "Unknown meta reference"))
+    | "id" -> PlayerID
+    | _ -> PlayerResource(n)
 
-  let feature l =
-    if l > compile_flags.feature_level then raise_failure ("Attempt to access feature level: "^string_of_int l^", while in level: "^string_of_int compile_flags.feature_level)
-    else ()
+  
 
 %}
 %token <int> CSTINT
 %token <string> NAME
-%token <string> LABEL
+%token <string> META_NAME
+%token <string> FIELD_PROP
 %token LPAR RPAR LBRACE RBRACE LBRAKE RBRAKE
 %token PLUS MINUS TIMES EQ NEQ LT GT LTEQ GTEQ
-%token LOGIC_AND LOGIC_OR PIPE FSLASH PCT TILDE
-%token COMMA SEMI COLON DOT EOF
+%token LOGIC_AND LOGIC_OR FSLASH PCT EXCLAIM
+%token COMMA SEMI COLON EOF
 %token QMARK PLUSPLUS MINUSMINUS
-%token IF ELSE IS REPEAT WHILE FOR CONTINUE BREAK
+%token IF ELSE IS REPEAT WHILE CONTINUE BREAK LET
 %token GOTO
-%token MOVE FORTIFY WAIT PASS TRENCH
-%token NORTH EAST SOUTH WEST BOMB SHOOT LOOK SCAN MINE ATTACK
-%token HASH INT DIR FIELD
-%token PLAYER_CAP TRENCH_CAP MINE_CAP DESTROYED_CAP
+%token NORTH EAST SOUTH WEST
+%token INT DIR FIELD PROP L_SHIFT R_SHIFT
+%token RETURN
+
+// Precedence and assosiativity inspired by https://en.cppreference.com/w/c/language/operator_precedence.html
 
 /*Low precedence*/
-%left LOGIC_AND LOGIC_OR
-%left EQ NEQ
+%right QMARK COLON
+%left LOGIC_OR
+%left LOGIC_AND 
+%left EQ NEQ IS
 %left GT LT GTEQ LTEQ
-%left PLUS MINUS
+%left L_SHIFT R_SHIFT
+%left PLUS MINUS 
 %left TIMES FSLASH PCT
+%right UNARY
 /*High precedence*/
 
 %start main
@@ -65,13 +67,21 @@
 ;
 
 main:
-  stmt* EOF     { (File ([],$1)) }
+  stmt* EOF     { (File $1) }
 ;
 
-typ:
+simple_typ:
   | INT { T_Int }
   | DIR { T_Dir }
   | FIELD { T_Field }
+  | PROP { T_Prop }
+  | LPAR typ RPAR { $2 }
+  | typ COLON LPAR seperated_or_empty(COMMA, simple_typ) RPAR { T_Func($1, $4) }
+;
+
+typ:
+  | typ LBRAKE CSTINT RBRAKE { T_Array($1,$3) }
+  | simple_typ { $1 }
 ;
 
 block:
@@ -81,43 +91,40 @@ block:
 const_value:
   | CSTINT      { Int $1 }
   | direction   { Direction $1 }
-  | error { raise (Failure(Some $symbolstartpos.pos_fname, Some $symbolstartpos.pos_lnum, "Expected a constant value")) }
+  | FIELD_PROP  { Prop(string_to_prop $1) }
 ;
 
 simple_value:
   | const_value                        { $1 }
-  | QMARK                              { feature 2 ; Random }
-  | QMARK LPAR simple_value+ RPAR      { feature 2 ; RandomSet $3 }
-  | MINUS simple_value                 { Binary_op ("-", Int 0, $2) } %prec TILDE
-  | TILDE simple_value                 { Unary_op ("~", $2) }
-  | NAME                               { feature 1 ; Reference(Local $1) }
-  | typ LBRAKE value RBRAKE            { feature 1 ; Reference(Global($1,$3)) }
-  | HASH NAME                          { MetaReference (meta_name $2 $symbolstartpos.pos_fname $symbolstartpos.pos_lnum) }
+  | QMARK                              { features ["random"] ; Random }
+  | QMARK LPAR simple_value+ RPAR      { features ["random"] ; RandomSet $3 }
+  | target                             { Reference($1) }
+  | META_NAME                          { MetaReference (meta_name $1) }
   | LPAR value RPAR                    { $2 }
-;
-
-flag:
-  | PLAYER_CAP { PLAYER }
-  | TRENCH_CAP { TRENCH }
-  | MINE_CAP   { MINE }
-  | DESTROYED_CAP { DESTROYED }
 ;
 
 value:
   | simple_value                       { $1 }
-  | SCAN simple_value simple_value     { Scan($2,$3) }
-  | LOOK simple_value                  { Look $2 }
+  | MINUS value                        { Binary_op ("-", Int 0, $2) }  %prec UNARY
+  | EXCLAIM value                      { Unary_op ("!", $2) } %prec UNARY
   | value binop value                  { Binary_op ($2, $1, $3) }
-  | simple_value DOT flag              { Flag($1, $3) }
-  | PLUSPLUS target                    { feature 3 ; Increment($2, true)}
-  | target PLUSPLUS                    { feature 3 ; Increment($1, false)}
-  | MINUSMINUS target                  { feature 3 ; Decrement($2, true)}
-  | target MINUSMINUS                  { feature 3 ; Decrement($1, false)}
+  | value IS value                     { FieldProp($1, $3) }
+  | PLUSPLUS target                    { features ["sugar"] ; Increment($2, true)}
+  | target PLUSPLUS                    { features ["sugar"] ; Increment($1, false)}
+  | MINUSMINUS target                  { features ["sugar"] ; Decrement($2, true)}
+  | target MINUSMINUS                  { features ["sugar"] ; Decrement($1, false)}
+  | simple_typ COLON LPAR seperated_or_empty(COMMA,func_arg) RPAR stmt           { features ["func"] ; Func($1, $4, $6) }
+  | simple_value LPAR seperated_or_empty(COMMA, value) RPAR { Call($1, $3) }
+  | value QMARK value COLON value      { features ["control";"sugar"] ; Ternary($1,$3,$5) }
+;
+
+func_arg:
+  | simple_typ NAME { ($1,$2) }
 ;
 
 %inline binop:
-  | LOGIC_AND   { "&" }
-  | LOGIC_OR    { "|" }
+  | LOGIC_AND   { "&"  }
+  | LOGIC_OR    { "|"  }
   | EQ          { "="  }
   | NEQ         { "!=" }
   | LTEQ        { "<=" }
@@ -129,6 +136,8 @@ value:
   | MINUS       { "-"  }
   | FSLASH      { "/"  }
   | PCT         { "%"  }
+  | L_SHIFT     { "<<" }
+  | R_SHIFT     { ">>" }
 ;
 
 stmt:
@@ -140,10 +149,10 @@ stmt2:
   stmt2_inner { Stmt($1,$symbolstartpos.pos_lnum) }
 ;
 stmt2_inner:
-  | IF simple_value stmt1 ELSE stmt2         { feature 2 ; If ($2, $3, $5) }
-  | IF simple_value stmt1                     { feature 2 ; If ($2, $3, Stmt(Block [], $symbolstartpos.pos_lnum)) }
-  | IF simple_value alt+                        { feature 3 ; IfIs($2, $3, None)}
-  | IF simple_value alt+ ELSE stmt2             { feature 3 ; IfIs($2, $3, Some $5) }
+  | IF simple_value stmt1 ELSE stmt2         { features ["control"] ; If ($2, $3, $5) }
+  | IF simple_value stmt1                    { features ["control"] ; If ($2, $3, Stmt(Block [], $symbolstartpos.pos_lnum)) }
+  | IF simple_value alt+                     { features ["control"; "sugar"] ; IfIs($2, $3, None)}
+  | IF simple_value alt+ ELSE stmt2          { features ["control"; "sugar"] ; IfIs($2, $3, Some $5) }
 ;
 
 /* No unbalanced if-else */
@@ -152,18 +161,17 @@ stmt1:
 ;
 stmt1_inner: 
   | block                                     { $1 }
-  | IF simple_value stmt1 ELSE stmt1          { feature 2 ; If ($2, $3, $5) }
-  | IF simple_value alt+ ELSE stmt1           { feature 3 ; IfIs($2, $3, Some $5) }
-  | WHILE simple_value stmt1                  { feature 3 ; While($2,$3,None) }
-  | FOR LPAR non_control_flow_stmt SEMI value SEMI non_control_flow_stmt RPAR stmt1      
-      { feature 3 ; Block[
-        Stmt($3,$symbolstartpos.pos_lnum);
-        Stmt(While($5,$9,Some(Stmt($7,$symbolstartpos.pos_lnum))),$symbolstartpos.pos_lnum)] }
-  | BREAK SEMI                                { feature 3 ; Break }
-  | CONTINUE SEMI                             { feature 3 ; Continue }
+  | IF simple_value stmt1 ELSE stmt1          { features ["control"] ; If ($2, $3, $5) }
+  | IF simple_value alt+ ELSE stmt1           { features ["control"; "sugar"] ; IfIs($2, $3, Some $5) }
+  | WHILE simple_value stmt1                  { features ["loops"] ; While($2,$3,None) }
+  | WHILE simple_value LPAR non_control_flow_stmt RPAR stmt1     { features ["loops"; "sugar"] ; While($2,$6,Some(Stmt($4, $symbolstartpos.pos_lnum))) }
+  | BREAK SEMI                                { features ["loops"] ; Break }
+  | CONTINUE SEMI                             { features ["loops"] ; Continue }
   | GOTO NAME SEMI                            { GoTo $2 }
-  | LABEL                                     { Label $1 }
-  | REPEAT CSTINT stmt1                       { feature 2 ; Block(List.init $2 (fun _ -> $3)) }
+  | NAME COLON                                { Label $1 }
+  | REPEAT CSTINT stmt1                       { features ["loops"] ; Block(List.init $2 (fun _ -> $3)) }
+  | REPEAT LPAR CSTINT RPAR stmt1             { features ["loops"] ; Block(List.init $3 (fun _ -> $5)) }
+  | RETURN value SEMI                         { features ["func"] ; Return $2 }
   | non_control_flow_stmt SEMI                { $1 }
 ;
 
@@ -172,37 +180,30 @@ alt:
 ;
 
 target:
-  | NAME { feature 2 ; Local $1 }
-  | typ LBRAKE value RBRAKE { feature 1 ; Global($1,$3) }
-; 
+  | NAME { features ["memory"] ; Local $1 }
+  | target LBRAKE value RBRAKE  { features ["memory"] ; Array($1,$3)}
+;
 
 non_control_flow_stmt:
-  | target EQ value        { feature 1 ; Assign ($1, $3) }
-  | target PLUS EQ value   { feature 1 ; Assign ($1, Binary_op("+", Reference $1, $4)) }
-  | target MINUS EQ value  { feature 1 ; Assign ($1, Binary_op("-", Reference $1, $4)) }
-  | target TIMES EQ value  { feature 1 ; Assign ($1, Binary_op("*", Reference $1, $4)) }
-  | target TILDE EQ value  { feature 1 ; Assign ($1, Unary_op("~", $4)) }
-  | target PLUSPLUS        { feature 3 ; Assign ($1, Binary_op("+", Reference $1, Int 1)) }
-  | PLUSPLUS target        { feature 3 ; Assign ($2, Binary_op("+", Reference $2, Int 1)) }
-  | target MINUSMINUS      { feature 3 ; Assign ($1, Binary_op("-", Reference $1, Int 1)) }
-  | MINUSMINUS target      { feature 3 ; Assign ($2, Binary_op("-", Reference $2, Int 1)) }
-  | typ NAME                                  { feature 1 ; Declare($1,$2) }
-  | typ NAME EQ value                         { feature 1 ; DeclareAssign($1,$2,$4) }
-  | MOVE value                        { Move $2 }
-  | SHOOT value                       { Shoot $2 }
-  | MINE value                        { Mine $2 }
-  | ATTACK value                      { Attack $2 }
-  | FORTIFY                           { Fortify None }
-  | FORTIFY value                     { Fortify (Some $2) }
-  | TRENCH                            { Trench None }
-  | TRENCH value                      { Trench (Some $2) }
-  | WAIT                              { Wait }
-  | PASS                              { Pass }
-  | BOMB simple_value simple_value    { Bomb($2, $3) }
+  | target EQ value        { features ["memory"] ; Assign ($1, $3) }
+  | target PLUS EQ value   { features ["memory"; "sugar"] ; Assign ($1, Binary_op("+", Reference $1, $4)) }
+  | target MINUS EQ value  { features ["memory"; "sugar"] ; Assign ($1, Binary_op("-", Reference $1, $4)) }
+  | target TIMES EQ value  { features ["memory"; "sugar"] ; Assign ($1, Binary_op("*", Reference $1, $4)) }
+  | target EXCLAIM EQ value  { features ["memory"; "sugar"] ; Assign ($1, Unary_op("!", $4)) }
+  | target L_SHIFT EQ value  { features ["memory"; "sugar"] ; Assign ($1, Binary_op("<<", Reference $1, $4)) }
+  | target R_SHIFT EQ value  { features ["memory"; "sugar"] ; Assign ($1, Binary_op(">>", Reference $1, $4)) }
+  | typ NAME               { features ["memory"] ; Declare($1,$2) }
+  | typ NAME EQ value      { features ["memory"] ; DeclareAssign(Some $1, $2, $4) }
+  | LET NAME EQ value      { features ["memory"; "sugar"] ; DeclareAssign(None, $2, $4) }
+  | target PLUSPLUS        { features ["memory"; "sugar"] ; Assign ($1, Binary_op("+", Reference $1, Int 1)) }
+  | PLUSPLUS target        { features ["memory"; "sugar"] ; Assign ($2, Binary_op("+", Reference $2, Int 1)) }
+  | target MINUSMINUS      { features ["memory"; "sugar"] ; Assign ($1, Binary_op("-", Reference $1, Int 1)) }
+  | MINUSMINUS target      { features ["memory"; "sugar"] ; Assign ($2, Binary_op("-", Reference $2, Int 1)) }
+  | target LPAR seperated_or_empty(COMMA, value) RPAR { CallStmt(Reference $1, $3) }
 ;
 
 direction:
-  | NORTH   { North }
+  | NORTH { North }
   | EAST  { East  }
   | SOUTH { South }
   | WEST  { West }

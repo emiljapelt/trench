@@ -1,56 +1,99 @@
 #include <string.h>
+#include <time.h>
+#include <stdlib.h>
+#include <stdio.h>
+
 #include <caml/mlvalues.h>
 #include <caml/callback.h>
 #include <caml/alloc.h>
 
+#include "compiler_wrapper.h"
+
 #include "util.h"
 #include "game_state.h"
+#include "visual.h"
+#include "resource_registry.h"
+#include "player_list.h"
+#include "fields.h"
+#include "log.h"
 
-field_state* empty_board(int x, int y) {
+field_state* create_board(char* map_data, const int x, const int y) {
     int size = sizeof(field_state)*x*y;
     field_state* brd = malloc(size);
-    memset(brd,0,size);
+
+    for (int _x = 0; _x < x; _x++) 
+    for (int _y = 0; _y < y; _y++) {
+        brd[(_y * x) + _x] = (field_state) {
+            .foreground_color_overlay = NULL,
+            .background_color_overlay = NULL,
+            .mod_overlay = 0,
+            .symbol_overlay = 0,
+            .type = EMPTY,
+            .data = NULL,
+            .player_data = 0,
+            .entities = array_list.create(10),
+            .enter_events = array_list.create(10),
+            .exit_events = array_list.create(10),
+        };
+        if (map_data) switch(map_data[(_y * x) + _x]) {
+            case '+': {
+                field_data* data = malloc(sizeof(field_data));
+                data->trench.fortified = 0;
+                brd[(_y * x) + _x].type = TRENCH;
+                brd[(_y * x) + _x].data = data;
+                break;
+            }
+            case 'w': {
+                field_data* data = malloc(sizeof(field_data));
+                data->wall.fortified = 0;
+                brd[(_y * x) + _x].type = WALL;
+                brd[(_y * x) + _x].data = data;
+                break;
+            }
+            case '~':
+                brd[(_y * x) + _x].type = OCEAN;
+                add_event(brd[(_y * x) + _x].enter_events, FIELD_EVENT, events.ocean_drowning, NULL);
+                break;
+            case 'T': 
+                brd[(_y * x) + _x].type = TREE;
+                break;
+            case 'C':
+                field_data* data = malloc(sizeof(field_data));
+                data->clay_pit.amount = 0;
+                brd[(_y * x) + _x].type = CLAY;
+                brd[(_y * x) + _x].data = data;
+                add_event(brd[(_y * x) + _x].exit_events, FIELD_EVENT, events.clay_spread, NULL);
+                break;
+        }
+    }
+
     return brd;
 }
 
-directive_info load_directive_to_struct(const char* directive) {
-    int dl = 0;
-    int dir_len;
-    int rl = 0;
-    int regs;
-    int* stack = malloc(sizeof(int)*1000);
-    
-    while(directive[dl] != ':') dl++;
-    dir_len = sub_str_to_int(directive,0,dl);
+directive_info load_directive_to_struct(value comp, int stack_size) {
+    int dir_len = Int_val(Field(comp, 0));
+    int* stack = malloc(sizeof(int) * stack_size);
+    int* dir = malloc(sizeof(int) * dir_len);
 
-    while(directive[dl+1+rl] != ':') rl++;
-    regs = sub_str_to_int(directive+dl+1,0,rl);
-    memset(stack,0,sizeof(int)*regs);
-
-    char* dir = malloc(dir_len+1); dir[dir_len] = 0;
-    memcpy(dir, directive+dl+rl+2, dir_len);
+    for(int i = 0; i < dir_len; i++)
+        dir[i] = Int_val(Field(comp, i+1));
 
     return (directive_info) {
-        .regs = regs,
         .stack = stack,
         .directive = dir,
-        .dir_len = dir_len,
+        .dir_len = dir_len
     };
 }
 
-int compile_player(const char* path, directive_info* result) {
+int compile_player(const char* path, int stack_size, int size_limit, directive_info* result) {
     static const value* compile_player_closure = NULL;
     if(compile_player_closure == NULL) compile_player_closure = caml_named_value("compile_player_file");
-    value callback_result = caml_callback(*compile_player_closure, caml_copy_string(path));
-
+    value callback_result = caml_callback2(*compile_player_closure, caml_copy_string(path), Val_int(size_limit));
+    
     switch (Tag_val(callback_result)) {
         case 0: { // Ok
-            const char* string_result = String_val(Field(callback_result, 0));
-            *result = load_directive_to_struct(string_result);
-            char* dir = result->directive;
-            char* dir_dup = malloc(result->dir_len);
-            memcpy(dir_dup, dir, result->dir_len);
-            result->directive = dir_dup;
+            value comp = Field(callback_result, 0);
+            *result = load_directive_to_struct(comp, stack_size);
             return 1; 
         }
         case 1: { // Error
@@ -60,6 +103,132 @@ int compile_player(const char* path, directive_info* result) {
     }
 }
 
+void load_settings_struct(game_rules* gr, value settings) {
+    {
+        value fireball_settings = Field(settings, 0);
+        gr->settings.fireball.range = Int_val(Field(fireball_settings, 0));
+        gr->settings.fireball.cost = Int_val(Field(fireball_settings, 1));
+    }
+
+    {
+        value shoot_settings = Field(settings, 1);
+        gr->settings.shoot.range = Int_val(Field(shoot_settings, 0));
+    }
+
+    {
+        value bomb_settings = Field(settings, 2);
+        gr->settings.bomb.range = Int_val(Field(bomb_settings, 0));
+    }
+
+    {
+        value meditate_settings = Field(settings, 3);
+        gr->settings.meditate.amount = Int_val(Field(meditate_settings, 0));
+    }
+
+    {
+        value dispel_settings = Field(settings, 4);
+        gr->settings.dispel.cost = Int_val(Field(dispel_settings, 0));
+    }
+
+    {
+        value mana_drain_settings = Field(settings, 5);
+        gr->settings.mana_drain.cost = Int_val(Field(mana_drain_settings, 0));
+    }
+
+    {
+        value wall_settings = Field(settings, 6);
+        gr->settings.wall.cost = Int_val(Field(wall_settings, 0));
+    }
+
+    {
+        value plant_tree_settings = Field(settings, 7);
+        gr->settings.plant_tree.delay = Int_val(Field(plant_tree_settings, 0));
+    }
+
+    {
+        value bridge_settings = Field(settings, 8);
+        gr->settings.bridge.cost = Int_val(Field(bridge_settings, 0));
+    }
+
+    {
+        value chop_settings = Field(settings, 9);
+        gr->settings.chop.wood_gain = Int_val(Field(chop_settings, 0));
+        gr->settings.chop.sapling_chance = Int_val(Field(chop_settings, 1));
+    }
+
+    {
+        value fortify_settings = Field(settings, 10);
+        gr->settings.fortify.cost = Int_val(Field(fortify_settings, 0));
+    }
+
+    {
+        value projection_settings = Field(settings, 11);
+        gr->settings.projection.cost = Int_val(Field(projection_settings, 0));
+        gr->settings.projection.upkeep = Int_val(Field(projection_settings, 1));
+    }
+
+    {
+        value freeze_settings = Field(settings, 12);
+        gr->settings.freeze.cost = Int_val(Field(freeze_settings, 0));
+        gr->settings.freeze.duration = Int_val(Field(freeze_settings, 1));
+        gr->settings.freeze.range = Int_val(Field(freeze_settings, 2));
+        gr->settings.freeze.refreeze = Int_val(Field(freeze_settings, 3));
+    }
+
+    {
+        value look_settings = Field(settings, 13);
+        gr->settings.look.range = Int_val(Field(look_settings, 0));
+    }
+
+    {
+        value scan_settings = Field(settings, 14);
+        gr->settings.scan.range = Int_val(Field(scan_settings, 0));
+    }
+
+    {
+        value boat_settings = Field(settings, 15);
+        gr->settings.boat.capacity = Int_val(Field(boat_settings, 0));
+        gr->settings.boat.cost = Int_val(Field(boat_settings, 1));
+    }
+
+    {
+        value program_settings = Field(settings, 16);
+        gr->stack_size = Int_val(Field(program_settings, 0));
+        gr->program_size_limit = Int_val(Field(program_settings, 1));
+    }
+
+    {
+        value throw_clay_settings = Field(settings, 17);
+        gr->settings.throw_clay.range = Int_val(Field(throw_clay_settings, 0));
+        gr->settings.throw_clay.cost = Int_val(Field(throw_clay_settings, 1));
+    }
+
+    {
+        value clay_pit_settings = Field(settings, 18);
+        gr->settings.clay_pit.spread_limit = Int_val(Field(clay_pit_settings, 0));
+        gr->settings.clay_pit.contain_limit = Int_val(Field(clay_pit_settings, 1));
+        gr->settings.clay_pit.collect_max = Int_val(Field(clay_pit_settings, 2));
+    }
+
+    {
+        value clay_golem_settings = Field(settings, 19);
+        gr->settings.clay_golem.cost = Int_val(Field(clay_golem_settings, 0));
+    }
+}
+
+resource_registry* create_empty_resource_registy(int size, int resource_count, value resources) {
+    
+    resource_registry* reg = create_resource_registry(size, resource_count);
+
+    for(int r = 0; r < resource_count; r++) {
+        value resource = Field(resources, r);
+        char* resource_name = strdup(String_val(Field(resource, 0)));
+        init_resource(reg, resource_name, Int_val(Field(Field(resource, 1), 1)));
+    }
+
+    return reg;
+}
+
 int compile_game(const char* path, game_rules* gr, game_state* gs) {
     static const value* compile_game_closure = NULL;
     if(compile_game_closure == NULL) compile_game_closure = caml_named_value("compile_game_file");
@@ -67,71 +236,145 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
 
     switch (Tag_val(callback_result)) {
         case 0: { // Ok
+
             value unwrapped_result = Field(callback_result, 0);
-            int bombs = Int_val(Field(unwrapped_result, 0));
-            int shots = Int_val(Field(unwrapped_result, 1));
+            
+            int seed;
+            if (Is_some(Field(unwrapped_result, 12)) ) {
+                seed = Int_val(Some_val(Field(unwrapped_result, 12)));
+                srand(seed);
+            }
+            else {
+                srand((unsigned) time(NULL));
+                seed = rand();
+                srand(seed);
+            }
+
+            _log(INFO, "seed: %i", seed);            
 
             *gr = (game_rules) {
-                .actions = Int_val(Field(unwrapped_result, 2)),
-                .steps = Int_val(Field(unwrapped_result, 3)),
-                .bombs = bombs,
-                .shots = shots,
-                .mode = Int_val(Field(unwrapped_result, 4)),
-                .nuke = Int_val(Field(unwrapped_result, 5)),
-                .array = Int_val(Field(unwrapped_result, 6)),
-                .feature_level = Int_val(Field(unwrapped_result, 10)),
-                .exec_mode = Int_val(Field(unwrapped_result, 13)),
+                .actions = Int_val(Field(unwrapped_result, 0)),
+                .steps = Int_val(Field(unwrapped_result, 1)),
+                .mode = Int_val(Field(unwrapped_result, 2)),
+                .nuke = Int_val(Field(unwrapped_result, 3)),
+                .exec_mode = Int_val(Field(unwrapped_result, 9)),
+                .seed = seed,
+                .time_scale = (float)Double_val(Field(unwrapped_result, 13)),
+                .stack_size = 1000,
+                .debug = Bool_val(Field(unwrapped_result, 15)),
+                .viewport = {
+                    .x = 0,
+                    .y = 0,
+                    .width = Int_val(Field(Field(unwrapped_result, 16), 0)),
+                    .height = Int_val(Field(Field(unwrapped_result, 16), 1)),
+                },
             };
 
-            int player_count = Int_val(Field(unwrapped_result, 8));
-            int team_count = Int_val(Field(unwrapped_result, 11));
-            int global_arrays_size = 3*(sizeof(int)*Int_val(Field(unwrapped_result, 6)));
-            int board_x = Int_val(Field(Field(unwrapped_result, 7),0));
-            int board_y = Int_val(Field(Field(unwrapped_result, 7),1));
-            int feed_size = 200;
+            load_settings_struct(gr, Field(unwrapped_result, 14));
+
+            value map = Field(unwrapped_result, 4);
+            field_state* board = NULL;
+            int board_x;
+            int board_y;
+            switch (Tag_val(map)) {
+                case 0: { // EmptyMap
+                    board_x = Int_val(Field(map, 0));
+                    board_y = Int_val(Field(map, 1));
+                    board = create_board(NULL, board_x, board_y);
+                    break;
+                }
+                case 1: { // FileMap
+                    char* map_data = strdup(String_val(Field(map, 0)));
+                    board_x = Int_val(Field(Field(map, 1), 0));
+                    board_y = Int_val(Field(Field(map, 1), 1));
+                    board = create_board(map_data, board_x, board_y);
+                    free(map_data);
+                    break;
+                }
+            }
+
+            int player_count = Int_val(Field(unwrapped_result, 5));
+            int team_count = Int_val(Field(unwrapped_result, 7));
+            int resource_count = Int_val(Field(unwrapped_result, 10));
+            int feed_size = 2000;
 
             *gs = (game_state) {
                 .round = 1,
                 .board_x = board_x,
                 .board_y = board_y,
-                .player_count = player_count,
-                .players = malloc(sizeof(player_state)*player_count),
-                .board = empty_board(board_x, board_y),
-                .overlay = malloc(sizeof(char*) * (board_x*board_y)),
+                .id_counter = 0,
+                .players = array_list.create(player_count + 1),
+                .board = board,// empty_board(board_x, board_y),
                 .feed_point = 0,
                 .feed_buffer = malloc(feed_size+1),
-                .global_arrays = malloc(global_arrays_size),
                 .team_count = team_count,
                 .team_states = malloc(sizeof(team_state) * team_count),
+                .events = array_list.create(10),
             };
 
-
             for(int i = 0; i < team_count; i++) {
-                value team_info = Field(Field(unwrapped_result, 12),i);
-                gs->team_states[i].team_id = Int_val(Field(team_info, 0));
-                gs->team_states[i].members_alive = Int_val(Field(team_info, 1));
+                value team_info = Field(Field(unwrapped_result, 8),i);
+                gs->team_states[i].team_name = strdup(String_val(Field(team_info, 0)));
+                gs->team_states[i].color = malloc(sizeof(color));
+                *gs->team_states[i].color = (color) { 
+                    .r = (Int_val(Field(Field(team_info, 1), 0))),
+                    .g = (Int_val(Field(Field(team_info, 1), 1))),
+                    .b = (Int_val(Field(Field(team_info, 1), 2))),
+                };
+                gs->team_states[i].members_alive = Int_val(Field(team_info, 2));
             }
+
+            set_empty_resource_registy(create_empty_resource_registy(10, resource_count, Field(unwrapped_result, 11)));
 
             for(int i = 0; i < player_count; i++) {
-                value player_info = Field(Field(unwrapped_result, 9),i);
-                directive_info di = load_directive_to_struct(String_val(Field(player_info, 4)));
-                gs->players[i].alive = 1;
-                gs->players[i].death_msg = NULL;
-                gs->players[i].team = Int_val(Field(player_info, 0));
-                gs->players[i].name = strdup(String_val(Field(player_info, 1)));
-                gs->players[i].stack = di.stack;
-                gs->players[i].sp = di.regs;
-                gs->players[i].path = strdup(String_val(Field(player_info, 3)));
-                gs->players[i].directive = di.directive;
-                gs->players[i].directive_len = di.dir_len;//(Field(player_info, 4))-(di.regs_len+1);
-                gs->players[i].dp = 0;
-                gs->players[i].x = Int_val(Field(Field(player_info, 2), 0));
-                gs->players[i].y = Int_val(Field(Field(player_info, 2), 1));;
-                gs->players[i].bombs = bombs;
-                gs->players[i].shots = shots;
+                value player_info = Field(Field(unwrapped_result, 6),i);
+                
+                directive_info di;// = load_directive_to_struct(Field(player_info, 4), gr->stack_size);
+
+                char* file_path = strdup(String_val(Field(player_info, 3)));
+                int success = compile_player(file_path, gr->stack_size, gr->program_size_limit, &di);
+
+                if (!success) exit(1);              
+                
+                player_state* player = malloc(sizeof(player_state));
+                int player_x = Int_val(Field(Field(player_info, 2), 0));
+                int player_y = Int_val(Field(Field(player_info, 2), 1));
+                player->alive = 1;
+                player->is_original_player = 1;
+                player->death_msg = NULL;
+                player->team = &gs->team_states[Int_val(Field(player_info, 0))];
+                player->name = strdup(String_val(Field(player_info, 1)));
+                player->id = gs->id_counter++;
+                player->stack = di.stack;
+                player->bp = 0;
+                player->sp = 0;
+                player->path = file_path;
+                player->directive = di.directive;
+                player->directive_len = di.dir_len;
+                player->dp = 0;
+                player->location = field_location_from_coords(player_x, player_y);
+                player->remaining_steps = gr->steps;
+                player->remaining_actions = gr->actions;
+                player->pager_channel = 0;
+                player->pager_msgs = array_list.create(10);
+                player->pre_death_events = array_list.create(10);
+                player->post_death_events = array_list.create(10);
+                player->resources = get_empty_resource_registy();
+                for(int r = 0; r < resource_count; r++) {
+                    value resource = Field(Field(unwrapped_result, 11), r);
+                    char* resource_name = strdup(String_val(Field(resource, 0)));
+                    add_resource(player->resources, resource_name, Int_val(Field(Field(resource, 1), 0)));
+                }
+                player->extra_files = array_list.create(Int_val(Field(player_info, 4)));
+                for(int f = 0; f < player->extra_files->size; f++) {
+                    array_list.add(player->extra_files, strdup(String_val(Field((Field(player_info, 5)), f))));
+                }
+                add_player(gs->players, player);
+                add_entity(
+                    fields.get(player_x, player_y)->entities, 
+                    entity.of_player(player)
+                );
             }
-            memset(gs->global_arrays, 0, global_arrays_size);
-            memset(gs->overlay, 0, sizeof(char*) * (board_x*board_y));
             memset(gs->feed_buffer, 0, feed_size+1);
 
             return 1;

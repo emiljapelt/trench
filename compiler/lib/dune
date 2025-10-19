@@ -7,16 +7,21 @@
    programRep
    exceptions
    absyn
+   field_props
    optimize
    helpers
    player_lexer
    player_parser
    game_lexer
    game_parser
+   themes
+   features
    toProgramRep
    typing
    transform
+   settings
    flags
    compile
+   builtins
  )
 )

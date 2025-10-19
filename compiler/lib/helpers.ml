@@ -4,22 +4,18 @@ module StringMap = Map.Make(String)
 
 type environment = string list
 
-type label_generator = { mutable next : int }
+type int_generator = { mutable next : int }
 
+(* Names *)
+let ng = ( {next = 0}) 
 
-(*let binary_int file w =
-  for i = 0 to 3 do
-    fprintf file "%c" (Char.chr (Int64.to_int (Int64.logand 255L (Int64.shift_right w (i * 8)))))
-  done*)
+let rename n =
+  let number = ng.next in
+  let () = ng.next <- ng.next+1 in
+  n ^ "_" ^ Int.to_string number
 
-let binary_int_string i =
-  let rec aux i c acc = 
-    if c <= 3 then (
-      aux i (c+1) (acc ^ ((Int32.to_int(Int32.logand 255l (Int32.shift_right i (c * 8)))) |> Char.chr |> Printf.sprintf "%c"))
-    )
-    else acc
-  in 
-  aux (Int32.of_int i) 0 ""
+let reset_rename_generator () = 
+  ng.next <- 0
 
 (* Labels *)
 let lg = ( {next = 0;} )

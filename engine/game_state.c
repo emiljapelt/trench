@@ -1,49 +1,34 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <stddef.h>
 
 #include "game_rules.h"
 #include "game_state.h"
 #include "player.h"
 #include "util.h"
 #include "visual.h"
+#include "log.h"
 
-game_state* _gs;
-game_rules* _gr;
+game_state* _gs = NULL; 
+game_rules* _gr = NULL;
 
-field_state* get_field(const int x, const int y) {
-    return _gs->board + ((y * _gs->board_x) + x);
-}
 
-void set_field(const int x, const int y, field_state* f) {
-    _gs->board[(y * _gs->board_x) + x] = *f;
-}
-
-void fortify_field(const int x, const int y) {
-    _gs->board[(y * _gs->board_x) + x].fortified = 1;
+void set_color_overlay(const int x, const int y, color_target ct, color* c) {
+    switch (ct) {
+        case FORE: _gs->board[(y * _gs->board_x) + x].foreground_color_overlay = c; break;
+        case BACK: _gs->board[(y * _gs->board_x) + x].background_color_overlay = c; break;
+    }
 }
 
-void destroy_field(const int x, const int y) {
-    _gs->board[(y * _gs->board_x) + x].destroyed = 1;
+void set_mod_overlay(const int x, const int y, print_mod m) {
+    _gs->board[(y * _gs->board_x) + x].mod_overlay = m;
 }
 
-void build_field(const int x, const int y) {
-    _gs->board[(y * _gs->board_x) + x].destroyed = 0;
-    _gs->board[(y * _gs->board_x) + x].trenched = 1;
+void set_overlay(const int x, const int y, char* symbol) {
+    _gs->board[(y * _gs->board_x) + x].symbol_overlay = symbol;
 }
 
-void set_overlay(const int x, const int y, const char* visual) {
-    _gs->overlay[(y * _gs->board_x) + x] = visual;
-    //_gs->board[(y * _gs->board_x) + x].visual = visual;
-    //_gs->board[(y * _gs->board_x) + x].vset = 1;
-}
-void unset_overlay() {
-    memset(_gs->overlay, 0, sizeof(char*) * (_gs->board_x*_gs->board_y));
-}
-void unset_overlay_field(const int x, const int y) {
-    _gs->overlay[(y * _gs->board_x) + x] = NULL;
-    //_gs->board[(y * _gs->board_x) + x].vset = 0;
-}
 
 void print_to_feed(const char* msg) {
     int msg_len = strlen(msg);
@@ -55,89 +40,157 @@ void clear_feed() {
     _gs->feed_point = 0;
 }
 
+void set_player_steps_and_actions(player_state* ps) {
+    ps->remaining_steps = _gr->steps;
+    ps->remaining_actions = _gr->actions;
+}
 
 void kill_player(player_state* ps) {
-    set_overlay(ps->x,ps->y,COFFIN);
-    //print_board();
+    field_state* field = location_field(ps->location);
+    field->symbol_overlay = COFFIN;
+    field->foreground_color_overlay = color_predefs.white;
+    
+
+    switch (ps->location.type) {
+        case VEHICLE_LOCATION: 
+            remove_entity(ps->location.vehicle->entities, ps->id);
+            break;
+        case FIELD_LOCATION:
+            remove_entity(field->entities, ps->id);
+            break;
+    }   
+
     char msg[100];
-    sprintf(msg, "Player %s died: %s\n", ps->name, (ps->death_msg) ? ps->death_msg : "Unknown reason");
+    sprintf(msg, "%s (#%i) died: %s\n", ps->name, ps->id, (ps->death_msg) ? ps->death_msg : "Unknown reason");
     print_to_feed(msg);
-    //sleep(1000);
+    _log(INFO, msg);
     ps->alive = 0;
     ps->death_msg = NULL;
-    for(int i = 0; i < _gs->team_count; i++) {
-        if (_gs->team_states[i].team_id != ps->team) continue;
-        _gs->team_states[i].members_alive--;
-        break;
-    }
-    //unset_visual(ps->x,ps->y);
-    //print_board();
-    //sleep(250);
+    if (ps->team)
+        ps->team->members_alive--;
 }
 
 void death_mark_player(player_state* ps, const char* reason) {
     ps->death_msg = reason;
 }
 
-
-void explode_field(const int x, const int y) {
-    field_state* fld = get_field(x,y);
-    if (fld->mine) fld->mine = 0;
-    if (fld->fortified) fld->fortified = 0;
-    else {
-        if (fld->trenched) fld->trenched = 0;
-        fld->destroyed = 1;
-        for(int p = 0; p < _gs->player_count; p++) {
-            if (_gs->players[p].x == x && _gs->players[p].y == y) {
-                death_mark_player(_gs->players+p, "Got blown up");
-            }
-        }
+void move_coord(int* x, int* y, direction dir, unsigned int dist) {
+    if (dir == HERE) return;
+    switch (dir) {
+        case NORTH: *y -= dist; break;
+        case EAST: *x += dist; break;
+        case SOUTH: *y += dist; break;
+        case WEST: *x -= dist; break;
     }
 }
 
-void bomb_field(const int x, const int y) {
-    set_overlay(x,y,EXPLOSION);
-    //print_board();
-    //sleep(500);
-    explode_field(x,y);
-    //unset_visual(x,y);
-    //print_board();
-    //sleep(250);
-}
+void move_player_to_location(player_state* player, location loc) {
+    switch (player->location.type) {
+        case VOID_LOCATION: break;
+        case FIELD_LOCATION: { 
+            field_state* field = player->location.field;
+            update_events(entity.of_player(player), field->exit_events, (situation){ .type = MOVEMENT_SITUATION, .movement.loc = loc });
+            remove_entity(field->entities, player->id);
+            break;
+        }
+        case VEHICLE_LOCATION: {
+            vehicle_state* vehicle = player->location.vehicle;
+            remove_entity(vehicle->entities, player->id);
+            break;
+        }
+    }
 
-void add_bomb(const int x, const int y, const player_state* ps) {
-    bomb_chain* link = malloc(sizeof(bomb_chain));
-    link->player = ps->name;
-    link->next = _gs->bomb_chain;
-    link->x = x;
-    link->y = y;
-    _gs->bomb_chain = link;
-}
+    if (player->death_msg) return;
 
-void update_bomb_chain(const player_state* ps) {
-    bomb_chain* bc = _gs->bomb_chain;
-    bomb_chain** prev = &_gs->bomb_chain;
     
-    while(bc != NULL) {
-        if(strcmp(bc->player, ps->name) == 0) {
-            bomb_field(bc->x, bc->y);
-            bomb_chain* link = bc;
-            (*prev)->next = bc->next;
-            bc = bc->next;
-            free(link);
-        } else {
-            prev = &bc->next;
-            bc = bc->next;
+    location prev_loc = player->location;
+
+    player->location = loc;
+    switch (loc.type) {
+        case VOID_LOCATION: break;
+        case FIELD_LOCATION: {
+            field_state* field = location_field(loc);
+            add_entity(field->entities, entity.of_player(player));
+            update_events(entity.of_player(player), field->enter_events, (situation){ .type = MOVEMENT_SITUATION, .movement.loc = prev_loc });
+            break;
+        }
+        case VEHICLE_LOCATION: {
+            vehicle_state* vehicle = loc.vehicle;
+            add_entity(vehicle->entities, entity.of_player(player));
+            break;
         }
     }
 }
 
-void move_coord(int x, int y, direction d, int* _x, int* _y) {
-    switch(d) {
-        case NORTH: *_x = x; *_y = y-1; break;
-        case EAST: *_x = x+1; *_y = y; break;
-        case SOUTH: *_x = x; *_y = y+1; break;
-        case WEST: *_x = x-1; *_y = y; break;
-        case HERE: *_x = x; *_y = y; break;
+void move_vehicle_to_location(vehicle_state* vehicle, location loc) {
+    switch (vehicle->location.type) {
+        case VOID_LOCATION: break;
+        case FIELD_LOCATION: { 
+            field_state* field = vehicle->location.field;
+            update_events(entity.of_vehicle(vehicle), field->exit_events, (situation){ .type = MOVEMENT_SITUATION, .movement.loc = loc });
+            remove_entity(field->entities, vehicle->id);
+            break;
+        }
+        case VEHICLE_LOCATION: {
+            // Do something
+            break;
+        }
+    }
+
+    if (vehicle->destroy) return;
+
+    location prev_loc = vehicle->location;
+
+    vehicle->location = loc;
+    switch (loc.type) {
+        case VOID_LOCATION: break;
+        case FIELD_LOCATION: {
+            field_state* field = location_field(loc);
+            add_entity(field->entities, entity.of_vehicle(vehicle));
+            update_events(entity.of_vehicle(vehicle), field->enter_events, (situation){ .type = MOVEMENT_SITUATION, .movement.loc = prev_loc });
+            break;
+        }
+        case VEHICLE_LOCATION: {
+            // Do something
+            break;
+        }
+    }
+}
+
+
+void move_entity_to_location(entity_t* e, location loc) {
+    location curr = entity.get_location(e);
+    switch (curr.type) {
+        case VOID_LOCATION: break;
+        case FIELD_LOCATION: { 
+            field_state* field = curr.field;
+            update_events(e, field->exit_events, (situation){ .type = MOVEMENT_SITUATION, .movement.loc = loc });
+            remove_entity(field->entities, entity.get_id(e));
+            break;
+        }
+        case VEHICLE_LOCATION: {
+            // Do something
+            break;
+        }
+    }
+
+    if ((e->type == ENTITY_PLAYER && e->player->death_msg) || (e->type == ENTITY_VEHICLE && e->vehicle->destroy))
+        return;
+
+    location prev_loc = entity.get_location(e);
+    
+    entity.set_location(e, loc);
+    switch (loc.type) {
+        case VOID_LOCATION: break;
+        case FIELD_LOCATION: {
+            field_state* field = location_field(loc);
+            add_entity(field->entities, e);
+            update_events(e, field->enter_events, (situation){ .type = MOVEMENT_SITUATION, .movement.loc = prev_loc });
+            break;
+        }
+        case VEHICLE_LOCATION: {
+            // Do something
+            break;
+        }
     }
 }

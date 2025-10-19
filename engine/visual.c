@@ -1,23 +1,38 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdarg.h>
 
 #include "game_state.h"
 #include "player.h"
 #include "visual.h"
+#include "util.h"
+#include "color.h"
 
-static inline void clear_screen(void) {
-    // use cursor movements instead, avoids flickering
-    // https://stackoverflow.com/questions/26423537/how-to-position-the-input-text-cursor-in-c
-    //printf("\e[1;1H\e[2J");
+// https://stackoverflow.com/questions/26423537/how-to-position-the-input-text-cursor-in-c
+inline void clear_screen(void) {
     printf("\033[H\033[J");
-    //printf("\033[%d;%dH", (0), (0));
+}
+inline void reset_cursor(void) {
+    printf("\033[0;0H");
 }
 
-static inline char trench_connects(int x, int y) {
-    return (in_bounds(x,y) ? get_field(x,y)->trenched : 0);
+static inline char line_connects(int x, int y, field_type field) {
+    return (!in_bounds(x,y)) 
+        ? 0 
+        : fields.get(x,y)->type == field;
+}
+
+int connection_lookup(int x, int y, field_type field) {
+    return 
+        (line_connects(x,y-1,field) << 3) | // N
+        (line_connects(x+1,y,field) << 2) | // E
+        (line_connects(x,y+1,field) << 1) | // S
+        line_connects(x-1,y,field);         // W 
 }
 
 // 0xNESW
-const char* char_lookup[] = {
+char* char_lookup[] = {
     NONE, // 0x0000
     W, // 0x0001
     S, // 0x0010
@@ -35,7 +50,7 @@ const char* char_lookup[] = {
     NES, // 0x1110
     ALL, // 0x1111
 };
-const char* f_char_lookup[] = {
+char* f_char_lookup[] = {
     F_NONE, // 0x0000
     F_W, // 0x0001
     F_S, // 0x0010
@@ -54,43 +69,254 @@ const char* f_char_lookup[] = {
     F_ALL, // 0x1111
 };
 
-const char* get_field_char(const int x, const int y) {
-    field_state *fld = get_field(x,y);
 
-    if (_gs->overlay[(y * _gs->board_x) + x]) return _gs->overlay[(y * _gs->board_x) + x];
-    //if(fld->vset) return fld->visual;
+color rgb_color(int r, int g, int b) {
+    return (color) { .r = r, .g = g, .b = b };
+}
 
-    if(!fld->trenched) { 
-        for(int i = 0; i < _gs->player_count; i++) {
-            if (_gs->players[i].x == x && _gs->players[i].y == y && _gs->players[i].alive) return PERSON;
-        }
-        return " "; 
+int view_buf_size;
+char* view_buf = NULL;
+
+void buffer(char* format, ...) {
+    va_list args;
+    char buf[MAX_SYMBOL_SIZE];
+
+    va_start(args, format);
+
+    vsnprintf(buf, MAX_SYMBOL_SIZE, format, args);
+    strcat(view_buf, buf);
+}
+
+void set_color(color c, color_target ct) {
+    char target;
+    switch (ct) {
+        case FORE: target = '3'; break;
+        case BACK: target = '4'; break;
     }
 
-    int char_idx = 
-        (trench_connects(x,y-1) << 3) | // N
-        (trench_connects(x+1,y) << 2) | // E
-        (trench_connects(x,y+1) << 1) | // S
-        trench_connects(x-1,y);         // W 
+    buffer("\033[%c8;2;%i;%i;%im\0", target, c.r, c.g, c.b);
+}
 
-    return (fld->fortified) ? f_char_lookup[char_idx] : char_lookup[char_idx];
+void set_print_mod(print_mod m) {
+    buffer("\033[%im\0", m);
+}
+
+void reset_print() {
+    buffer("\033[0m\0");
+}
+
+field_visual get_field_data_visual(const int x, const int y, const field_type type, const field_data* data) {
+    field_visual result = {
+        .background_color = NULL,
+        .foreground_color = color_predefs.dark_grey,
+        .mod = 0,
+        .symbol = MIDDOT
+    };
+
+    switch (type) {
+        case TRENCH: {
+            int char_idx = connection_lookup(x,y,TRENCH);
+            result.symbol = (data->trench.fortified) ? f_char_lookup[char_idx] : char_lookup[char_idx];
+            result.foreground_color = color_predefs.white;
+            break;
+        }
+        case ICE_BLOCK: {
+            result.background_color = color_predefs.ice_blue;
+            result.foreground_color = color_predefs.white;
+            result.symbol = (data->ice_block.inner_type == EMPTY) ? " " : get_field_data_visual(x, y, data->ice_block.inner_type, data->ice_block.inner).symbol;
+            break;
+        }
+        case TREE: {
+            result.foreground_color = color_predefs.green;
+            result.symbol = TREE_VISUAL;
+            result.mod = BOLD;
+            break;
+        }
+        case WALL: {
+            int char_idx = connection_lookup(x,y,WALL);
+            result.symbol = (data->wall.fortified) ? f_char_lookup[char_idx] : char_lookup[char_idx];
+            result.foreground_color = color_predefs.wood_brown;
+            break;
+        }
+        case BRIDGE: {
+            int char_idx = ~connection_lookup(x,y,OCEAN);
+            result.symbol = f_char_lookup[char_idx];
+            result.foreground_color = color_predefs.wood_brown;
+            result.background_color = color_predefs.blue;
+            break;
+        }
+        case OCEAN: {
+            result.foreground_color = color_predefs.ice_blue;
+            result.background_color = color_predefs.blue;
+            result.symbol = "~";
+            break;
+        }
+        case CLAY: {
+            result.background_color = color_predefs.clay_brown;
+            result.foreground_color = color_predefs.wood_brown;
+            switch (data->clay_pit.amount) {
+                case 0:
+                    result.symbol = " ";
+                    break;
+                case 1:
+                    result.symbol = SINGLE_DOT;
+                    break;
+                case 2:
+                    result.symbol = DOUBLE_DOT;
+                    break;
+                case 3:
+                    result.symbol = TRIPLE_DOT;
+                    break;
+                case 4:
+                    result.symbol = QUAD_DOT;
+                    break;
+                case 5:
+                    result.symbol = PENTA_DOT;
+                    break;
+                default:
+                    result.symbol = "*";
+                    break;
+            }
+            break;
+        }
+        case EMPTY: {
+            //field_state* field = fields.get(x,y);
+            //if (field->entities->count > 0) {
+            //    entity_t* e = peek_entity(field->entities);
+            //    switch (e->type) {
+            //        case ENTITY_PLAYER:
+            //            result.symbol = PERSON;
+            //            result.foreground_color = e->player->team ? e->player->team->color : color_predefs.white;
+            //            break;
+            //        case ENTITY_VEHICLE:
+            //            switch (e->vehicle->type) {
+            //                case VEHICLE_BOAT:
+            //                    result.foreground_color = color_predefs.white;
+            //                    result.symbol = BOAT_VISUAL;
+            //                    break;
+            //            }
+            //            break;
+            //    }
+            //}
+            break;
+        }
+    }
+
+    field_state* field = fields.get(x,y);
+    if (field->entities->count > 0) {
+        entity_t* e = peek_entity(field->entities);
+        switch (e->type) {
+            case ENTITY_PLAYER:
+                result.symbol = PERSON;
+                result.foreground_color = e->player->team ? e->player->team->color : color_predefs.white;
+                break;
+            case ENTITY_VEHICLE:
+                switch (e->vehicle->type) {
+                    case VEHICLE_BOAT:
+                        result.foreground_color = color_predefs.white;
+                        result.symbol = BOAT_VISUAL;
+                        break;
+                }
+                break;
+        }
+    }
+    return result;
+}
+
+field_visual get_field_visual(const int x, const int y, const field_state* field) {
+
+    field_visual result = get_field_data_visual(x,y,field->type,field->data);
+
+    //if (field->vehicle) {
+    //    switch (field->vehicle->type) {
+    //        case VEHICLE_BOAT: {
+    //            result.foreground_color = color_predefs.white;
+    //            result.symbol = BOAT_VISUAL;
+    //            //result.mod = BOLD;
+    //            break;
+    //        }
+    //    }
+    //}
+
+    if (_gs->board[(y * _gs->board_x) + x].symbol_overlay) {
+        char* symbol = _gs->board[(y * _gs->board_x) + x].symbol_overlay;
+        _gs->board[(y * _gs->board_x) + x].symbol_overlay = NULL;
+        result.symbol = symbol;
+    }
+    if (_gs->board[(y * _gs->board_x) + x].foreground_color_overlay) {
+        color* color = _gs->board[(y * _gs->board_x) + x].foreground_color_overlay;
+        _gs->board[(y * _gs->board_x) + x].foreground_color_overlay = NULL;
+        result.foreground_color = color;
+    }
+    if (_gs->board[(y * _gs->board_x) + x].background_color_overlay) {
+        color* color = _gs->board[(y * _gs->board_x) + x].background_color_overlay;
+        _gs->board[(y * _gs->board_x) + x].background_color_overlay = NULL;
+        result.background_color = color;
+    }
+
+    return result; 
+}
+
+field_visual empty_visual() {
+    return (field_visual){
+        .background_color = NULL,
+        .foreground_color = NULL,
+        .mod = 0,
+        .symbol = " "
+    };
 }
 
 void print_board() {
-    clear_screen();
-    printf("Round: %i, Actions: %i, Steps: %i\n", _gs->round, _gs->remaining_actions, _gs->remaining_steps);
-    for(int i = 0; i < _gs->board_x+2; i++) putchar('.');
-    putchar('\n');
-    for(int y = 0; y < _gs->board_y; (putchar('\n'), y++)) {
-        putchar('.');
-        for(int x = 0; x < _gs->board_x; x++) {
-            printf("%s", get_field_char(x, y));
-        }
-        putchar('.');
+    reset_cursor();
+    int feed_index = 0;
+
+    if (view_buf == NULL) {
+        int view_buf_size = _gr->viewport.height * (_gr->viewport.width+1) * MAX_SYMBOL_SIZE;
+        view_buf = malloc(view_buf_size + 1);
     }
-    for(int i = 0; i < _gs->board_x+2; i++) putchar('.');
-    putchar('\n');
-    for(int i = 0; i < _gs->feed_point; i++) putchar(_gs->feed_buffer[i]);
+
+    memset(view_buf, 0, view_buf_size + 1);
+
+    buffer("Round: %i", _gs->round);
+    for(int i = 0; i < _gr->viewport.width-5; i++) buffer(" ");
+    buffer("\n");
+
+    buffer("%s", SE);
+    for(int i = 0; i < _gr->viewport.width+2; i++) buffer("%s", EW);
+    buffer("%s\n", SW);
+    for(int y = 0; y < _gr->viewport.height; (buffer("\n"), y++)) {
+        buffer("%s ", NS);
+        for(int x = 0; x < _gr->viewport.width; x++) {
+            int actual_x = _gr->viewport.x + x;
+            int actual_y = _gr->viewport.y + y;
+            field_visual visual = in_bounds(actual_x, actual_y) ? get_field_visual(actual_x, actual_y, fields.get(actual_x, actual_y)) : empty_visual();
+
+            if (visual.foreground_color)
+                set_color(*visual.foreground_color, FORE);
+
+            if (visual.background_color) 
+                set_color(*visual.background_color, BACK);
+
+            if (visual.mod)
+                set_print_mod(visual.mod);
+
+            buffer("%s", visual.symbol);
+            reset_print();
+        }
+        buffer(" %s ", NS);
+        while(feed_index < _gs->feed_point) {
+            if (_gs->feed_buffer[feed_index] == '\n') {
+                feed_index++; break;
+            }
+            buffer("%c", _gs->feed_buffer[feed_index]);
+            feed_index++;
+        } 
+    }
+    buffer("%s", NE);
+    for(int i = 0; i < _gr->viewport.width+2; i++) buffer("%s", EW);
+    buffer("%s\n", NW);
+
+    puts(view_buf);
+
     clear_feed();
-    unset_overlay();
 }

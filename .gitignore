@@ -5,6 +5,12 @@ trench
 *.trg
 *.trc
 *.exe
+*.log
 .vscode
+node_modules
+package-lock.json
+package.json
+web_view
 
 !logo.tr
+!extensions/trench-highlighting/package.json

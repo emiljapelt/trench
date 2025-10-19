@@ -9,32 +9,19 @@
                         "is", IS;
                         "repeat", REPEAT;
                         "while", WHILE;
-                        "for", FOR;
                         "break", BREAK;
                         "continue", CONTINUE;
-                        "move", MOVE;
-                        "trench", TRENCH;
-                        "fortify", FORTIFY;
-                        "scan", SCAN;
-                        "look", LOOK;
-                        "bomb", BOMB;
-                        "wait", WAIT;
-                        "pass", PASS;
                         "N", NORTH;
                         "E", EAST;
                         "S", SOUTH;
                         "W", WEST;
                         "goto", GOTO;
-                        "shoot", SHOOT;
-                        "mine", MINE;
-                        "attack", ATTACK;
                         "int", INT;
                         "dir", DIR;
                         "field", FIELD;
-                        "PLAYER", PLAYER_CAP;
-                        "TRENCH", TRENCH_CAP;
-                        "MINE", MINE_CAP;
-                        "DESTROYED", DESTROYED_CAP;
+                        "prop", PROP;
+                        "let", LET;
+                        "return", RETURN;
                       ] 
   
   let char_of_string s lexbuf = match s with
@@ -63,7 +50,8 @@ rule lex = parse
     |   ('\r''\n' | '\n')        { incr_linenum lexbuf ; lex lexbuf }
     |   "//" [^ '\n' '\r']* ('\r''\n' | '\n' | eof)       { incr_linenum lexbuf ; lex lexbuf }
     |   ['0'-'9']+ as lxm { CSTINT (int_of_string lxm) }
-    |   ['A'-'Z' 'a'-'z' '''] ['A'-'Z' 'a'-'z' '0'-'9' '_'] * ':' as id { LABEL (String.sub id 0 (String.length id - 1)) }
+    |   '#' ['A'-'Z' 'a'-'z' '''] ['A'-'Z' 'a'-'z' '0'-'9' '_'] * as id { META_NAME (String.sub id 1 (String.length id - 1)) }
+    |   '@' ['A'-'Z' 'a'-'z' '''] ['A'-'Z' 'a'-'z' '0'-'9' '_'] * as id { FIELD_PROP (String.sub id 1 (String.length id - 1)) }
     |   ['A'-'Z' 'a'-'z' '''] ['A'-'Z' 'a'-'z' '0'-'9' '_'] * as id
                 { try
                     Hashtbl.find keyword_table id
@@ -78,23 +66,24 @@ rule lex = parse
     |   '='           { EQ }
     |   "!="          { NEQ }
     |   "<="          { LTEQ }
+    |   "<<"          { L_SHIFT }
     |   "<"           { LT }
     |   ">="          { GTEQ }
+    |   ">>"          { R_SHIFT }
     |   ">"           { GT }
     |   "&"           { LOGIC_AND }
     |   "|"           { LOGIC_OR }
     |   '?'           { QMARK }
-    |   '~'           { TILDE }
+    |   '!'           { EXCLAIM }
     |   '('           { LPAR }
     |   ')'           { RPAR }
     |   '{'           { LBRACE }
     |   '}'           { RBRACE }
     |   '['           { LBRAKE }
     |   ']'           { RBRAKE }
-    |   '.'           { DOT }
     |   ','           { COMMA }
     |   ';'           { SEMI }
-    |   '#'           { HASH }
+    |   ':'           { COLON }
     |   _             { raise (Failure(Some((Lexing.lexeme_start_p lexbuf).pos_fname), Some((Lexing.lexeme_start_p lexbuf).pos_lnum), ("Unknown token"))) }
     |   eof           { EOF }
 

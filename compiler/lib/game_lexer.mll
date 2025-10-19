@@ -4,23 +4,32 @@
   let keyword_table = Hashtbl.create 53
   let () = List.iter (fun (kwd, tok) -> Hashtbl.add keyword_table kwd tok)
                       [ 
-                        "bombs", BOMBS;
                         "player", PLAYER; 
-                        "shots", SHOTS; 
                         "actions", ACTIONS;
                         "steps", STEPS;
                         "mode", MODE;
-                        "board", BOARD;
+                        "map", MAP;
                         "nuke", NUKE;
                         "team", TEAM;
                         "name", NAME;
-                        "position", POSITION;
-                        "file", FILE;
-                        "global_array", GLOBAL_ARRAY;
-                        "feature_level", FEATURE_LEVEL;
+                        "origin", ORIGIN;
+                        "files", FILES;
+                        "features", FEATURES;
                         "exec_mode", EXEC_MODE;
-                        "sync", SYNC;
-                        "async", ASYNC;
+                        "default", DEFAULT;
+                        "themes", THEMES;
+                        "resources", RESOURCES;
+                        "seed", SEED;
+                        "time_scale", TIME_SCALE;
+                        "color", COLOR;
+                        "manual", MANUAL;
+                        "inf", INFINITE;
+                        "of", OF;
+                        "settings", SETTINGS;
+                        "false", FALSE;
+                        "true", TRUE;
+                        "debug", DEBUG;
+                        "viewport", VIEWPORT;
                       ]
   
   let char_of_string s lexbuf = match s with
@@ -49,7 +58,8 @@ rule lex = parse
     |   ('\r''\n' | '\n')        { incr_linenum lexbuf ; lex lexbuf }
     |   "//" [^ '\n' '\r']* ('\r''\n' | '\n' | eof)       { incr_linenum lexbuf ; lex lexbuf }
     |  '-'? ['0'-'9']+ as lxm { CSTINT (int_of_string lxm) }
-    |   ['A'-'Z' 'a'-'z' '/' '.']['A'-'Z' 'a'-'z' '0'-'9' '/' '_' '.']* as id
+    |  '-'? ['0'-'9']+ '.' ['0'-'9']+ as lxm { CSTFLOAT (Float.of_string lxm) }
+    |   ['A'-'Z' 'a'-'z' '/' '.' '_']['A'-'Z' 'a'-'z' '0'-'9' '/' '_' '.']* as id
                 { try
                     Hashtbl.find keyword_table id
                   with Not_found -> WORD id }
@@ -57,7 +67,9 @@ rule lex = parse
     |   ':'           { COLON }
     |   ';'           { SEMI }
     |   '('           { LPAR }
+    |   '.'           { DOT }
     |   ')'           { RPAR }
+    |   '*'           { STAR }
     |   '{'           { LBRACE }
     |   '}'           { RBRACE }
     |   _             { raise (Failure(Some((Lexing.lexeme_start_p lexbuf).pos_fname), Some((Lexing.lexeme_start_p lexbuf).pos_lnum), ("Unknown token"))) }

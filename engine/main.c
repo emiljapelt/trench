@@ -2,228 +2,292 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <time.h>
 
 #include <caml/callback.h>
 
 #include "player.h"
+#include "player_list.h"
+#include "event_list.h"
 #include "game_rules.h"
 #include "game_state.h"
 #include "visual.h"
 #include "util.h"
 #include "instructions.h"
-
-//"compiler_wrapper.h"
-extern int compile_game(const char* path, game_rules* gr, game_state* gs);
-extern int compile_player(const char* path, directive_info* result);
+#include "compiler_wrapper.h"
+#include "entity.h"
+#include "log.h"
 
 void debug_print(player_state* ps) {
+    fprintf(stderr,"\nPlayer %s(%i)\ninstr:%i\ndp:%i\nbp:%i\nsp:%i\n", ps->name, ps->id, ps->directive[ps->dp], ps->dp, ps->bp, ps->sp); wait(0.5);
     for(int i = 0; i < ps->sp; i++) {
-        fprintf(stderr,"%i, ", ps->stack[i]); sleep(100);
+        fprintf(stderr,"%i, ", ps->stack[i]); wait(0.1);
     }
-    fprintf(stderr,"\n%c\n", ps->directive[ps->dp]); sleep(500);
+    wait(1);
 }
 
-void player_turn_async(player_state* ps) {
-    _gs->remaining_actions = _gr->actions;
-    _gs->remaining_steps = _gr->steps;
-    
+void try_kill_player(player_state* ps) {
+    if (ps->alive && ps->death_msg != NULL) {
+        update_events(entity.of_player(ps), ps->pre_death_events, (situation){ .type = NO_SITUATION});
+        if (ps->alive && ps->death_msg != NULL) {
+            kill_player(ps);
+            update_events(entity.of_player(ps), ps->post_death_events, (situation){ .type = NO_SITUATION});
+        }
+    }
+}
+
+void kill_players() {
+    each_player(_gs->players, &try_kill_player);
+}
+
+void player_turn_default(player_state* ps) {
     while(1) {
         int change = 0;
         if (ps->dp >= ps->directive_len) { return; }
-        if (!use_resource(1,&_gs->remaining_steps)) return;
-        //debug_print(ps);
+        if (!use_resource(1,&ps->remaining_steps)) return;
+        // debug_print(ps);
+        _log(DEBUG, "%s executes %i", ps->name, ps->directive[ps->dp]);
         switch (ps->directive[ps->dp++]) {
-            case 'W': { // Wait 
-                if(!use_resource(1,&_gs->remaining_actions)) {ps->dp--;return;}
+            case Meta_PlayerX: change = meta_player_x(ps);break;
+            case Meta_PlayerY: change = meta_player_y(ps);break;
+            case Meta_BoardX: change = meta_board_x(ps);break;
+            case Meta_BoardY: change = meta_board_y(ps);break;
+            case Meta_Resource: change = meta_resource(ps);break;
+            case Meta_PlayerID: change = meta_player_id(ps);break;
+            case Instr_Wait: {
+                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--;return;}
+                ps->stack[ps->sp++] = 1;
                 break;
             }
-            case 'P': return;
-            case 'S': { // Shot in direction
-                if(!use_resource(1,&_gs->remaining_actions)) {ps->dp--;return;}
-                instr_shoot(ps);
-                change = 1;
+            case Instr_Pass: {
+                ps->stack[ps->sp++] = 1;
+                return;
+            }
+            case Instr_Shoot: { 
+                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--;return;}
+                change = instr_shoot(ps);
                 break;
             }
-            case 'l': instr_look(ps); break;
-            case 's': instr_scan(ps); break;
-            case 'M': { // Place mine
-                if(!use_resource(1,&_gs->remaining_actions)) {ps->dp--;return;}
-                instr_mine(ps);
-                change = 1;
+            case Instr_Look: instr_look(ps); break;
+            case Instr_Scan: instr_scan(ps); break;
+            case Instr_Mine: {
+                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--;return;}
+                change = instr_mine(ps);
                 break;
             }
-            case 'm': { // Move
-                instr_move(ps);
-                change = 1;
+            case Instr_Move: {
+                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--;return;}
+                change = instr_move(ps);
                 break;
             }
-            case 'A': { // Melee attack
-                if(!use_resource(1,&_gs->remaining_actions)) {ps->dp--; return;}
-                instr_melee(ps);
+            case Instr_Chop: {
+                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
+                change = instr_chop(ps);
                 break;
             }
-            case 'T': { // Trench
-                if(!use_resource(1,&_gs->remaining_actions)) {ps->dp--; return;}
-                instr_trench(ps);
-                change = 1;
+            case Instr_Trench: { 
+                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
+                change = instr_trench(ps);
                 break;
             }
-            case 'F': { // Fortify
-                if(!use_resource(1,&_gs->remaining_actions)) {ps->dp--; return;}
-                instr_fortify(ps);
-                change = 1;
+            case Instr_Fortify: {
+                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
+                change = instr_fortify(ps);
                 break;
             }
-            case 'r': instr_random_int(ps); break; 
-            case 'R': instr_random_range(ps); break;
-            case 'p': instr_place(ps); break;
-            case 'B': { 
-                if(!use_resource(1,&_gs->remaining_actions)) {ps->dp--; return;}
-                instr_bomb(ps);
-                change = 1;
+            case Instr_PlantTree: {
+                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
+                change = instr_plant_tree(ps);
                 break;
             }
-            case '@': instr_global_access(ps); break;
-            case '#': instr_access(ps); break;
-            case '!': instr_goto(ps); break;
-            case '?': instr_goto_if(ps); break;
-            case '=': instr_eq(ps); break;
-            case '<': instr_lt(ps); break;
-            case '-': instr_sub(ps); break;
-            case '+': instr_add(ps); break;
-            case '*': instr_mul(ps); break;
-            case '/': instr_div(ps); break;
-            case '%': instr_mod(ps); break;
-            case '~': instr_not(ps); break;
-            case '|': instr_or(ps); break;
-            case '&': instr_and(ps); break;
-            case 'a': instr_assign(ps); break;
-            case '\'': instr_flag_access(ps); break;
-            case 'd': instr_dec_stack(ps); break;
-            case 'c': instr_clone(ps); break;
-            case '^': instr_swap(ps); break;
+            case Instr_Random: instr_random_int(ps); break; 
+            case Instr_RandomSet: instr_random_range(ps); break;
+            case Instr_Place: instr_place(ps); break;
+            case Instr_Bomb: { 
+                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
+                change = instr_bomb(ps);
+                break;
+            }
+            case Instr_Access: change = instr_access(ps); break;
+            case Instr_GoTo: change = instr_goto(ps); break;
+            case Instr_GoToIf: change = instr_goto_if(ps); break;
+            case Instr_Eq: change = instr_eq(ps); break;
+            case Instr_Lt: change = instr_lt(ps); break;
+            case Instr_Sub: change = instr_sub(ps); break;
+            case Instr_Add: change = instr_add(ps); break;
+            case Instr_Mul: change = instr_mul(ps); break;
+            case Instr_Div: change = instr_div(ps); break;
+            case Instr_Mod: change = instr_mod(ps); break;
+            case Instr_Not: change = instr_not(ps); break;
+            case Instr_Or: change = instr_or(ps); break;
+            case Instr_And: change = instr_and(ps); break;
+            case Instr_Assign: change = instr_assign(ps); break;
+            case Instr_FieldProp: change = instr_field_prop(ps); break;
+            case Instr_DecStack: change = instr_dec_stack(ps); break;
+            case Instr_Copy: change = instr_copy(ps); break;
+            case Instr_Swap: change = instr_swap(ps); break;
+            case Instr_Read: change = instr_read(ps); break;
+            case Instr_Write: change = instr_write(ps); break;
+            case Instr_Projection: {
+                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
+                change = instr_projection(ps); 
+                break;
+            }
+            case Instr_Freeze: {
+                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
+                change = instr_freeze(ps); 
+                break;
+            }
+            case Instr_Fireball: {
+                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
+                change = instr_fireball(ps); 
+                break;
+            }
+            case Instr_Meditate: {
+                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
+                change = instr_meditate(ps); 
+                break;
+            }
+            case Instr_Disarm: {
+                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
+                change = instr_disarm(ps); 
+                break;
+            }
+            case Instr_Dispel: {
+                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
+                change = instr_dispel(ps); 
+                break;
+            }
+            case Instr_ManaDrain: {
+                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
+                change = instr_mana_drain(ps); 
+                break;
+            }
+            case Instr_PagerSet: change = instr_pager_set(ps); break;
+            case Instr_PagerRead: change = instr_pager_read(ps); break; 
+            case Instr_PagerWrite: change = instr_pager_write(ps); break;
+            case Instr_Wall: {
+                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
+                change = instr_wall(ps);
+                break;
+            }
+            case Instr_Bridge: {
+                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
+                change = instr_bridge(ps);
+                break;
+            }
+            case Instr_Collect: {
+                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
+                change = instr_collect(ps); 
+                break;
+            }
+            case Instr_Say: change = instr_say(ps); break;
+            case Instr_Mount: {
+                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
+                change = instr_mount(ps); 
+                break;
+            }
+            case Instr_Dismount: {
+                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
+                change = instr_dismount(ps); 
+                break;
+            }
+            case Instr_Boat: {
+                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
+                change = instr_boat(ps); 
+                break;
+            } 
+            case Instr_BearTrap: {
+                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
+                change = instr_bear_trap(ps); 
+                break;
+            }
+            case Instr_Call: change = instr_call(ps); break;
+            case Instr_Return: change = instr_return(ps); break;
+            case Instr_Declare: change = instr_declare(ps); break;
+            case Instr_GlobalAccess: change = instr_global_access(ps); break;
+            case Instr_GlobalAssign: change = instr_global_assign(ps); break;
+            case Instr_Index: change = instr_index(ps); break;
+            case Instr_ThrowClay: {
+                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
+                change = instr_throw_clay(ps); 
+                break;
+            }
+            case Instr_ClayGolem: {
+                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
+                change = instr_clay_golem(ps); 
+                break;
+            }
             default: return;
         }
 
-        if (change || _gs->feed_point) { print_board(); sleep(1000); }
+        if (change || _gs->feed_point) { print_board(); wait(1); }
 
-        for(int i = 0; i < _gs->player_count; i++)
-            if (_gs->players[i].death_msg != NULL)
-                kill_player(_gs->players+i);
-        if (_gs->feed_point) { print_board(); sleep(1000); }
-
+        kill_players();
+        if (_gs->feed_point) { print_board(); wait(1); }
+        if (!ps->alive) return;
     }
 }
 
-typedef enum player_action {
-    INACTIVE,
-    MOVE,
-    ATTACK,
-    DEFEND
-} player_action;
-
-typedef struct turn_action {
-    player_action action_type;
-    union {
-        void (*instr)(player_state*);
-        char inactive;
-    } action;   
-} turn_action;
-
-turn_action inactive() {
-    return (turn_action) {.action_type = INACTIVE, .action = '\0'};
-}
-
-turn_action attack_action(void (*instr)(player_state*)) {
-    return (turn_action) {.action_type = ATTACK, .action = instr};
-}
-
-turn_action defend_action(void (*instr)(player_state*)) {
-    return (turn_action) {.action_type = DEFEND, .action = instr};
-}
-
-turn_action move_action() {
-    return (turn_action) {.action_type = MOVE, .action = '\0'};
-}
-
-turn_action player_turn_sync(player_state* ps) {
-    _gs->remaining_steps = _gr->steps;
-    
-    while(1) {
-        if (ps->dp >= ps->directive_len) return inactive();
-        if (!use_resource(1,&_gs->remaining_steps)) return inactive();
-        //debug_print(ps);
-        switch (ps->directive[ps->dp++]) {
-            case 'W': break;
-            case 'P': return inactive();
-            case 'S': return attack_action(&instr_shoot);
-            case 'l': instr_look(ps); break;
-            case 's': instr_scan(ps); break;
-            case 'M': return attack_action(&instr_mine);
-            case 'm': return move_action();
-            case 'A': return attack_action(&instr_melee);
-            case 'T': return defend_action(&instr_trench);
-            case 'F': return defend_action(&instr_fortify);
-            case 'r': instr_random_int(ps); break;
-            case 'R': instr_random_range(ps); break;
-            case 'p': instr_place(ps); break;
-            case 'B': return attack_action(&instr_bomb);
-            case '@': instr_global_access(ps); break;
-            case '#': instr_access(ps); break; 
-            case '!': instr_goto(ps); break;
-            case '?': instr_goto_if(ps); break;
-            case '=': instr_eq(ps); break;
-            case '<': instr_lt(ps); break;
-            case '-': instr_sub(ps); break;
-            case '+': instr_add(ps); break;
-            case '*': instr_mul(ps); break;
-            case '/': instr_div(ps); break;
-            case '%': instr_mod(ps); break;
-            case '~': instr_not(ps); break;
-            case '|': instr_or(ps); break;
-            case '&': instr_and(ps); break;
-            case 'a': instr_assign(ps); break;
-            case '\'': instr_flag_access(ps); break;
-            case 'd': instr_dec_stack(ps); break;
-            case 'c': instr_clone(ps); break;
-            case '^': instr_swap(ps); break;
-            default: return inactive();
-        }
-    }
-}
-
-void get_new_directive(player_state* ps) {      
+void get_new_directive(player_state* ps) {
     while(1) {
         char* path;
         char option;
-        //print_board();
-        printf("Player %s, change directive?:\n0: No change\n1: Reload file\n2: New file\n", ps->name);
-        scanf(" %c",&option);
-        switch (option) {
-            case '0': return;
-            case '1': break;
-            case '2': {
+        int do_free = 0;
+
+        if (ps->extra_files->count) {
+            int index = ps->extra_files->count - 1;
+            char* next = array_list.get(ps->extra_files, index);
+            array_list.remove(ps->extra_files, index, 0);
+            if (strcmp("_", next) == 0) {
+                option = '0';
+            } 
+            else {
+                option = '1';
                 free(ps->path);
-                path = malloc(1001);
-                memset(path,0,1001);
+                ps->path = next;
+            }
+        }
+        else {   
+            printf("%s#%i, change directive?:\n0: No change\n1: Reload file\n2: New file\n", ps->name, ps->id);
+
+            terminal_blocking_read_on();
+            scanf(" %c",&option);
+            terminal_blocking_read_off();
+        }
+
+        switch (option) {
+            case '0': {
+                _log(INFO, "%s: no change", ps->name);
+                return;
+            }
+            case '1': {
+                path = ps->path;
+                break;
+            };
+            case '2': {
+                path = malloc(201);
+                memset(path,0,201);
                 puts("New path:");
-                scanf(" %1000s", path);
-                ps->path = path;
+                scanf(" %200s", path);
+                do_free = 1;
                 break;
             }
             default: continue;
         }
 
         directive_info di;
-        if (compile_player(ps->path, &di)) {
+        if (compile_player(path, _gr->stack_size, _gr->program_size_limit, &di)) {
+            if (do_free) free(ps->path);
             free(ps->directive);
             free(ps->stack);
             ps->directive = di.directive;
             ps->stack = di.stack;
-            ps->sp = di.regs;
+            ps->sp = 0;
+            ps->bp = 0;
             ps->dp = 0;
             ps->directive_len = di.dir_len;
+            ps->path = path;
+            _log(INFO, "%s: change to %s", ps->name, path);
             return;
         }
     }
@@ -232,105 +296,130 @@ void get_new_directive(player_state* ps) {
 void nuke_board() {
     for(int y = 0; y < _gs->board_y; y++)
     for(int x = 0; x < _gs->board_x; x++) 
-        explode_field(x, y);
+        fields.destroy_field(fields.get(x,y), "Got nuked");
 }
 
 int teams_alive() {
     int alive = 0;
-    for(int i = 0; i < _gs->team_count; i++) if (_gs->team_states[i].members_alive) alive++;
+    for(int i = 0; i < _gs->team_count; i++) {
+        if (_gs->team_states[i].members_alive) {
+            alive++; 
+            continue;
+        }
+    }
     return alive;
 }
 
-int first_team_alive() {
-    for(int i = 0; i < _gs->player_count; i++) if (_gs->players[i].alive) return _gs->players[i].team;
-    printf("No player is alive\n");
+int player_alive(player_state* ps) {
+    return ps->alive;
+}
+
+char* first_team_alive() {
+    player_state* ps = first_player(_gs->players, &player_alive);
+    if (ps && ps->team)
+        return ps->team->team_name;
+    printf("No team has live players\n");
     exit(1);
 }
 
 void check_win_condition() {
-    switch (teams_alive(_gs)) {
+    switch (teams_alive()) {
         case 0:
-            printf("GAME OVER: Everyone is dead...\n"); exit(0);
+            _log(INFO, "--- GAME END: Everyone is dead ---");
+            _log_flush();
+            printf("GAME OVER: Everyone is dead...\n"); 
+            terminal_echo_on();
+            terminal_blocking_read_on();
+            terminal_canonical_on();
+            exit(0);
         case 1:
             if (_gs->team_count == 1) break;
-            else printf("Team %i won!\n", first_team_alive()); exit(0);
+            else {
+                _log(INFO, "--- GAME END: %s won! ---", first_team_alive());
+                _log_flush();
+                printf("Team %s won!\n", first_team_alive()); 
+                terminal_echo_on();
+                terminal_blocking_read_on();
+                terminal_canonical_on();
+                exit(0);
+            }
         default: break;
     }
 }
 
+void handle_input() {
+    char buf[1];
+    int pause = 0;
+    while (1) {
+        int read_status = read(STDIN_FILENO, &buf, 1);
 
-void play_round_sync() {
-    // Bomb chain update
-        //for(int i = 0; i < _gs->player_count; i++) 
-        //    update_bomb_chain(_gs->players+i);
-
-        //for(int i = 0; i < _gs->player_count; i++)
-        //    if (_gs->players[i].death_msg != NULL)
-        //        kill_player(_gs->players+i);
-    
-        int change;
-    // Step phase
-        turn_action* acts = malloc(sizeof(turn_action)*_gs->player_count);
-        for(int i = 0; i < _gs->player_count; i++) 
-            if (_gs->players[i].alive) acts[i] = player_turn_sync(_gs->players+i);
-
-    // Defend phase
-        change = 0;
-        for(int i = 0; i < _gs->player_count; i++) 
-            if (_gs->players[i].alive && acts[i].action_type == DEFEND) {
-                acts[i].action.instr(_gs->players+i);
-                change++;
-            }
-        if (change || _gs->feed_point) { print_board(); sleep(1000); }
-
-    // Attack phase
-        change = 0;
-        for(int i = 0; i < _gs->player_count; i++) 
-            if (_gs->players[i].alive && acts->action_type == ATTACK) {
-                acts[i].action.instr(_gs->players+i);
-                change++;
-            }
-        if (change || _gs->feed_point) { print_board(); sleep(1000); }
-
-        for(int i = 0; i < _gs->player_count; i++)
-            if (_gs->players[i].death_msg != NULL)
-                kill_player(_gs->players+i);
-        if (_gs->feed_point) { print_board(); sleep(1000); }
-
-    // Move phase
-        change = 0;
-        for(int i = 0; i < _gs->player_count; i++) 
-            if (_gs->players[i].alive && acts[i].action_type == MOVE) {
-                instr_move(_gs->players+i);
-                change++;
-            }
-        if (change || _gs->feed_point) { print_board(); sleep(1000); }
-
-        if (_gr->nuke > 0 && _gs->round % _gr->nuke == 0) { 
-            nuke_board();
-            print_board();
-            sleep(1000);
+        if (read_status == -1 || read_status == 0) {
+            if (pause) continue;
+            else return;
         }
 
-        for(int i = 0; i < _gs->player_count; i++)
-            if (_gs->players[i].death_msg != NULL)
-                kill_player(_gs->players+i);
-        if (_gs->feed_point) { print_board(); sleep(1000); }
-
-    // Check win condition
-        check_win_condition();
-        free(acts);
+        switch (buf[0]) {
+            case '+':
+                _gr->time_scale += 0.1;
+                break;
+            case '-': 
+                _gr->time_scale -= 0.1;
+                if (_gr->time_scale < 0.1) _gr->time_scale = 0.1;
+                break;
+            case '0':
+                _gr->time_scale = 0;
+                break;
+            case '\033': {
+                char special_buf[2];
+                read(STDIN_FILENO, &special_buf, 2);
+                switch (special_buf[1]) {
+                    case 'A': // UP
+                        _gr->viewport.y--;
+                        break;
+                    case 'B': // DOWN
+                        _gr->viewport.y++;
+                        break;
+                    case 'C': // RIGHT
+                        _gr->viewport.x++;
+                        break;
+                    case 'D': // LEFT
+                        _gr->viewport.x--;
+                        break;
+                }
+                print_board();
+            }
+            break;
+            case ' ': 
+                pause = !pause;
+                break;
+            case 'q': 
+                terminal_echo_on();
+                terminal_blocking_read_on();
+                terminal_canonical_on();
+                exit(0);
+                break;
+        }
+    }
 }
 
 /*
     Players complete their turn seperately one at a time. 
     Once each player has taken a turn, a round has passed.
 */
-void play_round_async() {
-    for(int i = 0; i < _gs->player_count; i++) if (_gs->players[i].alive) {
-        //update_bomb_chain(_gs->players+i);
-        //check_win_condition();
-        player_turn_async(_gs->players+i);
+void play_round_default() {
+    const int player_count = _gs->players->count;
+    for(int i = 0; i < player_count; i++) {
+        handle_input();
+        player_state* player = get_player(_gs->players, i);
+        int finished_events = update_events(entity.of_player(player), _gs->events, (situation){ .type = NO_SITUATION});
+        if (finished_events) { print_board(); wait(1); }
+        kill_players();
+        if (_gs->feed_point) { print_board(); wait(1); }
+        if (player->alive) {
+            _log(DEBUG, "Turn: %s (#%i)", player->name, player->id);
+            player_turn_default(player);
+            set_player_steps_and_actions(player);
+        }
         check_win_condition();
     }
     if (_gr->nuke > 0 && _gs->round % _gr->nuke == 0) nuke_board();
@@ -339,12 +428,11 @@ void play_round_async() {
 void play_round() {
     switch (_gr->exec_mode) {
         case 0:
-            play_round_async();
-            break;
-        case 1:
-            play_round_sync();
+            play_round_default();
             break;
     }
+    _log_flush();
+    clear_screen();
 }
 
 // Mode: 0
@@ -360,11 +448,15 @@ void static_mode() {
 // Players can change directive after 'x' rounds
 void dynamic_mode() {
     while(1) {
-        play_round(_gr);
+        play_round();
         if (_gs->round % _gr->mode == 0) {
-            for(int i = 0; i < _gs->player_count; i++) {
-                if (!_gs->players[i].alive) continue; 
-                get_new_directive(_gs->players+i);
+            const int player_count = _gs->players->count;
+            for (int i = 0; i < player_count; i++) {
+                player_state* player = get_player(_gs->players, i);
+                if (!player->alive) continue; 
+                if (player->is_original_player)
+                    get_new_directive(player);
+                clear_screen();
                 print_board();
             }
         }
@@ -377,13 +469,18 @@ void dynamic_mode() {
 // Players can change directive before each of their turns
 void manual_mode() {
     while(1) {
-        for(int i = 0; i < _gs->player_count; i++) {
-            if (!_gs->players[i].alive) continue; 
-            get_new_directive(_gs->players+i);
+        const int player_count = _gs->players->count;
+        for(int i = 0; i < player_count; i++) {
+            player_state* player = get_player(_gs->players, i);
+            if (!player->alive) continue;
+            if (player->is_original_player)
+                get_new_directive(player);
+            clear_screen();
             print_board();
-            player_turn_async(_gs->players+i);
+            player_turn_default(player);
             check_win_condition();
         }
+
         if (_gr->nuke > 0 && _gs->round % _gr->nuke == 0) nuke_board();
         _gs->round++;
     }
@@ -392,20 +489,29 @@ void manual_mode() {
 
 int main(int argc, char** argv) {
 
-    srand((unsigned) time(NULL));
-
     if (argc < 2) {
         printf("Too few arguments given, needs: <game_file_path>\n");
         exit(1);
     }
-
     caml_startup(argv);
     _gr = malloc(sizeof(game_rules));
     _gs = malloc(sizeof(game_state));
+
+    _log(INFO, "--- COMPILING ----");
+
     if(!compile_game(argv[1], _gr, _gs)) return 1;
 
+    terminal_echo_off();
+    terminal_blocking_read_off();
+    terminal_canonical_off();
+
+    clear_screen();
     print_board();
-    sleep(1000);
+
+    wait(1);
+
+    _log(INFO, "--- RUNNING ---");
+    _log_flush();
 
     if (_gr->mode == 0) static_mode();
     else if (_gr->mode < 0) manual_mode();

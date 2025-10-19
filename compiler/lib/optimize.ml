@@ -55,25 +55,32 @@ let rec optimize_value expr =
     | ("!", Int i) -> Int(if i = 0 then 1 else 0)
     | _ -> Unary_op(op, opte)
   )
-  | Scan(d,p) -> Scan(optimize_value d, optimize_value p) 
-  | Look _
   | Direction _
   | Random
   | RandomSet _
-  | Int _ -> expr
+  | Int _
+  | Prop _
   | MetaReference _
-  | Flag _ 
+  | FieldProp _ 
   | Decrement _ 
   | Increment _
   | Reference Local _ -> expr
-  | Reference Global(t,v) -> Reference(Global(t,optimize_value v))
+  | Reference(Array(_,_)) -> expr
+  | Func(ret,args,body) -> Func(ret,args,optimize_stmt body)
+  | Call(f,args) -> Call(optimize_value f, List.map optimize_value args)
+  | Ternary(c,a,b) -> 
+    let c_opt = optimize_value c in
+    let a_opt = optimize_value a in
+    let b_opt = optimize_value b in
+    match c_opt with
+    | Int 0 -> b_opt
+    | Int _ -> a_opt
+    | _ -> Ternary(c_opt, a_opt, b_opt)
 
+and optimize_assign_target tar = match tar with
+  | _ -> tar
 
-let optimize_assign_target tar = match tar with
-      | Local _ -> tar
-      | Global(t,v) -> Global(t,optimize_value v)
-
-let rec optimize_stmt (Stmt(stmt_i,ln) as stmt) = 
+and optimize_stmt (Stmt(stmt_i,ln) as stmt) = 
   try (match stmt_i with
   | If(c,a,b) -> ( match optimize_value c with
     | Int 0 -> optimize_stmt b
@@ -85,21 +92,14 @@ let rec optimize_stmt (Stmt(stmt_i,ln) as stmt) =
   | While(v,s,None) -> Stmt(While(optimize_value v,optimize_stmt s,None),ln)
   | While(v,s,Some si) -> Stmt(While(optimize_value v,optimize_stmt s,Some(optimize_stmt si)),ln)
   | Assign(n,e) -> Stmt(Assign(optimize_assign_target n,optimize_value e),ln)
-  | Move e -> Stmt(Move(optimize_value e),ln)
-  | Shoot e -> Stmt(Shoot(optimize_value e),ln)
-  | Bomb(d,p) -> Stmt(Bomb(optimize_value d, optimize_value p),ln)
-  | Mine d -> Stmt(Mine(optimize_value d),ln)
-  | Attack d -> Stmt(Attack(optimize_value d),ln)
-  | Fortify o -> Stmt(Fortify(Option.map optimize_value o),ln)
-  | Trench o -> Stmt(Trench(Option.map optimize_value o),ln)
   | DeclareAssign(ty,n,v) -> Stmt(DeclareAssign(ty,n,optimize_value v), ln)
+  | Return v -> Stmt(Return(optimize_value v),ln)
+  | CallStmt(f,args) -> Stmt(CallStmt(optimize_value f, List.map optimize_value args),ln)
   | Declare _
-  | Wait
   | GoTo _
   | Label _
   | Continue
-  | Break
-  | Pass -> stmt)
+  | Break -> stmt)
   with
   | Failure (f, None, msg) -> raise (Failure(f,Some ln,msg))
   | e -> raise e
@@ -107,5 +107,5 @@ let rec optimize_stmt (Stmt(stmt_i,ln) as stmt) =
 and optimize_stmts stmts =
   List.map optimize_stmt stmts
 
-let optimize_program (File(regs,prog)) =
-  File(regs,optimize_stmts prog)
+let optimize_program (File prog) =
+  File(optimize_stmts prog)
