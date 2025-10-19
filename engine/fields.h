@@ -43,25 +43,22 @@ typedef union field_data {
 } field_data;
 
 
-typedef struct {
-    unsigned int obstruction : 1;
-    unsigned int player : 1;
-    unsigned int trapped : 1;
-    unsigned int flammable : 1;
-    unsigned int cover : 1;
-    unsigned int shelter : 1;
-    unsigned int meltable : 1;
-    unsigned int is_empty: 1;
-    unsigned int is_trench: 1;
-    unsigned int is_ice_block: 1;
-    unsigned int is_tree: 1;
-    unsigned int is_ocean: 1;
-    unsigned int is_wall: 1;
-    unsigned int is_bridge: 1;
-    unsigned int is_clay: 1;
+#define PROP_OBSTRUCTION    0b00000000000000000000000000000001
+#define PROP_PLAYER         0b00000000000000000000000000000010
+#define PROP_TRAPPED        0b00000000000000000000000000000100
+#define PROP_FLAMMABLE      0b00000000000000000000000000001000
+#define PROP_COVER          0b00000000000000000000000000010000
+#define PROP_SHELTER        0b00000000000000000000000000100000
+#define PROP_MELTABLE       0b00000000000000000000000001000000
+#define PROP_IS_EMPTY       0b00000000000000000000000010000000
+#define PROP_IS_TRENCH      0b00000000000000000000000100000000
+#define PROP_IS_ICE_BLOCK   0b00000000000000000000001000000000
+#define PROP_IS_TREE        0b00000000000000000000010000000000
+#define PROP_IS_OCEAN       0b00000000000000000000100000000000
+#define PROP_IS_WALL        0b00000000000000000001000000000000
+#define PROP_IS_BRIDGE      0b00000000000000000010000000000000
+#define PROP_IS_CLAY        0b00000000000000000100000000000000
 
-    unsigned int _ : 17;
-} field_properties;
 
 typedef struct field_state {
     color* foreground_color_overlay;
@@ -93,8 +90,8 @@ typedef struct fields_namespace {
     void (*const damage_field)(field_state* field, damage_t d_type, char* death_msg);
     void (*const remove_field)(field_state* field);
     int (*const fortify_field)(field_state* field);
-    field_properties (*const properties_of_field)(field_state* field);
-    field_properties (*const properties)(const int x, const int y);
+    unsigned int (*const properties_of_field)(field_state* field);
+    unsigned int (*const properties)(const int x, const int y);
     field_builders build;
 } fields_namespace;
 

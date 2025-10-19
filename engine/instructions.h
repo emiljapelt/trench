@@ -132,14 +132,14 @@ int instr_shoot(player_state* ps) {
         print_board(); wait(0.02);
 
         field_state* field = fields.get(x,y);
-        field_properties props = fields.properties_of_field(field);
+        unsigned int props = fields.properties_of_field(field);
 
-        if (props.obstruction) {
+        if (props & PROP_OBSTRUCTION) {
             fields.damage_field(field, KINETIC_DMG | PROJECTILE_DMG, "Got shot");
             ps->stack[ps->sp++] = 1;
             return 1;
         }
-        else if (props.player && !(props.cover || props.shelter)) {
+        else if ((props & PROP_PLAYER) && !((props & PROP_COVER) || (props & PROP_SHELTER))) {
             for(int i = 0; i < field->entities->count; i++) {
                 entity_t* e = get_entity(field->entities, i);
                 if (e->type == ENTITY_PLAYER) {
@@ -168,10 +168,9 @@ int instr_look(player_state* ps) {
     if (_gr->settings.look.range >= 0 && i > _gr->settings.look.range) { ps->stack[ps->sp++] = 0; return 0; }
     move_coord(&x, &y, d, 1);
     if (!in_bounds(x,y)) { ps->stack[ps->sp++] = 0; return 0; }
-    field_properties props = fields.properties(x,y);
-    field_properties* bypass = &props;
-    if ((*(int*)bypass) & (1 << offset)) { ps->stack[ps->sp++] = i; return 0; }
-    if (fields.properties(x,y).obstruction) { ps->stack[ps->sp++] = 0; return 0; }
+    unsigned int props = fields.properties(x,y);
+    if (props & (1 << offset)) { ps->stack[ps->sp++] = i; return 0; }
+    if (props & PROP_OBSTRUCTION) { ps->stack[ps->sp++] = 0; return 0; }
     goto incr;
 }
 
@@ -182,12 +181,10 @@ int instr_scan(player_state* ps) {
     location_coords(ps->location, &x, &y);
     int result = 0;
 
-    p = limit_range(p, _gr->settings.scan.range);
+    if (_gr->settings.scan.range >= 0 && p > _gr->settings.scan.range) { ps->stack[ps->sp++] = 0; return 0; }
     move_coord(&x, &y, d, p);
     if (in_bounds(x, y)) {   
-        field_properties props = fields.properties(x,y);
-        field_properties* bypass = &props;
-        result = *(int*)bypass;
+        result = fields.properties(x,y);
     }
 
     ps->stack[ps->sp++] = result;
@@ -245,12 +242,12 @@ int instr_move(player_state* ps) {
 
     int x, y;
     location_coords(ps->location, &x, &y);
-    if (fields.properties(x,y).obstruction) {
+    if (fields.properties(x,y) & PROP_OBSTRUCTION) {
         ps->stack[ps->sp++] = 0;
         return 0;
     }
     move_coord(&x, &y, d, 1);
-    if(!in_bounds(x,y) || fields.properties(x,y).obstruction) {
+    if(!in_bounds(x,y) || (fields.properties(x,y) & PROP_OBSTRUCTION)) {
         ps->stack[ps->sp++] = 0;
         return 0; 
     }
@@ -576,9 +573,8 @@ int instr_global_assign(player_state* ps) {
 }
 
 int instr_field_prop(player_state* ps) { 
-    int offset = ps->stack[--ps->sp];//ps->directive[ps->dp];
+    int offset = ps->stack[--ps->sp];
     int v = ps->stack[--ps->sp];
-    //ps->dp++;
     ps->stack[ps->sp++] = v & (1 << offset);
     return 0;
 }
@@ -713,14 +709,14 @@ int instr_fireball(player_state* ps) {
         move_coord(&x, &y, d, 1);
 
         field_state* field = fields.get(x,y);
-        field_properties props = fields.properties_of_field(field);
+        unsigned int props = fields.properties_of_field(field);
 
-        if (props.obstruction) {
+        if (props & PROP_OBSTRUCTION) {
             fields.damage_field(field, FIRE_DMG | PROJECTILE_DMG, "Hit by a fireball");
             ps->stack[ps->sp++] = 1;
             return 1;
         }
-        else if (props.player && !(props.cover || props.shelter)) {
+        else if ((props & PROP_PLAYER) && !((props & PROP_COVER) || (props & PROP_SHELTER))) {
             for(int i = 0; i < field->entities->count; i++) {
                 entity_t* e = get_entity(field->entities, i);
                 if (e->type = ENTITY_PLAYER) {
@@ -1205,14 +1201,14 @@ int instr_throw_clay(player_state* ps) {
         print_board(); wait(0.02);
         
         field_state* field = fields.get(x,y);
-        field_properties props = fields.properties_of_field(field);
+        unsigned int props = fields.properties_of_field(field);
 
-        if (props.obstruction) {
+        if (props & PROP_OBSTRUCTION) {
             fields.damage_field(field, KINETIC_DMG | PROJECTILE_DMG, "Got shot");
             ps->stack[ps->sp++] = 1;
             return 1;
         }
-        else if (props.player && !(props.cover || props.shelter)) {
+        else if ((props & PROP_PLAYER) && !((props & PROP_COVER) || (props & PROP_SHELTER))) {
             for(int i = 0; i < field->entities->count; i++) {
                 entity_t* e = get_entity(field->entities, i);
                 if (e->type == ENTITY_PLAYER) {

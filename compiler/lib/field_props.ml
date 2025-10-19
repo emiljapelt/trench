@@ -26,6 +26,7 @@ let prop_index p = match p with
   | Flammable_Prop -> 3
   | Cover_Prop -> 4
   | Shelter_Prop -> 5
+  (* Meltable *)
   | IsEmpty_Prop -> 7
   | IsTrench_Prop -> 8
   | IsIceBlock_Prop -> 9

@@ -13,7 +13,8 @@
 int mine(entity_t* entity, void* data, situation situ) {
     field_args* args = (field_args*)data;
 
-    if (fields.get(args->x, args->y)->entities->count > 0) return 0;
+    // Check if there are more entities than just 'entity'
+    if (fields.get(args->x, args->y)->entities->count > 1) return 0;
 
     switch (entity->type) {
         case ENTITY_PLAYER: {

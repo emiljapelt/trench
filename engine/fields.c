@@ -63,59 +63,50 @@ int has_player(field_state* field) {
 }
 
 int has_trap(field_state* field) {
-    return 
-        (field->enter_events->count || field->exit_events->count)
-            ? 1 : 0;
+    return field->enter_events->count + field->exit_events->count;
 }
 
-field_properties scan_field(field_type type, field_data* data) {
-    field_properties result = {0};
+unsigned int scan_field(field_type type, field_data* data) {
+    unsigned int result = 0;
     switch (type) {
         case TRENCH:
-            result.is_trench = 1;
-            result.cover = 1;
+            result = PROP_IS_TRENCH | PROP_COVER;
             break;
         case WALL:
-            result.is_wall = 1;
-            result.obstruction = 1;
-            result.flammable = 1;
+            result = PROP_IS_WALL | PROP_OBSTRUCTION | PROP_FLAMMABLE;
             break;
         case TREE:
-            result.is_tree = 1;
-            result.obstruction = 1;
-            result.flammable = 1;
+            result = PROP_IS_TREE | PROP_OBSTRUCTION | PROP_FLAMMABLE;
             break;
         case CLAY:
-            result.is_clay = 1;
+            result = PROP_IS_CLAY;
             break;
         case OCEAN:
-            result.is_ocean = 1;
+            result = PROP_IS_OCEAN;
             break;
         case BRIDGE:
-            result.is_bridge = 1;
+            result = PROP_IS_BRIDGE;
             break;
         case ICE_BLOCK: {
-            result = scan_field(data->ice_block.inner_type, data->ice_block.inner);
-            result.is_ice_block = 1;
-            result.obstruction = 1;
+            result = PROP_IS_ICE_BLOCK | PROP_OBSTRUCTION | scan_field(data->ice_block.inner_type, data->ice_block.inner);
             break;
         }
         case EMPTY:
         default:
-            result.is_empty = 1;
+            result = PROP_IS_EMPTY;
             break;
     }
     return result;
 }
 
-field_properties properties_of_field(field_state* field) {
-    field_properties result = scan_field(field->type, field->data);
-    result.player = has_player(field);
-    result.trapped = has_trap(field);
+unsigned int properties_of_field(field_state* field) {
+    unsigned int result = scan_field(field->type, field->data);
+    if (has_player(field)) result |= PROP_PLAYER;
+    if (has_trap(field)) result |= PROP_TRAPPED;
     return result;
 }
 
-field_properties properties(const int x, const int y) {
+unsigned int properties(const int x, const int y) {
     return properties_of_field(fields.get(x,y));
 }
 
@@ -198,10 +189,10 @@ void remove_field(field_state* field) {
 }
 
 void damage_field(field_state* field, damage_t d_type, char* death_msg) {
-    field_properties props = properties_of_field(field);
-    if (props.flammable && IS_DAMAGE_TYPE(FIRE_DMG, d_type))
+    unsigned int props = properties_of_field(field);
+    if ((props & PROP_FLAMMABLE) && IS_DAMAGE_TYPE(FIRE_DMG, d_type))
         destroy_field(field, death_msg);
-    else if (props.meltable && IS_DAMAGE_TYPE(FIRE_DMG, d_type))
+    else if ((props & PROP_MELTABLE) && IS_DAMAGE_TYPE(FIRE_DMG, d_type))
         remove_field(field);
 }
 
