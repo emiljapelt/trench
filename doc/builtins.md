@@ -51,7 +51,7 @@ Every field can contain an *int* value, which is set using the `write` function.
 
 **features:** ipc
 
-Writes `ì` to the players current location and returns `1`;
+Writes `i` to the players current location and returns `1`;
 
 ---
 
@@ -85,7 +85,7 @@ Sends `i` the pagers of all other players, if the are on the same channel. Retur
 
 **features:** ipc
 
-Changes the channels of the players pager to `í`. Returns `1` if the channel was changed, otherwise returns `0`.
+Changes the channels of the players pager to `i`. Returns `1` if the channel was changed, otherwise returns `0`.
 
 ---
 

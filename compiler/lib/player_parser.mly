@@ -37,8 +37,10 @@
 %token INT DIR FIELD PROP L_SHIFT R_SHIFT
 %token RETURN
 
+// Precedence and assosiativity inspired by https://en.cppreference.com/w/c/language/operator_precedence.html
+
 /*Low precedence*/
-%left COLON
+%right QMARK COLON
 %left LOGIC_OR
 %left LOGIC_AND 
 %left EQ NEQ IS
@@ -46,6 +48,7 @@
 %left L_SHIFT R_SHIFT
 %left PLUS MINUS 
 %left TIMES FSLASH PCT
+%right UNARY
 /*High precedence*/
 
 %start main
@@ -95,8 +98,6 @@ simple_value:
   | const_value                        { $1 }
   | QMARK                              { features ["random"] ; Random }
   | QMARK LPAR simple_value+ RPAR      { features ["random"] ; RandomSet $3 }
-  | MINUS simple_value                 { Binary_op ("-", Int 0, $2) } 
-  | EXCLAIM simple_value               { Unary_op ("!", $2) }
   | target                             { Reference($1) }
   | META_NAME                          { MetaReference (meta_name $1) }
   | LPAR value RPAR                    { $2 }
@@ -104,6 +105,8 @@ simple_value:
 
 value:
   | simple_value                       { $1 }
+  | MINUS value                        { Binary_op ("-", Int 0, $2) }  %prec UNARY
+  | EXCLAIM value                      { Unary_op ("!", $2) } %prec UNARY
   | value binop value                  { Binary_op ($2, $1, $3) }
   | value IS value                     { FieldProp($1, $3) }
   | PLUSPLUS target                    { features ["sugar"] ; Increment($2, true)}
@@ -112,7 +115,7 @@ value:
   | target MINUSMINUS                  { features ["sugar"] ; Decrement($1, false)}
   | simple_typ COLON LPAR seperated_or_empty(COMMA,func_arg) RPAR stmt           { features ["func"] ; Func($1, $4, $6) }
   | simple_value LPAR seperated_or_empty(COMMA, value) RPAR { Call($1, $3) }
-  | simple_value QMARK value COLON value { features ["control";"sugar"] ; Ternary($1,$3,$5) }
+  | value QMARK value COLON value      { features ["control";"sugar"] ; Ternary($1,$3,$5) }
 ;
 
 func_arg:
