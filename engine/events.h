@@ -10,7 +10,7 @@ typedef enum situation_type {
 } situation_type;
 
 typedef struct situation {
-    situation_type type;
+    situation_type type : 8;
     union {
         struct {
             location loc;

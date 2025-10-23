@@ -9,7 +9,7 @@ typedef enum {
 } entity_type;
 
 typedef struct entity_t {
-    entity_type type: 4;
+    entity_type type : 8;
     union {
         struct player_state* player;
         struct vehicle_state* vehicle;

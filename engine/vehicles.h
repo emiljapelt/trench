@@ -12,7 +12,7 @@ typedef enum {
 
 typedef struct vehicle_state {
     int id;
-    vehicle_type type;
+    vehicle_type type : 8;
     entity_list_t* entities;
     location location;
     unsigned int destroy : 1;

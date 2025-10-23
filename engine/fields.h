@@ -63,16 +63,14 @@ typedef union field_data {
 typedef struct field_state {
     color* foreground_color_overlay;
     color* background_color_overlay;
-    print_mod mod_overlay;
+    print_mod mod_overlay : 8;
     char* symbol_overlay;
     field_type type;
     field_data* data;
     int player_data; // Players can read and write here
-    //player_list_t* players;
     entity_list_t* entities;
     event_list_t* enter_events;
     event_list_t* exit_events;
-    //vehicle_state* vehicle;
 } field_state;
 
 typedef struct field_builders {

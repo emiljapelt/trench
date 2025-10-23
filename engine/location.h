@@ -8,7 +8,7 @@ typedef enum {
 } location_type;
 
 typedef struct location {
-    location_type type;
+    location_type type : 8;
     union {
         struct field_state* field;
         struct vehicle_state* vehicle;
