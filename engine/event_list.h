@@ -16,7 +16,7 @@ typedef enum {
 
 typedef struct event {
     event_function func;
-    event_kind kind;
+    event_kind kind : 8 ;
     void* data;
 } event;
 

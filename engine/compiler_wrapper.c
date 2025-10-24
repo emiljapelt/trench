@@ -24,10 +24,7 @@ field_state* create_board(char* map_data, const int x, const int y) {
     for (int _x = 0; _x < x; _x++) 
     for (int _y = 0; _y < y; _y++) {
         brd[(_y * x) + _x] = (field_state) {
-            .foreground_color_overlay = NULL,
-            .background_color_overlay = NULL,
-            .mod_overlay = 0,
-            .symbol_overlay = 0,
+            .overlays = 0,
             .type = EMPTY,
             .data = NULL,
             .player_data = 0,

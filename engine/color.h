@@ -17,20 +17,22 @@ typedef enum print_mod {
     CROSS_OUT = 9,
 } print_mod;
 
-typedef struct color_predef {
-    color* red;
-    color* green;
-    color* blue;
-    color* white;
-    color* black;
-    color* yellow;
-    color* ice_blue;
-    color* magic_purple;
-    color* dark_grey;
-    color* wood_brown;
-    color* clay_brown;
+extern const color color_lookup[];
+
+typedef enum color_predef {
+    RED,
+    GREEN,
+    BLUE,
+    WHITE,
+    BLACK,
+    YELLOW,
+    ICE_BLUE,
+    MAGIC_PURPLE,
+    DARK_GREY,
+    WOOD_BROWN,
+    CLAY_BROWN,
 } color_predef;
 
-extern const color_predef color_predefs;
+int color_eq(color c1, color c2);
 
 #endif

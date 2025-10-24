@@ -1,74 +1,72 @@
 #ifndef VISUAL_H
 #define VISUAL_H
 
-#include "game_state.h"
 #include "color.h"
-#include "fields.h"
 
-// ** CHARACTER CODES ** 
-#define DESTORYED "*"
-#define NONE "\u2219"
-#define F_NONE "\u2022"
-#define N "\u2575"
-#define F_N "\u2579"
-#define E "\u2576"
-#define F_E "\u257a"
-#define S "\u2577"
-#define F_S "\u257b"
-#define W "\u2574"
-#define F_W "\u2578"
-#define NS "\u2502"
-#define F_NS "\u2503"
-#define EW "\u2500"
-#define F_EW "\u2501"
-#define NE "\u2514"
-#define F_NE "\u2517"
-#define SE "\u250c"
-#define F_SE "\u250f"
-#define NW "\u2518"
-#define F_NW "\u251b"
-#define SW "\u2510"
-#define F_SW "\u2513"
-#define NES "\u251c"
-#define F_NES "\u2523"
-#define ESW "\u252c"
-#define F_ESW "\u2533"
-#define SWN "\u2524"
-#define F_SWN "\u252b"
-#define WNE "\u2534"
-#define F_WNE "\u253b"
-#define ALL "\u253c"
-#define F_ALL "\u254b"
+typedef enum symbol {
+    ASTERIX,
+    NONE,
+    F_NONE,
+    N,
+    F_N,
+    E,
+    F_E,
+    S,
+    F_S,
+    W,
+    F_W,
+    NS,
+    F_NS,
+    EW,
+    F_EW,
+    NE,
+    F_NE,
+    SE,
+    F_SE,
+    NW,
+    F_NW,
+    SW,
+    F_SW,
+    NES,
+    F_NES,
+    ESW,
+    F_ESW,
+    SWN,
+    F_SWN,
+    WNE,
+    F_WNE,
+    ALL,
+    F_ALL,
+    PERSON,
+    EXPLOSION,
+    TARGET,
+    MINE,
+    SKULL,
+    COFFIN,
+    SNOWFLAKE,
+    TREE_VISUAL,
+    BOAT_VISUAL,
+    FILLED_CIRCLE,
+    BULLET,
+    EMPTY_DIAMOND,
+    BEAR_TRAP,
+    PENTAGRAM,
+    LARGE_X,
+    MIDDOT,
+    LIGHTNING,
+    DOTS_NS,
+    DOTS_EW,
+    HOUSE_VISUAL,
+    SINGLE_DOT,
+    DOUBLE_DOT,
+    TRIPLE_DOT,
+    QUAD_DOT,
+    PENTA_DOT,
+} symbol;
 
-#define PERSON "\u1330"
-
-#define EXPLOSION "\u2311"
-#define TARGET "\u2316"
-#define MINE "\u2313"
-#define SKULL "\u2620"
-#define COFFIN "\u26b0"
-#define SNOWFLAKE "\u2744"
-#define TREE_VISUAL "\u219f"
-#define BOAT_VISUAL "\u2359" // "\u22ed"       "\u23c5" "\u26f5" // For some reason these print wrong
-#define FILLED_CIRCLE "\u2b24"
-#define BULLET "\u2022"
-#define EMPTY_DIAMOND "\u27d0"
-#define BEAR_TRAP "\u26ba"
-#define PENTAGRAM "\u26e4"
-#define LARGE_X "\u2a09"
-#define MIDDOT "\u00b7"
-#define LIGHTNING "\u21af" // 26a1 this also print a char extra :(
-#define DOTS_NS "\u22ee"
-#define DOTS_EW "\u22ef"
-#define HOUSE_VISUAL "\u2302"
-
-#define SINGLE_DOT "\u2022"
-#define DOUBLE_DOT "\u205a"
-#define TRIPLE_DOT "\u2056"
-#define QUAD_DOT "\u2058"
-#define PENTA_DOT "\u2059"
-
-// ****
+extern const char* symbol_lookup[];
+extern const int connector_lookup[];
+extern const int fortified_connector_lookup[];
 
 #define MAX_SYMBOL_SIZE 48
 
@@ -78,16 +76,15 @@ typedef enum {
 } color_target;
 
 typedef struct field_visual {
-    color* foreground_color;
-    color* background_color;
-    char* symbol;
+    color foreground_color;
+    color background_color;
+    const char* symbol;
     print_mod mod;
 } field_visual;
 
 color rgb_color(int r, int g, int b);
 void clear_screen(void);
 void reset_cursor(void);
-field_visual get_field_visual(const int x, const int y, const field_state* field);
 void print_board();
 
 #endif

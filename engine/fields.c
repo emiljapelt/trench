@@ -15,7 +15,6 @@ void set_field(const int x, const int y, field_state* f) {
 }
 
 
-
 void build_trench(field_state* field) {
     field_data* data = malloc(sizeof(field_data));
     data->trench.fortified = 0;
@@ -209,6 +208,186 @@ int fortify_field(field_state* field) {
         default: return 0;
     }
 }
+
+
+// ** VISUALS
+
+static inline char line_connects(int x, int y, field_type field) {
+    return (!in_bounds(x,y)) 
+        ? 0 
+        : fields.get(x,y)->type == field;
+}
+
+int connections(int x, int y, field_type field) {
+    return 
+        (line_connects(x,y-1,field) << 3) | // N
+        (line_connects(x+1,y,field) << 2) | // E
+        (line_connects(x,y+1,field) << 1) | // S
+        line_connects(x-1,y,field);         // W 
+}
+
+field_visual get_field_data_visual(const int x, const int y, const field_type type, const field_data* data) {
+    field_visual result = {
+        .background_color = color_lookup[BLACK],
+        .foreground_color = color_lookup[DARK_GREY],
+        .mod = 0,
+        .symbol = symbol_lookup[MIDDOT]
+    };
+
+    switch (type) {
+        case TRENCH: {
+            int char_idx = connections(x,y,TRENCH);
+            result.symbol = (data->trench.fortified) 
+                ? symbol_lookup[fortified_connector_lookup[char_idx]] 
+                : symbol_lookup[connector_lookup[char_idx]];
+            result.foreground_color = color_lookup[WHITE];
+            break;
+        }
+        case ICE_BLOCK: {
+            result.background_color = color_lookup[ICE_BLUE];
+            result.foreground_color = color_lookup[WHITE];
+            result.symbol = (data->ice_block.inner_type == EMPTY) 
+                ? " " 
+                : get_field_data_visual(x, y, data->ice_block.inner_type, data->ice_block.inner).symbol;
+            break;
+        }
+        case TREE: {
+            result.foreground_color = color_lookup[GREEN];
+            result.symbol = symbol_lookup[TREE_VISUAL];
+            result.mod = BOLD;
+            break;
+        }
+        case WALL: {
+            int char_idx = connections(x,y,WALL);
+            result.foreground_color = color_lookup[WOOD_BROWN];
+            result.symbol = (data->wall.fortified) 
+                ? symbol_lookup[fortified_connector_lookup[char_idx]]
+                : symbol_lookup[connector_lookup[char_idx]];
+            break;
+        }
+        case BRIDGE: {
+            int char_idx = ~connections(x,y,OCEAN);
+            result.symbol = symbol_lookup[fortified_connector_lookup[char_idx]];
+            result.foreground_color = color_lookup[WOOD_BROWN];
+            result.background_color = color_lookup[BLUE];
+            break;
+        }
+        case OCEAN: {
+            result.foreground_color = color_lookup[ICE_BLUE];
+            result.background_color = color_lookup[BLUE];
+            result.symbol = "~";
+            break;
+        }
+        case CLAY: {
+            result.background_color = color_lookup[CLAY_BROWN];
+            result.foreground_color = color_lookup[WOOD_BROWN];
+            switch (data->clay_pit.amount) {
+                case 0:
+                    result.symbol = " ";
+                    break;
+                case 1:
+                    result.symbol = symbol_lookup[SINGLE_DOT];
+                    break;
+                case 2:
+                    result.symbol = symbol_lookup[DOUBLE_DOT];
+                    break;
+                case 3:
+                    result.symbol = symbol_lookup[TRIPLE_DOT];
+                    break;
+                case 4:
+                    result.symbol = symbol_lookup[QUAD_DOT];
+                    break;
+                case 5:
+                    result.symbol = symbol_lookup[PENTA_DOT];
+                    break;
+                default:
+                    result.symbol = symbol_lookup[ASTERIX];
+                    break;
+            }
+            break;
+        }
+        case EMPTY: {
+            //field_state* field = fields.get(x,y);
+            //if (field->entities->count > 0) {
+            //    entity_t* e = peek_entity(field->entities);
+            //    switch (e->type) {
+            //        case ENTITY_PLAYER:
+            //            result.symbol = PERSON;
+            //            result.foreground_color = e->player->team ? e->player->team->color : color_predefs.white;
+            //            break;
+            //        case ENTITY_VEHICLE:
+            //            switch (e->vehicle->type) {
+            //                case VEHICLE_BOAT:
+            //                    result.foreground_color = color_predefs.white;
+            //                    result.symbol = BOAT_VISUAL;
+            //                    break;
+            //            }
+            //            break;
+            //    }
+            //}
+            break;
+        }
+    }
+
+    field_state* field = fields.get(x,y);
+    if (field->entities->count > 0) {
+        entity_t* e = peek_entity(field->entities);
+        switch (e->type) {
+            case ENTITY_PLAYER:
+                result.symbol = symbol_lookup[PERSON];
+                result.foreground_color = e->player->team ? *e->player->team->color : color_lookup[WHITE];
+                break;
+            case ENTITY_VEHICLE:
+                switch (e->vehicle->type) {
+                    case VEHICLE_BOAT:
+                        result.foreground_color = color_lookup[WHITE];
+                        result.symbol = symbol_lookup[BOAT_VISUAL];
+                        break;
+                }
+                break;
+        }
+    }
+    return result;
+}
+
+field_visual get_field_visual(const int x, const int y, field_state* field) {
+
+    field_visual result = get_field_data_visual(x,y,field->type,field->data);
+
+    //if (field->vehicle) {
+    //    switch (field->vehicle->type) {
+    //        case VEHICLE_BOAT: {
+    //            result.foreground_color = color_predefs.white;
+    //            result.symbol = BOAT_VISUAL;
+    //            //result.mod = BOLD;
+    //            break;
+    //        }
+    //    }
+    //}
+
+    if (field->overlays & SYMBOL_OVERLAY) {
+        result.symbol = symbol_lookup[field->symbol];
+    }
+    if (field->overlays & FOREGROUND_COLOR_OVERLAY) {
+        result.foreground_color = color_lookup[field->foreground_color];
+    }
+    if (field->overlays & BACKGROUND_COLOR_OVERLAY) {
+        result.background_color = color_lookup[field->background_color];
+    }
+    if (field->overlays & MOD_OVERLAY) {
+        result.mod = field->mod;
+    }
+
+    // clear overlays
+    field->overlays = 0;
+
+    return result; 
+}
+
+// **
+
+
+
 
 const fields_namespace fields = {
     .get = &get_field,

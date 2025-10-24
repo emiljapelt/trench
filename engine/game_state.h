@@ -43,9 +43,9 @@ void death_mark_player(player_state* ps, const char* reason);
 void kill_player(player_state* ps);
 void set_player_steps_and_actions(player_state* ps);
 
-void set_color_overlay(const int x, const int y, color_target ct, color* c);
-void set_mod_overlay(const int x, const int y, print_mod m);
-void set_overlay(const int x, const int y, char* visual);
+void set_color_overlay(field_state* field, color_target ct, color_predef c);
+void set_mod_overlay(field_state* field, print_mod m);
+void set_overlay(field_state* field, symbol symbol);
 void unset_overlay_field(const int x, const int y);
 void unset_overlay();
 

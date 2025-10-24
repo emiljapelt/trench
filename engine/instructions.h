@@ -128,12 +128,13 @@ int instr_shoot(player_state* ps) {
     int limit = _gr->settings.shoot.range;
     while (limit-- && in_bounds(x,y)) { 
         move_coord(&x, &y, d, 1);
-        set_overlay(x,y,BULLET);
-        set_color_overlay(x,y,FORE,color_predefs.yellow);
-        print_board(); wait(0.02);
-
         field_state* field = fields.get(x,y);
         unsigned int props = fields.properties_of_field(field);
+
+        set_overlay(field, BULLET);
+        set_color_overlay(field, FORE, YELLOW);
+        print_board(); wait(0.02);
+
 
         if (props & PROP_OBSTRUCTION) {
             fields.damage_field(field, KINETIC_DMG | PROJECTILE_DMG, "Got shot");
@@ -217,8 +218,9 @@ int instr_mine(player_state* ps) {
     }
 
     if (!kill) {
-        field->symbol_overlay = MINE;
-        field->foreground_color_overlay = color_predefs.white;
+        set_overlay(field, MINE);
+        set_color_overlay(field, FORE, WHITE);
+        
         field_args* args = malloc(sizeof(field_args));
         args->x = x;
         args->y = y;
@@ -367,13 +369,15 @@ int instr_bomb(player_state* ps) {
         return 0;
     }
 
+    field_state* field = fields.get(x,y);
+
     bomb_event_args* args = malloc(sizeof(bomb_event_args));
     args->x = x;
     args->y = y;
     args->player_id = ps->id;
     add_event(_gs->events, PHYSICAL_EVENT, events.bomb, args);
-    set_color_overlay(x,y,FORE,color_predefs.red);
-    set_overlay(x,y,TARGET);
+    set_color_overlay(field, FORE, RED);
+    set_overlay(field, TARGET);
 
     ps->stack[ps->sp++] = 1;
     return 1;
@@ -678,9 +682,9 @@ int instr_freeze(player_state* ps) {
     args->remaining = _gr->settings.freeze.duration;
     add_event(_gs->events, NONE_EVENT, events.ice_block_melt, args);
 
-    set_color_overlay(x,y,FORE,color_predefs.ice_blue);
-    set_color_overlay(x,y,BACK,color_predefs.black);
-    set_overlay(x,y,SNOWFLAKE);
+    set_color_overlay(field, FORE, ICE_BLUE);
+    set_color_overlay(field, BACK, BLACK);
+    set_overlay(field, SNOWFLAKE);
     print_board(); wait(1);
 
     field_data* new_data = malloc(sizeof(field_data));
@@ -728,8 +732,8 @@ int instr_fireball(player_state* ps) {
             return 1;
         }
 
-        set_color_overlay(x,y,FORE,color_predefs.red);
-        set_overlay(x,y,FILLED_CIRCLE);
+        set_color_overlay(field, FORE, RED);
+        set_overlay(field, FILLED_CIRCLE);
         print_board(); wait(0.05);
     }
 
@@ -739,7 +743,10 @@ int instr_fireball(player_state* ps) {
 
 int instr_meditate(player_state* ps) {
     add_resource(ps->resources, "mana", _gr->settings.meditate.amount);
-    location_field(ps->location)->background_color_overlay = color_predefs.magic_purple;
+    field_state* field = location_field(ps->location);
+    field->background_color = MAGIC_PURPLE;
+    field->overlays |= BACKGROUND_COLOR_OVERLAY;
+
     ps->stack[ps->sp++] = 1;
     return 1;
 }
@@ -763,8 +770,8 @@ int instr_dispel(player_state* ps) {
     remove_events_of_kind(field->enter_events, MAGICAL_EVENT);
     remove_events_of_kind(field->exit_events, MAGICAL_EVENT);
 
-    set_overlay(x,y,LARGE_X);
-    set_color_overlay(x,y,FORE,color_predefs.magic_purple);
+    set_overlay(field, LARGE_X);
+    set_color_overlay(field, FORE, MAGIC_PURPLE);
     print_board(); wait(0.5);
     ps->stack[ps->sp++] = 1;
     return 1;
@@ -785,7 +792,7 @@ int instr_disarm(player_state* ps) {
     remove_events_of_kind(field->enter_events, PHYSICAL_EVENT);
     remove_events_of_kind(field->exit_events, PHYSICAL_EVENT);
 
-    set_overlay(x,y,LARGE_X);
+    set_overlay(field, LARGE_X);
     print_board(); wait(0.5);
     ps->stack[ps->sp++] = 1;
     return 1;
@@ -806,10 +813,12 @@ int instr_mana_drain(player_state* ps) {
         return 0;
     }
 
-    set_overlay(x,y,EMPTY_DIAMOND);
-    set_color_overlay(x,y,FORE,color_predefs.magic_purple);
+    field_state* field = fields.get(x,y);
+
+    set_overlay(field, EMPTY_DIAMOND);
+    set_color_overlay(field, FORE, MAGIC_PURPLE);
     add_event(
-        fields.get(x,y)->enter_events,
+        field->enter_events,
         MAGICAL_EVENT,
         events.mana_drain, NULL
     );
@@ -1094,8 +1103,8 @@ int instr_bear_trap(player_state* ps) {
     }
     field_state* field = fields.get(x,y);
     
-    field->symbol_overlay = BEAR_TRAP;
-    field->foreground_color_overlay = color_predefs.white;
+    field->symbol = BEAR_TRAP;
+    field->foreground_color = WHITE;
     add_event(
         field->enter_events,
         PHYSICAL_EVENT,
@@ -1196,12 +1205,13 @@ int instr_throw_clay(player_state* ps) {
     
     while (p-- && in_bounds(x,y)) { 
         move_coord(&x, &y, d, 1);
-        set_overlay(x,y,FILLED_CIRCLE);
-        set_color_overlay(x,y,FORE,color_predefs.clay_brown);
-        print_board(); wait(0.02);
-        
         field_state* field = fields.get(x,y);
         unsigned int props = fields.properties_of_field(field);
+
+        set_overlay(field, FILLED_CIRCLE);
+        set_color_overlay(field, FORE, CLAY_BROWN);
+        print_board(); wait(0.02);
+        
 
         if (props & PROP_OBSTRUCTION) {
             fields.damage_field(field, KINETIC_DMG | PROJECTILE_DMG, "Got shot");

@@ -7,6 +7,7 @@
 #include "damage.h"
 #include "vehicles.h"
 #include "events.h"
+#include "visual.h"
 
 typedef enum {
     EMPTY,
@@ -32,7 +33,7 @@ typedef union field_data {
 
     struct {
         field_data* inner;
-        field_type inner_type;
+        field_type inner_type : 8;
         ice_block_melt_event_args* melt_event_args;
     } ice_block;
 
@@ -60,12 +61,19 @@ typedef union field_data {
 #define PROP_IS_CLAY        0b00000000000000000100000000000000
 
 
+#define FOREGROUND_COLOR_OVERLAY    0b0001
+#define BACKGROUND_COLOR_OVERLAY    0b0010
+#define MOD_OVERLAY                 0b0100
+#define SYMBOL_OVERLAY              0b1000
+
+
 typedef struct field_state {
-    color* foreground_color_overlay;
-    color* background_color_overlay;
-    print_mod mod_overlay : 8;
-    char* symbol_overlay;
-    field_type type;
+    color_predef foreground_color : 8;
+    color_predef background_color : 8;
+    print_mod mod : 8;
+    symbol symbol : 8;
+    int overlays : 4;
+    field_type type : 8;
     field_data* data;
     int player_data; // Players can read and write here
     entity_list_t* entities;
@@ -92,6 +100,8 @@ typedef struct fields_namespace {
     unsigned int (*const properties)(const int x, const int y);
     field_builders build;
 } fields_namespace;
+
+field_visual get_field_visual(const int x, const int y, field_state* field);
 
 extern const fields_namespace fields;
 

@@ -17,22 +17,70 @@ inline void reset_cursor(void) {
     printf("\033[0;0H");
 }
 
-static inline char line_connects(int x, int y, field_type field) {
-    return (!in_bounds(x,y)) 
-        ? 0 
-        : fields.get(x,y)->type == field;
-}
+const char* symbol_lookup[] = {
+    "*",
+    "\u2219",
+    "\u2022",
+    "\u2575",
+    "\u2579",
+    "\u2576",
+    "\u257a",
+    "\u2577",
+    "\u257b",
+    "\u2574",
+    "\u2578",
+    "\u2502",
+    "\u2503",
+    "\u2500",
+    "\u2501",
+    "\u2514",
+    "\u2517",
+    "\u250c",
+    "\u250f",
+    "\u2518",
+    "\u251b",
+    "\u2510",
+    "\u2513",
+    "\u251c",
+    "\u2523",
+    "\u252c",
+    "\u2533",
+    "\u2524",
+    "\u252b",
+    "\u2534",
+    "\u253b",
+    "\u253c",
+    "\u254b",
+    "\u1330",
+    "\u2311",
+    "\u2316",
+    "\u2313",
+    "\u2620",
+    "\u26b0",
+    "\u2744",
+    "\u219f",
+    "\u2359", // "\u22ed"       "\u23c5" "\u26f5" // For some reason these print wrong
+    "\u2b24",
+    "\u2022",
+    "\u27d0",
+    "\u26ba",
+    "\u26e4",
+    "\u2a09",
+    "\u00b7",
+    "\u21af", // 26a1 this also print a char extra :(
+    "\u22ee",
+    "\u22ef",
+    "\u2302",
+    "\u2022",
+    "\u205a",
+    "\u2056",
+    "\u2058",
+    "\u2059"
+};
 
-int connection_lookup(int x, int y, field_type field) {
-    return 
-        (line_connects(x,y-1,field) << 3) | // N
-        (line_connects(x+1,y,field) << 2) | // E
-        (line_connects(x,y+1,field) << 1) | // S
-        line_connects(x-1,y,field);         // W 
-}
 
 // 0xNESW
-char* char_lookup[] = {
+const int connector_lookup[] = {
     NONE, // 0x0000
     W, // 0x0001
     S, // 0x0010
@@ -50,7 +98,7 @@ char* char_lookup[] = {
     NES, // 0x1110
     ALL, // 0x1111
 };
-char* f_char_lookup[] = {
+const int fortified_connector_lookup[] = {
     F_NONE, // 0x0000
     F_W, // 0x0001
     F_S, // 0x0010
@@ -105,162 +153,10 @@ void reset_print() {
     buffer("\033[0m\0");
 }
 
-field_visual get_field_data_visual(const int x, const int y, const field_type type, const field_data* data) {
-    field_visual result = {
-        .background_color = NULL,
-        .foreground_color = color_predefs.dark_grey,
-        .mod = 0,
-        .symbol = MIDDOT
-    };
-
-    switch (type) {
-        case TRENCH: {
-            int char_idx = connection_lookup(x,y,TRENCH);
-            result.symbol = (data->trench.fortified) ? f_char_lookup[char_idx] : char_lookup[char_idx];
-            result.foreground_color = color_predefs.white;
-            break;
-        }
-        case ICE_BLOCK: {
-            result.background_color = color_predefs.ice_blue;
-            result.foreground_color = color_predefs.white;
-            result.symbol = (data->ice_block.inner_type == EMPTY) ? " " : get_field_data_visual(x, y, data->ice_block.inner_type, data->ice_block.inner).symbol;
-            break;
-        }
-        case TREE: {
-            result.foreground_color = color_predefs.green;
-            result.symbol = TREE_VISUAL;
-            result.mod = BOLD;
-            break;
-        }
-        case WALL: {
-            int char_idx = connection_lookup(x,y,WALL);
-            result.symbol = (data->wall.fortified) ? f_char_lookup[char_idx] : char_lookup[char_idx];
-            result.foreground_color = color_predefs.wood_brown;
-            break;
-        }
-        case BRIDGE: {
-            int char_idx = ~connection_lookup(x,y,OCEAN);
-            result.symbol = f_char_lookup[char_idx];
-            result.foreground_color = color_predefs.wood_brown;
-            result.background_color = color_predefs.blue;
-            break;
-        }
-        case OCEAN: {
-            result.foreground_color = color_predefs.ice_blue;
-            result.background_color = color_predefs.blue;
-            result.symbol = "~";
-            break;
-        }
-        case CLAY: {
-            result.background_color = color_predefs.clay_brown;
-            result.foreground_color = color_predefs.wood_brown;
-            switch (data->clay_pit.amount) {
-                case 0:
-                    result.symbol = " ";
-                    break;
-                case 1:
-                    result.symbol = SINGLE_DOT;
-                    break;
-                case 2:
-                    result.symbol = DOUBLE_DOT;
-                    break;
-                case 3:
-                    result.symbol = TRIPLE_DOT;
-                    break;
-                case 4:
-                    result.symbol = QUAD_DOT;
-                    break;
-                case 5:
-                    result.symbol = PENTA_DOT;
-                    break;
-                default:
-                    result.symbol = "*";
-                    break;
-            }
-            break;
-        }
-        case EMPTY: {
-            //field_state* field = fields.get(x,y);
-            //if (field->entities->count > 0) {
-            //    entity_t* e = peek_entity(field->entities);
-            //    switch (e->type) {
-            //        case ENTITY_PLAYER:
-            //            result.symbol = PERSON;
-            //            result.foreground_color = e->player->team ? e->player->team->color : color_predefs.white;
-            //            break;
-            //        case ENTITY_VEHICLE:
-            //            switch (e->vehicle->type) {
-            //                case VEHICLE_BOAT:
-            //                    result.foreground_color = color_predefs.white;
-            //                    result.symbol = BOAT_VISUAL;
-            //                    break;
-            //            }
-            //            break;
-            //    }
-            //}
-            break;
-        }
-    }
-
-    field_state* field = fields.get(x,y);
-    if (field->entities->count > 0) {
-        entity_t* e = peek_entity(field->entities);
-        switch (e->type) {
-            case ENTITY_PLAYER:
-                result.symbol = PERSON;
-                result.foreground_color = e->player->team ? e->player->team->color : color_predefs.white;
-                break;
-            case ENTITY_VEHICLE:
-                switch (e->vehicle->type) {
-                    case VEHICLE_BOAT:
-                        result.foreground_color = color_predefs.white;
-                        result.symbol = BOAT_VISUAL;
-                        break;
-                }
-                break;
-        }
-    }
-    return result;
-}
-
-field_visual get_field_visual(const int x, const int y, const field_state* field) {
-
-    field_visual result = get_field_data_visual(x,y,field->type,field->data);
-
-    //if (field->vehicle) {
-    //    switch (field->vehicle->type) {
-    //        case VEHICLE_BOAT: {
-    //            result.foreground_color = color_predefs.white;
-    //            result.symbol = BOAT_VISUAL;
-    //            //result.mod = BOLD;
-    //            break;
-    //        }
-    //    }
-    //}
-
-    if (_gs->board[(y * _gs->board_x) + x].symbol_overlay) {
-        char* symbol = _gs->board[(y * _gs->board_x) + x].symbol_overlay;
-        _gs->board[(y * _gs->board_x) + x].symbol_overlay = NULL;
-        result.symbol = symbol;
-    }
-    if (_gs->board[(y * _gs->board_x) + x].foreground_color_overlay) {
-        color* color = _gs->board[(y * _gs->board_x) + x].foreground_color_overlay;
-        _gs->board[(y * _gs->board_x) + x].foreground_color_overlay = NULL;
-        result.foreground_color = color;
-    }
-    if (_gs->board[(y * _gs->board_x) + x].background_color_overlay) {
-        color* color = _gs->board[(y * _gs->board_x) + x].background_color_overlay;
-        _gs->board[(y * _gs->board_x) + x].background_color_overlay = NULL;
-        result.background_color = color;
-    }
-
-    return result; 
-}
-
 field_visual empty_visual() {
     return (field_visual){
-        .background_color = NULL,
-        .foreground_color = NULL,
+        .background_color = color_lookup[BLACK],
+        .foreground_color = color_lookup[DARK_GREY],
         .mod = 0,
         .symbol = " "
     };
@@ -281,29 +177,27 @@ void print_board() {
     for(int i = 0; i < _gr->viewport.width-5; i++) buffer(" ");
     buffer("\n");
 
-    buffer("%s", SE);
-    for(int i = 0; i < _gr->viewport.width+2; i++) buffer("%s", EW);
-    buffer("%s\n", SW);
+    buffer("%s", symbol_lookup[SE]);
+    for(int i = 0; i < _gr->viewport.width+2; i++) buffer("%s", symbol_lookup[EW]);
+    buffer("%s\n", symbol_lookup[SW]);
     for(int y = 0; y < _gr->viewport.height; (buffer("\n"), y++)) {
-        buffer("%s ", NS);
+        buffer("%s ", symbol_lookup[NS]);
         for(int x = 0; x < _gr->viewport.width; x++) {
             int actual_x = _gr->viewport.x + x;
             int actual_y = _gr->viewport.y + y;
             field_visual visual = in_bounds(actual_x, actual_y) ? get_field_visual(actual_x, actual_y, fields.get(actual_x, actual_y)) : empty_visual();
 
-            if (visual.foreground_color)
-                set_color(*visual.foreground_color, FORE);
-
-            if (visual.background_color) 
-                set_color(*visual.background_color, BACK);
-
-            if (visual.mod)
+            set_color(visual.foreground_color, FORE);
+            
+            set_color(visual.background_color, BACK);
+            
+            if (visual.mod) 
                 set_print_mod(visual.mod);
 
             buffer("%s", visual.symbol);
             reset_print();
         }
-        buffer(" %s ", NS);
+        buffer(" %s ", symbol_lookup[NS]);
         while(feed_index < _gs->feed_point) {
             if (_gs->feed_buffer[feed_index] == '\n') {
                 feed_index++; break;
@@ -312,9 +206,9 @@ void print_board() {
             feed_index++;
         } 
     }
-    buffer("%s", NE);
-    for(int i = 0; i < _gr->viewport.width+2; i++) buffer("%s", EW);
-    buffer("%s\n", NW);
+    buffer("%s", symbol_lookup[NE]);
+    for(int i = 0; i < _gr->viewport.width+2; i++) buffer("%s", symbol_lookup[EW]);
+    buffer("%s\n", symbol_lookup[NW]);
 
     puts(view_buf);
 

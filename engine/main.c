@@ -369,6 +369,9 @@ void handle_input() {
             case '0':
                 _gr->time_scale = 0;
                 break;
+            case '1':
+                _gr->time_scale = 1;
+                break;
             case '\033': {
                 char special_buf[2];
                 read(STDIN_FILENO, &special_buf, 2);

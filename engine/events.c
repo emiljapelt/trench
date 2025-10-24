@@ -20,18 +20,20 @@ int mine(entity_t* entity, void* data, situation situ) {
         case ENTITY_PLAYER: {
             death_mark_player(entity->player, "Blown up by a mine");
 
-            location_field(entity->player->location)->symbol_overlay = EXPLOSION;
-            location_field(entity->player->location)->foreground_color_overlay = color_predefs.red;
-            location_field(entity->player->location)->mod_overlay = BOLD;
+            field_state* field = location_field(entity->player->location);
+            set_overlay(field, EXPLOSION);
+            set_color_overlay(field, FORE, RED);
+            set_mod_overlay(field, BOLD);
             return 1;
         }
         
         case ENTITY_VEHICLE: {
             entity->vehicle->destroy = 1;
 
-            location_field(entity->vehicle->location)->symbol_overlay = EXPLOSION;
-            location_field(entity->vehicle->location)->foreground_color_overlay = color_predefs.red;
-            location_field(entity->vehicle->location)->mod_overlay = BOLD;
+            field_state* field = location_field(entity->vehicle->location);
+            set_overlay(field, EXPLOSION);
+            set_color_overlay(field, FORE, RED);
+            set_mod_overlay(field, BOLD);
             return 1;
         }
     }
@@ -45,9 +47,10 @@ int bomb(entity_t* entity, void* data, situation situ) {
         case ENTITY_PLAYER: {
             bomb_event_args* args = (bomb_event_args*)data;
             if (args->player_id != entity->player->id) return 0;
-            set_overlay(args->x,args->y,EXPLOSION);
-            set_color_overlay(args->x,args->y,FORE,color_predefs.red);
-            fields.destroy_field(fields.get(args->x,args->y), "Got blown up");
+            field_state* field = fields.get(args->x, args->y);
+            set_overlay(field, EXPLOSION);
+            set_color_overlay(field, FORE, RED);
+            fields.destroy_field(field, "Got blown up");
             return 1;
         }
     }

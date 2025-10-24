@@ -14,19 +14,27 @@ game_state* _gs = NULL;
 game_rules* _gr = NULL;
 
 
-void set_color_overlay(const int x, const int y, color_target ct, color* c) {
+void set_color_overlay(field_state* field, color_target ct, color_predef c) {
     switch (ct) {
-        case FORE: _gs->board[(y * _gs->board_x) + x].foreground_color_overlay = c; break;
-        case BACK: _gs->board[(y * _gs->board_x) + x].background_color_overlay = c; break;
+        case FORE: 
+            field->foreground_color = c; 
+            field->overlays |= FOREGROUND_COLOR_OVERLAY;
+            break;
+        case BACK: 
+            field->background_color = c; 
+            field->overlays |= BACKGROUND_COLOR_OVERLAY;
+            break;
     }
 }
 
-void set_mod_overlay(const int x, const int y, print_mod m) {
-    _gs->board[(y * _gs->board_x) + x].mod_overlay = m;
+void set_mod_overlay(field_state* field, print_mod m) {
+    field->mod = m;
+    field->overlays |= MOD_OVERLAY;
 }
 
-void set_overlay(const int x, const int y, char* symbol) {
-    _gs->board[(y * _gs->board_x) + x].symbol_overlay = symbol;
+void set_overlay(field_state* field, symbol symbol) {
+    field->symbol = symbol;
+    field->overlays |= SYMBOL_OVERLAY;
 }
 
 
@@ -47,8 +55,8 @@ void set_player_steps_and_actions(player_state* ps) {
 
 void kill_player(player_state* ps) {
     field_state* field = location_field(ps->location);
-    field->symbol_overlay = COFFIN;
-    field->foreground_color_overlay = color_predefs.white;
+    field->symbol = COFFIN;
+    field->foreground_color = WHITE;
     
 
     switch (ps->location.type) {
