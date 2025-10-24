@@ -5,6 +5,11 @@ Assign a priority (render layer) to field_visual. Such that players can hide in 
 - Consider naming of stuff
 - Player start/end turn events (so fewer checks are needed)
 
+# Builtin variables
+- Very similar system to builtin functions
+- Removes the need for meta variables
+- Cool, but is it better?
+
 # Optimize
 - None: 0
 - Simple/Size: 1, Removes uneassesary program parts, reducing the resulting instruction list size
