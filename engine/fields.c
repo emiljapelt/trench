@@ -281,6 +281,7 @@ field_visual get_field_data_visual(const int x, const int y, const field_type ty
         case CLAY: {
             result.background_color = color_lookup[CLAY_BROWN];
             result.foreground_color = color_lookup[WOOD_BROWN];
+            result.mod = BOLD;
             switch (data->clay_pit.amount) {
                 case 0:
                     result.symbol = " ";

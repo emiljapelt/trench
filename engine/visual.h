@@ -68,7 +68,11 @@ extern const char* symbol_lookup[];
 extern const int connector_lookup[];
 extern const int fortified_connector_lookup[];
 
-#define MAX_SYMBOL_SIZE 48
+// Measured to 19b
+// Calculated to 35b
+#define MAX_SYMBOL_SIZE 40
+
+#define FEED_WIDTH 16
 
 typedef enum {
     FORE,

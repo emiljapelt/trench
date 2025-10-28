@@ -127,11 +127,12 @@ char* view_buf = NULL;
 
 void buffer(char* format, ...) {
     va_list args;
-    char buf[MAX_SYMBOL_SIZE];
+    char buf[MAX_SYMBOL_SIZE] = {0};
 
     va_start(args, format);
 
     vsnprintf(buf, MAX_SYMBOL_SIZE, format, args);
+
     strcat(view_buf, buf);
 }
 
@@ -167,7 +168,12 @@ void print_board() {
     int feed_index = 0;
 
     if (view_buf == NULL) {
-        int view_buf_size = _gr->viewport.height * (_gr->viewport.width+1) * MAX_SYMBOL_SIZE;
+        view_buf_size = 
+            _gr->viewport.width + // First line
+            _gr->viewport.height + // Newlines
+            (2 * _gr->viewport.height + 2 * _gr->viewport.width) + // Border
+            (_gr->viewport.height * FEED_WIDTH) + // Feed
+            (_gr->viewport.height * _gr->viewport.width * MAX_SYMBOL_SIZE); // Board
         view_buf = malloc(view_buf_size + 1);
     }
 
@@ -198,12 +204,14 @@ void print_board() {
             reset_print();
         }
         buffer(" %s ", symbol_lookup[NS]);
-        while(feed_index < _gs->feed_point) {
+        char fi = 0;
+        while(fi <= FEED_WIDTH && feed_index < _gs->feed_point) {
             if (_gs->feed_buffer[feed_index] == '\n') {
                 feed_index++; break;
             }
             buffer("%c", _gs->feed_buffer[feed_index]);
             feed_index++;
+            fi++;
         } 
     }
     buffer("%s", symbol_lookup[NE]);
