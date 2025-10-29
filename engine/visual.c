@@ -8,6 +8,7 @@
 #include "visual.h"
 #include "util.h"
 #include "color.h"
+#include "log.h"
 
 // https://stackoverflow.com/questions/26423537/how-to-position-the-input-text-cursor-in-c
 inline void clear_screen(void) {
@@ -122,11 +123,10 @@ color rgb_color(int r, int g, int b) {
     return (color) { .r = r, .g = g, .b = b };
 }
 
-int view_buf_size = -1;
+int view_buf_max_size;
+int view_buf_size;
+int view_buf_fill;
 char* view_buf;
-
-int max = 0;
-int counter = 0;
 
 void buffer(char* format, ...) {
     va_list args;
@@ -136,7 +136,21 @@ void buffer(char* format, ...) {
 
     vsnprintf(buf, MAX_SYMBOL_SIZE, format, args);
 
-counter += strlen(buf);
+    view_buf_fill += strlen(buf);
+
+    if (view_buf_fill >= view_buf_size) {
+        if (view_buf_size >= view_buf_max_size) {
+            _log(ERROR, "View buffer overflow");
+            return;
+        }
+        int new_size = 2 * view_buf_size;
+        if (new_size > view_buf_max_size) 
+            new_size = view_buf_max_size;
+
+        _log(INFO, "Increasing view buffer to: %i", new_size);
+        view_buf = realloc(view_buf, new_size);
+        view_buf_size = new_size;
+    }
 
     strcat(view_buf, buf);
 }
@@ -173,16 +187,20 @@ void print_board() {
     int feed_index = 0;
 
     if (view_buf == NULL) {
-        view_buf_size = 
+        view_buf_max_size = 
             _gr->viewport.width + // First line
             _gr->viewport.height + // Newlines
             (2 * _gr->viewport.height + 2 * _gr->viewport.width) + // Border
             (_gr->viewport.height * FEED_WIDTH) + // Feed
             (_gr->viewport.height * _gr->viewport.width * MAX_SYMBOL_SIZE); // Board
-        view_buf = malloc(view_buf_size+1);
+
+        view_buf_size = view_buf_max_size / 10;
+
+        view_buf = malloc(view_buf_size);
     }
 
-    memset(view_buf, 0, view_buf_size + 1);
+    view_buf_fill = 0;
+    memset(view_buf, 0, view_buf_size);
 
     buffer("Round: %i", _gs->round);
     for(int i = 0; i < _gr->viewport.width-5; i++) buffer(" ");

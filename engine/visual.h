@@ -69,8 +69,7 @@ extern const int connector_lookup[];
 extern const int fortified_connector_lookup[];
 
 // Measured to 43b
-// Calculated to 35b
-#define MAX_SYMBOL_SIZE 48
+#define MAX_SYMBOL_SIZE 43
 
 #define FEED_WIDTH 16
 
