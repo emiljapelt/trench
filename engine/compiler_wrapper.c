@@ -309,6 +309,10 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 .events = array_list.create(10),
             };
 
+            // Center board in viewport;
+            gr->viewport.x = -(gr->viewport.width / 2) + (board_x / 2);
+            gr->viewport.y = -(gr->viewport.height / 2) + (board_y / 2);
+
             for(int i = 0; i < team_count; i++) {
                 value team_info = Field(Field(unwrapped_result, 8),i);
                 gs->team_states[i].team_name = strdup(String_val(Field(team_info, 0)));

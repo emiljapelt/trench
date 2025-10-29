@@ -68,9 +68,9 @@ extern const char* symbol_lookup[];
 extern const int connector_lookup[];
 extern const int fortified_connector_lookup[];
 
-// Measured to 19b
+// Measured to 43b
 // Calculated to 35b
-#define MAX_SYMBOL_SIZE 40
+#define MAX_SYMBOL_SIZE 48
 
 #define FEED_WIDTH 16
 

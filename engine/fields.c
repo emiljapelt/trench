@@ -337,12 +337,14 @@ field_visual get_field_data_visual(const int x, const int y, const field_type ty
             case ENTITY_PLAYER:
                 result.symbol = symbol_lookup[PERSON];
                 result.foreground_color = e->player->team ? *e->player->team->color : color_lookup[WHITE];
+                result.mod = 0;
                 break;
             case ENTITY_VEHICLE:
                 switch (e->vehicle->type) {
                     case VEHICLE_BOAT:
                         result.foreground_color = color_lookup[WHITE];
                         result.symbol = symbol_lookup[BOAT_VISUAL];
+                        result.mod = 0;
                         break;
                 }
                 break;

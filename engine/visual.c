@@ -122,8 +122,11 @@ color rgb_color(int r, int g, int b) {
     return (color) { .r = r, .g = g, .b = b };
 }
 
-int view_buf_size;
-char* view_buf = NULL;
+int view_buf_size = -1;
+char* view_buf;
+
+int max = 0;
+int counter = 0;
 
 void buffer(char* format, ...) {
     va_list args;
@@ -132,6 +135,8 @@ void buffer(char* format, ...) {
     va_start(args, format);
 
     vsnprintf(buf, MAX_SYMBOL_SIZE, format, args);
+
+counter += strlen(buf);
 
     strcat(view_buf, buf);
 }
@@ -151,7 +156,7 @@ void set_print_mod(print_mod m) {
 }
 
 void reset_print() {
-    buffer("\033[0m\0");
+    buffer("\033[m\0"); // same as "\033[0m\0"
 }
 
 field_visual empty_visual() {
@@ -174,7 +179,7 @@ void print_board() {
             (2 * _gr->viewport.height + 2 * _gr->viewport.width) + // Border
             (_gr->viewport.height * FEED_WIDTH) + // Feed
             (_gr->viewport.height * _gr->viewport.width * MAX_SYMBOL_SIZE); // Board
-        view_buf = malloc(view_buf_size + 1);
+        view_buf = malloc(view_buf_size+1);
     }
 
     memset(view_buf, 0, view_buf_size + 1);
@@ -188,21 +193,28 @@ void print_board() {
     buffer("%s\n", symbol_lookup[SW]);
     for(int y = 0; y < _gr->viewport.height; (buffer("\n"), y++)) {
         buffer("%s ", symbol_lookup[NS]);
+        field_visual prev_visual = empty_visual();
         for(int x = 0; x < _gr->viewport.width; x++) {
             int actual_x = _gr->viewport.x + x;
             int actual_y = _gr->viewport.y + y;
             field_visual visual = in_bounds(actual_x, actual_y) ? get_field_visual(actual_x, actual_y, fields.get(actual_x, actual_y)) : empty_visual();
 
-            set_color(visual.foreground_color, FORE);
-            
-            set_color(visual.background_color, BACK);
-            
-            if (visual.mod) 
+            int mod_changed = x == 0 || visual.mod != prev_visual.mod;
+            if (mod_changed) {
+                if (x != 0) reset_print();
                 set_print_mod(visual.mod);
+            }
 
+            if (mod_changed || !color_eq(visual.foreground_color, prev_visual.foreground_color))
+                set_color(visual.foreground_color, FORE);
+            
+            if (mod_changed || !color_eq(visual.background_color, prev_visual.background_color))
+                set_color(visual.background_color, BACK);
+            
             buffer("%s", visual.symbol);
-            reset_print();
+            prev_visual = visual;
         }
+        reset_print();
         buffer(" %s ", symbol_lookup[NS]);
         char fi = 0;
         while(fi <= FEED_WIDTH && feed_index < _gs->feed_point) {
