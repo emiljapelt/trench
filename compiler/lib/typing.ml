@@ -17,6 +17,11 @@ let var_type scopes name =
   )
 
 let rec type_value state v = match v with
+    | Reference(Local name) when not (is_var name state.scopes) -> (
+      match lookup_builtin_var_info name with
+      | Some bv -> bv.typ
+      | _ -> raise_failure ("Unknown variable: "^name)
+      )
     | Reference Local n -> var_type state.scopes n
     | Reference Array(target,idx) -> (
       require T_Int (type_value state idx) (fun () -> ()) ;
@@ -24,7 +29,6 @@ let rec type_value state v = match v with
       | T_Array(t,_) -> t
       | _ -> raise_failure ("not an array")
     )
-    | MetaReference m -> type_meta m
     | Binary_op(op,v0,v1) -> (match op, type_value state v0, type_value state v1 with
       | "+", T_Int, T_Int 
       | "-", T_Int, T_Int 
@@ -49,6 +53,7 @@ let rec type_value state v = match v with
     | Random
     | Int _ -> T_Int
     | Prop _ -> T_Prop
+    | Resource _ -> T_Resource
     | Decrement(target,_) -> (match type_value state (Reference target) with 
       | T_Int -> T_Int
       | _ -> raise_failure ("Only int and dir can be decremented")
@@ -82,9 +87,9 @@ let rec type_value state v = match v with
     )
     | Call(Reference(Local name), args) when not (is_var name state.scopes) -> (
       let arg_types = List.map (type_value state) args in
-      match lookup_builtin_info name arg_types with
+      match lookup_builtin_func_info name arg_types with
         | Some ii -> ii.ret
-        | _ -> raise_failure ("Unknown instruction: "^name^"("^String.concat "," (List.map type_string arg_types) ^")")
+        | _ -> raise_failure ("Unknown function: "^name^"("^String.concat "," (List.map type_string arg_types) ^")")
     )
     | Call(f,args) -> (
       let f_type = type_value state f in match f_type with
@@ -107,16 +112,6 @@ let rec type_value state v = match v with
       let b_typ = type_value state b in
       if not(type_eq a_typ b_typ) then raise_failure "Type mismatch"
       else a_typ;
-      
-
-and type_meta m = match m with
-    | PlayerX     
-    | PlayerY
-    | BoardX      
-    | BoardY 
-    | PlayerID
-    | PlayerResource _ -> T_Int
-
 
 and type_check_stmt_inner state stmt = match stmt with
   | If(c,a,b) -> require T_Int (type_value state c) (fun () -> type_check_stmt state a |> ignore ; type_check_stmt state b |> ignore ; (stmt, state))

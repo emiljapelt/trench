@@ -129,6 +129,6 @@ and rename_variables_of_stmt map (Stmt(stmt,ln)) = match stmt with
 
 let rename_variables_of_file (File stmts) =
   reset_rename_generator () ;
-  match rename_variables_of_stmt instruction_rename_map (Stmt(Block stmts,0)) with
+  match rename_variables_of_stmt builtin_rename_map (Stmt(Block stmts,0)) with
   | (_,Stmt(Block stmts,_)) -> File stmts
   | _ -> failwith "Renaming failed"

@@ -117,7 +117,7 @@ int global_scope_sp(player_state* ps, int bp, int sp) {
 int instr_shoot(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
 
-    if(!spend_resource(ps->resources, "ammo", 1)) {
+    if(!spend_resource(&ps->resources, R_Ammo, 1)) {
         ps->stack[ps->sp++] = 0;
         return 0;
     }
@@ -194,7 +194,7 @@ int instr_scan(player_state* ps) {
 
 int instr_mine(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
-    if(!spend_resource(ps->resources, "explosive", 1)) {
+    if(!spend_resource(&ps->resources, R_Explosive, 1)) {
         ps->stack[ps->sp++] = 0;
         return 0;
     }
@@ -277,9 +277,9 @@ int instr_chop(player_state* ps) {
         }
     else if (field->type == TREE) {
         fields.remove_field(field);
-        add_resource(ps->resources, "wood", _gr->settings.chop.wood_gain);
+        add_resource(&ps->resources, R_Wood, _gr->settings.chop.wood_gain);
         int got_sapling = rand() % 100 > _gr->settings.chop.sapling_chance;
-        if (got_sapling) add_resource(ps->resources, "sapling", 1);
+        if (got_sapling) add_resource(&ps->resources, R_Sapling, 1);
     }
 
     return 1;
@@ -308,7 +308,7 @@ int instr_trench(player_state* ps) {
 }
 
 int instr_fortify(player_state* ps) {
-    if(!spend_resource(ps->resources, "wood", _gr->settings.fortify.cost)) {
+    if(!spend_resource(&ps->resources, R_Wood, _gr->settings.fortify.cost)) {
         ps->stack[ps->sp++] = 0;
         return 0;
     } 
@@ -354,7 +354,7 @@ int instr_place(player_state* ps) {
 int instr_bomb(player_state* ps) {
     int p = ps->stack[--ps->sp];
     direction d = (direction)ps->stack[--ps->sp];
-    if(!spend_resource(ps->resources, "explosive", 1)) {
+    if(!spend_resource(&ps->resources, R_Explosive, 1)) {
         ps->stack[ps->sp++] = 0;
         return 0;
     }
@@ -429,9 +429,8 @@ int meta_resource(player_state* ps) {
         return 0;
     }
 
-    int index = ps->directive[ps->dp];
-    ps->dp++;
-    ps->stack[ps->sp++] = peek_resource_index(ps->resources, index);
+    int resource = ps->stack[--ps->sp];
+    ps->stack[ps->sp++] = peek_resource(&ps->resources, resource);
     return 0;
 }
 int meta_player_id(player_state* ps) {
@@ -625,7 +624,7 @@ int instr_read(player_state* ps) {
 
 int instr_projection(player_state* ps) {
     if (
-        !spend_resource(ps->resources, "mana", _gr->settings.projection.cost)
+        !spend_resource(&ps->resources, R_Mana, _gr->settings.projection.cost)
         || !ps->is_original_player
         || ps->location.type == VEHICLE_LOCATION && !(get_vehicle_capacity(ps->location.vehicle->type) > ps->location.vehicle->entities->count)
     ) {
@@ -634,7 +633,7 @@ int instr_projection(player_state* ps) {
     }  
 
     player_state* projection = copy_player_state(ps);
-    projection->resources = copy_resource_registry(ps->resources);
+    copy_resource_registry(&ps->resources, &projection->resources);
 
     add_player(_gs->players, projection);
     if (projection->team)
@@ -654,7 +653,7 @@ int instr_projection(player_state* ps) {
 int instr_freeze(player_state* ps) {
     int p = ps->stack[--ps->sp];
     direction d = (direction)ps->stack[--ps->sp];
-    if(!spend_resource(ps->resources, "mana", _gr->settings.freeze.cost)) {
+    if(!spend_resource(&ps->resources, R_Mana, _gr->settings.freeze.cost)) {
         ps->stack[ps->sp++] = 0;
         return 0;
     }
@@ -700,7 +699,7 @@ int instr_freeze(player_state* ps) {
 
 int instr_fireball(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
-    if(!spend_resource(ps->resources, "mana", _gr->settings.fireball.cost)) {
+    if(!spend_resource(&ps->resources, R_Mana, _gr->settings.fireball.cost)) {
         ps->stack[ps->sp++] = 0;
         return 0;
     }
@@ -742,7 +741,7 @@ int instr_fireball(player_state* ps) {
 }
 
 int instr_meditate(player_state* ps) {
-    add_resource(ps->resources, "mana", _gr->settings.meditate.amount);
+    add_resource(&ps->resources, R_Mana, _gr->settings.meditate.amount);
     field_state* field = location_field(ps->location);
     field->background_color = MAGIC_PURPLE;
     field->overlays |= BACKGROUND_COLOR_OVERLAY;
@@ -753,7 +752,7 @@ int instr_meditate(player_state* ps) {
 
 int instr_dispel(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
-    if(!spend_resource(ps->resources, "mana", _gr->settings.dispel.cost)) {
+    if(!spend_resource(&ps->resources, R_Mana, _gr->settings.dispel.cost)) {
         ps->stack[ps->sp++] = 0;
         return 0;
     } 
@@ -800,7 +799,7 @@ int instr_disarm(player_state* ps) {
 
 int instr_mana_drain(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
-    if(!spend_resource(ps->resources, "mana", _gr->settings.mana_drain.cost)) {
+    if(!spend_resource(&ps->resources, R_Mana, _gr->settings.mana_drain.cost)) {
         ps->stack[ps->sp++] = 0;
         return 0;
     }
@@ -874,7 +873,7 @@ int instr_wall(player_state* ps) {
     move_coord(&x, &y, d, 1);
 
     if (
-        !spend_resource(ps->resources, "wood", _gr->settings.wall.cost)
+        !spend_resource(&ps->resources, R_Wood, _gr->settings.wall.cost)
         || !in_bounds(x, y)
     ) {
         ps->stack[ps->sp++] = 0;
@@ -902,7 +901,7 @@ int instr_plant_tree(player_state* ps) {
 
     if (
         !in_bounds(x, y)
-        || !spend_resource(ps->resources, "sapling", 1)
+        || !spend_resource(&ps->resources, R_Sapling, 1)
     ) {
         ps->stack[ps->sp++] = 0;
         return 0;
@@ -932,7 +931,7 @@ int instr_bridge(player_state* ps) {
     field_state* field = fields.get(x,y);
     if (
         field->type != OCEAN
-        || !spend_resource(ps->resources, "wood", _gr->settings.bridge.cost)
+        || !spend_resource(&ps->resources, R_Wood, _gr->settings.bridge.cost)
     ) {
         ps->stack[ps->sp++] = 0;
         return 0;
@@ -961,21 +960,21 @@ int instr_collect(player_state* ps) {
     int success = 0;
     switch (field->type) {
         case TREE:
-            add_resource(ps->resources, "sapling", 1);
+            add_resource(&ps->resources, R_Sapling, 1);
             success = 1;
             break;
         case CLAY:
             switch (field->data->clay_pit.amount) {
                 case 0: {
                     fields.remove_field(field);
-                    add_resource(ps->resources, "clay", 1);
+                    add_resource(&ps->resources, R_Clay, 1);
                     success = 1;
                     break;
                 }
                 default: {
                     int collected = field->data->clay_pit.amount > _gr->settings.clay_pit.collect_max ? _gr->settings.clay_pit.collect_max : field->data->clay_pit.amount;
                     field->data->clay_pit.amount -= collected;
-                    add_resource(ps->resources, "clay", collected);
+                    add_resource(&ps->resources, R_Clay, collected);
                     success = 1;
                     break;
                 }
@@ -1073,7 +1072,7 @@ int instr_boat(player_state* ps) {
         return 0;
     }
 
-    if (!spend_resource(ps->resources, "wood", _gr->settings.boat.cost)) {
+    if (!spend_resource(&ps->resources, R_Wood, _gr->settings.boat.cost)) {
         ps->stack[ps->sp++] = 0;
         return 0;
     }
@@ -1092,7 +1091,7 @@ int instr_boat(player_state* ps) {
 int instr_bear_trap(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
     // TODO: figure out a resource for this
-    //if(!spend_resource(ps->resources, "explosive", 1)) return 0;
+    //if(!spend_resource(ps->resources, R_Explosive, 1)) return 0;
 
     int x, y;
     location_coords(ps->location, &x, &y);
@@ -1193,7 +1192,7 @@ int instr_throw_clay(player_state* ps) {
     int p = ps->stack[--ps->sp];
     direction d = (direction)ps->stack[--ps->sp];
 
-    if(!spend_resource(ps->resources, "clay", _gr->settings.throw_clay.cost)) {
+    if(!spend_resource(&ps->resources, R_Clay, _gr->settings.throw_clay.cost)) {
         ps->stack[ps->sp++] = 0;
         return 0;
     }
@@ -1250,7 +1249,7 @@ int instr_throw_clay(player_state* ps) {
 
 int instr_clay_golem(player_state* ps) {
     if (
-        !spend_resource(ps->resources, "clay", _gr->settings.clay_golem.cost)
+        !spend_resource(&ps->resources, R_Clay, _gr->settings.clay_golem.cost)
         || !ps->is_original_player
         || ps->location.type == VEHICLE_LOCATION && !(get_vehicle_capacity(ps->location.vehicle->type) > ps->location.vehicle->entities->count)
     ) {
@@ -1260,7 +1259,7 @@ int instr_clay_golem(player_state* ps) {
 
     player_state* golem = copy_player_state(ps);
     golem->team = NULL;
-    golem->resources = get_empty_resource_registy();
+    copy_empty_resource_registry(&default_resource_registry, &golem->resources);
 
     add_player(_gs->players, golem);
 

@@ -35,7 +35,7 @@ typedef struct player_state {
     array_list_t* pager_msgs;
     event_list_t* pre_death_events;
     event_list_t* post_death_events;
-    resource_registry* resources;
+    resource_registry resources;
     array_list_t* extra_files;
 } player_state;
 

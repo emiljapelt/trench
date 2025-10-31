@@ -2,7 +2,9 @@
   open Absyn
   open Lexing
   open Field_props
+  open Resources
   open Builtins
+
 
   (*type var_name_generator = { mutable next : int }
   let vg = ( {next = 0;} )
@@ -11,20 +13,10 @@
     let () = vg.next <- vg.next+1 in
     Int.to_string number*)
 
-  let meta_name n = match n with
-    | "x" -> PlayerX
-    | "y" -> PlayerY
-    | "board_x" -> BoardX
-    | "board_y" -> BoardY
-    | "id" -> PlayerID
-    | _ -> PlayerResource(n)
-
-  
-
 %}
 %token <int> CSTINT
 %token <string> NAME
-%token <string> META_NAME
+%token <string> RESOURCE_NAME
 %token <string> FIELD_PROP
 %token LPAR RPAR LBRACE RBRACE LBRAKE RBRAKE
 %token PLUS MINUS TIMES EQ NEQ LT GT LTEQ GTEQ
@@ -34,7 +26,7 @@
 %token IF ELSE IS REPEAT WHILE CONTINUE BREAK LET
 %token GOTO
 %token NORTH EAST SOUTH WEST
-%token INT DIR FIELD PROP L_SHIFT R_SHIFT
+%token INT DIR FIELD PROP RESOURCE L_SHIFT R_SHIFT
 %token RETURN
 
 // Precedence and assosiativity inspired by https://en.cppreference.com/w/c/language/operator_precedence.html
@@ -74,6 +66,7 @@ simple_typ:
   | INT { T_Int }
   | DIR { T_Dir }
   | FIELD { T_Field }
+  | RESOURCE { T_Resource }
   | PROP { T_Prop }
   | LPAR typ RPAR { $2 }
   | typ COLON LPAR seperated_or_empty(COMMA, simple_typ) RPAR { T_Func($1, $4) }
@@ -89,9 +82,10 @@ block:
 ;
 
 const_value:
-  | CSTINT      { Int $1 }
-  | direction   { Direction $1 }
-  | FIELD_PROP  { Prop(string_to_prop $1) }
+  | CSTINT        { Int $1 }
+  | direction     { Direction $1 }
+  | FIELD_PROP    { Prop(string_to_prop $1) }
+  | RESOURCE_NAME { Resource(string_to_resource $1) }
 ;
 
 simple_value:
@@ -99,7 +93,6 @@ simple_value:
   | QMARK                              { features ["random"] ; Random }
   | QMARK LPAR simple_value+ RPAR      { features ["random"] ; RandomSet $3 }
   | target                             { Reference($1) }
-  | META_NAME                          { MetaReference (meta_name $1) }
   | LPAR value RPAR                    { $2 }
 ;
 

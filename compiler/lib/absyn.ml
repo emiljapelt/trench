@@ -1,4 +1,5 @@
 module StringSet = Set.Make(String)
+open Resources
 
 type direction =
     | North
@@ -31,6 +32,7 @@ and typ =
     | T_Dir
     | T_Field
     | T_Prop
+    | T_Resource
     | T_Array of typ * int
     | T_Func of typ * typ list
 
@@ -58,7 +60,7 @@ and statement_inner =
 
 and value =
     | Reference of target
-    | MetaReference of meta_data
+    | Resource of resource
     | Increment of target * bool
     | Decrement of target * bool
     | Binary_op of string * value * value
@@ -72,14 +74,6 @@ and value =
     | Func of typ * (typ * string) list * statement
     | Call of value * value list
     | Ternary of value * value * value
-
-and meta_data =
-    | PlayerX     (* #x *)
-    | PlayerY     (* #y *)  
-    | PlayerResource of string
-    | BoardX      (* #board_x *)  
-    | BoardY      (* #board_y *)
-    | PlayerID
 
 and variable =
     | Var of typ * string
@@ -116,6 +110,7 @@ let rec type_size t = match t with
     | T_Int 
     | T_Dir 
     | T_Prop
+    | T_Resource
     | T_Func _
     | T_Field -> 1
     | T_Array(t,s) -> s * (type_size t)
@@ -124,7 +119,8 @@ let rec type_string t = match t with
   | T_Int -> "int"
   | T_Dir -> "dir"
   | T_Field -> "field"
-  | T_Prop -> "prop"
+  | T_Prop -> "property"
+  | T_Resource -> "resource"
   | T_Array(t,_) -> (type_string t) ^ "[]"
   | T_Func(r,args) -> (type_string r) ^ ":(" ^ (args |> List.map type_string |> String.concat ",")  ^ ")"
 
@@ -132,6 +128,7 @@ let rec type_eq t1 t2 = match t1,t2 with
   | T_Int, T_Int
   | T_Dir, T_Dir
   | T_Prop, T_Prop
+  | T_Resource, T_Resource
   | T_Field, T_Field -> true
   | T_Array(st1,_), T_Array(st2,_) -> type_eq st1 st2
   | T_Func(ret, params), T_Func(ret', params') -> 
@@ -155,8 +152,6 @@ type team_info_field =
 and player_info = PI of { team: int; name: string; origin: int * int; files: string list }
 type team_info = TI of { name: string; color: (int*int*int); origin: int * int; players: player_info list }
 
-type resource = string * (int * int)
-
 type exec_mode =
     | DefaultExec
 
@@ -168,7 +163,7 @@ type setting_overwrites = string * (string * int) list
 
 type game_setup_part =
     | Team of team_info
-    | Resources of resource list
+    | Resources of (string * (int * int)) list
     | Themes of StringSet.t
     | Features of StringSet.t
     | Actions of int
@@ -185,7 +180,7 @@ type game_setup_part =
 
 type game_setup = GS of {
     teams: team_info list;
-    resources: resource list;
+    resources: (int*int) ResourceMap.t;
     themes: StringSet.t;
     features: StringSet.t;
     actions: int;

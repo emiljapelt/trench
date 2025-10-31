@@ -12,8 +12,8 @@
 #include "game_state.h"
 #include "visual.h"
 #include "util.h"
-#include "instructions.h"
 #include "compiler_wrapper.h"
+#include "instructions.h"
 #include "entity.h"
 #include "log.h"
 

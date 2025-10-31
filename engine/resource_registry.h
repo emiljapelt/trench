@@ -1,37 +1,32 @@
 #ifndef H_RESOURCE_REGISTRY
 #define H_RESOURCE_REGISTRY
 
-typedef struct resource_node
-{
-    const char* name;
+#define RESOURCE_COUNT 6
+
+typedef enum {
+    R_Explosive = 0,
+    R_Ammo = 1,
+    R_Mana = 2,
+    R_Sapling = 3,
+    R_Clay = 4,
+    R_Wood = 5,
+} resource_type;
+
+typedef struct resource {
     int amount;
     int max;
-    struct resource_node* next;
-}
-resource_node;
+} resource;
 
+typedef struct resource_registry {
+    resource resource[RESOURCE_COUNT];
+} resource_registry;
 
-typedef struct resource_registry
-{
-    const int size;
-    int count;
-    const int max_count;
-    resource_node** buckets;
-    resource_node** index_ref;
-} 
-resource_registry;
+extern resource_registry default_resource_registry;
 
-
-resource_registry* create_resource_registry(int size, int max_count);
-resource_registry* copy_resource_registry(resource_registry* old_registry);
-void init_resource(resource_registry* registry, const char* name, int max_amount);
-char spend_resource(resource_registry* registry, const char* name, int amount);
-int peek_resource(resource_registry* registry, const char* name);
-int peek_resource_index(resource_registry* registry, const int index);
-void add_resource(resource_registry* registry, const char* name, unsigned int amount);
-
-
-resource_registry* get_empty_resource_registy();
-void set_empty_resource_registy(resource_registry* reg);
+void copy_resource_registry(const resource_registry const * old_registry, resource_registry* new_registry);
+void copy_empty_resource_registry(const resource_registry const * old_registry, resource_registry* new_registry);
+char spend_resource(resource_registry* registry, resource_type r, int amount);
+int peek_resource(resource_registry* registry, resource_type r);
+void add_resource(resource_registry* registry, resource_type r, unsigned int amount);
 
 #endif
