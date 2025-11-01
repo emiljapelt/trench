@@ -32,6 +32,15 @@ field_state* create_board(char* map_data, const int x, const int y) {
             .enter_events = array_list.create(10),
             .exit_events = array_list.create(10),
         };
+
+        zero_out_registry(&brd[(_y * x) + _x].resources);
+        set_resource_entry(&brd[(_y * x) + _x].resources, R_Wood, 0, -1);
+        set_resource_entry(&brd[(_y * x) + _x].resources, R_Clay, 0, -1);
+        set_resource_entry(&brd[(_y * x) + _x].resources, R_Ammo, 0, -1);
+        set_resource_entry(&brd[(_y * x) + _x].resources, R_Sapling, 0, -1);
+        set_resource_entry(&brd[(_y * x) + _x].resources, R_BearTrap, 0, -1);
+        set_resource_entry(&brd[(_y * x) + _x].resources, R_Explosive, 0, -1);
+
         if (map_data) switch(map_data[(_y * x) + _x]) {
             case '+': {
                 field_data* data = malloc(sizeof(field_data));

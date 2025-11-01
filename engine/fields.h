@@ -79,6 +79,7 @@ typedef struct field_state {
     entity_list_t* entities;
     event_list_t* enter_events;
     event_list_t* exit_events;
+    resource_registry resources;
 } field_state;
 
 typedef struct field_builders {

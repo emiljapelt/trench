@@ -87,7 +87,7 @@ let builtin_func_infos : builtin_func_info StringMap.t = StringMap.of_list [
   });
   ("projection", {
     themes = ["wizardry"];
-    features = [];
+    features = ["fork"];
     versions = [{
       args = [];
       ret = T_Int;
@@ -334,7 +334,7 @@ let builtin_func_infos : builtin_func_info StringMap.t = StringMap.of_list [
   });
   ("clay_golem", {
     themes = ["pottery"];
-    features = [];
+    features = ["fork"];
     versions = [{
       args = [];
       ret = T_Int;
@@ -348,6 +348,24 @@ let builtin_func_infos : builtin_func_info StringMap.t = StringMap.of_list [
       args = [T_Resource];
       ret = T_Int;
       comp = FuncComp Meta_Resource;
+    }];
+  });
+  ("drop", {
+    themes = [];
+    features = [];
+    versions = [{
+      args = [T_Resource];
+      ret = T_Int;
+      comp = FuncComp Instr_Drop;
+    }];
+  });
+  ("take", {
+    themes = [];
+    features = [];
+    versions = [{
+      args = [T_Resource];
+      ret = T_Int;
+      comp = FuncComp Instr_Take;
     }];
   });
 ]

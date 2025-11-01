@@ -10,6 +10,7 @@ typedef enum {
     R_Sapling = 3,
     R_Clay = 4,
     R_Wood = 5,
+    R_BearTrap = 6,
 } resource_type;
 
 typedef struct resource {
@@ -25,8 +26,12 @@ extern resource_registry default_resource_registry;
 
 void copy_resource_registry(const resource_registry const * old_registry, resource_registry* new_registry);
 void copy_empty_resource_registry(const resource_registry const * old_registry, resource_registry* new_registry);
+void set_resource_entry(resource_registry* registry, resource_type resource, int amount, int max);
+void zero_out_registry(resource_registry* registry);
+
 char spend_resource(resource_registry* registry, resource_type r, int amount);
 int peek_resource(resource_registry* registry, resource_type r);
 void add_resource(resource_registry* registry, resource_type r, unsigned int amount);
+char resource_filled(resource_registry* registry, resource_type r);
 
 #endif

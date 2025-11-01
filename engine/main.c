@@ -217,6 +217,8 @@ void player_turn_default(player_state* ps) {
                 change = instr_clay_golem(ps); 
                 break;
             }
+            case Instr_Drop: change = instr_drop(ps); break;
+            case Instr_Take: change = instr_take(ps); break;
             default: return;
         }
 

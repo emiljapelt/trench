@@ -87,6 +87,8 @@ typedef enum {
   Instr_Index = 64,
   Instr_ThrowClay = 65,
   Instr_ClayGolem = 66,
+  Instr_Take = 67,
+  Instr_Drop = 68,
 } instruction;
 
 const char* stack_overflow_msg = "Had an aneurysm (STACK_OVERFLOW)";
@@ -991,6 +993,7 @@ int instr_say(player_state* ps) {
     char msg[100 + 1];
     snprintf(msg, 100, "%s#%i says %i\n", ps->name, ps->id, v);
     print_to_feed(msg);
+    _log(DEBUG, msg);
     ps->stack[ps->sp++] = 1;
     return 0;
 }
@@ -1083,6 +1086,15 @@ int instr_boat(player_state* ps) {
     boat->location = field_location_from_field(field);
     boat->type = VEHICLE_BOAT;
     boat->destroy = 0;
+
+    zero_out_registry(&boat->resources);
+    set_resource_entry(&boat->resources, R_Wood, 0, -1);
+    set_resource_entry(&boat->resources, R_Clay, 0, -1);
+    set_resource_entry(&boat->resources, R_Ammo, 0, -1);
+    set_resource_entry(&boat->resources, R_Sapling, 0, -1);
+    set_resource_entry(&boat->resources, R_BearTrap, 0, -1);
+    set_resource_entry(&boat->resources, R_Explosive, 0, -1);
+
     add_entity(field->entities, entity.of_vehicle(boat));
     ps->stack[ps->sp++] = 1;
     return 1;
@@ -1090,8 +1102,7 @@ int instr_boat(player_state* ps) {
 
 int instr_bear_trap(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
-    // TODO: figure out a resource for this
-    //if(!spend_resource(ps->resources, R_Explosive, 1)) return 0;
+    if(!spend_resource(&ps->resources, R_BearTrap, 1)) return 0;
 
     int x, y;
     location_coords(ps->location, &x, &y);
@@ -1267,6 +1278,69 @@ int instr_clay_golem(player_state* ps) {
 
     ps->stack[ps->sp++] = 1;
     golem->stack[golem->sp++] = 0;
+    return 0;
+}
+
+int instr_drop(player_state* ps) {
+    int resource = ps->stack[--ps->sp];
+
+    if (!spend_resource(&ps->resources, resource, 1)) {
+        ps->stack[ps->sp++] = 0;
+        return 0;
+    }
+
+    int success = 0;
+    location loc = ps->location;
+
+    switch (loc.type) {
+        case FIELD_LOCATION:
+            add_resource(&loc.field->resources, resource, 1);
+            success = 1;
+            break;
+        case VEHICLE_LOCATION:
+            if (resource_filled(&loc.vehicle->resources, resource)) {
+                field_state* field  = location_field(loc);
+                add_resource(&field->resources, resource, 1);
+            }
+            else {
+                add_resource(&loc.vehicle->resources, resource, 1);
+            }
+            success = 1;
+            break;
+    }
+
+    ps->stack[ps->sp++] = success;
+    return 0;
+}
+
+int instr_take(player_state* ps) {
+    int resource = ps->stack[--ps->sp];
+    int success = 0;
+    location loc = ps->location;
+
+    if (resource_filled(&ps->resources, resource)) {
+        ps->stack[ps->sp++] = 0;
+        return 0;
+    }
+
+    switch (loc.type) {
+        case FIELD_LOCATION:
+            if (peek_resource(&loc.field->resources, resource)) {
+                spend_resource(&loc.field->resources, resource, 1);
+                add_resource(&ps->resources, resource, 1);
+                success = 1;
+            }
+            break;
+        case VEHICLE_LOCATION:
+            if (peek_resource(&loc.vehicle->resources, resource)) {
+                spend_resource(&loc.vehicle->resources, resource, 1);
+                add_resource(&ps->resources, resource, 1);
+                success = 1;
+            }
+            break;
+    }
+
+    ps->stack[ps->sp++] = success;
     return 0;
 }
 

@@ -16,6 +16,7 @@ typedef struct vehicle_state {
     entity_list_t* entities;
     location location;
     unsigned int destroy : 1;
+    resource_registry resources;
 } vehicle_state;
 
 typedef int (*vehicle_move_function)(vehicle_state* v, direction d);

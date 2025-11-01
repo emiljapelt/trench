@@ -10,19 +10,27 @@
 
 resource_registry default_resource_registry;
 
+
+void set_resource_entry(resource_registry* registry, resource_type resource, int amount, int max) {
+    registry->resource[resource].amount = amount;
+    registry->resource[resource].max = max;
+}
+
 void copy_resource_registry(const resource_registry const* old_registry, resource_registry* new_registry) {
-    for(int r = 0; r < RESOURCE_COUNT; r++) {
-        new_registry->resource[r].amount = old_registry->resource[r].amount;
-        new_registry->resource[r].max = old_registry->resource[r].max;
-    }
+    for(int r = 0; r < RESOURCE_COUNT; r++)
+        set_resource_entry(new_registry, r, old_registry->resource[r].amount, old_registry->resource[r].max);
 }
 
 void copy_empty_resource_registry(const resource_registry const * old_registry, resource_registry* new_registry) {
-    for(int r = 0; r < RESOURCE_COUNT; r++) {
-        new_registry->resource[r].amount = 0;
-        new_registry->resource[r].max = old_registry->resource[r].max;
-    }
+    for(int r = 0; r < RESOURCE_COUNT; r++)
+        set_resource_entry(new_registry, r, 0, old_registry->resource[r].max);
 }
+
+void zero_out_registry(resource_registry* registry) {
+    for(int r = 0; r < RESOURCE_COUNT; r++) 
+        set_resource_entry(registry, r, 0, 0);
+}
+
 
 char spend_resource(resource_registry* registry, resource_type r, int amount) {
     if (r < 0 || r >= RESOURCE_COUNT) return 0;
@@ -40,7 +48,6 @@ int peek_resource(resource_registry* registry, resource_type r) {
     return registry->resource[r].amount;
 }
 
-
 void add_resource(resource_registry* registry, resource_type r, unsigned int amount) {
     if (r < 0 || r >= RESOURCE_COUNT) return;
 
@@ -48,4 +55,11 @@ void add_resource(resource_registry* registry, resource_type r, unsigned int amo
         registry->resource[r].amount += amount;
     else
         registry->resource[r].amount = registry->resource[r].max;
+}
+
+char resource_filled(resource_registry* registry, resource_type r) {
+    int max = registry->resource[r].max;
+    if (max == -1) return 0;
+    int amount = registry->resource[r].amount;
+    return amount >= max;
 }
