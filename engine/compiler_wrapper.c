@@ -196,6 +196,13 @@ void load_settings_struct(game_rules* gr, value settings) {
         value boat_settings = Field(settings, 15);
         gr->settings.boat.capacity = Int_val(Field(boat_settings, 0));
         gr->settings.boat.cost = Int_val(Field(boat_settings, 1));
+        gr->settings.boat.wood_cap = Int_val(Field(boat_settings, 2));
+        gr->settings.boat.clay_cap = Int_val(Field(boat_settings, 3));
+        gr->settings.boat.ammo_cap = Int_val(Field(boat_settings, 4));
+        gr->settings.boat.sapling_cap = Int_val(Field(boat_settings, 5));
+        gr->settings.boat.beartrap_cap = Int_val(Field(boat_settings, 6));
+        gr->settings.boat.explosive_cap = Int_val(Field(boat_settings, 7));
+        gr->settings.boat.metal_cap = Int_val(Field(boat_settings, 8));
     }
 
     {

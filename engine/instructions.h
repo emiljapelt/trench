@@ -1094,13 +1094,13 @@ int instr_boat(player_state* ps) {
     boat->destroy = 0;
 
     zero_out_registry(&boat->resources);
-    set_resource_entry(&boat->resources, R_Wood, 0, -1);
-    set_resource_entry(&boat->resources, R_Clay, 0, -1);
-    set_resource_entry(&boat->resources, R_Ammo, 0, -1);
-    set_resource_entry(&boat->resources, R_Sapling, 0, -1);
-    set_resource_entry(&boat->resources, R_BearTrap, 0, -1);
-    set_resource_entry(&boat->resources, R_Explosive, 0, -1);
-    set_resource_entry(&boat->resources, R_Metal, 0, -1);
+    set_resource_entry(&boat->resources, R_Wood, 0, _gr->settings.boat.wood_cap);
+    set_resource_entry(&boat->resources, R_Clay, 0, _gr->settings.boat.clay_cap);
+    set_resource_entry(&boat->resources, R_Ammo, 0, _gr->settings.boat.ammo_cap);
+    set_resource_entry(&boat->resources, R_Sapling, 0, _gr->settings.boat.sapling_cap);
+    set_resource_entry(&boat->resources, R_BearTrap, 0, _gr->settings.boat.beartrap_cap);
+    set_resource_entry(&boat->resources, R_Explosive, 0, _gr->settings.boat.explosive_cap);
+    set_resource_entry(&boat->resources, R_Metal, 0, _gr->settings.boat.metal_cap);
 
     add_entity(field->entities, entity.of_vehicle(boat));
     ps->stack[ps->sp++] = 1;
@@ -1290,27 +1290,36 @@ int instr_clay_golem(player_state* ps) {
 
 int instr_drop(player_state* ps) {
     int resource = ps->stack[--ps->sp];
+    int drop_amount = ps->stack[--ps->sp];
 
-    if (!spend_resource(&ps->resources, resource, 1)) {
+    int held_amount = peek_resource(&ps->resources, resource);
+    if (held_amount == 0) {
         ps->stack[ps->sp++] = 0;
         return 0;
     }
+
+    if (drop_amount > held_amount)
+        drop_amount = held_amount;
+
+    spend_resource(&ps->resources, resource, drop_amount);
 
     int success = 0;
     location loc = ps->location;
 
     switch (loc.type) {
         case FIELD_LOCATION:
-            add_resource(&loc.field->resources, resource, 1);
+            add_resource(&loc.field->resources, resource, drop_amount);
             success = 1;
             break;
         case VEHICLE_LOCATION:
-            if (resource_filled(&loc.vehicle->resources, resource)) {
-                field_state* field  = location_field(loc);
-                add_resource(&field->resources, resource, 1);
+            int remaining_space = remaining_resource_space(&loc.vehicle->resources, resource);
+            if (remaining_space >= drop_amount) {
+                add_resource(&loc.vehicle->resources, resource, drop_amount);
             }
             else {
-                add_resource(&loc.vehicle->resources, resource, 1);
+                add_resource(&loc.vehicle->resources, resource, remaining_space);
+                field_state* field  = location_field(loc);
+                add_resource(&field->resources, resource, drop_amount - remaining_space);
             }
             success = 1;
             break;
@@ -1322,29 +1331,44 @@ int instr_drop(player_state* ps) {
 
 int instr_take(player_state* ps) {
     int resource = ps->stack[--ps->sp];
+    int take_amount = ps->stack[--ps->sp];
+
     int success = 0;
     location loc = ps->location;
 
-    if (resource_filled(&ps->resources, resource)) {
+    int remaining_space = remaining_resource_space(&ps->resources, resource);
+
+    if (remaining_space == 0) {
         ps->stack[ps->sp++] = 0;
         return 0;
     }
 
+    if (remaining_space != -1 && take_amount > remaining_space)
+        take_amount = remaining_space;
+
     switch (loc.type) {
-        case FIELD_LOCATION:
-            if (peek_resource(&loc.field->resources, resource)) {
-                spend_resource(&loc.field->resources, resource, 1);
-                add_resource(&ps->resources, resource, 1);
+        case FIELD_LOCATION: {
+            int available_resource = peek_resource(&loc.field->resources, resource);
+            if (available_resource != 0) {
+                if (take_amount > available_resource)
+                    take_amount = available_resource;
+                spend_resource(&loc.field->resources, resource, take_amount);
+                add_resource(&ps->resources, resource, take_amount);
                 success = 1;
             }
             break;
-        case VEHICLE_LOCATION:
-            if (peek_resource(&loc.vehicle->resources, resource)) {
-                spend_resource(&loc.vehicle->resources, resource, 1);
-                add_resource(&ps->resources, resource, 1);
+        }
+        case VEHICLE_LOCATION: {
+            int available_resource = peek_resource(&loc.vehicle->resources, resource);
+            if (available_resource != 0) {
+                if (take_amount > available_resource)
+                    take_amount = available_resource;
+                spend_resource(&loc.vehicle->resources, resource, take_amount);
+                add_resource(&ps->resources, resource, take_amount);
                 success = 1;
             }
             break;
+        }
     }
 
     ps->stack[ps->sp++] = success;

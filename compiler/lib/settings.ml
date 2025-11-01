@@ -13,9 +13,16 @@ type range_and_cost_setting = {
   cost: int;
 }
 
-type capacity_cost_setting = {
+type boat_setting = {
   capacity: int;
   cost: int;
+  wood_cap: int;
+  clay_cap: int;
+  ammo_cap: int;
+  sapling_cap: int;
+  beartrap_cap: int;
+  explosive_cap: int;
+  metal_cap: int;
 }
 
 type amount_setting = {
@@ -75,7 +82,7 @@ type settings = {
   freeze: freeze_setting; 
   look: range_setting;
   scan: range_setting;
-  boat: capacity_cost_setting;
+  boat: boat_setting;
   program: program_setting;
   throw_clay: range_and_cost_setting;
   clay: clay_pit_setting;
@@ -131,9 +138,16 @@ let cost_and_upkeep_setting_overwrite = overwritter [
   ("upkeep", fun s v -> {s with upkeep = v} );
 ]
 
-let capacity_cost_setting_overwrite = overwritter [
+let boat_setting_overwrite = overwritter [
   ("capacity", fun s v -> {s with capacity = v});
-  ("cost", fun s v -> {s with cost = v})
+  ("cost", fun s v -> {s with cost = v});
+  ("wood_cap", fun s v -> {s with wood_cap = v});
+  ("clay_cap", fun s v -> {s with clay_cap = v});
+  ("ammo_cap", fun s v -> {s with ammo_cap = v});
+  ("sapling_cap", fun s v -> {s with sapling_cap = v});
+  ("beartrap_cap", fun s v -> {s with beartrap_cap = v});
+  ("explosive_cap", fun s v -> {s with explosive_cap = v});
+  ("metal_cap", fun s v -> {s with metal_cap = v});
 ]
 
 let program_setting_overwrite = overwritter [
@@ -178,7 +192,7 @@ let rec overwrite_settings settings overwrites =
           | "freeze" ->     ({ settings with freeze = freeze_setting_overwrite settings.freeze setting_overwrites })
           | "look" ->       ({ settings with look = range_setting_overwrite settings.look setting_overwrites })
           | "scan" ->       ({ settings with scan = range_setting_overwrite settings.scan setting_overwrites })
-          | "boat" ->       ({ settings with boat = capacity_cost_setting_overwrite settings.boat setting_overwrites })
+          | "boat" ->       ({ settings with boat = boat_setting_overwrite settings.boat setting_overwrites })
           | "program" ->    ({ settings with program = program_setting_overwrite settings.program setting_overwrites })
           | "throw_clay" -> ({ settings with throw_clay = range_and_cost_setting_overwrite settings.throw_clay setting_overwrites })
           | "clay" ->       ({ settings with clay = clay_setting_overwrite settings.clay setting_overwrites })
@@ -209,7 +223,7 @@ let default_settings : settings = {
   freeze = { cost = 25; duration = 2; range = 5; refreeze = 0; };
   look = { range = -1; };
   scan = { range = -1; };
-  boat = { cost = 30; capacity = 4; };
+  boat = { cost = 30; capacity = 4; wood_cap = 50; clay_cap = 50; ammo_cap = 100; sapling_cap = 20; beartrap_cap = 20; explosive_cap = 10; metal_cap = 10 };
   program = {
     stack_size = 1000;
     size_limit = 0;

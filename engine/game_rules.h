@@ -90,6 +90,13 @@ typedef struct game_rules {
         struct {
             int capacity;
             int cost;
+            int wood_cap;
+            int clay_cap;
+            int ammo_cap;
+            int sapling_cap;
+            int beartrap_cap;
+            int explosive_cap;
+            int metal_cap;
         } boat;
 
         struct {

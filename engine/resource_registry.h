@@ -33,6 +33,6 @@ void zero_out_registry(resource_registry* registry);
 char spend_resource(resource_registry* registry, resource_type r, int amount);
 int peek_resource(resource_registry* registry, resource_type r);
 void add_resource(resource_registry* registry, resource_type r, unsigned int amount);
-char resource_filled(resource_registry* registry, resource_type r);
+char remaining_resource_space(resource_registry* registry, resource_type r);
 
 #endif

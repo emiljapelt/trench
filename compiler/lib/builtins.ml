@@ -354,7 +354,7 @@ let builtin_func_infos : builtin_func_info StringMap.t = StringMap.of_list [
     themes = [];
     features = [];
     versions = [{
-      args = [T_Resource];
+      args = [T_Int; T_Resource];
       ret = T_Int;
       comp = FuncComp Instr_Drop;
     }];
@@ -363,7 +363,7 @@ let builtin_func_infos : builtin_func_info StringMap.t = StringMap.of_list [
     themes = [];
     features = [];
     versions = [{
-      args = [T_Resource];
+      args = [T_Int; T_Resource];
       ret = T_Int;
       comp = FuncComp Instr_Take;
     }];

@@ -57,9 +57,9 @@ void add_resource(resource_registry* registry, resource_type r, unsigned int amo
         registry->resource[r].amount = registry->resource[r].max;
 }
 
-char resource_filled(resource_registry* registry, resource_type r) {
+char remaining_resource_space(resource_registry* registry, resource_type r) {
     int max = registry->resource[r].max;
-    if (max == -1) return 0;
+    if (max == -1) return -1;
     int amount = registry->resource[r].amount;
-    return amount >= max;
+    return max - amount;
 }
