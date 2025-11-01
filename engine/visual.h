@@ -62,7 +62,7 @@ typedef enum symbol {
     TRIPLE_DOT,
     QUAD_DOT,
     PENTA_DOT,
-    MINE_SHAFT,
+    MINE_SHAFT_VISUAL,
 } symbol;
 
 extern const char* symbol_lookup[];

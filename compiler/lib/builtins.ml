@@ -368,6 +368,28 @@ let builtin_func_infos : builtin_func_info StringMap.t = StringMap.of_list [
       comp = FuncComp Instr_Take;
     }];
   });
+  ("mine_shaft", {
+    themes = [];
+    features = [];
+    versions = [{
+      args = [T_Dir];
+      ret = T_Int;
+      comp = FuncComp Instr_MineShaft;
+    };{
+      args = [];
+      ret = T_Int;
+      comp = FixedFuncComp (fun acc -> Instr_Place :: I(4) :: Instr_MineShaft :: acc);
+    }];
+  });
+  ("craft", {
+    themes = [];
+    features = [];
+    versions = [{
+      args = [T_Resource];
+      ret = T_Int;
+      comp = FuncComp Instr_Craft;
+    }];
+  });
 ]
 
 

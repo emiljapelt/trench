@@ -40,6 +40,7 @@ field_state* create_board(char* map_data, const int x, const int y) {
         set_resource_entry(&brd[(_y * x) + _x].resources, R_Sapling, 0, -1);
         set_resource_entry(&brd[(_y * x) + _x].resources, R_BearTrap, 0, -1);
         set_resource_entry(&brd[(_y * x) + _x].resources, R_Explosive, 0, -1);
+        set_resource_entry(&brd[(_y * x) + _x].resources, R_Metal, 0, -1);
 
         if (map_data) switch(map_data[(_y * x) + _x]) {
             case '+': {
@@ -219,6 +220,17 @@ void load_settings_struct(game_rules* gr, value settings) {
     {
         value clay_golem_settings = Field(settings, 19);
         gr->settings.clay_golem.cost = Int_val(Field(clay_golem_settings, 0));
+    }
+
+    {
+        value mine_shaft_settings = Field(settings, 20);
+        gr->settings.mine_shaft.cost = Int_val(Field(mine_shaft_settings, 0));
+    }
+
+    {
+        value craft_settings = Field(settings, 21);
+        gr->settings.craft.ammo_per_metal = Int_val(Field(craft_settings, 0));
+        gr->settings.craft.beartraps_per_metal = Int_val(Field(craft_settings, 1));
     }
 }
 

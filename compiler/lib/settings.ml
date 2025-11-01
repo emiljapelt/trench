@@ -54,6 +54,11 @@ type clay_pit_setting = {
   collect_max: int;
 }
 
+type craft_setting = {
+  ammo_per_metal: int;
+  beartraps_per_metal: int;
+}
+
 type settings = {
   fireball: range_and_cost_setting;
   shoot: range_setting;
@@ -75,6 +80,8 @@ type settings = {
   throw_clay: range_and_cost_setting;
   clay: clay_pit_setting;
   clay_golem: cost_setting;
+  mine_shaft: cost_setting;
+  craft: craft_setting;
 }
 
 type ('a, 'b) overwrite = (string * ('a -> 'b -> 'a)) list
@@ -143,6 +150,12 @@ let clay_setting_overwrite = overwritter  [
   ("collect_max", fun s v -> {s with collect_max = v});
 ]
 
+let craft_setting_overwrite = overwritter  [
+  ("ammo_per_metal", fun s v -> {s with ammo_per_metal = v});
+  ("beartraps_per_metal", fun s v -> {s with beartraps_per_metal = v});
+
+]
+
 let rec overwrite_settings settings overwrites = 
   match overwrites with
   | [] -> settings
@@ -170,6 +183,8 @@ let rec overwrite_settings settings overwrites =
           | "throw_clay" -> ({ settings with throw_clay = range_and_cost_setting_overwrite settings.throw_clay setting_overwrites })
           | "clay" ->       ({ settings with clay = clay_setting_overwrite settings.clay setting_overwrites })
           | "clay_golem" -> ({ settings with clay_golem = cost_setting_overwrite settings.clay_golem setting_overwrites })
+          | "mine_shaft" -> ({ settings with mine_shaft = cost_setting_overwrite settings.mine_shaft setting_overwrites })
+          | "craft" ->      ({ settings with craft = craft_setting_overwrite settings.craft setting_overwrites })
           | _ -> raise_failure ("No setting group: '" ^ name ^ "'")
         )
       )
@@ -201,5 +216,7 @@ let default_settings : settings = {
   };
   throw_clay = { range = 3; cost = 1 };
   clay = { spread_limit = 1; contain_limit = 100; collect_max = 5; };
-  clay_golem = { cost = 5; }
+  clay_golem = { cost = 5; };
+  mine_shaft = { cost = 10 };
+  craft = { ammo_per_metal = 3; beartraps_per_metal = 1; }
 }

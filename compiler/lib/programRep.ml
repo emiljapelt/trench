@@ -76,6 +76,8 @@ type instruction =
   | Instr_ClayGolem
   | Instr_Take
   | Instr_Drop
+  | Instr_MineShaft
+  | Instr_Craft
 
 let instruction_to_int label_map instr = match instr with
     | I i -> Some i
@@ -150,6 +152,8 @@ let instruction_to_int label_map instr = match instr with
     | Instr_ClayGolem -> Some 66
     | Instr_Take -> Some 67
     | Instr_Drop -> Some 68
+    | Instr_MineShaft -> Some 69
+    | Instr_Craft -> Some 70
 
 let label_set pp =
   let rec aux pp set = match pp with

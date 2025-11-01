@@ -1,7 +1,7 @@
 #ifndef H_RESOURCE_REGISTRY
 #define H_RESOURCE_REGISTRY
 
-#define RESOURCE_COUNT 6
+#define RESOURCE_COUNT 8
 
 typedef enum {
     R_Explosive = 0,
@@ -11,6 +11,7 @@ typedef enum {
     R_Clay = 4,
     R_Wood = 5,
     R_BearTrap = 6,
+    R_Metal = 7,
 } resource_type;
 
 typedef struct resource {

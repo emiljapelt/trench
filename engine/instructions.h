@@ -89,6 +89,8 @@ typedef enum {
   Instr_ClayGolem = 66,
   Instr_Take = 67,
   Instr_Drop = 68,
+  Instr_MineShaft = 69,
+  Instr_Craft = 70,
 } instruction;
 
 const char* stack_overflow_msg = "Had an aneurysm (STACK_OVERFLOW)";
@@ -965,6 +967,10 @@ int instr_collect(player_state* ps) {
             add_resource(&ps->resources, R_Sapling, 1);
             success = 1;
             break;
+        case MINE_SHAFT:
+            add_resource(&ps->resources, R_Metal, 1);
+            success = 1;
+            break;
         case CLAY:
             switch (field->data->clay_pit.amount) {
                 case 0: {
@@ -1094,6 +1100,7 @@ int instr_boat(player_state* ps) {
     set_resource_entry(&boat->resources, R_Sapling, 0, -1);
     set_resource_entry(&boat->resources, R_BearTrap, 0, -1);
     set_resource_entry(&boat->resources, R_Explosive, 0, -1);
+    set_resource_entry(&boat->resources, R_Metal, 0, -1);
 
     add_entity(field->entities, entity.of_vehicle(boat));
     ps->stack[ps->sp++] = 1;
@@ -1336,6 +1343,56 @@ int instr_take(player_state* ps) {
                 spend_resource(&loc.vehicle->resources, resource, 1);
                 add_resource(&ps->resources, resource, 1);
                 success = 1;
+            }
+            break;
+    }
+
+    ps->stack[ps->sp++] = success;
+    return 0;
+}
+
+int instr_mine_shaft(player_state* ps) {
+    direction d = (direction)ps->stack[--ps->sp];
+    int x, y;
+    location_coords(ps->location, &x, &y);
+    move_coord(&x, &y, d, 1);
+    if (!in_bounds(x, y)) {
+        ps->stack[ps->sp++] = 0;
+        return 0;
+    }
+
+    if(!spend_resource(&ps->resources, R_Wood, _gr->settings.mine_shaft.cost)) {
+        ps->stack[ps->sp++] = 0;
+        return 0;
+    }
+
+    field_state* field = fields.get(x,y);
+    switch (field->type) {
+        case EMPTY: {
+            fields.build.mine_shaft(field);
+            ps->stack[ps->sp++] = 1;
+            return 1;
+        }
+    }
+    ps->stack[ps->sp++] = 0;
+    return 0;
+}
+
+int instr_craft(player_state* ps) {
+    int resource = ps->stack[--ps->sp];
+    int success = 0;
+
+    switch (resource) {
+        case R_Ammo:
+            if (spend_resource(&ps->resources, R_Metal, 1)) {
+                success = 1;
+                add_resource(&ps->resources, R_Ammo, _gr->settings.craft.ammo_per_metal);
+            }
+            break;
+        case R_BearTrap:
+            if (spend_resource(&ps->resources, R_Metal, 1)) {
+                success = 1;
+                add_resource(&ps->resources, R_BearTrap, _gr->settings.craft.beartraps_per_metal);
             }
             break;
     }

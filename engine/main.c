@@ -219,6 +219,16 @@ void player_turn_default(player_state* ps) {
             }
             case Instr_Drop: change = instr_drop(ps); break;
             case Instr_Take: change = instr_take(ps); break;
+            case Instr_MineShaft: {
+                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
+                change = instr_mine_shaft(ps); 
+                break;
+            }
+            case Instr_Craft: {
+                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
+                change = instr_craft(ps); 
+                break;
+            }
             default: return;
         }
 
