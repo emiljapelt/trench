@@ -66,7 +66,7 @@ int projection_upkeep(entity_t* entity, void* data, situation situ) {
             if (args->player_id != entity->player->id) return 0;
             if (!entity->player->alive) return 1;
 
-            if (!spend_resource(entity->player->resources, "mana", _gr->settings.projection.upkeep)) {
+            if (!spend_resource(&entity->player->resources, R_Mana, _gr->settings.projection.upkeep)) {
                 entity->player->death_msg = "Projection faded";
                 return 1;
             }
@@ -103,7 +103,7 @@ int mana_drain(entity_t* entity, void* data, situation situ) {
 
     switch (entity->type) {
         case ENTITY_PLAYER: {
-            spend_resource(entity->player->resources, "mana", peek_resource(entity->player->resources, "mana"));
+            spend_resource(&entity->player->resources, R_Mana, peek_resource(&entity->player->resources, R_Mana));
             return 1;
         }
     }

@@ -18,6 +18,7 @@ typedef enum {
     WALL,
     BRIDGE,
     CLAY,
+    MINE_SHAFT,
 } field_type;
 
 typedef union field_data field_data;
@@ -30,6 +31,10 @@ typedef union field_data {
     struct {
         unsigned int fortified : 1;
     } wall;
+
+    struct {
+        unsigned int fortified : 1;
+    } mine_shaft;
 
     struct {
         field_data* inner;
@@ -59,6 +64,7 @@ typedef union field_data {
 #define PROP_IS_WALL        0b00000000000000000001000000000000
 #define PROP_IS_BRIDGE      0b00000000000000000010000000000000
 #define PROP_IS_CLAY        0b00000000000000000100000000000000
+#define PROP_IS_MINE_SHAFT  0b00000000000000001000000000000000
 
 
 #define FOREGROUND_COLOR_OVERLAY    0b0001
@@ -79,6 +85,7 @@ typedef struct field_state {
     entity_list_t* entities;
     event_list_t* enter_events;
     event_list_t* exit_events;
+    resource_registry resources;
 } field_state;
 
 typedef struct field_builders {
@@ -87,6 +94,7 @@ typedef struct field_builders {
     void (*const tree)(field_state* field);
     void (*const clay_pit)(field_state* field);
     void (*const ocean)(field_state* field);
+    void (*const mine_shaft)(field_state* field);
 } field_builders;
 
 typedef struct fields_namespace {

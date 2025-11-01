@@ -7,5 +7,6 @@ let all_features = [
   "loops";
   "control";
   "sugar";
-  "func"
+  "func";
+  "fork";
 ] |> StringSet.of_list

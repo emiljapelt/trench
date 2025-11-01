@@ -7,6 +7,7 @@ open Absyn
 open Transform
 open Themes
 open Settings
+open Resources
 
 let check_path path extensions =
   try (
@@ -67,7 +68,7 @@ let default_game_setup = GS {
   teams = [];
   themes = StringSet.empty;
   features = StringSet.empty;
-  resources = [];
+  resources = default_resources;
   actions = 1;
   steps = 100;
   mode = 0;
@@ -106,7 +107,7 @@ let to_game_setup gsps =
     | [] -> (GS acc)
     | h::t -> aux t (match h with
       | Team t -> (GS ({acc with teams = t :: acc.teams}))
-      | Resources rs -> (GS ({acc with resources = rs}))
+      | Resources rs -> (GS ({acc with resources = List.fold_left (fun acc (name, value) -> ResourceMap.add (string_to_resource name) value acc) acc.resources rs}))
       | Themes ts -> (GS ({acc with themes = ts}))
       | Features fs -> (GS ({acc with features = fs}))
       | Actions i -> if i > 0 then (GS ({acc with actions = i})) else raise_failure "Must have some actions per turn"
@@ -145,16 +146,7 @@ let compile parser lexer transforms checks compiler stringer path =
   (*| _ -> raise (Failure(Some path, None, "Parser error"))*)
   
 
-(*let check_vars_unique (File(regs,_)) =
-  let rec aux regs set = match regs with
-  | [] -> ()
-  | Var(_,n)::t -> 
-    if StringSet.mem n set 
-    then raise_failure ("Duplicate register name: "^n) 
-    else aux t (StringSet.add n set)
-  in
-  aux regs StringSet.empty
-
+(*
 let check_no_negative_arrays (File(regs,_)) =
   let rec check_type t = match t with
   | T_Array(t,i) -> if i < 0 then false else check_type t
@@ -192,8 +184,7 @@ type compiled_game_file = {
   team_count: int;
   teams: (string * (int*int*int) * int) array;
   exec_mode: exec_mode;
-  resources_count: int;
-  resources: (string * (int * int)) array;
+  resources: (int * int * int) array;
   seed: int option;
   time_scale: float;
   settings: settings;
@@ -207,7 +198,7 @@ let compile_player_file path size_limit = try (
     type_check_program;
     rename_variables_of_file;
     optimize_program;
-  ] (*[check_vars_unique;check_no_negative_arrays]*)[] compile_player player_to_program path)
+  ] (*[check_no_negative_arrays]*)[] compile_player player_to_program path)
 in
 if size_limit > 0 && Array.length result - 1 > size_limit then raise_failure ("Program too large" ^ string_of_int size_limit ^ " " ^ string_of_int (Array.length result - 1))
 else Ok(result)
@@ -236,9 +227,6 @@ let set_themes ts =
 
 let set_features fs =
   Flags.compile_flags.features <- fs ; ()
-
-let set_resources rs =
-  Flags.compile_flags.resources <- List.map fst rs ; ()
 
 module IntSet = Set.Make(Int)
 
@@ -288,12 +276,11 @@ let format_game_setup (GS gs) =
     mode = gs.mode;
     nuke = gs.nuke;
     player_count = List.length players;
-    player_info = (set_features gs.features ; set_themes gs.themes ; set_resources gs.resources ; Array.of_list (List.map game_setup_player players));
+    player_info = (set_features gs.features ; set_themes gs.themes ; Array.of_list (List.map game_setup_player players));
     team_count = Array.length teams;
     teams = teams;
     exec_mode = gs.exec_mode;
-    resources_count = List.length gs.resources;
-    resources = Array.of_list gs.resources;
+    resources = gs.resources |> ResourceMap.bindings |> List.map (fun (name,(start,max)) -> (resource_value name, start, max)) |> Array.of_list;
     seed = gs.seed;
     time_scale = gs.time_scale;
     map = gs.map;
@@ -302,17 +289,9 @@ let format_game_setup (GS gs) =
     viewport = gs.viewport
   }
 
-let check_resources (GS gs) = 
-  let required = all_required_resources gs.themes in
-  let given = List.map fst gs.resources in
-  if (List.for_all (fun g -> StringSet.mem g required) given 
-    && StringSet.cardinal required = List.length given)
-  then (GS gs)
-  else raise_failure ("Defined resources does not match required resource. \nRequired:\n\t" ^ (String.concat "\n\t" (StringSet.to_list required)) ^ "\nGiven:\n\t" ^ (String.concat "\n\t" given))
-
 let compile_game_file path = try (
   check_path path [".trg"] ;
-  Ok(compile Game_parser.main Game_lexer.start [] [] (fun gsp -> gsp |> to_game_setup |> check_resources) format_game_setup path)
+  Ok(compile Game_parser.main Game_lexer.start [] [] (fun gsp -> gsp |> to_game_setup) format_game_setup path)
 ) with
 | Failure(None,ln,msg) -> Error(format_failure (Failure(Some path, ln, msg)))
 | Failure _ as f -> Error(format_failure f)

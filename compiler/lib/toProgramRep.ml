@@ -5,6 +5,7 @@ open Typing
 open Field_props
 open Transform
 open Builtins
+open Resources
 
 (*** Compiling functions ***)
 
@@ -57,20 +58,17 @@ let size_of_vars (vars : variable list) =
 
 let rec compile_value val_expr (state:compile_state) acc =
   match val_expr with
-  | Reference target -> compile_target_index target state (instr_access target state.scopes :: acc)
-  | MetaReference md -> ( match md with
-    | PlayerX -> Meta_PlayerX :: acc
-    | PlayerY -> Meta_PlayerY :: acc
-    | BoardX -> Meta_BoardX :: acc
-    | BoardY -> Meta_BoardY :: acc
-    | PlayerID -> Meta_PlayerID :: acc
-    | PlayerResource n -> (match List.find_index (fun name -> n = name) Flags.compile_flags.resources with
-      | Some i -> Meta_Resource :: I(i) :: acc
-      | None -> raise_failure ("Unknown resource lookup: "^n)
+  | Reference(Local name) when not(is_var name state.scopes) -> (
+    match lookup_builtin_var_info name with
+    | Some builtin -> (match builtin.comp with
+      | VarComp instr ->  instr :: acc
     )
+    | _ -> raise_failure ("Unknown variable: "^name)
   )
+  | Reference target -> compile_target_index target state (instr_access target state.scopes :: acc)
   | Int i -> Instr_Place :: I(i) :: acc
   | Prop fp -> Instr_Place :: I(prop_index fp) :: acc
+  | Resource r -> Instr_Place :: I(resource_value r) :: acc
   | Random -> Instr_Random :: acc
   | RandomSet vals -> 
     List.fold_left (fun acc v -> compile_value v state acc) (Instr_RandomSet :: I(List.length vals) :: acc) vals
@@ -124,9 +122,9 @@ let rec compile_value val_expr (state:compile_state) acc =
     let vars = extract_declarations body |> List.rev in
     Instr_GoTo :: LabelRef(end_label) :: Label(func_label) :: Instr_Declare :: I(size_of_vars vars) :: compile_stmt body {new_state with scopes = ({ local = new_state.scopes.local @ vars; global = new_state.scopes.global })} (Instr_Place :: I(0) :: Instr_Return :: Label(end_label) :: Instr_Place :: LabelRef(func_label) :: acc)
   )
-  | Call(Reference(Local name), args) when not(is_var name state.scopes) -> (match lookup_builtin_info name (List.map (type_value state) args) with
+  | Call(Reference(Local name), args) when not(is_var name state.scopes) -> (match lookup_builtin_func_info name (List.map (type_value state) args) with
     | Some builtin -> (match builtin.comp with
-      | FixedComp comp -> comp acc
+      | FixedFuncComp comp -> comp acc
       | FuncComp instr ->
         let comped_args = List.map (fun arg -> compile_value arg state []) args |> List.flatten in
         comped_args @ (instr :: acc)

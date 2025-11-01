@@ -12,8 +12,8 @@
 #include "game_state.h"
 #include "visual.h"
 #include "util.h"
-#include "instructions.h"
 #include "compiler_wrapper.h"
+#include "instructions.h"
 #include "entity.h"
 #include "log.h"
 
@@ -215,6 +215,18 @@ void player_turn_default(player_state* ps) {
             case Instr_ClayGolem: {
                 if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
                 change = instr_clay_golem(ps); 
+                break;
+            }
+            case Instr_Drop: change = instr_drop(ps); break;
+            case Instr_Take: change = instr_take(ps); break;
+            case Instr_MineShaft: {
+                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
+                change = instr_mine_shaft(ps); 
+                break;
+            }
+            case Instr_Craft: {
+                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
+                change = instr_craft(ps); 
                 break;
             }
             default: return;

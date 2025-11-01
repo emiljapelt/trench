@@ -32,6 +32,16 @@ field_state* create_board(char* map_data, const int x, const int y) {
             .enter_events = array_list.create(10),
             .exit_events = array_list.create(10),
         };
+
+        zero_out_registry(&brd[(_y * x) + _x].resources);
+        set_resource_entry(&brd[(_y * x) + _x].resources, R_Wood, 0, -1);
+        set_resource_entry(&brd[(_y * x) + _x].resources, R_Clay, 0, -1);
+        set_resource_entry(&brd[(_y * x) + _x].resources, R_Ammo, 0, -1);
+        set_resource_entry(&brd[(_y * x) + _x].resources, R_Sapling, 0, -1);
+        set_resource_entry(&brd[(_y * x) + _x].resources, R_BearTrap, 0, -1);
+        set_resource_entry(&brd[(_y * x) + _x].resources, R_Explosive, 0, -1);
+        set_resource_entry(&brd[(_y * x) + _x].resources, R_Metal, 0, -1);
+
         if (map_data) switch(map_data[(_y * x) + _x]) {
             case '+': {
                 field_data* data = malloc(sizeof(field_data));
@@ -211,19 +221,27 @@ void load_settings_struct(game_rules* gr, value settings) {
         value clay_golem_settings = Field(settings, 19);
         gr->settings.clay_golem.cost = Int_val(Field(clay_golem_settings, 0));
     }
-}
 
-resource_registry* create_empty_resource_registy(int size, int resource_count, value resources) {
-    
-    resource_registry* reg = create_resource_registry(size, resource_count);
-
-    for(int r = 0; r < resource_count; r++) {
-        value resource = Field(resources, r);
-        char* resource_name = strdup(String_val(Field(resource, 0)));
-        init_resource(reg, resource_name, Int_val(Field(Field(resource, 1), 1)));
+    {
+        value mine_shaft_settings = Field(settings, 20);
+        gr->settings.mine_shaft.cost = Int_val(Field(mine_shaft_settings, 0));
     }
 
-    return reg;
+    {
+        value craft_settings = Field(settings, 21);
+        gr->settings.craft.ammo_per_metal = Int_val(Field(craft_settings, 0));
+        gr->settings.craft.beartraps_per_metal = Int_val(Field(craft_settings, 1));
+    }
+}
+
+void setup_default_resource_registry(value resources) {
+    for(int r = 0; r < RESOURCE_COUNT; r++) {
+        value resource_info = Field(resources, r);
+        int resource = Int_val(Field(resource_info, 0));
+        if (resource < 0 || resource >= RESOURCE_COUNT) continue;
+        default_resource_registry.resource[resource].amount = Int_val(Field(resource_info, 1));
+        default_resource_registry.resource[resource].max = Int_val(Field(resource_info, 2));
+    }
 }
 
 int compile_game(const char* path, game_rules* gr, game_state* gs) {
@@ -237,8 +255,8 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
             value unwrapped_result = Field(callback_result, 0);
             
             int seed;
-            if (Is_some(Field(unwrapped_result, 12)) ) {
-                seed = Int_val(Some_val(Field(unwrapped_result, 12)));
+            if (Is_some(Field(unwrapped_result, 11)) ) {
+                seed = Int_val(Some_val(Field(unwrapped_result, 11)));
                 srand(seed);
             }
             else {
@@ -256,18 +274,18 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 .nuke = Int_val(Field(unwrapped_result, 3)),
                 .exec_mode = Int_val(Field(unwrapped_result, 9)),
                 .seed = seed,
-                .time_scale = (float)Double_val(Field(unwrapped_result, 13)),
+                .time_scale = (float)Double_val(Field(unwrapped_result, 12)),
                 .stack_size = 1000,
-                .debug = Bool_val(Field(unwrapped_result, 15)),
+                .debug = Bool_val(Field(unwrapped_result, 14)),
                 .viewport = {
                     .x = 0,
                     .y = 0,
-                    .width = Int_val(Field(Field(unwrapped_result, 16), 0)),
-                    .height = Int_val(Field(Field(unwrapped_result, 16), 1)),
+                    .width = Int_val(Field(Field(unwrapped_result, 15), 0)),
+                    .height = Int_val(Field(Field(unwrapped_result, 15), 1)),
                 },
             };
 
-            load_settings_struct(gr, Field(unwrapped_result, 14));
+            load_settings_struct(gr, Field(unwrapped_result, 13));
 
             value map = Field(unwrapped_result, 4);
             field_state* board = NULL;
@@ -292,7 +310,6 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
 
             int player_count = Int_val(Field(unwrapped_result, 5));
             int team_count = Int_val(Field(unwrapped_result, 7));
-            int resource_count = Int_val(Field(unwrapped_result, 10));
             int feed_size = 2000;
 
             *gs = (game_state) {
@@ -301,7 +318,7 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 .board_y = board_y,
                 .id_counter = 0,
                 .players = array_list.create(player_count + 1),
-                .board = board,// empty_board(board_x, board_y),
+                .board = board,
                 .feed_point = 0,
                 .feed_buffer = malloc(feed_size+1),
                 .team_count = team_count,
@@ -325,12 +342,12 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 gs->team_states[i].members_alive = Int_val(Field(team_info, 2));
             }
 
-            set_empty_resource_registy(create_empty_resource_registy(10, resource_count, Field(unwrapped_result, 11)));
+            setup_default_resource_registry(Field(unwrapped_result, 10));
 
             for(int i = 0; i < player_count; i++) {
                 value player_info = Field(Field(unwrapped_result, 6),i);
                 
-                directive_info di;// = load_directive_to_struct(Field(player_info, 4), gr->stack_size);
+                directive_info di;
 
                 char* file_path = strdup(String_val(Field(player_info, 3)));
                 int success = compile_player(file_path, gr->stack_size, gr->program_size_limit, &di);
@@ -360,12 +377,7 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 player->pager_msgs = array_list.create(10);
                 player->pre_death_events = array_list.create(10);
                 player->post_death_events = array_list.create(10);
-                player->resources = get_empty_resource_registy();
-                for(int r = 0; r < resource_count; r++) {
-                    value resource = Field(Field(unwrapped_result, 11), r);
-                    char* resource_name = strdup(String_val(Field(resource, 0)));
-                    add_resource(player->resources, resource_name, Int_val(Field(Field(resource, 1), 0)));
-                }
+                copy_resource_registry(&default_resource_registry, &player->resources);
                 player->extra_files = array_list.create(Int_val(Field(player_info, 4)));
                 for(int f = 0; f < player->extra_files->size; f++) {
                     array_list.add(player->extra_files, strdup(String_val(Field((Field(player_info, 5)), f))));

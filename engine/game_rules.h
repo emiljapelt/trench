@@ -106,6 +106,15 @@ typedef struct game_rules {
         struct {
             int cost;
         } clay_golem;
+
+        struct {
+            int cost;
+        } mine_shaft;
+
+        struct {
+            int ammo_per_metal;
+            int beartraps_per_metal;
+        } craft;
     } settings;
 } game_rules;
 

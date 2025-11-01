@@ -3,23 +3,26 @@ open ProgramRep
 open Flags
 open Exceptions
 
-type builtin_compile =
-  | FixedComp of (instruction list -> instruction list)
+type builtin_func_compile =
+  | FixedFuncComp of (instruction list -> instruction list)
   | FuncComp of instruction
 
-type builtin_version = {
+
+(* Functions *)
+
+type builtin_func_version = {
   args: typ list;
   ret: typ;
-  comp: builtin_compile;
+  comp: builtin_func_compile;
 }
 
-type builtin_info = {
+type builtin_func_info = {
   themes: string list;
   features: string list;
-  versions: builtin_version list;
+  versions: builtin_func_version list;
 }
 
-let instruction_infos : builtin_info StringMap.t = StringMap.of_list [
+let builtin_func_infos : builtin_func_info StringMap.t = StringMap.of_list [
   ("move", {
     themes = []; 
     features = [];
@@ -39,7 +42,7 @@ let instruction_infos : builtin_info StringMap.t = StringMap.of_list [
     };{
       args = [];
       ret = T_Int;
-      comp = FixedComp (fun acc -> Instr_Place :: I(4) :: Instr_Trench :: acc);
+      comp = FixedFuncComp (fun acc -> Instr_Place :: I(4) :: Instr_Trench :: acc);
     }]
   });
   ("fortify", {
@@ -52,7 +55,7 @@ let instruction_infos : builtin_info StringMap.t = StringMap.of_list [
     };{
       args = [];
       ret = T_Int;
-      comp = FixedComp (fun acc -> Instr_Place :: I(4) :: Instr_Fortify :: acc);
+      comp = FixedFuncComp (fun acc -> Instr_Place :: I(4) :: Instr_Fortify :: acc);
     };]
   });
   ("wait", {
@@ -84,7 +87,7 @@ let instruction_infos : builtin_info StringMap.t = StringMap.of_list [
   });
   ("projection", {
     themes = ["wizardry"];
-    features = [];
+    features = ["fork"];
     versions = [{
       args = [];
       ret = T_Int;
@@ -101,7 +104,7 @@ let instruction_infos : builtin_info StringMap.t = StringMap.of_list [
     };{
       args = [];
       ret = T_Int;
-      comp = FixedComp (fun acc -> Instr_Place :: I(4) :: Instr_Collect :: acc);
+      comp = FixedFuncComp (fun acc -> Instr_Place :: I(4) :: Instr_Collect :: acc);
     }];
   });
   ("bomb", {
@@ -331,20 +334,126 @@ let instruction_infos : builtin_info StringMap.t = StringMap.of_list [
   });
   ("clay_golem", {
     themes = ["pottery"];
-    features = [];
+    features = ["fork"];
     versions = [{
       args = [];
       ret = T_Int;
       comp = FuncComp Instr_ClayGolem;
     }];
   });
+  ("count", {
+    themes = [];
+    features = [];
+    versions = [{
+      args = [T_Resource];
+      ret = T_Int;
+      comp = FuncComp Meta_Resource;
+    }];
+  });
+  ("drop", {
+    themes = [];
+    features = [];
+    versions = [{
+      args = [T_Resource];
+      ret = T_Int;
+      comp = FuncComp Instr_Drop;
+    }];
+  });
+  ("take", {
+    themes = [];
+    features = [];
+    versions = [{
+      args = [T_Resource];
+      ret = T_Int;
+      comp = FuncComp Instr_Take;
+    }];
+  });
+  ("mine_shaft", {
+    themes = [];
+    features = [];
+    versions = [{
+      args = [T_Dir];
+      ret = T_Int;
+      comp = FuncComp Instr_MineShaft;
+    };{
+      args = [];
+      ret = T_Int;
+      comp = FixedFuncComp (fun acc -> Instr_Place :: I(4) :: Instr_MineShaft :: acc);
+    }];
+  });
+  ("craft", {
+    themes = [];
+    features = [];
+    versions = [{
+      args = [T_Resource];
+      ret = T_Int;
+      comp = FuncComp Instr_Craft;
+    }];
+  });
 ]
 
-let instruction_rename_map = 
-  instruction_infos
-  |> StringMap.bindings
-  |> List.map (fun ii -> (fst ii, fst ii))
-  |> StringMap.of_list
+
+(* Variables *)
+
+type builtin_var_compile =
+  | VarComp of instruction
+
+type builtin_var_info = {
+  themes: string list;
+  features: string list;
+  typ: typ;
+  comp: builtin_var_compile;
+}
+
+
+
+let builtin_var_infos : builtin_var_info StringMap.t = StringMap.of_list [
+  ("id", {
+    themes = []; 
+    features = [];
+    typ = T_Int;
+    comp = VarComp Meta_PlayerID
+  });
+  ("x", {
+    themes = []; 
+    features = [];
+    typ = T_Int;
+    comp = VarComp Meta_PlayerX
+  });
+  ("y", {
+    themes = []; 
+    features = [];
+    typ = T_Int;
+    comp = VarComp Meta_PlayerY
+  });
+  ("board_width", {
+    themes = []; 
+    features = [];
+    typ = T_Int;
+    comp = VarComp Meta_BoardX
+  });
+  ("board_height", {
+    themes = []; 
+    features = [];
+    typ = T_Int;
+    comp = VarComp Meta_BoardY
+  });
+]
+
+
+
+
+
+let builtin_rename_map = 
+  let vars = builtin_var_infos
+    |> StringMap.bindings
+    |> List.map (fun ii -> (fst ii, fst ii))
+  in
+  let funcs = builtin_func_infos
+    |> StringMap.bindings
+    |> List.map (fun ii -> (fst ii, fst ii))
+  in
+  StringMap.of_list (vars @ funcs)
 
 
 let themes ts =
@@ -359,8 +468,8 @@ let features fs =
   else raise_failure ("Attempt to access an inactive feature: " ^ (String.concat ", " fs))
 
 
-let lookup_builtin_info name arg_types = 
-  match StringMap.find_opt name instruction_infos with
+let lookup_builtin_func_info name arg_types = 
+  match StringMap.find_opt name builtin_func_infos with
   | None -> None
   | Some builtin -> 
     match
@@ -372,3 +481,7 @@ let lookup_builtin_info name arg_types =
     | None -> None
     | Some version -> (features builtin.features ; themes builtin.themes ; Some version)
   
+let lookup_builtin_var_info name = 
+  match StringMap.find_opt name builtin_var_infos with
+  | None -> None
+  | Some builtin -> (features builtin.features ; themes builtin.themes ; Some builtin)

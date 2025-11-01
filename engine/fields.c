@@ -51,6 +51,14 @@ void build_ocean(field_state* field) {
     add_event(field->enter_events, FIELD_EVENT, events.ocean_drowning, NULL);
 }
 
+void build_mine_shaft(field_state* field) {
+    field_data* data = malloc(sizeof(field_data));
+    data->mine_shaft.fortified = 0;
+
+    field->type = MINE_SHAFT;
+    field->data = data;
+}
+
 
 
 
@@ -90,6 +98,9 @@ unsigned int scan_field(field_type type, field_data* data) {
             result = PROP_IS_ICE_BLOCK | PROP_OBSTRUCTION | scan_field(data->ice_block.inner_type, data->ice_block.inner);
             break;
         }
+        case MINE_SHAFT: 
+            result = PROP_IS_MINE_SHAFT | PROP_COVER;
+            break;
         case EMPTY:
         default:
             result = PROP_IS_EMPTY;
@@ -142,6 +153,15 @@ void destroy_field(field_state* field, char* death_msg) {
             free(field->data);
             break;
         }
+        case MINE_SHAFT:{
+            if (field->data->mine_shaft.fortified) {
+                field->data->mine_shaft.fortified = 0;
+                return;
+            }
+            field->type = EMPTY;
+            free(field->data);
+            break;
+        }
         case CLAY:
         case ICE_BLOCK: {
             field->type = EMPTY;
@@ -172,6 +192,7 @@ void remove_field(field_state* field) {
         }
         case CLAY:
         case WALL:
+        case MINE_SHAFT:
         case TRENCH: {
             field->type = EMPTY;
             free(field->data);
@@ -202,6 +223,10 @@ int fortify_field(field_state* field) {
             return 1;
         }
         case WALL: {
+            field->data->wall.fortified = 1;
+            return 1;
+        }
+        case MINE_SHAFT: {
             field->data->wall.fortified = 1;
             return 1;
         }
@@ -276,6 +301,12 @@ field_visual get_field_data_visual(const int x, const int y, const field_type ty
             result.foreground_color = color_lookup[ICE_BLUE];
             result.background_color = color_lookup[BLUE];
             result.symbol = "~";
+            break;
+        }
+        case MINE_SHAFT: {
+            result.foreground_color = color_lookup[WHITE];
+            result.background_color = color_lookup[BLACK];
+            result.symbol = symbol_lookup[MINE_SHAFT_VISUAL];
             break;
         }
         case CLAY: {
@@ -407,5 +438,6 @@ const fields_namespace fields = {
         .tree = &build_tree,
         .clay_pit = &build_clay_pit,
         .ocean = &build_ocean,
+        .mine_shaft= &build_mine_shaft,
     },
 };

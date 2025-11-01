@@ -8,6 +8,7 @@
  * Create a copy of the given player state, except:
  * - The new players pager has no messages
  * - The new player has no death events registered
+ * - The resource registry is not initialized
  */
 player_state* copy_player_state(const player_state* ps) {
 
@@ -38,7 +39,12 @@ player_state* copy_player_state(const player_state* ps) {
     new_player->pager_msgs = array_list.create(10);
     new_player->pre_death_events = array_list.create(10);
     new_player->post_death_events = array_list.create(10);
-    new_player->resources = NULL;
+
+    for(int r = 0; r < RESOURCE_COUNT; r++) {
+        new_player->resources.resource[r].amount = 0;
+        new_player->resources.resource[r].max = 0;
+    }
+
     new_player->remaining_actions = _gr->actions;
     new_player->remaining_steps = _gr->steps;
 
