@@ -37,8 +37,12 @@ let rec type_value state v = match v with
       | "|", T_Int, T_Int 
       | "=", T_Int, T_Int
       | "=", T_Dir, T_Dir
+      | "=", T_Prop, T_Prop
+      | "=", T_Resource, T_Resource
       | "!=", T_Int, T_Int
       | "!=", T_Dir, T_Dir
+      | "!=", T_Prop, T_Prop
+      | "!=", T_Resource, T_Resource
       | "<", T_Int, T_Int 
       | ">", T_Int, T_Int 
       | "<=", T_Int, T_Int
