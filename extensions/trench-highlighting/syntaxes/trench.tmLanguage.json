@@ -33,7 +33,7 @@
 				"match": "(@(obstruction|player|trapped|flammable|cover|shelter|empty|trench|ice_block|tree|ocean|wall|bridge|clay|mine_shaft))\\b"
 			},{
 				"name": "constant.language",
-				"match": "\\b(id|x|y|board_width|board_height)\\b"
+				"match": "\\b(id|x|y|board_width|board_height|_SUCCESS|_ERROR|_MISSING_RESOURCE|_OUT_OF_BOUNDS|_INVALID_TARGET|_OUT_OF_RANGE|_OBSTRUCTED|_MISSING_SPACE)\\b"
 			},{
 				"name": "support.function",
 				"match": "\\b(move|trench|fortify|wait|pass|meditate|projection|collect|bomb|freeze|shoot|mine|fireball|chop|dispel|disarm|mana_drain|wall|bridge|plant_tree|mount|dismount|boat|bear_trap|write|pager_write|pager_set|say|pager_read|read|scan|look|throw_clay|clay_golem|count|drop|take|mine_shaft|craft)\\b"

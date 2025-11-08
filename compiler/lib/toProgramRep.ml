@@ -61,7 +61,7 @@ let rec compile_value val_expr (state:compile_state) acc =
   | Reference(Local name) when not(is_var name state.scopes) -> (
     match lookup_builtin_var_info name with
     | Some builtin -> (match builtin.comp with
-      | VarComp instr ->  instr :: acc
+      | VarComp instrs ->  instrs @ acc
     )
     | _ -> raise_failure ("Unknown variable: "^name)
   )

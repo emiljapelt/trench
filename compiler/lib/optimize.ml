@@ -73,8 +73,8 @@ let rec optimize_value expr =
     let a_opt = optimize_value a in
     let b_opt = optimize_value b in
     match c_opt with
-    | Int 0 -> b_opt
-    | Int _ -> a_opt
+    | Int i when i > 0 -> a_opt
+    | Int _ -> b_opt
     | _ -> Ternary(c_opt, a_opt, b_opt)
 
 and optimize_assign_target tar = match tar with
@@ -83,8 +83,8 @@ and optimize_assign_target tar = match tar with
 and optimize_stmt (Stmt(stmt_i,ln) as stmt) = 
   try (match stmt_i with
   | If(c,a,b) -> ( match optimize_value c with
-    | Int 0 -> optimize_stmt b
-    | Int _ -> optimize_stmt a
+    | Int i when i > 0 -> optimize_stmt a
+    | Int _ -> optimize_stmt b
     | o -> Stmt(If(o, optimize_stmt a, optimize_stmt b),ln)
   )
   | IfIs(v,alts,opt) -> Stmt(IfIs(optimize_value v, List.map (fun (v,s) -> (optimize_value v, optimize_stmt s)) alts, Option.map optimize_stmt opt),ln)

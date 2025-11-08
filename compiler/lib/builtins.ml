@@ -396,7 +396,7 @@ let builtin_func_infos : builtin_func_info StringMap.t = StringMap.of_list [
 (* Variables *)
 
 type builtin_var_compile =
-  | VarComp of instruction
+  | VarComp of instruction list
 
 type builtin_var_info = {
   themes: string list;
@@ -405,42 +405,30 @@ type builtin_var_info = {
   comp: builtin_var_compile;
 }
 
+let create_builtin_var typ name comp = (name, {
+    themes = [];
+    features = [];
+    typ = typ;
+    comp = VarComp comp
+  })
 
 
 let builtin_var_infos : builtin_var_info StringMap.t = StringMap.of_list [
-  ("id", {
-    themes = []; 
-    features = [];
-    typ = T_Int;
-    comp = VarComp Meta_PlayerID
-  });
-  ("x", {
-    themes = []; 
-    features = [];
-    typ = T_Int;
-    comp = VarComp Meta_PlayerX
-  });
-  ("y", {
-    themes = []; 
-    features = [];
-    typ = T_Int;
-    comp = VarComp Meta_PlayerY
-  });
-  ("board_width", {
-    themes = []; 
-    features = [];
-    typ = T_Int;
-    comp = VarComp Meta_BoardX
-  });
-  ("board_height", {
-    themes = []; 
-    features = [];
-    typ = T_Int;
-    comp = VarComp Meta_BoardY
-  });
+  create_builtin_var T_Int "id" [Meta_PlayerID];
+  create_builtin_var T_Int "x" [Meta_PlayerX];
+  create_builtin_var T_Int "y" [Meta_PlayerY];
+  create_builtin_var T_Int "board_width" [Meta_BoardX];
+  create_builtin_var T_Int "board_height" [Meta_BoardY];
+  
+  create_builtin_var T_Int "_SUCCESS" [Instr_Place; I(1)];
+  create_builtin_var T_Int "_ERROR" [Instr_Place; I(0)];
+  create_builtin_var T_Int "_MISSING_RESOURCE" [Instr_Place; I(-1)];
+  create_builtin_var T_Int "_OUT_OF_BOUNDS" [Instr_Place; I(-2)];
+  create_builtin_var T_Int "_INVALID_TARGET" [Instr_Place; I(-3)];
+  create_builtin_var T_Int "_OUT_OF_RANGE" [Instr_Place; I(-4)];
+  create_builtin_var T_Int "_OBSTRUCTED" [Instr_Place; I(-5)];
+  create_builtin_var T_Int "_MISSING_SPACE" [Instr_Place; I(-6)];
 ]
-
-
 
 
 
