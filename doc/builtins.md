@@ -2,7 +2,18 @@
 
 The trench language contains builtin functions, some of which relate to themes and features. They are all functions which can be called like any normal function in the language, but they are not variables. If a variable of the same name is declared, that variable will be used instead of the builting function, allowing user to overwrite them.
 
+Some builtin functions return a result in the form of an `int`, which may be an error. The following table shows the different named errors, each of which has a corresponding builtin variable.
 
+| Name | Value |
+| --- | --- |
+| _SUCCESS | 1 |
+| _ERROR | 0 |
+| _MISSING_RESOURCE | -1 |
+| _OUT_OF_BOUNDS | -2 |
+| _INVALID_TARGET | -3 |
+| _OUT_OF_RANGE | -4 |
+| _OBSTRUCTED | -5 |
+| _MISSING_SPACE | -6 |
 
 
 ### Wait <sub><small>action</small></sub>

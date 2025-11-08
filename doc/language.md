@@ -25,7 +25,11 @@ int x = 2;  // There can be actual code before a comment
 
 Whole numbers including negatives, represented using 32 bits. Only base-10 is currently supported.
 
-This type is also used for as the boolean value, with 0 being *false* and everything else being *true*.
+This type is also used for as the boolean value, where positive values are *true*, and other values are *false*.
+
+| true | false |
+| --- | --- |
+| x > 0 | x <= 0 |
 
 Examples:
 ```
