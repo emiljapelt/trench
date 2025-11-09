@@ -68,6 +68,14 @@ Represent a bridge over water. It can only be build on ocean fields.
 
 ---
 
+### MINE_SHAFT
+
+**visual** : <code style="background-color: black; color: white;">&#2612;</code>
+
+Represent a mine shaft. It can only be build on empty fields. 
+
+---
+
 # The map file
 A Predefined map can be written in a .trm-file. Map files must contains a rectangle of the following symbols:
 

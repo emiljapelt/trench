@@ -307,6 +307,8 @@ field_visual get_field_data_visual(const int x, const int y, const field_type ty
             result.foreground_color = color_lookup[WHITE];
             result.background_color = color_lookup[BLACK];
             result.symbol = symbol_lookup[MINE_SHAFT_VISUAL];
+            if (data->mine_shaft.fortified)
+                result.mod = BOLD;
             break;
         }
         case CLAY: {

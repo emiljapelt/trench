@@ -16,12 +16,14 @@ Some builtin functions return a result in the form of an `int`, which may be an 
 | _MISSING_SPACE | -6 |
 
 
+---
+
 ### Wait <sub><small>action</small></sub>
 **name:** `wait`
 
 **signature:** `int:()`
 
-Does nothing and returns `1`.
+Does nothing and returns `_SUCCESS`.
 
 ---
 
@@ -30,7 +32,7 @@ Does nothing and returns `1`.
 
 **signature:** `int:()`
 
-Ends the current turn and returns `1`.
+Ends the current turn and returns `_SUCCESS`.
 
 ---
 
@@ -40,7 +42,16 @@ Ends the current turn and returns `1`.
 **signature:** `int:(dir d)`
 
 
-Attempt to move the player one field in direction `d`, returning `1` if successful, otherwise returning `0`. The movement could for example fail if there is an obstruction in direction `d`.
+Attempt to move the player one field in direction `d`.
+
+**Return values:**
+
+| Value | Explaination |
+| --- | --- |
+| _SUCCESS | The player has moved |
+| _OBSTRUCTED | The player did not move, either the currect or target field cotains an obstruction |
+| _OUT_OF_BOUNDS | The target field is out of bounds |
+
 
 ---
 
@@ -51,7 +62,7 @@ Attempt to move the player one field in direction `d`, returning `1` if successf
 
 **features:** ipc
 
-Every field can contain an *int* value, which is set using the `write` function. `read` returns the value from the field the player is standing on.
+Every field can contain an `int` value, which is set using the `write` function. This function returns the value from the field the player is standing on.
 
 ---
 
@@ -62,7 +73,7 @@ Every field can contain an *int* value, which is set using the `write` function.
 
 **features:** ipc
 
-Writes `i` to the players current location and returns `1`;
+Writes `i` to the players current location and returns `_SUCCESS`;
 
 ---
 
@@ -85,7 +96,7 @@ If there are no new messages, this returns `0`.
 
 **features:** ipc
 
-Sends `i` the pagers of all other players, if the are on the same channel. Returns `1` if at least one player received the message, otherwise returns `0`.
+Sends `i` the pagers of all other players, if the are on the same channel, and returns `_SUCCESS` if at least one player received the message, otherwise returns `_ERROR`.
 
 ---
 
@@ -96,7 +107,7 @@ Sends `i` the pagers of all other players, if the are on the same channel. Retur
 
 **features:** ipc
 
-Changes the channels of the players pager to `i`. Returns `1` if the channel was changed, otherwise returns `0`.
+Changes the channels of the players pager to `i`. Returns `_SUCCESS` if the channel was changed, otherwise returns `_ERROR`.
 
 ---
 
@@ -120,10 +131,26 @@ Returns the distance to the nearest field in the direction `d`, which has the pr
 
 
 ### Collect
-**syntax:** `collect d`
+**name:** `collect`
+
+**signature:** `int:(dir d)`
+
+Attempts to collect resources from the ajecent field in direction `d`. If the targeted field is out of bounds `_OUT_OF_BOUNDS` is returned, if a resource was collected `_SUCCESS` is returned, otherwise `_ERROR` is returned.
+
+Resources can be collected from TREE, MINE_SHAFT and CLAY fields
+
+**signature:** `int:()`
+
+Attempts to collect resources from the field the player is standing on. 
+
+
 
 ### Say
-**syntax:** `say i`
+**name:** `say`
+
+**signature:** `int:(int i)`
+
+Prints `i` to the feed and returns `_SUCCESS`.
 
 
 
@@ -147,9 +174,7 @@ Attemps to create a trench one field in direction `d`. Returns `1` if a trench i
 
 Attemps to create a trench at the players current location. Returns `1` if a trench is created.
 
-
 ---
-
 
 ### Fortify <sub><small>action</small></sub>
 **name:** `fortify`

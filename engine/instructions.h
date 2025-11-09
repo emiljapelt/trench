@@ -612,7 +612,11 @@ int instr_move(player_state* ps) {
         return 0;
     }
     move_coord(&x, &y, d, 1);
-    if(!in_bounds(x,y) || (fields.properties(x,y) & PROP_OBSTRUCTION)) {
+    if(!in_bounds(x,y)) {
+        ps->stack[ps->sp++] = INSTR_OUT_OF_BOUNDS;
+        return 0; 
+    }
+    if(fields.properties(x,y) & PROP_OBSTRUCTION) {
         ps->stack[ps->sp++] = INSTR_OBSTRUCTED;
         return 0; 
     }
@@ -985,7 +989,7 @@ int instr_pager_write(player_state* ps) {
             array_list.add(other->pager_msgs, *(void**)msg_bypass);
         }
     }
-    ps->stack[ps->sp++] = hits > 0 ? 1 : 0;
+    ps->stack[ps->sp++] = hits > 0 ? INSTR_SUCCESS : INSTR_ERROR;
     return 0;
 }
 
