@@ -15,36 +15,36 @@ Some builtin functions return a result in the form of an `int`, which may be an 
 | _OBSTRUCTED | -5 |
 | _MISSING_SPACE | -6 |
 
-
 ---
 
 ### Wait <sub><small>action</small></sub>
-**name:** `wait`
+`wait` `int:()`
 
-**signature:** `int:()`
+Does nothing, but spends an action.
 
-Does nothing and returns `_SUCCESS`.
+**Returns:** 
+
+Always `_SUCCESS`.
 
 ---
 
 ### Pass
-**name:** `pass`
+`pass` `int:()`
 
-**signature:** `int:()`
+Ends the current turn.
 
-Ends the current turn and returns `_SUCCESS`.
+**Returns:**
+
+Always `_SUCCESS`.
 
 ---
 
 ### Move <sub><small>action</small></sub>
-**name:** `move`
-
-**signature:** `int:(dir d)`
-
+`move` `int:(dir d)`
 
 Attempt to move the player one field in direction `d`.
 
-**Return values:**
+**Returns:**
 
 | Value | Explaination |
 | --- | --- |
@@ -52,173 +52,154 @@ Attempt to move the player one field in direction `d`.
 | _OBSTRUCTED | The player did not move, either the currect or target field cotains an obstruction |
 | _OUT_OF_BOUNDS | The target field is out of bounds |
 
-
 ---
 
 ### Read
-**name:** `read`
-
-**signature:** `int:()`
-
-**features:** ipc
+`read` `int:()`
 
 Every field can contain an `int` value, which is set using the `write` function. This function returns the value from the field the player is standing on.
+
+**Features:** ipc
+
+**Returns:**
+
+The value writen on the players current field.
 
 ---
 
 ### Write
-**name:** `write`
+`write` `int:(int i)`
 
-**signature:** `int:(int i)`
+Writes `i` to the players current location
 
-**features:** ipc
+**Features:** ipc
 
-Writes `i` to the players current location and returns `_SUCCESS`;
+**Returns:** 
+
+Always `_SUCCESS`.
+
 
 ---
 
 ### Pager Read
-**name:** `pager_read`
+`pager_read` `int:()`
 
-**signature:** `int:()`
+Every player is equiped with a pager. It can the set a channel using `pager_set`, and messages are send on the channel using `pager_write`. 
 
-**features:** ipc
+This functions returns the oldest message, and removes it from the pager.
 
-Every player is equiped with a pager. It can the set a channel using `pager_set`, and messages are send on the channel using `pager_write`. This functions returns the oldest message, and removes it from the pager.
+**Features:** ipc
 
-If there are no new messages, this returns `0`.
+**Returns:**
+
+The newest message on the pager, or `0` if there are now messages to read.
 
 ---
+
 ### Pager Write
-**name:** `pager_write`
+`pager_write` `int:(int i)`
 
-**signature:** `int:(int i)`
+Send `i` the pagers of all other players on the same channel.
 
-**features:** ipc
+**Features:** ipc
 
-Sends `i` the pagers of all other players, if the are on the same channel, and returns `_SUCCESS` if at least one player received the message, otherwise returns `_ERROR`.
+**Returns:**
+
+`_SUCCESS` if at least one player received the message, otherwise `_ERROR`.
 
 ---
 
 ### Pager Set
-**name:** `pager_set`
+`pager_set` `int:(int i)`
 
-**signature:** `int:(int i)`
+Changes the channel of the players pager to `i`.
 
-**features:** ipc
+**Features:** ipc
 
-Changes the channels of the players pager to `i`. Returns `_SUCCESS` if the channel was changed, otherwise returns `_ERROR`.
+**Returns:**
+
+`_SUCCESS` if the channel was changed, otherwise `_ERROR`.
 
 ---
 
 ### Scan
-**name:** `scan`
-
-**signature:** `field:(dir d, int i)`
+`scan` `field:(dir d, int i)`
 
 Returns a snapshot of the properties of the field in direction `d`, at a distance of `i` fields. It is possible to scan past an obstruction. By default the is no limit to the size of `i`. If `i` is less the `0`, it becomes `0`.
 
 ---
 
-
 ### Look
-**name:** `look`
+`look` `int:(dir d, prop p)`
 
-**signature:** `int:(dir d, prop p)`
+Get the distance to the nearest field in the direction `d`, which has the property `p`. By default the is no limit to the range.
 
-Returns the distance to the nearest field in the direction `d`, which has the property `p`. Returns `0` if no such field is found. By default the is no limit to the range.
+**Returns:**
 
+The distance to the first field with property `p`, or `_ERROR` if no such field was found.
 
+---
 
-### Collect
-**name:** `collect`
+### Collect <sub><small>action</small></sub>
+`collect` `int:(dir d) | int:()`
 
-**signature:** `int:(dir d)`
+Attempt to collect resources from the ajecent field in direction `d`, or the players current field if `d` is not provided. 
 
-Attempts to collect resources from the ajecent field in direction `d`. If the targeted field is out of bounds `_OUT_OF_BOUNDS` is returned, if a resource was collected `_SUCCESS` is returned, otherwise `_ERROR` is returned.
+Resources can be collected from TREE, MINE_SHAFT and CLAY fields.
 
-Resources can be collected from TREE, MINE_SHAFT and CLAY fields
+**Returns:** 
 
-**signature:** `int:()`
+If the targeted field is out of bounds `_OUT_OF_BOUNDS` is returned, if a resource was collected `_SUCCESS` is returned, otherwise `_ERROR` is returned.
 
-Attempts to collect resources from the field the player is standing on. 
-
-
+---
 
 ### Say
-**name:** `say`
+`say` `int:(int i)`
 
-**signature:** `int:(int i)`
+Print `i` to the feed.
 
-Prints `i` to the feed and returns `_SUCCESS`.
+**Returns:**
 
-
-
-
+Always `_SUCCESS`.
 
 ---
 
 ### Trench <sub><small>action</small></sub>
-**name:** `trench`
+`trench` `int:(dir d) | int:()`
 
-**signature:** `int:(dir d)`
+Attemp to create a trench on the adjecent field in direction `d`, or on the players current field if `d` is not provided. 
 
-Attemps to create a trench one field in direction `d`. Returns `1` if a trench is created.
+**Returns:**  
 
----
-
-### Trench <sub><small>action</small></sub>
-**name:** `trench`
-
-**signature:** `int:()`
-
-Attemps to create a trench at the players current location. Returns `1` if a trench is created.
+| Value | Explaination |
+| --- | --- |
+| _SUCCESS | A trench was created |
+| _OUT_OF_BOUNDS | The target field is out of bounds |
+| _INVALID_TARGET | The trench could not be created |
 
 ---
 
 ### Fortify <sub><small>action</small></sub>
-**name:** `fortify`
-
-**signature:** `int:(dir d)`
+`fortify` `int:(dir d)`
 
 Attemps to fortify the field one space in direction `d`, spending `5` wood doing so. Returns `1` if something became fortified. Walls and trenched can be fortified.
 
 ---
 
 ### Fortify <sub><small>action</small></sub>
-**name:** `fortify`
-
-**signature:** `int:()`
+`fortify` `int:()`
 
 Attemps to fortify the field the player is standing on, spending `5` wood doing so. Returns `1` if something became fortified. Walls and trenched can be fortified.
 
 ---
-
-
-
-
-
-
-
-
 
 ### Shoot <sub><small>action</small></sub>
 **themes:** military
 
 **syntax:** `shoot d`
 
-### Bomb <sub><small>action</small></sub>
-**themes:** military
-
-**syntax:** `bomb d i`
-
-### Mine <sub><small>action</small></sub>
-**themes:** military
-
-**syntax:** `mine d`
-
 ### Disarm <sub><small>action</small></sub>
-**themes:** military
+**themes:** military, forestry
 
 **syntax:** `disarm d?`
 
@@ -241,6 +222,69 @@ Attemps to fortify the field the player is standing on, spending `5` wood doing 
 **themes:** forestry
 
 **syntax:** `brdige d`
+
+### Throw clay <sub><small>action</small></sub>
+**type:** int
+
+**syntax:** `throw_clay` *dir* *int*
+
+throw some clay
+
+---
+
+### Clay golem <sub><small>action</small></sub>
+**type:** int
+
+**syntax:** `clay_golem`
+
+Create a golem
+
+---
+
+### Craft
+**type:** int
+
+**syntax:** `clay_golem`
+
+---
+
+### Drop
+**type:** int
+
+**syntax:** `clay_golem`
+
+---
+
+### Take
+**type:** int
+
+**syntax:** `clay_golem`
+
+---
+
+### Mine shaft
+**type:** int
+
+**syntax:** `clay_golem`
+
+---
+
+
+
+
+
+
+
+
+### Bomb <sub><small>action</small></sub>
+**themes:** military
+
+**syntax:** `bomb d i`
+
+### Mine <sub><small>action</small></sub>
+**themes:** military
+
+**syntax:** `mine d`
 
 ### Meditate <sub><small>action</small></sub>
 **themes:** wizardry
@@ -266,26 +310,6 @@ Attemps to fortify the field the player is standing on, spending `5` wood doing 
 
 ### Projection <sub><small>action</small></sub>
 **themes:** wizardry
-
-
-
-### Throw clay
-**type:** int
-
-**syntax:** `throw_clay` *dir* *int*
-
-throw some clay
-
----
-
-### Clay golem
-**type:** int
-
-**syntax:** `clay_golem`
-
-Create a golem
-
----
 
 
 [Back to overview](../README.md)
