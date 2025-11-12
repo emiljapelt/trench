@@ -51,9 +51,9 @@ E
 W
 ```
 
-### prop / field
+### property / field
 
-a value of the ```prop``` type is a property that a field may have. a value of the ```field``` type is a collection of properties describing a specific field.
+a value of the `property` type is a property that a field may have. a value of the `field` type is a collection of properties describing a specific field.
 
 The available properties are:
 
@@ -75,6 +75,10 @@ The available properties are:
 | clay | This field is a clay pit |
 
 These properties of a field can be queried using the ```is``` expression.
+
+### resource
+
+TODO
 
 ### array
 
@@ -99,9 +103,9 @@ Functions are useful for encapsulating logic. The type is written as such:
 
 and a function is specified as such:
 
-```type:(type name, ...)```
+```type:(type name, ...) { ... }```
 
-The first type is the return type, all functions must have one. Inside the parentheses are the function parameters, which there may be zero or more of.
+The first type is the return type, all functions must have one. Inside the parentheses are the function parameters, which there may be zero or more of, and finally the function body.
 
 Examples:
 
@@ -111,7 +115,7 @@ int:(int,int) add = int:(int a, int b) {
 };
 
 let move = int:(dir d) {
-    if (look(d, @trapped) = 1) move(d);
+    if (!look(d, @trapped) = 1) move(d);
 };
 
 let random_move = int:() {
@@ -122,7 +126,7 @@ let random_move = int:() {
 
 Notice that even though all function have a return type, not all of these examples have a return statement. This is because all functions have an implicit return statement at the end, returning the default value of their return type.
 
-Inside of a function only the parameters, localy declared and global variables are available. Additionally the local variable ```this``` is implicitly declared in all functions, and refer to the function itself, enabling recursion.
+Inside of a function only the parameters, locally declared and global variables are available. Additionally the local variable `this` is implicitly declared in all functions, and refer to the function itself, enabling recursion.
 
 ```
 let a = 0;

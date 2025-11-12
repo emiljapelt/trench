@@ -130,7 +130,7 @@ Returns a snapshot of the properties of the field in direction `d`, at a distanc
 ---
 
 ### Look
-`look` `int:(dir d, prop p)`
+`look` `int:(dir d, property p)`
 
 Get the distance to the nearest field in the direction `d`, which has the property `p`. By default the is no limit to the range.
 
@@ -180,92 +180,128 @@ Attemp to create a trench on the adjecent field in direction `d`, or on the play
 ---
 
 ### Fortify <sub><small>action</small></sub>
-`fortify` `int:(dir d)`
+`fortify` `int:(dir d) | int:()`
 
-Attemps to fortify the field one space in direction `d`, spending `5` wood doing so. Returns `1` if something became fortified. Walls and trenched can be fortified.
+Attemp to fortify the adjecent field in direction `d`, or the players current field if `d` is not provided. This costs `5` `wood` (`fortify.cost`).
 
----
+TRENCH, WALL and MINE_SHAFT fields can be fortified, but only once.
 
-### Fortify <sub><small>action</small></sub>
-`fortify` `int:()`
+**Returns:**
 
-Attemps to fortify the field the player is standing on, spending `5` wood doing so. Returns `1` if something became fortified. Walls and trenched can be fortified.
+| Value | Explaination |
+| --- | --- |
+| _SUCCESS | A field was fortified |
+| _OUT_OF_BOUNDS | The target field is out of bounds |
+| _INVALID_TARGET | The field could not be fortified |
+| _MISSING_RESOURCE | The player did not have enough resources |
 
 ---
 
 ### Shoot <sub><small>action</small></sub>
-**themes:** military
+`shoot` `int:(dir d)`
 
-**syntax:** `shoot d`
+Fire a bullet in direction `d`, spending `1` `ammo` to do so. The bullet will travel until it hits an obstruction or a player which is not in cover, with a maximum range of `6` (`shoot.range`). The bullet will only hit a single player on a field.
+
+**Themes:** military, forestry
+
+**Returns:**
+
+`_MISSING_RESOURCE` if the player is out of ammot, otherwise `_SUCCESS`.
 
 ### Disarm <sub><small>action</small></sub>
-**themes:** military, forestry
+`disarm` `ìnt:(dir d)`
 
-**syntax:** `disarm d?`
+Remove all physical events from the adjecent field in direction `d`.
+
+**Themes:** military, forestry
+
+**Returns:**
+
+`_OUT_OF_BOUNDS` if the target field does not exist, otherwise `_SUCCESS`.
 
 ### Plant Tree <sub><small>action</small></sub>
-**themes:** forestry
+`plant_tree` `int:(dir d)`
 
-**syntax:** `plant_tree d`
+Plant a tree on the adjecent field in direction `d`, spending `1` `sapling`. This creates a physical event on the target field, which will turn the target field into a TREE field after 3 rounds (`plant_tree.delay`), if the field is EMPTY at that point. 
+
+**Themes:** forestry
+
+**Returns:** 
+
+| Value | Explaination |
+| --- | --- |
+| _SUCCESS | A tree was plantet |
+| _OUT_OF_BOUNDS | The target field is out of bounds |
+| _MISSING_RESOURCE | The player did not have enough resources |
 
 ### Chop <sub><small>action</small></sub>
-**themes:** forestry
+`chop` `int:(dir d)`
 
-**syntax:** `chop d`
+**Themes:** forestry
+
+**Returns:** 
 
 ### Wall <sub><small>action</small></sub>
-**themes:** forestry
+`wall` `int:(dir d)`
 
-**syntax:** `wall d`
+**Themes:** forestry
+
+**Returns:**
 
 ### Bridge <sub><small>action</small></sub>
-**themes:** forestry
+`bridge` `int:(dir d)`
 
-**syntax:** `brdige d`
+**Themes:** forestry
+
+**Returns:**
 
 ### Throw clay <sub><small>action</small></sub>
-**type:** int
-
-**syntax:** `throw_clay` *dir* *int*
+`throw_clay` `int:(dir d, int i)`
 
 throw some clay
+
+**Themes:** pottery
+
+**Returns:**
 
 ---
 
 ### Clay golem <sub><small>action</small></sub>
-**type:** int
-
-**syntax:** `clay_golem`
+`clay_golem` `int:()`
 
 Create a golem
+
+**Themes:** pottery
+
+**Returns:**
 
 ---
 
 ### Craft
-**type:** int
+`craft` `int:(resource r)`
 
-**syntax:** `clay_golem`
+**Returns:**
 
 ---
 
 ### Drop
-**type:** int
+`drop` `int:(int i, resource r)`
 
-**syntax:** `clay_golem`
+**Returns:**
 
 ---
 
 ### Take
-**type:** int
+`take` `int:(int i, resource r)`
 
-**syntax:** `clay_golem`
+**Returns:**
 
 ---
 
-### Mine shaft
-**type:** int
+### Mine shaft <sub><small>action</small></sub>
+`mine_shaft` `int:(dir d) | int:()`
 
-**syntax:** `clay_golem`
+**Returns:**
 
 ---
 

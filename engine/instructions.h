@@ -497,7 +497,6 @@ int instr_shoot(player_state* ps) {
         set_color_overlay(field, FORE, YELLOW);
         print_board(); wait(0.02);
 
-
         if (props & PROP_OBSTRUCTION) {
             fields.damage_field(field, KINETIC_DMG | PROJECTILE_DMG, "Got shot");
             ps->stack[ps->sp++] = INSTR_SUCCESS;
@@ -681,16 +680,25 @@ int instr_trench(player_state* ps) {
 }
 
 int instr_fortify(player_state* ps) {
+    direction d = (direction)ps->stack[--ps->sp];
+
     if(!spend_resource(&ps->resources, R_Wood, _gr->settings.fortify.cost)) {
         ps->stack[ps->sp++] = INSTR_MISSING_RESOURCE;
         return 0;
     } 
+
     int x, y;
     location_coords(ps->location, &x, &y);
-    direction d = (direction)ps->stack[--ps->sp];
     move_coord(&x, &y, d, 1);
+
+    if (!in_bounds(x, y)) {
+        ps->stack[ps->sp++] = INSTR_OUT_OF_BOUNDS;
+        return 0;
+    }
+
     int result = fields.fortify_field(fields.get(x,y));
-    ps->stack[ps->sp++] = result;
+
+    ps->stack[ps->sp++] = result ? INSTR_SUCCESS : INSTR_INVALID_TARGET;
     return result;
 }
 
@@ -777,6 +785,7 @@ int instr_projection(player_state* ps) {
 int instr_freeze(player_state* ps) {
     int p = ps->stack[--ps->sp];
     direction d = (direction)ps->stack[--ps->sp];
+
     if(!spend_resource(&ps->resources, R_Mana, _gr->settings.freeze.cost)) {
         ps->stack[ps->sp++] = INSTR_MISSING_RESOURCE;
         return 0;
