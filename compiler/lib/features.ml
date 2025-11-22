@@ -9,4 +9,5 @@ let all_features = [
   "sugar";
   "func";
   "fork";
+  "craft";
 ] |> StringSet.of_list

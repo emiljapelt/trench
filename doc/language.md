@@ -287,7 +287,7 @@ Continues execution of the program at the *name* label.
 ---
 
 ### Declaration
-**syntax:** *type* *name* `;` | *type* *name* `=` *expr* `;`
+**syntax:** *type* *name* `;` | *type* *name* `=` *expr* `;` | *let* *name* `=` *expr* `;`
 
 **features:** memory
 

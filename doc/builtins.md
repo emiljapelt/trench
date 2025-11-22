@@ -208,6 +208,8 @@ Fire a bullet in direction `d`, spending `1` `ammo` to do so. The bullet will tr
 
 `_MISSING_RESOURCE` if the player is out of ammot, otherwise `_SUCCESS`.
 
+---
+
 ### Disarm <sub><small>action</small></sub>
 `disarm` `ìnt:(dir d)`
 
@@ -219,10 +221,12 @@ Remove all physical events from the adjecent field in direction `d`.
 
 `_OUT_OF_BOUNDS` if the target field does not exist, otherwise `_SUCCESS`.
 
+---
+
 ### Plant Tree <sub><small>action</small></sub>
 `plant_tree` `int:(dir d)`
 
-Plant a tree on the adjecent field in direction `d`, spending `1` `sapling`. This creates a physical event on the target field, which will turn the target field into a TREE field after 3 rounds (`plant_tree.delay`), if the field is EMPTY at that point. 
+Plant a tree on the adjecent field in direction `d`, spending `1` `#sapling`. This creates a physical event on the target field, which will turn the target field into a TREE field after 3 rounds (`plant_tree.delay`), if the field is EMPTY at that point. 
 
 **Themes:** forestry
 
@@ -232,46 +236,76 @@ Plant a tree on the adjecent field in direction `d`, spending `1` `sapling`. Thi
 | --- | --- |
 | _SUCCESS | A tree was plantet |
 | _OUT_OF_BOUNDS | The target field is out of bounds |
-| _MISSING_RESOURCE | The player did not have enough resources |
+| _MISSING_RESOURCE | The player did not have enough saplings |
+
+---
 
 ### Chop <sub><small>action</small></sub>
 `chop` `int:(dir d)`
+
+Swing an axe in direction `d`, reach the adjecent field. If a player is on the field they will be struck and killed. If the field is a TREE it will be destroyed, and the player gains `10` `#wood` (`chop.wood_gain`), and a 30% chance of gaining `1` `#sapling`.
 
 **Themes:** forestry
 
 **Returns:** 
 
+Always `_SUCCESS`.
+
+---
+
 ### Wall <sub><small>action</small></sub>
 `wall` `int:(dir d)`
 
-**Themes:** forestry
+Build a WALL in one field direction `d`. This cost `10` `wood` (`wall.cost`), and requires that the target field is EMPTY.
 
 **Returns:**
+
+| Value | Explaination |
+| --- | --- |
+| _SUCCESS | A wall was built |
+| _OUT_OF_BOUNDS | The target field is out of bounds |
+| _MISSING_RESOURCE | The player did not have enough wood |
+| _INVALID_TARGET | The target field was not EMPTY |
+
+---
 
 ### Bridge <sub><small>action</small></sub>
 `bridge` `int:(dir d)`
 
-**Themes:** forestry
+Build a BRIDGE in one field direction `d`. This cost `20` `wood` (`bridge.cost`), and requires that the target field is OCEAN.
 
 **Returns:**
+
+| Value | Explaination |
+| --- | --- |
+| _SUCCESS | A wall was built |
+| _OUT_OF_BOUNDS | The target field is out of bounds |
+| _MISSING_RESOURCE | The player did not have enough wood |
+| _INVALID_TARGET | The target field was not OCEAN |
 
 ### Throw clay <sub><small>action</small></sub>
 `throw_clay` `int:(dir d, int i)`
 
-throw some clay
+Throw a ball of clay in direction `d`, upto a maximal range of `i`. If `i` is greater than `3` (`throw_clay.range`), it will be reduced to this. This costs `1` `#clay` (`throw_clay.cost`).
+
+If the clay hits an obstruction it will be damaged, if it hits a player that player will die. Otherwise, if the ball lands on an EMPTY field, that field is converted to a CLAY field, and if that field was already a CLAY field, a unit of clay will be added to the field.
 
 **Themes:** pottery
 
 **Returns:**
+
+`_MISSING_RESOURCE` if the player does not have enough clay, otherwise `_SUCCESS`.
 
 ---
 
 ### Clay golem <sub><small>action</small></sub>
 `clay_golem` `int:()`
 
-Create a golem
+Create a golem of clay.
 
 **Themes:** pottery
+
+**Features:** fork
 
 **Returns:**
 

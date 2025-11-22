@@ -383,7 +383,7 @@ let builtin_func_infos : builtin_func_info StringMap.t = StringMap.of_list [
   });
   ("craft", {
     themes = [];
-    features = [];
+    features = ["craft"];
     versions = [{
       args = [T_Resource];
       ret = T_Int;

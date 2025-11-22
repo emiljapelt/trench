@@ -649,7 +649,7 @@ int instr_chop(player_state* ps) {
     else if (field->type == TREE) {
         fields.remove_field(field);
         add_resource(&ps->resources, R_Wood, _gr->settings.chop.wood_gain);
-        int got_sapling = rand() % 100 > _gr->settings.chop.sapling_chance;
+        int got_sapling = rand() % 100 < _gr->settings.chop.sapling_chance;
         if (got_sapling) add_resource(&ps->resources, R_Sapling, 1);
     }
 
@@ -1027,7 +1027,7 @@ int instr_wall(player_state* ps) {
         }
     }
 
-    ps->stack[ps->sp++] = INSTR_ERROR;
+    ps->stack[ps->sp++] = INSTR_INVALID_TARGET;
     return 0;
 }
 
