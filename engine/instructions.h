@@ -258,7 +258,7 @@ int instr_mod(player_state* ps) {
 
 int instr_not(player_state* ps) {
     int v = ps->stack[--ps->sp];
-    ps->stack[ps->sp++] = !v;
+    ps->stack[ps->sp++] = v > 0 ? 0 : 1;
     return 0;
 }
 
@@ -1136,9 +1136,9 @@ int instr_collect(player_state* ps) {
 int instr_say(player_state* ps) {
     int v = ps->stack[--ps->sp];
     char msg[100 + 1];
-    snprintf(msg, 100, "%s#%i says %i\n", ps->name, ps->id, v);
+    snprintf(msg, 100, "%s#%i: %i\n", ps->name, ps->id, v);
     print_to_feed(msg);
-    _log(DEBUG, msg);
+    _log(INFO, msg);
     ps->stack[ps->sp++] = INSTR_SUCCESS;
     return 0;
 }

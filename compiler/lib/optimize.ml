@@ -52,7 +52,7 @@ let rec optimize_value expr =
   | Unary_op (op, e) -> ( 
     let opte = optimize_value e in
     match (op, opte) with
-    | ("!", Int i) -> Int(if i = 0 then 1 else 0)
+    | ("!", Int i) -> Int(if i > 0 then 0 else 1)
     | _ -> Unary_op(op, opte)
   )
   | Direction _
