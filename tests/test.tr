@@ -1,0 +1,110 @@
+
+let end_test = int:() {
+    let b = 0;
+    let a = 1 / b;
+};
+
+let assert = int:(int v) {
+    if (v) say(1); 
+    else say(0);
+};
+
+
+// move
+{
+    let prev_y = y;
+    let prev_x = x;
+    wall(N);
+    wall(E);
+    assert(!move(N));
+    assert(!move(E));
+    assert(prev_y = y);
+    assert(prev_x = x);
+    fireball(N);
+    fireball(E);
+    assert(move(N));
+    assert(move(E));
+    assert(prev_y != y);
+    assert(prev_x != x);
+}
+
+
+// pager
+{
+    pager_set(1337);
+    if (!projection()) {
+        pager_write(123);
+        end_test();
+    }
+    repeat 2 pass();
+    assert(pager_read() = 123);
+
+
+    if (!projection()) {
+        pager_write(123);
+        end_test();
+    }
+    pager_set(420);
+    repeat 2 pass();
+    assert(pager_read() = 0);
+}
+
+
+// bridge/ocean
+{
+    while(!(scan(W, 1) is @ocean)) move(W);
+
+    if (!projection()) {
+        move(W);
+        pager_write(420);
+        end_test();
+    }
+    repeat 2 pass();
+    assert(pager_read() = 0);
+
+    bridge(W);
+
+    if (!projection()) {
+        move(W);
+        pager_write(420);
+        end_test();
+    }
+    repeat 2 pass();
+    assert(pager_read() = 420);
+
+    bomb(W, 1);
+
+    if (!projection()) {
+        move(W);
+        pager_write(420);
+        end_test();
+    }
+    repeat 2 pass();
+    assert(pager_read() = 0);
+}
+
+// Tree
+{
+    int prev = count(#sapling);
+    plant_tree(E);
+    assert(count(#sapling) < prev);
+    repeat 3 pass();
+
+    prev = x;
+    move(E);
+    assert(x = prev);
+
+    prev = count(#sapling);
+    collect(E);
+    assert(count(#sapling) > prev);
+
+    prev = count(#wood);
+    chop(E);
+    assert(count(#wood) > prev);
+
+    let prev = x;
+    move(E);
+    assert(x != prev);
+}
+
+end_test();
