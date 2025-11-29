@@ -90,6 +90,8 @@ let assert = int:(int v) {
     assert(count(#sapling) < prev);
     repeat 3 pass();
 
+    assert(scan(E, 1) is @tree);
+
     prev = x;
     move(E);
     assert(x = prev);
@@ -101,6 +103,7 @@ let assert = int:(int v) {
     prev = count(#wood);
     chop(E);
     assert(count(#wood) > prev);
+    assert(!(scan(E, 1) is @tree));
 
     let prev = x;
     move(E);
