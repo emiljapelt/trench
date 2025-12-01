@@ -12,9 +12,13 @@
                         "break", BREAK;
                         "continue", CONTINUE;
                         "N", NORTH;
+                        "NE", NORTH_EAST;
                         "E", EAST;
+                        "SE", SOUTH_EAST;
                         "S", SOUTH;
+                        "SW", SOUTH_WEST;
                         "W", WEST;
+                        "NW", NORTH_WEST;
                         "goto", GOTO;
                         "int", INT;
                         "dir", DIR;

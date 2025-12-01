@@ -3,9 +3,13 @@ open Resources
 
 type direction =
     | North
+    | NorthEast 
     | East
+    | SouthEast
     | South
+    | SouthWest
     | West
+    | NorthWest
 
 type scope =
     | LocalScope
@@ -93,18 +97,15 @@ type compile_state = {
     continue: string option;
     ret_type: typ option;
 }
-
-let string_of_dir d = match d with
-    | North -> "0"
-    | East -> "1"
-    | South -> "2"
-    | West -> "3"
-
 let int_of_dir d = match d with
     | North -> 0
-    | East -> 1
-    | South -> 2
-    | West -> 3
+    | NorthEast -> 1
+    | East -> 2
+    | SouthEast -> 3
+    | South -> 4
+    | SouthWest -> 5
+    | West -> 6
+    | NorthWest -> 7
 
 let rec type_size t = match t with
     | T_Int 

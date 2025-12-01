@@ -83,12 +83,16 @@ void death_mark_player(player_state* ps, const char* reason) {
 }
 
 void move_coord(int* x, int* y, direction dir, unsigned int dist) {
-    if (dir == HERE) return;
     switch (dir) {
         case NORTH: *y -= dist; break;
+        case NORTH_EAST: *y -= dist; *x += dist;  break;
         case EAST: *x += dist; break;
+        case SOUTH_EAST: *y += dist; *x += dist;  break;
         case SOUTH: *y += dist; break;
+        case SOUTH_WEST: *y += dist; *x -= dist;  break;
         case WEST: *x -= dist; break;
+        case NORTH_WEST: *y -= dist; *x -= dist;  break;
+        default: return;
     }
 }
 

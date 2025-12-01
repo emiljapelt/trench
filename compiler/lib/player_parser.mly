@@ -25,7 +25,7 @@
 %token QMARK PLUSPLUS MINUSMINUS
 %token IF ELSE IS REPEAT WHILE CONTINUE BREAK LET
 %token GOTO
-%token NORTH EAST SOUTH WEST
+%token NORTH EAST SOUTH WEST NORTH_EAST NORTH_WEST SOUTH_EAST SOUTH_WEST
 %token INT DIR FIELD PROP RESOURCE L_SHIFT R_SHIFT
 %token RETURN
 
@@ -197,7 +197,11 @@ non_control_flow_stmt:
 
 direction:
   | NORTH { North }
-  | EAST  { East  }
+  | NORTH_EAST { NorthEast }
+  | EAST  { East }
+  | SOUTH_EAST { SouthEast }
   | SOUTH { South }
+  | SOUTH_WEST { SouthWest }
   | WEST  { West }
+  | NORTH_WEST { NorthWest }
 ;

@@ -42,7 +42,7 @@ let builtin_func_infos : builtin_func_info StringMap.t = StringMap.of_list [
     };{
       args = [];
       ret = T_Int;
-      comp = FixedFuncComp (fun acc -> Instr_Place :: I(4) :: Instr_Trench :: acc);
+      comp = FixedFuncComp (fun acc -> Instr_Place :: I(-1) :: Instr_Trench :: acc);
     }]
   });
   ("fortify", {
@@ -55,7 +55,7 @@ let builtin_func_infos : builtin_func_info StringMap.t = StringMap.of_list [
     };{
       args = [];
       ret = T_Int;
-      comp = FixedFuncComp (fun acc -> Instr_Place :: I(4) :: Instr_Fortify :: acc);
+      comp = FixedFuncComp (fun acc -> Instr_Place :: I(-1) :: Instr_Fortify :: acc);
     };]
   });
   ("wait", {
@@ -104,7 +104,7 @@ let builtin_func_infos : builtin_func_info StringMap.t = StringMap.of_list [
     };{
       args = [];
       ret = T_Int;
-      comp = FixedFuncComp (fun acc -> Instr_Place :: I(4) :: Instr_Collect :: acc);
+      comp = FixedFuncComp (fun acc -> Instr_Place :: I(-1) :: Instr_Collect :: acc);
     }];
   });
   ("bomb", {
@@ -378,7 +378,7 @@ let builtin_func_infos : builtin_func_info StringMap.t = StringMap.of_list [
     };{
       args = [];
       ret = T_Int;
-      comp = FixedFuncComp (fun acc -> Instr_Place :: I(4) :: Instr_MineShaft :: acc);
+      comp = FixedFuncComp (fun acc -> Instr_Place :: I(-1) :: Instr_MineShaft :: acc);
     }];
   });
   ("craft", {
