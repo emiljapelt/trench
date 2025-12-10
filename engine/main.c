@@ -39,6 +39,33 @@ void kill_players() {
     each_player(_gs->players, &try_kill_player);
 }
 
+int is_in_view(int x, int y) {
+    return 
+        (x >= _gr->viewport.x) && 
+        (x < _gr->viewport.x + _gr->viewport.width) && 
+        (y >= _gr->viewport.y) && 
+        (y < _gr->viewport.y + _gr->viewport.height);
+}
+
+void center_viewport(int x, int y) {
+    _gr->viewport.x = x - (_gr->viewport.width / 2);
+    _gr->viewport.y = y - (_gr->viewport.height / 2);
+}
+
+void auto_viewport(int x, int y) {
+    if (_gr->viewport.automatic && !is_in_view(x,y)) 
+        center_viewport(x,y);
+}
+
+void auto_viewport_player(player_state* ps) {
+    if (_gr->viewport.automatic) {
+        int x, y;
+        location_coords(ps->location, &x, &y);
+        auto_viewport(x,y);
+    }
+}
+
+
 void player_turn_default(player_state* ps) {
     while(1) {
         int change = 0;
@@ -232,7 +259,11 @@ void player_turn_default(player_state* ps) {
             default: return;
         }
 
-        if (change || _gs->feed_point) { print_board(); wait(1); }
+        if (change || _gs->feed_point) { 
+            auto_viewport_player(ps);
+            print_board(); 
+            wait(1); 
+        }
 
         kill_players();
         if (_gs->feed_point) { print_board(); wait(1); }
@@ -384,7 +415,11 @@ void handle_input() {
             case '1':
                 _gr->time_scale = 1;
                 break;
+            case 'a':
+                _gr->viewport.automatic = !_gr->viewport.automatic;
+                break;
             case '\033': {
+                if (_gr->viewport.automatic) break;
                 char special_buf[2];
                 read(STDIN_FILENO, &special_buf, 2);
                 switch (special_buf[1]) {

@@ -292,6 +292,7 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                     .y = 0,
                     .width = Int_val(Field(Field(unwrapped_result, 15), 0)),
                     .height = Int_val(Field(Field(unwrapped_result, 15), 1)),
+                    .automatic = 0,
                 },
             };
 

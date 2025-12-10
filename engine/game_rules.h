@@ -18,6 +18,7 @@ typedef struct game_rules {
         int y;
         int width;
         int height;
+        int automatic: 1;
     } viewport;
 
     struct settings {
