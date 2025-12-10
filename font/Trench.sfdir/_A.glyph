@@ -1,0 +1,17 @@
+StartChar: A
+Encoding: 65 65 0
+Width: 1000
+Flags: HO
+LayerCount: 2
+Fore
+SplineSet
+154 232 m 1
+ 454 852 l 1
+ 742 248 l 1
+ 596 240 l 25
+ 492 540 l 25
+ 384 530 l 25
+ 282 190 l 1
+ 154 232 l 1
+EndSplineSet
+EndChar
