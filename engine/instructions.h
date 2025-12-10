@@ -1469,6 +1469,11 @@ int instr_mine_shaft(player_state* ps) {
         return 0;
     }
 
+    if (!connections(x,y, MOUNTAIN)) {
+        ps->stack[ps->sp++] = INSTR_INVALID_TARGET;
+        return 0;
+    }
+
     field_state* field = fields.get(x,y);
     switch (field->type) {
         case EMPTY: {

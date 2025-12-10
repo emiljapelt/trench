@@ -82,7 +82,7 @@ let default_game_setup = GS {
   viewport = (20,20);
 }
 
-let valid_map_chars = ['\n'; '\r'; '.'; '+'; '~'; 'T'; 'w'; 'C';]
+let valid_map_chars = ['\n'; '\r'; '.'; '+'; '~'; 'T'; 'w'; 'C'; 'M';]
 
 let get_map_size map = match map with
   | EmptyMap(x,y)

@@ -19,6 +19,7 @@ typedef enum {
     BRIDGE,
     CLAY,
     MINE_SHAFT,
+    MOUNTAIN,
 } field_type;
 
 typedef union field_data field_data;
@@ -65,6 +66,7 @@ typedef union field_data {
 #define PROP_IS_BRIDGE      0b00000000000000000010000000000000
 #define PROP_IS_CLAY        0b00000000000000000100000000000000
 #define PROP_IS_MINE_SHAFT  0b00000000000000001000000000000000
+#define PROP_IS_MOUNTAIN    0b00000000000000010000000000000000
 
 
 #define FOREGROUND_COLOR_OVERLAY    0b0001
@@ -72,6 +74,8 @@ typedef union field_data {
 #define MOD_OVERLAY                 0b0100
 #define SYMBOL_OVERLAY              0b1000
 
+
+int connections(int x, int y, field_type field);
 
 typedef struct field_state {
     color_predef foreground_color : 8;

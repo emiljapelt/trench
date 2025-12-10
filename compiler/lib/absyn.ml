@@ -26,6 +26,8 @@ type field_prop =
     | IsWall_Prop
     | IsBridge_Prop
     | IsClay_Prop
+    | IsMineShaft_Prop
+    | IsMountain_Prop
 
 and typ =
     | T_Int

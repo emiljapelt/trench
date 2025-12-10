@@ -101,6 +101,9 @@ unsigned int scan_field(field_type type, field_data* data) {
         case MINE_SHAFT: 
             result = PROP_IS_MINE_SHAFT | PROP_COVER;
             break;
+        case MOUNTAIN:
+            result = PROP_IS_MOUNTAIN | PROP_OBSTRUCTION;
+            break;
         case EMPTY:
         default:
             result = PROP_IS_EMPTY;
@@ -126,6 +129,7 @@ void destroy_field(field_state* field, char* death_msg) {
 
     switch (field->type) {
         case OCEAN:
+        case MOUNTAIN:
             break;
         case TREE: {
             field->type = EMPTY;
@@ -182,6 +186,7 @@ void remove_field(field_state* field) {
 
     switch (field->type) {
         case OCEAN:
+        case MOUNTAIN:
         case TREE: {
             field->type = EMPTY;
             break;
@@ -309,6 +314,12 @@ field_visual get_field_data_visual(const int x, const int y, const field_type ty
             result.symbol = symbol_lookup[MINE_SHAFT_VISUAL];
             if (data->mine_shaft.fortified)
                 result.mod = BOLD;
+            break;
+        }
+        case MOUNTAIN: {
+            result.foreground_color = color_lookup[DARK_GREY];
+            result.background_color = color_lookup[BLACK];
+            result.symbol = symbol_lookup[MOUNTAIN_VISUAL];
             break;
         }
         case CLAY: {

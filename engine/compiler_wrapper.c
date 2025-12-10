@@ -71,6 +71,9 @@ field_state* create_board(char* map_data, const int x, const int y) {
                 brd[(_y * x) + _x].data = data;
                 add_event(brd[(_y * x) + _x].exit_events, FIELD_EVENT, events.clay_spread, NULL);
                 break;
+            case 'M':
+                brd[(_y * x) + _x].type = MOUNTAIN;
+                break;
         }
     }
 
