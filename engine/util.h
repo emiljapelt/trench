@@ -6,6 +6,8 @@
 void wait(float seconds);
 int numeric_size(const char* str, const int start) ;
 int sub_str_to_int(const char* str, const int start, const int size);
+int clamp(int a, int hi, int lo);
+int max(int a, int b);
 
 static inline int use_resource(int amount, int* avail) {
     if (amount > *avail) return 0;

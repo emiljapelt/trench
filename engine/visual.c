@@ -244,7 +244,11 @@ void print_board() {
             buffer("%c", _gs->feed_buffer[feed_index]);
             feed_index++;
             fi++;
-        } 
+        }
+        while (fi <= FEED_WIDTH) {
+            buffer(" ");
+            fi++;
+        }
     }
     buffer("%s", symbol_lookup[NE]);
     for(int i = 0; i < _gr->viewport.width+2; i++) buffer("%s", symbol_lookup[EW]);

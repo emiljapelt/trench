@@ -52,9 +52,32 @@ void center_viewport(int x, int y) {
     _gr->viewport.y = y - (_gr->viewport.height / 2);
 }
 
+void pan_viewport(float time, const int x, const int y) {
+    int x_diff = x - (_gr->viewport.x + (_gr->viewport.width / 2));
+    int y_diff = y - (_gr->viewport.y + (_gr->viewport.height / 2));
+
+    int steps = max(abs(x_diff), abs(y_diff));
+    float time_per_step = time / steps;
+
+    while (x_diff || y_diff) {
+        int x_mod = clamp(x_diff, 1, -1);
+        int y_mod = clamp(y_diff, 1, -1);;
+
+        _gr->viewport.x += x_mod;
+        _gr->viewport.y += y_mod;
+
+        x_diff -= x_mod;
+        y_diff -= y_mod;
+
+        print_board();
+        wait(time_per_step);
+    }
+}
+
 void auto_viewport(int x, int y) {
     if (_gr->viewport.automatic && !is_in_view(x,y)) 
-        center_viewport(x,y);
+        //center_viewport(x,y);
+        pan_viewport(0.5, x, y);
 }
 
 void auto_viewport_player(player_state* ps) {

@@ -6,6 +6,17 @@
 
 #include "game_state.h"
 
+int max(int a, int b) {
+    if (a > b) return a;
+    return b;
+}
+
+int clamp(int a, int hi, int lo) {
+    if (a < lo) return lo;
+    if (a > hi) return hi;
+    return a;
+}
+
 void wait(float seconds) {
     #ifdef _WIN32
     #include <windows.h>
