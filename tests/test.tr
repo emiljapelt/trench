@@ -36,6 +36,7 @@ let assert = int:(int v) {
         pager_write(123);
         end_test();
     }
+
     repeat 2 pass();
     assert(pager_read() = 123);
 
@@ -108,6 +109,37 @@ let assert = int:(int v) {
     let prev = x;
     move(E);
     assert(x != prev);
+}
+
+// Drop resources on death
+{
+    drop(1, #wood);
+
+    if (!projection()) {
+        take(1, #wood);
+        move(E);
+        end_test();
+    }
+
+    repeat 2 pass();
+    let prev = count(#wood);
+    take(1, #wood);
+    assert(count(#wood) = prev);
+
+    move(E);
+    take(1, #wood);
+    assert(count(#wood) = prev + 1);
+}
+
+// Can use boat
+{
+    while(!(scan(W, 1) is @ocean)) move(W);
+
+    boat(W);
+    assert(mount(W));
+    move(W);
+    move(E);
+    assert(dismount(E));
 }
 
 end_test();

@@ -9,9 +9,11 @@ viewport: 11,11
 themes: *
 features: *
 
+auto_start: true
+debug: true
 
 resources: {
-    mana: 1000
+    mana: 10000
     wood: 1000
     explosive: 1000
     ammo: 1000

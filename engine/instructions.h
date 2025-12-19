@@ -93,6 +93,7 @@ typedef enum {
   Instr_Drop = 68,
   Instr_MineShaft = 69,
   Instr_Craft = 70,
+  Meta_Round = 71,
 } instruction;
 
 typedef enum {
@@ -467,6 +468,16 @@ int meta_player_id(player_state* ps) {
     }
 
     ps->stack[ps->sp++] = ps->id;
+    return 0;
+}
+
+int meta_round(player_state* ps) {
+    if (ps->sp + 1 >= _gr->stack_size) {
+        death_mark_player(ps, stack_overflow_msg);
+        return 0;
+    }
+
+    ps->stack[ps->sp++] = _gs->round;
     return 0;
 }
 
@@ -1193,7 +1204,13 @@ int instr_dismount(player_state* ps) {
         return 0;
     }
 
-    remove_entity(ps->location.vehicle->entities, ps->id);
+    if (ps->location.type != VEHICLE_LOCATION) {
+        ps->stack[ps->sp++] = INSTR_INVALID_TARGET;
+        return 1;
+    }
+
+
+    free(remove_entity(ps->location.vehicle->entities, ps->id));
     field_state* field = fields.get(x,y);
     location prev_loc = ps->location;
     ps->location = field_location_from_field(field);
@@ -1226,7 +1243,6 @@ int instr_boat(player_state* ps) {
     }
 
     
-
     vehicle_state* boat = malloc(sizeof(vehicle_state));
     boat->id = _gs->id_counter++;
     boat->entities = array_list.create(get_vehicle_capacity(VEHICLE_BOAT));

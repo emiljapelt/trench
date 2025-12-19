@@ -14,9 +14,7 @@ typedef struct entity_t {
         struct player_state* player;
         struct vehicle_state* vehicle;
     };
-    
 } entity_t;
-
 
 typedef struct entity_namespace {
     entity_t* (*of_player)(struct player_state*);

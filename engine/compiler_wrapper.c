@@ -294,6 +294,7 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                     .height = Int_val(Field(Field(unwrapped_result, 15), 1)),
                     .automatic = 0,
                 },
+                .started = Bool_val(Field(unwrapped_result, 16)),
             };
 
             load_settings_struct(gr, Field(unwrapped_result, 13));
@@ -381,7 +382,7 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 player->directive = di.directive;
                 player->directive_len = di.dir_len;
                 player->dp = 0;
-                player->location = field_location_from_coords(player_x, player_y);
+                player->location = (location) { .type = VOID_LOCATION };
                 player->remaining_steps = gr->steps;
                 player->remaining_actions = gr->actions;
                 player->pager_channel = 0;
@@ -394,10 +395,7 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                     array_list.add(player->extra_files, strdup(String_val(Field((Field(player_info, 5)), f))));
                 }
                 add_player(gs->players, player);
-                add_entity(
-                    fields.get(player_x, player_y)->entities, 
-                    entity.of_player(player)
-                );
+                move_player_to_location(player, field_location_from_coords(player_x, player_y));
             }
             memset(gs->feed_buffer, 0, feed_size+1);
 

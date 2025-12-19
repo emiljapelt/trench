@@ -39,6 +39,16 @@ void kill_players() {
     each_player(_gs->players, &try_kill_player);
 }
 
+void remove_dead_players() {
+    for(int i = _gs->players->count - 1; i >= 0; i--) {
+        player_state* ps = get_player(_gs->players, i);
+        if (ps->alive) continue;
+        _log(DEBUG, "Removing player %s#%i", ps->name, ps->id);
+        array_list.remove(_gs->players, i, 0);
+        free_player(ps);
+    }
+}
+
 int is_in_view(int x, int y) {
     return 
         (x >= _gr->viewport.x) && 
@@ -74,6 +84,12 @@ void pan_viewport(float time, const int x, const int y) {
     }
 }
 
+void pan_viewport_player(float time, player_state* ps) {
+    int x, y;
+    location_coords(ps->location, &x, &y);
+    pan_viewport(time, x, y);
+}
+
 void auto_viewport(int x, int y) {
     if (_gr->viewport.automatic && !is_in_view(x,y)) 
         //center_viewport(x,y);
@@ -103,6 +119,7 @@ void player_turn_default(player_state* ps) {
             case Meta_BoardY: change = meta_board_y(ps);break;
             case Meta_Resource: change = meta_resource(ps);break;
             case Meta_PlayerID: change = meta_player_id(ps);break;
+            case Meta_Round: change = meta_round(ps);break;
             case Instr_Wait: {
                 if(!use_resource(1,&ps->remaining_actions)) {ps->dp--;return;}
                 ps->stack[ps->sp++] = 1;
@@ -415,7 +432,7 @@ void check_win_condition() {
 
 void handle_input() {
     char buf[1];
-    int pause = 0;
+    int pause = !_gr->started;
     while (1) {
         int read_status = read(STDIN_FILENO, &buf, 1);
 
@@ -460,10 +477,11 @@ void handle_input() {
                         break;
                 }
                 print_board();
+                break;
             }
-            break;
             case ' ': 
                 pause = !pause;
+                _gr->started = 1;
                 break;
             case 'q': 
                 terminal_echo_on();
@@ -496,6 +514,7 @@ void play_round_default() {
         check_win_condition();
     }
     if (_gr->nuke > 0 && _gs->round % _gr->nuke == 0) nuke_board();
+    remove_dead_players();
 }
 
 void play_round() {
@@ -581,7 +600,7 @@ int main(int argc, char** argv) {
     clear_screen();
     print_board();
 
-    wait(1);
+    handle_input();
 
     _log(INFO, "--- RUNNING ---");
     _log_flush();

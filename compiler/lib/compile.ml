@@ -80,6 +80,7 @@ let default_game_setup = GS {
   setting_overwrites = [];
   debug = false;
   viewport = (20,20);
+  auto_start = true;
 }
 
 let valid_map_chars = ['\n'; '\r'; '.'; '+'; '~'; 'T'; 'w'; 'C'; 'M';]
@@ -121,6 +122,7 @@ let to_game_setup gsps =
       | SettingOverwrites so -> (GS ({acc with setting_overwrites = so}))
       | Debug b -> (GS ({acc with debug = b}))
       | Viewport(w,h) -> if w > 0 || h > 0  then (GS ({acc with viewport = (w,h)})) else raise_failure "Viewport must be two non-zero ints"
+      | AutoStart b -> (GS ({acc with auto_start = b}))
     )
   in
   aux gsps default_game_setup
@@ -190,6 +192,7 @@ type compiled_game_file = {
   settings: settings;
   debug: bool;
   viewport: int * int;
+  auto_start: bool;
 }
 
 let compile_player_file path size_limit = try (
@@ -286,7 +289,8 @@ let format_game_setup (GS gs) =
     map = gs.map;
     settings = overwrite_settings default_settings gs.setting_overwrites;
     debug = gs.debug;
-    viewport = gs.viewport
+    viewport = gs.viewport;
+    auto_start = gs.auto_start;
   }
 
 let compile_game_file path = try (

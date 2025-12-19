@@ -41,4 +41,6 @@ typedef struct player_state {
 
 player_state* copy_player_state(const player_state*);
 
+void free_player(player_state*);
+
 #endif

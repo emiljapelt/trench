@@ -11,7 +11,8 @@ typedef struct game_rules {
     float time_scale;
     int stack_size;
     int program_size_limit;
-    int debug: 1;
+    unsigned int debug: 1;
+    unsigned int started: 1;
 
     struct {
         int x;

@@ -13,7 +13,7 @@ int boat_move(vehicle_state* v, direction d) {
     move_coord(&x, &y, d, 1);
 
     field_state* target = fields.get(x,y);
-    if (target->type == OCEAN) {
+    if (target->type == OCEAN || target->type == BRIDGE) {
 
         move_vehicle_to_location(v, field_location_from_field(target));
         if (v->destroy)

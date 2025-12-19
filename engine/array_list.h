@@ -11,7 +11,7 @@ typedef struct array_list_namespace {
     array_list_t* (*const create)(const int init_size);
     void (*const add)(array_list_t* list, void* data);
     void* (*const get)(array_list_t* list, int index);
-    void (*const remove)(array_list_t* list, int index, int do_free);
+    void* (*const remove)(array_list_t* list, int index, int do_free);
     void (*const free)(array_list_t* list);
 } array_list_namespace;
 

@@ -78,6 +78,7 @@ type instruction =
   | Instr_Drop
   | Instr_MineShaft
   | Instr_Craft
+  | Meta_Round
 
 let instruction_to_int label_map instr = match instr with
     | I i -> Some i
@@ -154,6 +155,7 @@ let instruction_to_int label_map instr = match instr with
     | Instr_Drop -> Some 68
     | Instr_MineShaft -> Some 69
     | Instr_Craft -> Some 70
+    | Meta_Round -> Some 71
 
 let label_set pp =
   let rec aux pp set = match pp with

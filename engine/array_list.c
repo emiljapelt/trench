@@ -38,11 +38,13 @@ void* get(array_list_t* list, int index) {
     return list->list[index];
 }
 
-void remove(array_list_t* list, int index, int do_free) {
+void* remove(array_list_t* list, int index, int do_free) {
     if (index < 0 || index >= list->count)
-        return;
+        return NULL;
 
     if (do_free) free(list->list[index]);
+
+    void* to_return = do_free ? NULL : list->list[index];
 
     memmove(list->list + index, list->list + index + 1, sizeof(void*) * (list->count - index));
 
@@ -55,6 +57,8 @@ void remove(array_list_t* list, int index, int do_free) {
         list->list = new_list;
         list->size /= 2;
     }
+
+    return to_return;
 }
 
 const array_list_namespace array_list = {

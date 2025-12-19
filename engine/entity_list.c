@@ -14,13 +14,23 @@ entity_t* get_entity(entity_list_t* list, int index) {
     return (entity_t*)array_list.get(list, index);
 }
 
-void remove_entity(entity_list_t* list, int id) {
+entity_t* remove_entity(entity_list_t* list, int id) {
     for(int i = 0; i < list->count; i++) {
         if (entity.get_id(get_entity(list, i)) == id) {
-            array_list.remove(list, i, 0);
-            return;
+            return array_list.remove(list, i, 0);
         }
     }
+    return NULL;
+}
+
+entity_t* get_entity_from_id(entity_list_t* list, int id) {
+    for(int i = 0; i < list->count; i++) {
+        entity_t* e = get_entity(list, i); 
+        if (entity.get_id(e) == id) {
+            return e;
+        }
+    }
+    return NULL;
 }
 
 entity_t* pop_entity(entity_list_t* list) {

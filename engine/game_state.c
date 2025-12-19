@@ -66,7 +66,7 @@ void kill_player(player_state* ps) {
         case FIELD_LOCATION:
             remove_entity(field->entities, ps->id);
             break;
-    }   
+    }
 
     char msg[100];
     sprintf(msg, "%s (#%i) died: %s\n", ps->name, ps->id, (ps->death_msg) ? ps->death_msg : "Unknown reason");
@@ -76,6 +76,19 @@ void kill_player(player_state* ps) {
     ps->death_msg = NULL;
     if (ps->team)
         ps->team->members_alive--;
+
+    // drop resources
+    add_resource(&field->resources, R_Wood, ps->resources.resource[R_Wood].amount);
+    add_resource(&field->resources, R_Clay, ps->resources.resource[R_Clay].amount);
+    add_resource(&field->resources, R_Ammo, ps->resources.resource[R_Ammo].amount);
+    add_resource(&field->resources, R_Sapling, ps->resources.resource[R_Sapling].amount);
+    add_resource(&field->resources, R_BearTrap, ps->resources.resource[R_BearTrap].amount);
+    add_resource(&field->resources, R_Explosive, ps->resources.resource[R_Explosive].amount);
+    add_resource(&field->resources, R_Metal, ps->resources.resource[R_Metal].amount);
+
+    zero_out_registry(&ps->resources);
+
+    // The player struct is freed and removed elsewere.
 }
 
 void death_mark_player(player_state* ps, const char* reason) {
@@ -98,12 +111,12 @@ void move_player_to_location(player_state* player, location loc) {
         case FIELD_LOCATION: { 
             field_state* field = player->location.field;
             update_events(entity.of_player(player), field->exit_events, (situation){ .type = MOVEMENT_SITUATION, .movement.loc = loc });
-            remove_entity(field->entities, player->id);
+            free(remove_entity(field->entities, player->id));
             break;
         }
         case VEHICLE_LOCATION: {
             vehicle_state* vehicle = player->location.vehicle;
-            remove_entity(vehicle->entities, player->id);
+            free(remove_entity(vehicle->entities, player->id));
             break;
         }
     }
@@ -136,7 +149,7 @@ void move_vehicle_to_location(vehicle_state* vehicle, location loc) {
         case FIELD_LOCATION: { 
             field_state* field = vehicle->location.field;
             update_events(entity.of_vehicle(vehicle), field->exit_events, (situation){ .type = MOVEMENT_SITUATION, .movement.loc = loc });
-            remove_entity(field->entities, vehicle->id);
+            free(remove_entity(field->entities, vehicle->id));
             break;
         }
         case VEHICLE_LOCATION: {
@@ -173,7 +186,7 @@ void move_entity_to_location(entity_t* e, location loc) {
         case FIELD_LOCATION: { 
             field_state* field = curr.field;
             update_events(e, field->exit_events, (situation){ .type = MOVEMENT_SITUATION, .movement.loc = loc });
-            remove_entity(field->entities, entity.get_id(e));
+            free(remove_entity(field->entities, entity.get_id(e)));
             break;
         }
         case VEHICLE_LOCATION: {

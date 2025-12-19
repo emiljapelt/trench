@@ -1,5 +1,6 @@
 #include "player.h"
 
+#include "log.h"
 #include "game_state.h"
 #include <stdlib.h>
 #include <string.h>
@@ -49,4 +50,36 @@ player_state* copy_player_state(const player_state* ps) {
     new_player->remaining_steps = _gr->steps;
 
     return new_player;
+}
+
+
+void free_player(player_state* player) {
+
+    for(int i = 0; i < player->pre_death_events->count; i++) {
+        event* e = get_event(player->pre_death_events, i);
+        free(e->data);
+        free(e);
+    }
+    array_list.free(player->pre_death_events);
+
+    for(int i = 0; i < player->post_death_events->count; i++) {
+        event* e = get_event(player->post_death_events, i);
+        free(e->data);
+        free(e);
+    }
+    array_list.free(player->post_death_events);
+
+    if (player->extra_files) {
+        for(int i = 0; i < player->extra_files->count; i++) {
+            free(array_list.get(player->extra_files, i));
+        }
+        array_list.free(player->extra_files);
+    }
+
+    array_list.free(player->pager_msgs);
+    free(player->directive);
+    free(player->stack);
+    free(player->path);
+    free(player->name);
+    free(player);
 }

@@ -9,7 +9,7 @@
 		"main": {
 			"patterns": [{
 				"name": "keyword",
-				"match": "\\b(actions|mode|time_scale|map|themes|features|debug|viewport|nuke)\\b"
+				"match": "\\b(actions|mode|time_scale|map|themes|features|debug|viewport|auto_start|nuke)\\b"
 			},{
 				"include": "#constants"
 			},{
