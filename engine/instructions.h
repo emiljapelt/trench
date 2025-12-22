@@ -1112,6 +1112,7 @@ int instr_collect(player_state* ps) {
     field_state* field = fields.get(x,y);
 
     int success = 0;
+    int change = 0;
     switch (field->type) {
         case TREE:
             add_resource(&ps->resources, R_Sapling, 1);
@@ -1127,6 +1128,7 @@ int instr_collect(player_state* ps) {
                     fields.remove_field(field);
                     add_resource(&ps->resources, R_Clay, 1);
                     success = 1;
+                    change = 1;
                     break;
                 }
                 default: {
@@ -1134,6 +1136,7 @@ int instr_collect(player_state* ps) {
                     field->data->clay_pit.amount -= collected;
                     add_resource(&ps->resources, R_Clay, collected);
                     success = 1;
+                    change = 1;
                     break;
                 }
             }
@@ -1141,7 +1144,7 @@ int instr_collect(player_state* ps) {
     }
 
     ps->stack[ps->sp++] = success;
-    return success;
+    return change;
 }
 
 int instr_say(player_state* ps) {

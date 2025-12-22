@@ -78,7 +78,7 @@ const char* symbol_lookup[] = {
     "\u2058",
     "\u2059",
     "\u2612",
-    "\u26f0", 
+    "A", // "\u26f0" 
 };
 
 

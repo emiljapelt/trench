@@ -31,6 +31,7 @@ typedef enum color_predef {
     DARK_GREY,
     WOOD_BROWN,
     CLAY_BROWN,
+    LIGHT_GREY,
 } color_predef;
 
 int color_eq(color c1, color c2);

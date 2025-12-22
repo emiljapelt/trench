@@ -309,7 +309,7 @@ field_visual get_field_data_visual(const int x, const int y, const field_type ty
             break;
         }
         case MINE_SHAFT: {
-            result.foreground_color = color_lookup[WHITE];
+            result.foreground_color = color_lookup[LIGHT_GREY];
             result.background_color = color_lookup[BLACK];
             result.symbol = symbol_lookup[MINE_SHAFT_VISUAL];
             if (data->mine_shaft.fortified)
@@ -317,9 +317,10 @@ field_visual get_field_data_visual(const int x, const int y, const field_type ty
             break;
         }
         case MOUNTAIN: {
-            result.foreground_color = color_lookup[DARK_GREY];
+            result.foreground_color = color_lookup[LIGHT_GREY];
             result.background_color = color_lookup[BLACK];
             result.symbol = symbol_lookup[MOUNTAIN_VISUAL];
+            result.mod = BOLD;
             break;
         }
         case CLAY: {

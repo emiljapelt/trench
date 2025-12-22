@@ -12,6 +12,7 @@ const color color_lookup[] = {
     {.r = 40, .g = 40, .b = 40},
     {.r = 133, .g = 94, .b = 66},
     {.r = 195, .g = 140, .b = 95},
+    {.r = 140, .g = 140, .b = 140},
 };
 
 int color_eq(color c1, color c2) {
