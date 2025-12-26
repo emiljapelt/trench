@@ -103,18 +103,30 @@ let check_map map = match map with
       else FileMap(String.concat "" lines, (x,List.length lines))
     )
 
-let to_game_setup gsps =
+(* If the file is relative, change it to be relative to game files directory *)
+let fix_path game_file_dir file = 
+  if (Filename.is_relative file) then Filename.concat game_file_dir file
+  else file
+
+let fix_map_path game_file_dir map = match map with
+  | EmptyMap _ -> map
+  | FileMap(file, (x,y)) -> FileMap(fix_path game_file_dir file, (x,y))
+
+let fix_team_paths game_file_dir (TI team_info) = 
+  (TI ({team_info with players = List.map (fun (PI player) -> (PI {player with files = List.map (fix_path game_file_dir) player.files})) team_info.players}))
+
+let to_game_setup game_file_dir gsps =
   let rec aux gs (GS acc) = match gs with
     | [] -> (GS acc)
     | h::t -> aux t (match h with
-      | Team t -> (GS ({acc with teams = t :: acc.teams}))
+      | Team t -> (GS ({acc with teams = (fix_team_paths game_file_dir t) :: acc.teams}))
       | Resources rs -> (GS ({acc with resources = List.fold_left (fun acc (name, value) -> ResourceMap.add (string_to_resource name) value acc) acc.resources rs}))
       | Themes ts -> (GS ({acc with themes = ts}))
       | Features fs -> (GS ({acc with features = fs}))
       | Actions i -> if i > 0 then (GS ({acc with actions = i})) else raise_failure "Must have some actions per turn"
       | Steps i -> if i > 0 then (GS ({acc with steps = i})) else raise_failure "Must have some steps per turn"
       | Mode i -> (GS ({acc with mode = i}))
-      | Map m -> (GS ({acc with map = check_map m}))
+      | Map m -> (GS ({acc with map = m |> fix_map_path game_file_dir |> check_map}))
       | Nuke i -> if i >= 0 then (GS ({acc with nuke = i})) else raise_failure "Nuke option size cannot be negative"
       | ExecMode em -> GS ({acc with exec_mode = em})
       | Seed s -> GS ({acc with seed = s})
@@ -294,8 +306,9 @@ let format_game_setup (GS gs) =
   }
 
 let compile_game_file path = try (
-  check_path path [".trg"] ;
-  Ok(compile Game_parser.main Game_lexer.start [] [] (fun gsp -> gsp |> to_game_setup) format_game_setup path)
+  let _ = check_path path [".trg"] in
+  let game_file_dir = Filename.dirname path in
+  Ok(compile Game_parser.main Game_lexer.start [] [] (to_game_setup game_file_dir) (format_game_setup) path)
 ) with
 | Failure(None,ln,msg) -> Error(format_failure (Failure(Some path, ln, msg)))
 | Failure _ as f -> Error(format_failure f)

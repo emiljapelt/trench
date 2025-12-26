@@ -3,7 +3,7 @@ mode: inf
 time_scale: 0
 seed: 0
 
-map: tests/test.trm
+map: test.trm
 viewport: 11,11
 
 themes: *
@@ -27,7 +27,7 @@ team: {
     origin: 6,6
     player: {
         name: tester
-        files: tests/test.tr
+        files: test.tr
     }
 }
 
