@@ -41,6 +41,7 @@
 %left PLUS MINUS 
 %left TIMES FSLASH PCT
 %right UNARY
+%left LPAR
 /*High precedence*/
 
 %start main
@@ -69,7 +70,7 @@ simple_typ:
   | RESOURCE { T_Resource }
   | PROP { T_Prop }
   | LPAR typ RPAR { $2 }
-  | typ COLON LPAR seperated_or_empty(COMMA, simple_typ) RPAR { T_Func($1, $4) }
+  | typ  LPAR seperated_or_empty(COMMA, simple_typ) RPAR { T_Func($1, $3) }
 ;
 
 typ:
@@ -106,8 +107,8 @@ value:
   | target PLUSPLUS                    { features ["sugar"] ; Increment($1, false)}
   | MINUSMINUS target                  { features ["sugar"] ; Decrement($2, true)}
   | target MINUSMINUS                  { features ["sugar"] ; Decrement($1, false)}
-  | simple_typ COLON LPAR seperated_or_empty(COMMA,func_arg) RPAR stmt           { features ["func"] ; Func($1, $4, $6) }
-  | simple_value LPAR seperated_or_empty(COMMA, value) RPAR { Call($1, $3) }
+  | typ COLON LPAR seperated_or_empty(COMMA,func_arg) RPAR block           { features ["func"] ; Func($1, $4, Stmt($6,$symbolstartpos.pos_lnum)) }
+  | value LPAR seperated_or_empty(COMMA, value) RPAR { Call($1, $3) }
   | value QMARK value COLON value      { features ["control";"sugar"] ; Ternary($1,$3,$5) }
 ;
 
