@@ -417,8 +417,8 @@ let builtin_var_infos : builtin_var_info StringMap.t = StringMap.of_list [
   create_builtin_var T_Int "id" [Meta_PlayerID];
   create_builtin_var T_Int "x" [Meta_PlayerX];
   create_builtin_var T_Int "y" [Meta_PlayerY];
-  create_builtin_var T_Int "board_width" [Meta_BoardX];
-  create_builtin_var T_Int "board_height" [Meta_BoardY];
+  create_builtin_var T_Int "map_width" [Meta_BoardX];
+  create_builtin_var T_Int "map_height" [Meta_BoardY];
   create_builtin_var T_Int "round" [Meta_Round];
   
   create_builtin_var T_Int "_SUCCESS" [Instr_Place; I(1)];
