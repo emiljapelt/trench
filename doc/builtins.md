@@ -1,6 +1,6 @@
 [Back to overview](../README.md)
 
-The trench language contains builtin functions, some of which relate to themes and features. They are all functions which can be called like any normal function in the language, but they are not variables. If a variable of the same name is declared, that variable will be used instead of the builting function, allowing user to overwrite them.
+The trench language contains builtin functions and variables, some of which relate to themes and features. The functions can only be called, and the variables cannot be reassigned. If a variable of the same name is declared, that variable will be used instead of the builtin one, allowing user to overwrite them.
 
 Some builtin functions return a result in the form of an `int`, which may be an error. The following table shows the different named errors, each of which has a corresponding builtin variable.
 
@@ -16,6 +16,20 @@ Some builtin functions return a result in the form of an `int`, which may be an 
 | _MISSING_SPACE | -6 |
 
 ---
+
+## Variables
+
+| Name | Type | Explaination |
+| --- | --- | --- |
+| id | int | The players own id |
+| x | int | The players own x-coordinate |
+| y | int | The players own y-coordinate |
+| map_width | int | The width of the map |
+| map_height | int | The height of the map |
+| round | int | The current round number |
+
+
+## Functions
 
 ### Wait <sub><small>action</small></sub>
 `wait` `int:()`

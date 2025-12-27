@@ -180,22 +180,6 @@ say x;         // -> 2
 ```
 
 ---
-
-### Meta variables
-**type**: int
-
-Meta variables are used to get information about the games and the players state.
-
-| Meta variable | Description |
-| --- | --- |
-| #x | Gets the players *x* position |
-| #y | Gets the players *y* position |
-| #id | Gets the players id |
-| #board_x | Gets the board width |
-| #board_y | Gets the board height |
-| #*resource* | Where *resource* is the name of a resource. <br> Gets the amount of that resource the player has |
-
----
 ### Random int
 **type:** int
 
@@ -209,7 +193,7 @@ Evaluates to a random non-negative integer.
 ### Random from set
 **type:** *any*
 
-**syntax:** `?(a ... z)`
+**syntax:** `?[a ... z]`
 
 **features:** random
 
