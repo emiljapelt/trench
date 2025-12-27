@@ -18,8 +18,8 @@ let assert = int:(int v) {
     wall(E);
     assert(!move(N));
     assert(!move(E));
-    assert(prev_y = y);
-    assert(prev_x = x);
+    assert(prev_y == y);
+    assert(prev_x == x);
     fireball(N);
     fireball(E);
     assert(move(N));
@@ -38,7 +38,7 @@ let assert = int:(int v) {
     }
 
     repeat 2 pass();
-    assert(pager_read() = 123);
+    assert(pager_read() == 123);
 
 
     if (!projection()) {
@@ -47,7 +47,7 @@ let assert = int:(int v) {
     }
     pager_set(420);
     repeat 2 pass();
-    assert(pager_read() = 0);
+    assert(pager_read() == 0);
 }
 
 
@@ -61,7 +61,7 @@ let assert = int:(int v) {
         end_test();
     }
     repeat 2 pass();
-    assert(pager_read() = 0);
+    assert(pager_read() == 0);
 
     bridge(W);
 
@@ -71,7 +71,7 @@ let assert = int:(int v) {
         end_test();
     }
     repeat 2 pass();
-    assert(pager_read() = 420);
+    assert(pager_read() == 420);
 
     bomb(W, 1);
 
@@ -81,7 +81,7 @@ let assert = int:(int v) {
         end_test();
     }
     repeat 2 pass();
-    assert(pager_read() = 0);
+    assert(pager_read() == 0);
 }
 
 // Tree
@@ -95,7 +95,7 @@ let assert = int:(int v) {
 
     prev = x;
     move(E);
-    assert(x = prev);
+    assert(x == prev);
 
     prev = count(#sapling);
     collect(E);
@@ -124,11 +124,11 @@ let assert = int:(int v) {
     repeat 2 pass();
     let prev = count(#wood);
     take(1, #wood);
-    assert(count(#wood) = prev);
+    assert(count(#wood) == prev);
 
     move(E);
     take(1, #wood);
-    assert(count(#wood) = prev + 1);
+    assert(count(#wood) == prev + 1);
 }
 
 // Can use boat

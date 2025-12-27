@@ -123,7 +123,7 @@ and rename_variables_of_stmt map (Stmt(stmt,ln)) = match stmt with
     let new_name = rename n in
     (StringMap.add n new_name map,Stmt(DeclareAssign(t,new_name,rename_variables_of_value map v),ln))
   | Return v ->  (map,Stmt(Return(rename_variables_of_value map v),ln))
-  | CallStmt(f,args) ->  (map,Stmt(CallStmt(rename_variables_of_value map f, List.map (rename_variables_of_value map) args),ln))
+  | Expr e ->  (map,Stmt(Expr(rename_variables_of_value map e),ln))
   | _ ->  (map,Stmt(stmt,ln))
 
 

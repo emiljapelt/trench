@@ -57,14 +57,20 @@ rule lex = parse
                 { try
                     Hashtbl.find keyword_table id
                   with Not_found -> NAME id }
-    |   '+'           { PLUS }
+    |   "+="          { PLUS_EQ }
+    |   "-="          { MINUS_EQ }
+    |   "*="          { TIMES_EQ }
+    |   "<<="         { L_SHIFT_EQ }
+    |   ">>="         { R_SHIFT_EQ }
     |   "++"          { PLUSPLUS }
+    |   '+'           { PLUS }
     |   "--"          { MINUSMINUS }
-    |   '*'           { TIMES }
     |   '-'           { MINUS }
+    |   '*'           { TIMES }
     |   '/'           { FSLASH }
     |   '%'           { PCT }
     |   '='           { EQ }
+    |   "=="          { EQEQ }
     |   "!="          { NEQ }
     |   "<="          { LTEQ }
     |   "<<"          { L_SHIFT }

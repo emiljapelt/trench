@@ -219,7 +219,7 @@ and compile_stmt (Stmt(stmt,ln)) state acc =
     else raise_failure ("Unavailable label: "^n)
   | Declare _ -> acc
   | Return v -> compile_value v state (Instr_Return :: acc)
-  | CallStmt(f,args) -> compile_value (Call(f,args)) state (Instr_DecStack :: acc)
+  | Expr e -> compile_value e state (Instr_DecStack :: acc)
   with 
   | Failure(p,None,msg) -> raise (Failure(p,Some ln, msg))
   | a -> raise a

@@ -58,7 +58,7 @@ and statement_inner =
     | Declare of typ * string
     | DeclareAssign of typ option * string * value
     | Return of value
-    | CallStmt of value * value list
+    | Expr of value
 
 and value =
     | Reference of target

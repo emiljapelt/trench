@@ -94,7 +94,7 @@ and optimize_stmt (Stmt(stmt_i,ln) as stmt) =
   | Assign(n,e) -> Stmt(Assign(optimize_assign_target n,optimize_value e),ln)
   | DeclareAssign(ty,n,v) -> Stmt(DeclareAssign(ty,n,optimize_value v), ln)
   | Return v -> Stmt(Return(optimize_value v),ln)
-  | CallStmt(f,args) -> Stmt(CallStmt(optimize_value f, List.map optimize_value args),ln)
+  | Expr e -> Stmt(Expr(optimize_value e),ln)
   | Declare _
   | GoTo _
   | Label _

@@ -19,7 +19,7 @@
 %token <string> RESOURCE_NAME
 %token <string> FIELD_PROP
 %token LPAR RPAR LBRACE RBRACE LBRAKE RBRAKE
-%token PLUS MINUS TIMES EQ NEQ LT GT LTEQ GTEQ
+%token PLUS MINUS TIMES EQ NEQ LT GT LTEQ GTEQ EQEQ
 %token LOGIC_AND LOGIC_OR FSLASH PCT EXCLAIM
 %token COMMA SEMI COLON EOF
 %token QMARK PLUSPLUS MINUSMINUS
@@ -28,6 +28,7 @@
 %token NORTH EAST SOUTH WEST
 %token INT DIR FIELD PROP RESOURCE L_SHIFT R_SHIFT
 %token RETURN
+%token TIMES_EQ MINUS_EQ PLUS_EQ L_SHIFT_EQ R_SHIFT_EQ
 
 // Precedence and assosiativity inspired by https://en.cppreference.com/w/c/language/operator_precedence.html
 
@@ -35,7 +36,7 @@
 %right QMARK COLON
 %left LOGIC_OR
 %left LOGIC_AND 
-%left EQ NEQ IS
+%left EQEQ NEQ IS
 %left GT LT GTEQ LTEQ
 %left L_SHIFT R_SHIFT
 %left PLUS MINUS 
@@ -92,7 +93,7 @@ const_value:
 simple_value:
   | const_value                        { $1 }
   | QMARK                              { features ["random"] ; Random }
-  | QMARK LPAR simple_value+ RPAR      { features ["random"] ; RandomSet $3 }
+  | QMARK LBRAKE simple_value+ RBRAKE  { features ["random"] ; RandomSet $3 }
   | target                             { Reference($1) }
   | LPAR value RPAR                    { $2 }
 ;
@@ -103,13 +104,13 @@ value:
   | EXCLAIM value                      { Unary_op ("!", $2) } %prec UNARY
   | value binop value                  { Binary_op ($2, $1, $3) }
   | value IS value                     { FieldProp($1, $3) }
+  | typ COLON LPAR seperated_or_empty(COMMA,func_arg) RPAR block           { features ["func"] ; Func($1, $4, Stmt($6,$symbolstartpos.pos_lnum)) }
+  | value QMARK value COLON value      { features ["control";"sugar"] ; Ternary($1,$3,$5) }
   | PLUSPLUS target                    { features ["sugar"] ; Increment($2, true)}
   | target PLUSPLUS                    { features ["sugar"] ; Increment($1, false)}
   | MINUSMINUS target                  { features ["sugar"] ; Decrement($2, true)}
   | target MINUSMINUS                  { features ["sugar"] ; Decrement($1, false)}
-  | typ COLON LPAR seperated_or_empty(COMMA,func_arg) RPAR block           { features ["func"] ; Func($1, $4, Stmt($6,$symbolstartpos.pos_lnum)) }
   | value LPAR seperated_or_empty(COMMA, value) RPAR { Call($1, $3) }
-  | value QMARK value COLON value      { features ["control";"sugar"] ; Ternary($1,$3,$5) }
 ;
 
 func_arg:
@@ -119,7 +120,7 @@ func_arg:
 %inline binop:
   | LOGIC_AND   { "&"  }
   | LOGIC_OR    { "|"  }
-  | EQ          { "="  }
+  | EQEQ        { "="  }
   | NEQ         { "!=" }
   | LTEQ        { "<=" }
   | LT          { "<"  }
@@ -155,10 +156,12 @@ stmt1:
 ;
 stmt1_inner: 
   | block                                     { $1 }
+  | value SEMI                                { Expr $1}
+  | non_control_flow_stmt SEMI                { $1 }
   | IF simple_value stmt1 ELSE stmt1          { features ["control"] ; If ($2, $3, $5) }
   | IF simple_value alt+ ELSE stmt1           { features ["control"; "sugar"] ; IfIs($2, $3, Some $5) }
   | WHILE simple_value stmt1                  { features ["loops"] ; While($2,$3,None) }
-  | WHILE simple_value LPAR non_control_flow_stmt RPAR stmt1     { features ["loops"; "sugar"] ; While($2,$6,Some(Stmt($4, $symbolstartpos.pos_lnum))) }
+  | WHILE simple_value COLON LPAR value RPAR stmt1     { features ["loops"; "sugar"] ; While($2,$7,Some(Stmt(Expr $5, $symbolstartpos.pos_lnum))) }
   | BREAK SEMI                                { features ["loops"] ; Break }
   | CONTINUE SEMI                             { features ["loops"] ; Continue }
   | GOTO NAME SEMI                            { GoTo $2 }
@@ -166,7 +169,6 @@ stmt1_inner:
   | REPEAT CSTINT stmt1                       { features ["loops"] ; Block(List.init $2 (fun _ -> $3)) }
   | REPEAT LPAR CSTINT RPAR stmt1             { features ["loops"] ; Block(List.init $3 (fun _ -> $5)) }
   | RETURN value SEMI                         { features ["func"] ; Return $2 }
-  | non_control_flow_stmt SEMI                { $1 }
 ;
 
 alt:
@@ -179,21 +181,15 @@ target:
 ;
 
 non_control_flow_stmt:
-  | target EQ value        { features ["memory"] ; Assign ($1, $3) }
-  | target PLUS EQ value   { features ["memory"; "sugar"] ; Assign ($1, Binary_op("+", Reference $1, $4)) }
-  | target MINUS EQ value  { features ["memory"; "sugar"] ; Assign ($1, Binary_op("-", Reference $1, $4)) }
-  | target TIMES EQ value  { features ["memory"; "sugar"] ; Assign ($1, Binary_op("*", Reference $1, $4)) }
-  | target EXCLAIM EQ value  { features ["memory"; "sugar"] ; Assign ($1, Unary_op("!", $4)) }
-  | target L_SHIFT EQ value  { features ["memory"; "sugar"] ; Assign ($1, Binary_op("<<", Reference $1, $4)) }
-  | target R_SHIFT EQ value  { features ["memory"; "sugar"] ; Assign ($1, Binary_op(">>", Reference $1, $4)) }
-  | typ NAME               { features ["memory"] ; Declare($1,$2) }
-  | typ NAME EQ value      { features ["memory"] ; DeclareAssign(Some $1, $2, $4) }
-  | LET NAME EQ value      { features ["memory"; "sugar"] ; DeclareAssign(None, $2, $4) }
-  | target PLUSPLUS        { features ["memory"; "sugar"] ; Assign ($1, Binary_op("+", Reference $1, Int 1)) }
-  | PLUSPLUS target        { features ["memory"; "sugar"] ; Assign ($2, Binary_op("+", Reference $2, Int 1)) }
-  | target MINUSMINUS      { features ["memory"; "sugar"] ; Assign ($1, Binary_op("-", Reference $1, Int 1)) }
-  | MINUSMINUS target      { features ["memory"; "sugar"] ; Assign ($2, Binary_op("-", Reference $2, Int 1)) }
-  | target LPAR seperated_or_empty(COMMA, value) RPAR { CallStmt(Reference $1, $3) }
+  | target EQ value          { features ["memory"] ; Assign ($1, $3) }
+  | target PLUS_EQ value     { features ["memory"; "sugar"] ; Assign ($1, Binary_op("+", Reference $1, $3)) }
+  | target MINUS_EQ value    { features ["memory"; "sugar"] ; Assign ($1, Binary_op("-", Reference $1, $3)) }
+  | target TIMES_EQ value    { features ["memory"; "sugar"] ; Assign ($1, Binary_op("*", Reference $1, $3)) }
+  | target L_SHIFT_EQ value  { features ["memory"; "sugar"] ; Assign ($1, Binary_op("<<", Reference $1, $3)) }
+  | target R_SHIFT_EQ value  { features ["memory"; "sugar"] ; Assign ($1, Binary_op(">>", Reference $1, $3)) }
+  | typ NAME                 { features ["memory"] ; Declare($1,$2) }
+  | typ NAME EQ value        { features ["memory"] ; DeclareAssign(Some $1, $2, $4) }
+  | LET NAME EQ value        { features ["memory"; "sugar"] ; DeclareAssign(None, $2, $4) }
 ;
 
 direction:

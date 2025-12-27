@@ -166,8 +166,7 @@ and type_check_stmt_inner state stmt = match stmt with
         if not(type_eq ret_type v_type) then raise_failure ("Return type mismatch: expected '" ^type_string ret_type^ "', but got '" ^type_string v_type^ "'")
         else (stmt, state)
   )
-  | CallStmt(f,args) -> 
-    type_value state (Call(f,args)) |> ignore ; (stmt, state)
+  | Expr e -> type_value state e |> ignore ; (stmt, state)
 
 and type_check_stmt regs (Stmt(stmt,ln)) = 
   try 
