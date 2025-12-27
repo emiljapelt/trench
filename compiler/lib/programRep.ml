@@ -11,7 +11,6 @@ type instruction =
   | Meta_PlayerY
   | Meta_BoardX
   | Meta_BoardY
-  | Meta_Resource
   | Meta_PlayerID
   | Instr_Add
   | Instr_Sub
@@ -23,7 +22,6 @@ type instruction =
   | Instr_Lt
   | Instr_Div
   | Instr_Mod
-  | Instr_Scan
   | Instr_Random
   | Instr_RandomSet
   | Instr_Place
@@ -35,49 +33,14 @@ type instruction =
   | Instr_Assign
   | Instr_GoToIf
   | Instr_GoTo
-  | Instr_Move
-  | Instr_Chop
-  | Instr_Trench
-  | Instr_Fortify
-  | Instr_Bomb
-  | Instr_Shoot
   | Instr_Wait
   | Instr_Pass
-  | Instr_Look
-  | Instr_Mine
-  | Instr_Read
-  | Instr_Write
-  | Instr_Projection
-  | Instr_Freeze
-  | Instr_Fireball
-  | Instr_Meditate
-  | Instr_Dispel
-  | Instr_Disarm
-  | Instr_ManaDrain
-  | Instr_PagerSet
-  | Instr_PagerRead
-  | Instr_PagerWrite
-  | Instr_Wall
-  | Instr_PlantTree
-  | Instr_Bridge
-  | Instr_Collect
-  | Instr_Say
-  | Instr_Mount
-  | Instr_Dismount
-  | Instr_Boat
-  | Instr_BearTrap
   | Instr_Call
   | Instr_Return
   | Instr_Declare
   | Instr_GlobalAccess
   | Instr_GlobalAssign
   | Instr_Index
-  | Instr_ThrowClay
-  | Instr_ClayGolem
-  | Instr_Take
-  | Instr_Drop
-  | Instr_MineShaft
-  | Instr_Craft
   | Meta_Round
 
 let instruction_to_int label_map instr = match instr with
@@ -88,74 +51,37 @@ let instruction_to_int label_map instr = match instr with
     | Meta_PlayerY -> Some 1
     | Meta_BoardX -> Some 2
     | Meta_BoardY -> Some 3
-    | Meta_Resource -> Some 4
-    | Meta_PlayerID -> Some 5
-    | Instr_Add -> Some 6
-    | Instr_Sub -> Some 7
-    | Instr_Mul -> Some 8
-    | Instr_And -> Some 9 
-    | Instr_Or -> Some 10
-    | Instr_Eq -> Some 11
-    | Instr_Not -> Some 12
-    | Instr_Lt -> Some 13
-    | Instr_Div -> Some 14
-    | Instr_Mod -> Some 15
-    | Instr_Scan -> Some 16
-    | Instr_Random -> Some 17
-    | Instr_RandomSet -> Some 18
-    | Instr_Place -> Some 19
-    | Instr_Access -> Some 20
-    | Instr_Swap -> Some 21
-    | Instr_Copy -> Some 22
-    | Instr_DecStack -> Some 23
-    | Instr_FieldProp -> Some 24
-    | Instr_Assign -> Some 25
-    | Instr_GoToIf -> Some 26
-    | Instr_GoTo -> Some 27
-    | Instr_Move -> Some 28
-    | Instr_PlantTree -> Some 29
-    | Instr_Trench -> Some 30
-    | Instr_Fortify -> Some 31
-    | Instr_Bomb -> Some 32
-    | Instr_Shoot -> Some 33
-    | Instr_Wait -> Some 34
-    | Instr_Pass -> Some 35
-    | Instr_Look -> Some 36
-    | Instr_Mine -> Some 37
-    | Instr_Chop -> Some 38
-    | Instr_Read -> Some 39
-    | Instr_Write -> Some 40
-    | Instr_Projection -> Some 41
-    | Instr_Freeze -> Some 42
-    | Instr_Fireball -> Some 43
-    | Instr_Meditate -> Some 44
-    | Instr_Dispel -> Some 45
-    | Instr_Disarm -> Some 46
-    | Instr_ManaDrain -> Some 47
-    | Instr_PagerSet -> Some 48
-    | Instr_PagerWrite -> Some 49
-    | Instr_PagerRead -> Some 50
-    | Instr_Wall -> Some 51
-    | Instr_Bridge -> Some 52
-    | Instr_Collect -> Some 53
-    | Instr_Say -> Some 54
-    | Instr_Mount -> Some 55
-    | Instr_Dismount -> Some 56
-    | Instr_Boat -> Some 57
-    | Instr_BearTrap -> Some 58
-    | Instr_Call -> Some 59
-    | Instr_Return -> Some 60
-    | Instr_Declare -> Some 61
-    | Instr_GlobalAccess -> Some 62
-    | Instr_GlobalAssign -> Some 63
-    | Instr_Index -> Some 64
-    | Instr_ThrowClay -> Some 65
-    | Instr_ClayGolem -> Some 66
-    | Instr_Take -> Some 67
-    | Instr_Drop -> Some 68
-    | Instr_MineShaft -> Some 69
-    | Instr_Craft -> Some 70
-    | Meta_Round -> Some 71
+    | Meta_PlayerID -> Some 4
+    | Instr_Add -> Some 5
+    | Instr_Sub -> Some 6
+    | Instr_Mul -> Some 7
+    | Instr_And -> Some 8 
+    | Instr_Or -> Some 9
+    | Instr_Eq -> Some 10
+    | Instr_Not -> Some 11
+    | Instr_Lt -> Some 12
+    | Instr_Div -> Some 13
+    | Instr_Mod -> Some 14
+    | Instr_Random -> Some 15
+    | Instr_RandomSet -> Some 16
+    | Instr_Place -> Some 17
+    | Instr_Access -> Some 18
+    | Instr_Swap -> Some 19
+    | Instr_Copy -> Some 20
+    | Instr_DecStack -> Some 21
+    | Instr_FieldProp -> Some 22
+    | Instr_Assign -> Some 23
+    | Instr_GoToIf -> Some 24
+    | Instr_GoTo -> Some 25
+    | Instr_Wait -> Some 26
+    | Instr_Pass -> Some 27
+    | Instr_Call -> Some 28
+    | Instr_Return -> Some 29
+    | Instr_Declare -> Some 30
+    | Instr_GlobalAccess -> Some 31
+    | Instr_GlobalAssign -> Some 32
+    | Instr_Index -> Some 33
+    | Meta_Round -> Some 34
 
 let label_set pp =
   let rec aux pp set = match pp with

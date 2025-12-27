@@ -77,7 +77,7 @@ type settings = {
   plant_tree: delay_setting;
   bridge: cost_setting;
   chop: chop_setting;
-  fortify: cost_setting;
+  fortify: range_and_cost_setting;
   projection: cost_and_upkeep_setting;
   freeze: freeze_setting; 
   look: range_setting;
@@ -89,6 +89,8 @@ type settings = {
   clay_golem: cost_setting;
   mine_shaft: cost_setting;
   craft: craft_setting;
+  trench: range_setting;
+  collect: range_setting;
 }
 
 type ('a, 'b) overwrite = (string * ('a -> 'b -> 'a)) list
@@ -187,7 +189,7 @@ let rec overwrite_settings settings overwrites =
           | "plant_tree" -> ({ settings with plant_tree = delay_setting_overwrite settings.plant_tree setting_overwrites })
           | "bridge" ->     ({ settings with bridge = cost_setting_overwrite settings.bridge setting_overwrites })
           | "chop" ->       ({ settings with chop = chop_setting_overwrite settings.chop setting_overwrites })
-          | "fortify" ->    ({ settings with fortify = cost_setting_overwrite settings.fortify setting_overwrites })
+          | "fortify" ->    ({ settings with fortify = range_and_cost_setting_overwrite settings.fortify setting_overwrites })
           | "projection" -> ({ settings with projection = cost_and_upkeep_setting_overwrite settings.projection setting_overwrites })
           | "freeze" ->     ({ settings with freeze = freeze_setting_overwrite settings.freeze setting_overwrites })
           | "look" ->       ({ settings with look = range_setting_overwrite settings.look setting_overwrites })
@@ -199,6 +201,8 @@ let rec overwrite_settings settings overwrites =
           | "clay_golem" -> ({ settings with clay_golem = cost_setting_overwrite settings.clay_golem setting_overwrites })
           | "mine_shaft" -> ({ settings with mine_shaft = cost_setting_overwrite settings.mine_shaft setting_overwrites })
           | "craft" ->      ({ settings with craft = craft_setting_overwrite settings.craft setting_overwrites })
+          | "trench" ->     ({ settings with trench = range_setting_overwrite settings.trench setting_overwrites })
+          | "collect" ->     ({ settings with collect = range_setting_overwrite settings.collect setting_overwrites })
           | _ -> raise_failure ("No setting group: '" ^ name ^ "'")
         )
       )
@@ -218,7 +222,7 @@ let default_settings : settings = {
   plant_tree = { delay = 3 };
   bridge = { cost = 20 };
   chop = { sapling_chance = 30; wood_gain = 10; };
-  fortify = { cost = 5 };
+  fortify = { cost = 5; range = 1; };
   projection = { cost = 50; upkeep = 10 };
   freeze = { cost = 25; duration = 2; range = 5; refreeze = 0; };
   look = { range = -1; };
@@ -232,5 +236,7 @@ let default_settings : settings = {
   clay = { spread_limit = 1; contain_limit = 100; collect_max = 5; };
   clay_golem = { cost = 5; };
   mine_shaft = { cost = 10 };
-  craft = { ammo_per_metal = 3; beartraps_per_metal = 1; }
+  craft = { ammo_per_metal = 3; beartraps_per_metal = 1; };
+  trench = { range = 1; };
+  collect = { range = 1; };
 }

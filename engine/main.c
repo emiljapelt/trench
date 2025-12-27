@@ -40,13 +40,22 @@ void kill_players() {
 }
 
 void remove_dead_players() {
+    int count_alive = 0;
+    for(int i = 0; i < _gs->players->count; i++) 
+        if (get_player(_gs->players, i)->alive) count_alive++;
+
+    player_list_t* cleared_list = array_list.create(count_alive);
+
     for(int i = _gs->players->count - 1; i >= 0; i--) {
         player_state* ps = get_player(_gs->players, i);
-        if (ps->alive) continue;
-        _log(DEBUG, "Removing player %s#%i", ps->name, ps->id);
-        array_list.remove(_gs->players, i, 0);
-        free_player(ps);
+        if (ps->alive)
+            array_list.add(cleared_list, ps);
+        else 
+            free_player(ps);
     }
+
+    array_list.free(_gs->players);
+    _gs->players = cleared_list;
 }
 
 int is_in_view(int x, int y) {
@@ -108,7 +117,7 @@ void auto_viewport_player(player_state* ps) {
 void player_turn_default(player_state* ps) {
     while(1) {
         int change = 0;
-        if (ps->dp >= ps->directive_len) { return; }
+        if (ps->dp >= ps->directive_len) return;
         if (!use_resource(1,&ps->remaining_steps)) return;
         // debug_print(ps);
         _log(DEBUG, "%s executes %i", ps->name, ps->directive[ps->dp]);
@@ -117,7 +126,6 @@ void player_turn_default(player_state* ps) {
             case Meta_PlayerY: change = meta_player_y(ps);break;
             case Meta_BoardX: change = meta_board_x(ps);break;
             case Meta_BoardY: change = meta_board_y(ps);break;
-            case Meta_Resource: change = meta_resource(ps);break;
             case Meta_PlayerID: change = meta_player_id(ps);break;
             case Meta_Round: change = meta_round(ps);break;
             case Instr_Wait: {
@@ -129,51 +137,9 @@ void player_turn_default(player_state* ps) {
                 ps->stack[ps->sp++] = 1;
                 return;
             }
-            case Instr_Shoot: { 
-                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--;return;}
-                change = instr_shoot(ps);
-                break;
-            }
-            case Instr_Look: instr_look(ps); break;
-            case Instr_Scan: instr_scan(ps); break;
-            case Instr_Mine: {
-                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--;return;}
-                change = instr_mine(ps);
-                break;
-            }
-            case Instr_Move: {
-                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--;return;}
-                change = instr_move(ps);
-                break;
-            }
-            case Instr_Chop: {
-                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
-                change = instr_chop(ps);
-                break;
-            }
-            case Instr_Trench: { 
-                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
-                change = instr_trench(ps);
-                break;
-            }
-            case Instr_Fortify: {
-                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
-                change = instr_fortify(ps);
-                break;
-            }
-            case Instr_PlantTree: {
-                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
-                change = instr_plant_tree(ps);
-                break;
-            }
             case Instr_Random: instr_random_int(ps); break; 
             case Instr_RandomSet: instr_random_range(ps); break;
             case Instr_Place: instr_place(ps); break;
-            case Instr_Bomb: { 
-                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
-                change = instr_bomb(ps);
-                break;
-            }
             case Instr_Access: change = instr_access(ps); break;
             case Instr_GoTo: change = instr_goto(ps); break;
             case Instr_GoToIf: change = instr_goto_if(ps); break;
@@ -192,110 +158,12 @@ void player_turn_default(player_state* ps) {
             case Instr_DecStack: change = instr_dec_stack(ps); break;
             case Instr_Copy: change = instr_copy(ps); break;
             case Instr_Swap: change = instr_swap(ps); break;
-            case Instr_Read: change = instr_read(ps); break;
-            case Instr_Write: change = instr_write(ps); break;
-            case Instr_Projection: {
-                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
-                change = instr_projection(ps); 
-                break;
-            }
-            case Instr_Freeze: {
-                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
-                change = instr_freeze(ps); 
-                break;
-            }
-            case Instr_Fireball: {
-                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
-                change = instr_fireball(ps); 
-                break;
-            }
-            case Instr_Meditate: {
-                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
-                change = instr_meditate(ps); 
-                break;
-            }
-            case Instr_Disarm: {
-                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
-                change = instr_disarm(ps); 
-                break;
-            }
-            case Instr_Dispel: {
-                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
-                change = instr_dispel(ps); 
-                break;
-            }
-            case Instr_ManaDrain: {
-                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
-                change = instr_mana_drain(ps); 
-                break;
-            }
-            case Instr_PagerSet: change = instr_pager_set(ps); break;
-            case Instr_PagerRead: change = instr_pager_read(ps); break; 
-            case Instr_PagerWrite: change = instr_pager_write(ps); break;
-            case Instr_Wall: {
-                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
-                change = instr_wall(ps);
-                break;
-            }
-            case Instr_Bridge: {
-                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
-                change = instr_bridge(ps);
-                break;
-            }
-            case Instr_Collect: {
-                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
-                change = instr_collect(ps); 
-                break;
-            }
-            case Instr_Say: change = instr_say(ps); break;
-            case Instr_Mount: {
-                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
-                change = instr_mount(ps); 
-                break;
-            }
-            case Instr_Dismount: {
-                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
-                change = instr_dismount(ps); 
-                break;
-            }
-            case Instr_Boat: {
-                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
-                change = instr_boat(ps); 
-                break;
-            } 
-            case Instr_BearTrap: {
-                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
-                change = instr_bear_trap(ps); 
-                break;
-            }
             case Instr_Call: change = instr_call(ps); break;
             case Instr_Return: change = instr_return(ps); break;
             case Instr_Declare: change = instr_declare(ps); break;
             case Instr_GlobalAccess: change = instr_global_access(ps); break;
             case Instr_GlobalAssign: change = instr_global_assign(ps); break;
             case Instr_Index: change = instr_index(ps); break;
-            case Instr_ThrowClay: {
-                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
-                change = instr_throw_clay(ps); 
-                break;
-            }
-            case Instr_ClayGolem: {
-                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
-                change = instr_clay_golem(ps); 
-                break;
-            }
-            case Instr_Drop: change = instr_drop(ps); break;
-            case Instr_Take: change = instr_take(ps); break;
-            case Instr_MineShaft: {
-                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
-                change = instr_mine_shaft(ps); 
-                break;
-            }
-            case Instr_Craft: {
-                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--; return;}
-                change = instr_craft(ps); 
-                break;
-            }
             default: return;
         }
 

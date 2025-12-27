@@ -17,5 +17,5 @@ ocamlc -c ../compiler_wrapper.c &&
 cp $(ocamlc -where)/libcamlrun.a compiler_module.a && chmod +w compiler_module.a &&
 ar r compiler_module.a compiler_lib.o compiler_wrapper.o  &&
 cd .. &&
-gcc -o ./trench -I $(ocamlc -where) util.c log.c location.c resource_registry.c game_state.c color.c entity.c fields.c array_list.c player_list.c vehicles.c entity_list.c event_list.c events.c player.c visual.c main.c ./_build/compiler_module.a -lcurses -pthread -lzstd -lc -lm -ldl &&
+gcc -o ./trench -I $(ocamlc -where) util.c log.c location.c resource_registry.c game_state.c color.c entity.c fields.c array_list.c player_list.c vehicles.c entity_list.c event_list.c events.c player.c visual.c builtins.c main.c ./_build/compiler_module.a -lcurses -pthread -lzstd -lc -lm -ldl &&
 rm -r _build

@@ -37,7 +37,7 @@ let assert = int:(int v) {
         end_test();
     }
 
-    repeat 2 pass();
+    repeat 2 pass;
     assert(pager_read() == 123);
 
 
@@ -46,7 +46,7 @@ let assert = int:(int v) {
         end_test();
     }
     pager_set(420);
-    repeat 2 pass();
+    repeat 2 pass;
     assert(pager_read() == 0);
 }
 
@@ -60,7 +60,7 @@ let assert = int:(int v) {
         pager_write(420);
         end_test();
     }
-    repeat 2 pass();
+    repeat 2 pass;
     assert(pager_read() == 0);
 
     bridge(W);
@@ -70,7 +70,7 @@ let assert = int:(int v) {
         pager_write(420);
         end_test();
     }
-    repeat 2 pass();
+    repeat 2 pass;
     assert(pager_read() == 420);
 
     bomb(W, 1);
@@ -80,7 +80,7 @@ let assert = int:(int v) {
         pager_write(420);
         end_test();
     }
-    repeat 2 pass();
+    repeat 2 pass;
     assert(pager_read() == 0);
 }
 
@@ -89,7 +89,7 @@ let assert = int:(int v) {
     int prev = count(#sapling);
     plant_tree(E);
     assert(count(#sapling) < prev);
-    repeat 3 pass();
+    repeat 3 pass;
 
     assert(scan(E, 1) is @tree);
 
@@ -98,7 +98,7 @@ let assert = int:(int v) {
     assert(x == prev);
 
     prev = count(#sapling);
-    collect(E);
+    collect(E, 1);
     assert(count(#sapling) > prev);
 
     prev = count(#wood);
@@ -121,7 +121,7 @@ let assert = int:(int v) {
         end_test();
     }
 
-    repeat 2 pass();
+    repeat 2 pass;
     let prev = count(#wood);
     take(1, #wood);
     assert(count(#wood) == prev);

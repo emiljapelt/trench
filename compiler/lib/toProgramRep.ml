@@ -120,20 +120,10 @@ let rec compile_value val_expr (state:compile_state) acc =
       break = None; 
       continue = None; 
       ret_type = Some ret;
-    } 
-  in
+    } in
     let (body,_) = type_check_stmt new_state body in
     let vars = extract_declarations body |> List.rev in
     Instr_GoTo :: LabelRef(end_label) :: Label(func_label) :: Instr_Declare :: I(size_of_vars vars) :: compile_stmt body {new_state with scopes = ({ local = new_state.scopes.local @ vars; global = new_state.scopes.global })} (Instr_Place :: I(0) :: Instr_Return :: Label(end_label) :: Instr_Place :: LabelRef(func_label) :: acc)
-  )
-  | Call(Reference(Local name), args) when not(is_var name state.scopes) -> (match lookup_builtin_func_info name (List.map (type_value state) args) with
-    | Some builtin -> (match builtin.comp with
-      | FixedFuncComp comp -> comp acc
-      | FuncComp instr ->
-        let comped_args = List.map (fun arg -> compile_value arg state []) args |> List.flatten in
-        comped_args @ (instr :: acc)
-    )
-    | _ -> raise_failure ("Unknown function: "^name)
   )
   | Call(f,args) -> (
     let comped_args = List.map (fun arg -> compile_value arg state []) args |> List.flatten in

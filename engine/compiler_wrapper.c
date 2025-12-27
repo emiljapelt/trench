@@ -168,7 +168,8 @@ void load_settings_struct(game_rules* gr, value settings) {
 
     {
         value fortify_settings = Field(settings, 10);
-        gr->settings.fortify.cost = Int_val(Field(fortify_settings, 0));
+        gr->settings.fortify.range = Int_val(Field(fortify_settings, 0));
+        gr->settings.fortify.cost = Int_val(Field(fortify_settings, 1));
     }
 
     {
@@ -241,6 +242,16 @@ void load_settings_struct(game_rules* gr, value settings) {
         value craft_settings = Field(settings, 21);
         gr->settings.craft.ammo_per_metal = Int_val(Field(craft_settings, 0));
         gr->settings.craft.beartraps_per_metal = Int_val(Field(craft_settings, 1));
+    }
+
+    {
+        value trench_settings = Field(settings, 21);
+        gr->settings.trench.range = Int_val(Field(trench_settings, 0));
+    }
+
+    {
+        value collect_settings = Field(settings, 21);
+        gr->settings.collect.range = Int_val(Field(collect_settings, 0));
     }
 }
 

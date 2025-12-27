@@ -89,12 +89,6 @@ let rec type_value state v = match v with
       let _ = type_check_stmt ({scopes = func_scope; ret_type = Some ret; continue = None; break = None; labels = StringSet.empty}) body in
       typ
     )
-    | Call(Reference(Local name), args) when not (is_var name state.scopes) -> (
-      let arg_types = List.map (type_value state) args in
-      match lookup_builtin_func_info name arg_types with
-        | Some ii -> ii.ret
-        | _ -> raise_failure ("Unknown function: "^name^"("^String.concat "," (List.map type_string arg_types) ^")")
-    )
     | Call(f,args) -> (
       let f_type = type_value state f in match f_type with
       | T_Func(ret, params) -> (

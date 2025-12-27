@@ -1,6 +1,6 @@
 [Back to overview](../README.md)
 
-The trench language contains builtin functions and variables, some of which relate to themes and features. The functions can only be called, and the variables cannot be reassigned. If a variable of the same name is declared, that variable will be used instead of the builtin one, allowing user to overwrite them.
+The trench language contains builtin functions and variables, some of which relate to themes and features. Builtins cannot be reassigned. If a variable of the same name is declared, that variable will be used instead of the builtin one, allowing user to overwrite them.
 
 Some builtin functions return a result in the form of an `int`, which may be an error. The following table shows the different named errors, each of which has a corresponding builtin variable.
 
@@ -179,9 +179,9 @@ Always `_SUCCESS`.
 ---
 
 ### Trench <sub><small>action</small></sub>
-`trench` `int:(dir d) | int:()`
+`trench` `int:(dir d, int p)`
 
-Attemp to create a trench on the adjecent field in direction `d`, or on the players current field if `d` is not provided. 
+Attemp to create a trench `p` fields in direction `d`. If `p` is greater than 1 (`trench.range`) or less than 0, it is clamped to the valid range.
 
 **Returns:**  
 
@@ -194,9 +194,9 @@ Attemp to create a trench on the adjecent field in direction `d`, or on the play
 ---
 
 ### Fortify <sub><small>action</small></sub>
-`fortify` `int:(dir d) | int:()`
+`fortify` `int:(dir d, int p)`
 
-Attemp to fortify the adjecent field in direction `d`, or the players current field if `d` is not provided. This costs `5` `wood` (`fortify.cost`).
+Attemp to fortify the field `p` fields in direction `d`. This costs `5` `wood` (`fortify.cost`). If `p` is greater than 1 (`fortify.range`) or less than 0, it is clamped to the valid range.
 
 TRENCH, WALL and MINE_SHAFT fields can be fortified, but only once.
 
