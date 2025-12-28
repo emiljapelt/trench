@@ -59,9 +59,10 @@ let size_of_vars (vars : variable list) =
 let rec compile_value val_expr (state:compile_state) acc =
   match val_expr with
   | Reference(Local name) when not(is_var name state.scopes) -> (
-    match lookup_builtin_var_info name with
-    | Some builtin -> (match builtin.comp with
-      | VarComp instrs ->  instrs @ acc
+    match lookup_builtin_info name with
+    | Some builtin -> (match builtin.info with
+      | BuiltinVar bv ->  bv.comp @ acc
+      | BuiltinFunc bf -> Instr_Place :: I(bf.addr) :: acc
     )
     | _ -> raise_failure ("Unknown variable: "^name)
   )
@@ -102,7 +103,7 @@ let rec compile_value val_expr (state:compile_state) acc =
       | _ -> raise_failure "Unknown unary operation"
   )
   | FieldProp(v,f) -> compile_value v state (compile_value f state (Instr_FieldProp :: acc))
-  (* true = pre*)
+  (* true = pre *)
   | Increment(target, true)  ->  compile_target_index target state (Instr_Copy :: Instr_Copy :: instr_access target state.scopes :: Instr_Place :: I(1) :: Instr_Add :: instr_assign target state.scopes :: instr_access target state.scopes :: acc)
   | Increment(target, false) ->  compile_target_index target state (Instr_Copy :: instr_access target state.scopes :: Instr_Swap :: Instr_Copy :: instr_access target state.scopes :: Instr_Place :: I(1) :: Instr_Add :: instr_assign target state.scopes :: acc)
   | Decrement(target, true)  ->  compile_target_index target state (Instr_Copy :: Instr_Copy :: instr_access target state.scopes :: Instr_Place :: I(1) :: Instr_Sub :: instr_assign target state.scopes :: instr_access target state.scopes :: acc)
@@ -124,6 +125,25 @@ let rec compile_value val_expr (state:compile_state) acc =
     let (body,_) = type_check_stmt new_state body in
     let vars = extract_declarations body |> List.rev in
     Instr_GoTo :: LabelRef(end_label) :: Label(func_label) :: Instr_Declare :: I(size_of_vars vars) :: compile_stmt body {new_state with scopes = ({ local = new_state.scopes.local @ vars; global = new_state.scopes.global })} (Instr_Place :: I(0) :: Instr_Return :: Label(end_label) :: Instr_Place :: LabelRef(func_label) :: acc)
+  )
+  | Call(Reference(Local name), args) when not(is_var name state.scopes) -> (
+    let arg_types = List.map (type_value state) args in  
+    match lookup_builtin_info name with
+    | Some builtin -> (match builtin.info with
+      | BuiltinVar _ -> raise_failure ("Unknown function: "^name)
+      | BuiltinFunc bf -> (
+        if (type_list_eq arg_types bf.canonical)
+        then 
+          let comped_args = List.map (fun arg -> compile_value arg state []) args |> List.flatten in
+          comped_args @ ((Instr_Place :: I(bf.addr) :: Instr_Place :: I(List.length args) :: Instr_Call :: acc))
+        else match List.find_opt (fun (params, _) -> type_list_eq arg_types params) bf.short_hands with
+        | Some(_, comp) -> 
+          let comped_args = List.map (fun arg -> compile_value arg state []) args |> List.flatten in
+          (comp comped_args) @ acc
+        | None -> raise_failure ("Unknown function: "^name)
+      )
+    )
+    | _ -> raise_failure ("Unknown function: "^name)
   )
   | Call(f,args) -> (
     let comped_args = List.map (fun arg -> compile_value arg state []) args |> List.flatten in

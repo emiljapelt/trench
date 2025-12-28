@@ -18,8 +18,8 @@ let var_type scopes name =
 
 let rec type_value state v = match v with
     | Reference(Local name) when not (is_var name state.scopes) -> (
-      match lookup_builtin_var_info name with
-      | Some bv -> bv.typ
+      match lookup_builtin_info name with
+      | Some builtin -> builtin_canonical_type builtin
       | _ -> raise_failure ("Unknown variable: "^name)
       )
     | Reference Local n -> var_type state.scopes n
@@ -89,10 +89,25 @@ let rec type_value state v = match v with
       let _ = type_check_stmt ({scopes = func_scope; ret_type = Some ret; continue = None; break = None; labels = StringSet.empty}) body in
       typ
     )
+    | Call(Reference(Local name), args) when not (is_var name state.scopes) -> (
+      let arg_types = List.map (type_value state) args in
+      match lookup_builtin_info name with
+      | Some builtin -> (match builtin.info with
+      | BuiltinVar _ -> raise_failure ("Unknown function: "^name^"("^String.concat "," (List.map type_string arg_types) ^")")
+      | BuiltinFunc bf -> (
+            if 
+              (bf.canonical :: (List.map fst bf.short_hands))
+              |> List.exists (type_list_eq arg_types) 
+            then bf.ret
+            else raise_failure ("No version of builtin function '"^name^"' takes: "^ String.concat "," (List.map type_string arg_types))
+          )
+        )
+        | _ -> raise_failure ("Unknown function: "^name^"("^String.concat "," (List.map type_string arg_types) ^")")
+    )
     | Call(f,args) -> (
       let f_type = type_value state f in match f_type with
       | T_Func(ret, params) -> (
-        if List.length params != List.length args then raise_failure "Incorrect amount of arguments"
+        if List.length params != List.length args then raise_failure "Incorrect amount of arguments" (* Better error?? *)
         else if not (
           args 
           |> List.map (type_value state) 

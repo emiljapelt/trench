@@ -36,6 +36,6 @@ ToDo
 - [X] Make game start in a paused state
 - [X] Fix crash when dismounting nothing
 - [-] Fix memory leak (and malloc abuse) in movement functions such as 'move_player_to_location', caused by use of entity.of_...
-- [ ] Start working on test game and real game. (smallish maps see not in F2??)
+- [ ] Start working on test game and real game. (smallish maps see note in F2??)
 - [ ] MORE TESTING!
 
