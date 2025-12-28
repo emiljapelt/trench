@@ -2,6 +2,8 @@
 
 The trench language contains builtin functions and variables, some of which relate to themes and features. Builtins cannot be reassigned. If a variable of the same name is declared, that variable will be used instead of the builtin one, allowing user to overwrite them.
 
+Some builtin function have shorthand versions, which are only available when the function is called directly, i.e. not via assignment or passed as argument. These are explain in the functions section.
+
 Some builtin functions return a result in the form of an `int`, which may be an error. The following table shows the different named errors, each of which has a corresponding builtin variable.
 
 | Name | Value |
@@ -27,31 +29,12 @@ Some builtin functions return a result in the form of an `int`, which may be an 
 | map_width | int | The width of the map |
 | map_height | int | The height of the map |
 | round | int | The current round number |
+| wait | int | 1, and uses an action |
+| pass | int | 1, and ends the current turn |
 
 
 ## Functions
 
-### Wait <sub><small>action</small></sub>
-`wait` `int:()`
-
-Does nothing, but spends an action.
-
-**Returns:** 
-
-Always `_SUCCESS`.
-
----
-
-### Pass
-`pass` `int:()`
-
-Ends the current turn.
-
-**Returns:**
-
-Always `_SUCCESS`.
-
----
 
 ### Move <sub><small>action</small></sub>
 `move` `int:(dir d)`
@@ -155,15 +138,22 @@ The distance to the first field with property `p`, or `_ERROR` if no such field 
 ---
 
 ### Collect <sub><small>action</small></sub>
-`collect` `int:(dir d) | int:()`
+`collect` `int:(dir d, int p)`
 
-Attempt to collect resources from the ajecent field in direction `d`, or the players current field if `d` is not provided. 
+Attempt to collect resources from the field `p` fields in direction `d`.  If `p` is greater than 1 (`collect.range`) or less than 0, it is clamped to the valid range.
 
 Resources can be collected from TREE, MINE_SHAFT and CLAY fields.
 
 **Returns:** 
 
 If the targeted field is out of bounds `_OUT_OF_BOUNDS` is returned, if a resource was collected `_SUCCESS` is returned, otherwise `_ERROR` is returned.
+
+**Shorthands:**
+
+| Signature | Equivalent |
+| --- | --- |
+| `int:()` | `collect(N, 0)` |
+| `int:(dir d)` | `collect(d, 1)` |
 
 ---
 
@@ -191,6 +181,13 @@ Attemp to create a trench `p` fields in direction `d`. If `p` is greater than 1 
 | _OUT_OF_BOUNDS | The target field is out of bounds |
 | _INVALID_TARGET | The trench could not be created |
 
+**Shorthands:**
+
+| Signature | Equivalent |
+| --- | --- |
+| `int:()` | `trench(N, 0)` |
+| `int:(dir d)` | `trench(d, 1)` |
+
 ---
 
 ### Fortify <sub><small>action</small></sub>
@@ -208,6 +205,13 @@ TRENCH, WALL and MINE_SHAFT fields can be fortified, but only once.
 | _OUT_OF_BOUNDS | The target field is out of bounds |
 | _INVALID_TARGET | The field could not be fortified |
 | _MISSING_RESOURCE | The player did not have enough resources |
+
+**Shorthands:**
+
+| Signature | Equivalent |
+| --- | --- |
+| `int:()` | `fortify(N, 0)` |
+| `int:(dir d)` | `fortify(d, 1)` |
 
 ---
 

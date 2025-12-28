@@ -98,7 +98,7 @@ let assert = int:(int v) {
     assert(x == prev);
 
     prev = count(#sapling);
-    collect(E, 1);
+    collect(E);
     assert(count(#sapling) > prev);
 
     prev = count(#wood);

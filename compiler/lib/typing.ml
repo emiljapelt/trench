@@ -117,7 +117,7 @@ let rec type_value state v = match v with
         then raise_failure "Argument type mismatch"
         else ret
       )
-      | _ -> raise_failure "Not a callable type"
+      | _ -> raise_failure ("Not a callable type: '" ^ type_string f_type ^ "'")
     )
     | Ternary(c,a,b) -> 
       require T_Int (type_value state c) (fun () -> ()) ;
