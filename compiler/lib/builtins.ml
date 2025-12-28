@@ -21,16 +21,6 @@ type builtin = {
   info: builtin_info;
 }
 
-(*type builtin_var_compile =
-  | VarComp of instruction list
-
-type builtin_var_info = {
-  themes: string list;
-  features: string list;
-  typ: typ;
-  comp: builtin_var_compile;
-}*)
-
 let builtin_var name themes features typ comp = (name, {
     themes = themes;
     features = features;
@@ -78,7 +68,7 @@ let builtin_infos : builtin StringMap.t = StringMap.of_list [
   builtin_var "_OBSTRUCTED" [] [] T_Int [Instr_Place; I(-5)];
   builtin_var "_MISSING_SPACE" [] [] T_Int [Instr_Place; I(-6)];
   
-  (* Test shorthands *)
+  
   builtin_func "shoot" ["military";"forestry"] [] (-1) T_Int[T_Dir] [];
   builtin_func "look" [] [] (-2) T_Int[T_Dir;T_Prop] [];
   builtin_func "scan" [] [] (-3) T_Field[T_Dir;T_Int] [];
@@ -152,24 +142,3 @@ let lookup_builtin_info name =
   match StringMap.find_opt name builtin_infos with
   | None -> None
   | Some builtin -> (features builtin.features ; themes builtin.themes ; Some builtin)
-
-let type_list_eq tl1 tl2 = 
-  List.length tl1 == List.length tl2 && List.for_all (fun (a,b) -> type_eq a b) (List.combine tl1 tl2)
-
-(*
-let lookup_builtin_func_info name arg_types = 
-  match StringMap.find_opt name builtin_infos with
-  | None -> None
-  | Some builtin -> 
-    match builtin.info with
-    | BuiltinVar _ -> None
-    | BuiltinFunc bf -> 
-    match
-      builtin.versions |>
-      List.find_opt (fun builtin -> 
-        List.length arg_types = List.length builtin.args
-        && List.for_all (fun (a,b) -> type_eq a b) (List.combine arg_types builtin.args))
-    with 
-    | None -> None
-    | Some version -> (features builtin.features ; themes builtin.themes ; Some version)
-  *)

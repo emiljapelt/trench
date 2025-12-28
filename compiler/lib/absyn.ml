@@ -139,6 +139,8 @@ let rec type_eq t1 t2 = match t1,t2 with
     && type_eq ret ret'  
   | _ -> false
 
+let type_list_eq tl1 tl2 = 
+  List.length tl1 == List.length tl2 && List.for_all (fun (a,b) -> type_eq a b) (List.combine tl1 tl2)
 
 type player_info_field =
     | PlayerName of string
