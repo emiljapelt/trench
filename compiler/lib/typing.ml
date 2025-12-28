@@ -60,11 +60,11 @@ let rec type_value state v = match v with
     | Resource _ -> T_Resource
     | Decrement(target,_) -> (match type_value state (Reference target) with 
       | T_Int -> T_Int
-      | _ -> raise_failure ("Only int and dir can be decremented")
+      | _ -> raise_failure ("Only int can be decremented")
     )
     | Increment(target,_) -> (match type_value state (Reference target) with 
       | T_Int -> T_Int
-      | _ -> raise_failure ("Only int and dir can be incremented")
+      | _ -> raise_failure ("Only int can be incremented")
     )
     | FieldProp(v,fp) -> 
       require T_Field (type_value state v) (fun () -> ()) ;
@@ -107,14 +107,14 @@ let rec type_value state v = match v with
     | Call(f,args) -> (
       let f_type = type_value state f in match f_type with
       | T_Func(ret, params) -> (
-        if List.length params != List.length args then raise_failure "Incorrect amount of arguments" (* Better error?? *)
+        let arg_types = List.map (type_value state) args in
+        let raise_arg_type_failure = fun () -> raise_failure ("Expected arguments of types: ("^ String.concat "," (List.map type_string params) ^"), but got: (" ^ String.concat "," (List.map type_string arg_types) ^ ")") in
+        if List.length params != List.length args then raise_arg_type_failure ()
         else if not (
-          args 
-          |> List.map (type_value state) 
-          |> List.combine params
+          List.combine params arg_types
           |> List.for_all (fun (p, a) -> type_eq p a)
         )
-        then raise_failure "Argument type mismatch"
+        then raise_arg_type_failure ()
         else ret
       )
       | _ -> raise_failure ("Not a callable type: '" ^ type_string f_type ^ "'")
@@ -123,7 +123,7 @@ let rec type_value state v = match v with
       require T_Int (type_value state c) (fun () -> ()) ;
       let a_typ = type_value state a in
       let b_typ = type_value state b in
-      if not(type_eq a_typ b_typ) then raise_failure "Type mismatch"
+      if not(type_eq a_typ b_typ) then raise_failure "Ternary of differing types"
       else a_typ;
 
 and type_check_stmt_inner state stmt = match stmt with
