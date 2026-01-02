@@ -4,14 +4,33 @@ let end_test = int:() {
     let a = 1 / b;
 };
 
+let current_test = 0;
+let assertions = 0;
+let has_failed = 0;
+
 let assert = int:(int v) {
-    if (v) say(1); 
-    else say(0);
+    if (has_failed) return 0;
+    assertions++;
+    if (v) return 0;
+    else {
+        has_failed = 1;
+        say((current_test * 1000) + assertions);
+    }
+};
+
+let test_case = int:(int test_id, int() test) {
+    current_test = test_id;
+    has_failed = 0;
+    assertions = 0;
+    test();
 };
 
 
+// START
+
+
 // move
-{
+test_case(1, int:() {
     let prev_y = y;
     let prev_x = x;
     wall(N);
@@ -26,11 +45,11 @@ let assert = int:(int v) {
     assert(move(E));
     assert(prev_y != y);
     assert(prev_x != x);
-}
+});
 
 
 // pager
-{
+test_case(2, int:() {
     pager_set(1337);
     if (!projection()) {
         pager_write(123);
@@ -48,11 +67,11 @@ let assert = int:(int v) {
     pager_set(420);
     repeat 2 pass;
     assert(pager_read() == 0);
-}
+});
 
 
 // bridge/ocean
-{
+test_case(3, int:() {
     while(!(scan(W, 1) is @ocean)) move(W);
 
     if (!projection()) {
@@ -82,10 +101,10 @@ let assert = int:(int v) {
     }
     repeat 2 pass;
     assert(pager_read() == 0);
-}
+});
 
 // Tree
-{
+test_case(4, int:() {
     int prev = count(#sapling);
     plant_tree(E);
     assert(count(#sapling) < prev);
@@ -109,10 +128,10 @@ let assert = int:(int v) {
     let prev = x;
     move(E);
     assert(x != prev);
-}
+});
 
 // Drop resources on death
-{
+test_case(5, int:() {
     drop(1, #wood);
 
     if (!projection()) {
@@ -129,10 +148,10 @@ let assert = int:(int v) {
     move(E);
     take(1, #wood);
     assert(count(#wood) == prev + 1);
-}
+});
 
 // Can use boat
-{
+test_case(6, int:() {
     while(!(scan(W, 1) is @ocean)) move(W);
 
     boat(W);
@@ -140,6 +159,6 @@ let assert = int:(int v) {
     move(W);
     move(E);
     assert(dismount(E));
-}
+});
 
 end_test();

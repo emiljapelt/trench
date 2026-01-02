@@ -5,13 +5,13 @@
 
 ./trench ./tests/test.trg
 
-total_count=$(cat ./trench.log | grep -c "tester#0:")
-successes_count=$(cat ./trench.log | grep -c "tester#0: 1")
-failures_count=$(cat ./trench.log | grep -c "tester#0: 0")
+failure_points=$(cat ./trench.log | grep "tester#0:" | awk -F: '{ print $3 }')
+failure_count=$(cat ./trench.log | grep -c "tester#0:")
 
-echo "Test result: $successes_count / $total_count tests succeded"
-
-if [ $failures_count -gt 0 ]; then
-    echo "Failing assertions:"
-    cat ./trench.log | grep "tester#0:" | nl | grep "tester#0: 0" | cut -c1-6
+if [ $failure_count -gt 0 ]; then
+    echo "$failure_count test(s) failed!"
+    echo "Failure points:"
+    echo "$failure_points"
+else
+    echo "No failures"
 fi

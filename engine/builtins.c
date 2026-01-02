@@ -144,7 +144,11 @@ int builtin_move(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
 
     if (ps->location.type == VEHICLE_LOCATION) {
-        return get_vehicle_move_func(ps->location.vehicle->type)(ps->location.vehicle, d);
+
+        // THIS IS NOT UP TO SPEC, PLAYER NEEDS MORE INFO, REWORK VECHILE MOVEMENT LOGIC
+        int result = get_vehicle_move_func(ps->location.vehicle->type)(ps->location.vehicle, d);
+        ps->stack[ps->sp++] = result;
+        return result;
     }
 
     int x, y;
@@ -392,8 +396,6 @@ int builtin_fireball(player_state* ps) {
     while(limit--) {
         move_coord(&x, &y, d, 1);
         if (!in_bounds(x,y)) break;
-
-        _log(DEBUG, ": %i, %i", x, y);
 
         field_state* field = fields.get(x,y);
         unsigned int props = fields.properties_of_field(field);
