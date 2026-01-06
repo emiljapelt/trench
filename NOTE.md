@@ -1,14 +1,13 @@
+# Consolidation entity destruction
+Entities can be destroyed, but they are handled very differently. 
+Larger refactor
+
 # Field visual priority
 Assign a priority (render layer) to field_visual. Such that players can hide in trenches again...
 
 # Refactor event system
 - Consider naming of stuff
 - Player start/end turn events (so fewer checks are needed)
-
-# Builtin variables
-- Very similar system to builtin functions
-- Removes the need for meta variables
-- Cool, but is it better?
 
 # Optimize
 - None: 0

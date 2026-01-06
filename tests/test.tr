@@ -156,8 +156,9 @@ test_case(6, int:() {
 
     boat(W);
     assert(mount(W));
-    move(W);
-    move(E);
+    assert(move(W));
+    assert(move(E));
+    assert(move(E) == _OBSTRUCTED);
     assert(dismount(E));
 });
 

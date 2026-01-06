@@ -144,11 +144,9 @@ int builtin_move(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
 
     if (ps->location.type == VEHICLE_LOCATION) {
-
-        // THIS IS NOT UP TO SPEC, PLAYER NEEDS MORE INFO, REWORK VECHILE MOVEMENT LOGIC
         int result = get_vehicle_move_func(ps->location.vehicle->type)(ps->location.vehicle, d);
         ps->stack[ps->sp++] = result;
-        return result;
+        return result > 0;
     }
 
     int x, y;
