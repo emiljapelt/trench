@@ -25,6 +25,13 @@ let test_case = int:(int test_id, int() test) {
     test();
 };
 
+let clone = int:(int() f) {
+    let _id = id;
+    projection();
+    if (_id == id) return 0;
+    else f();
+};
+
 
 // START
 
@@ -51,19 +58,20 @@ test_case(1, int:() {
 // pager
 test_case(2, int:() {
     pager_set(1337);
-    if (!projection()) {
+
+    clone(int:() {
         pager_write(123);
         end_test();
-    }
+    });
 
     repeat 2 pass;
     assert(pager_read() == 123);
 
-
-    if (!projection()) {
+    clone(int:() {
         pager_write(123);
         end_test();
-    }
+    });
+
     pager_set(420);
     repeat 2 pass;
     assert(pager_read() == 0);
@@ -74,31 +82,31 @@ test_case(2, int:() {
 test_case(3, int:() {
     while(!(scan(W, 1) is @ocean)) move(W);
 
-    if (!projection()) {
+    clone(int:() {
         move(W);
         pager_write(420);
         end_test();
-    }
+    });
     repeat 2 pass;
     assert(pager_read() == 0);
 
     bridge(W);
 
-    if (!projection()) {
+    clone(int:() {
         move(W);
         pager_write(420);
         end_test();
-    }
+    });
     repeat 2 pass;
     assert(pager_read() == 420);
 
     bomb(W, 1);
 
-    if (!projection()) {
+    clone(int:() {
         move(W);
         pager_write(420);
         end_test();
-    }
+    });
     repeat 2 pass;
     assert(pager_read() == 0);
 });
@@ -134,11 +142,11 @@ test_case(4, int:() {
 test_case(5, int:() {
     drop(1, #wood);
 
-    if (!projection()) {
+    clone(int:() {
         take(1, #wood);
         move(E);
         end_test();
-    }
+    });
 
     repeat 2 pass;
     let prev = count(#wood);
@@ -160,6 +168,65 @@ test_case(6, int:() {
     assert(move(E));
     assert(move(E) == _OBSTRUCTED);
     assert(dismount(E));
+});
+
+// stack overflow kills
+test_case(7, int:() {
+
+    clone(int:() {
+        this();
+    });
+
+    move(S);
+    repeat 50 pass;
+    assert(look(N, @player) == _OUT_OF_BOUNDS);
+});
+
+// function usage
+test_case(8, int:() {
+
+    let both = int:(int a, int b) {
+        return a ? b : 0;
+    };
+
+    let either = int:(int a, int b) {
+        return a ? 1 : b;
+    };
+
+    let not = int:(int a) {
+        return !a;
+    };
+
+    assert(
+        both(
+            not(0),
+            either(
+                not(1),
+                both(1, 1)
+            )
+        )
+    );
+
+    assert(
+        not(
+            both(1,0)
+        )
+    );
+});
+
+// null test
+test_case(9, int:() {
+    int() f;
+
+    assert(f == null);
+
+    f = int:() { return 1; };
+
+    assert(f != null);
+
+    f = null;
+
+    assert(f == null);
 });
 
 end_test();

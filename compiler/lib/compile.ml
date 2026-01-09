@@ -8,6 +8,7 @@ open Transform
 open Themes
 open Settings
 open Resources
+open Bigarray
 
 let check_path path extensions =
   try (
@@ -174,9 +175,11 @@ let check_no_negative_arrays (File(regs,_)) =
   in
   aux regs*)
 
-let player_to_program program = 
-  let program_list = program_to_int_list program in
-  List.length program_list :: program_list |> Array.of_list
+let player_to_program size_limit program = 
+  let program = program_to_int_list program in
+  if size_limit > 0 && List.length program - 1 > size_limit then raise_failure ("Program too large" ^ string_of_int size_limit ^ " " ^ string_of_int (List.length program - 1))
+  else List.length program :: program |>  Array.of_list 
+
 
 type compiled_player_info = {
   team: int;
@@ -213,10 +216,8 @@ let compile_player_file path size_limit = try (
     type_check_program;
     rename_variables_of_file;
     optimize_program;
-  ] (*[check_no_negative_arrays]*)[] compile_player player_to_program path)
-in
-if size_limit > 0 && Array.length result - 1 > size_limit then raise_failure ("Program too large" ^ string_of_int size_limit ^ " " ^ string_of_int (Array.length result - 1))
-else Ok(result)
+  ] (*[check_no_negative_arrays]*)[] compile_player (player_to_program size_limit) path)
+in Ok(result)
 ) with
 | Failure(None,ln,msg) -> Error(format_failure (Failure(Some path, ln, msg)))
 | Failure _ as f -> Error(format_failure f)
@@ -315,4 +316,4 @@ let compile_game_file path = try (
 
 
 let _ = Callback.register "compile_game_file" compile_game_file
-let _ = Callback.register "compile_player_file" compile_player_file
+let _ = Callback.register "compile_player_file" (fun path size_limit -> compile_player_file path size_limit |> Result.map (fun program -> program |> Array.map Int32.of_int |> Bigarray.Array1.of_array Int32 C_layout))

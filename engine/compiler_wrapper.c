@@ -6,6 +6,7 @@
 #include <caml/mlvalues.h>
 #include <caml/callback.h>
 #include <caml/alloc.h>
+#include <caml/bigarray.h>
 
 #include "compiler_wrapper.h"
 
@@ -79,14 +80,23 @@ field_state* create_board(char* map_data, const int x, const int y) {
 
     return brd;
 }
+/*
 
+CONSIDER GOING BACK TO ARRAY FROM BIGARRAY?????
+
+*/
 directive_info load_directive_to_struct(value comp, int stack_size) {
-    int dir_len = Int_val(Field(comp, 0));
+
+    int dir_len = ((int*)Caml_ba_array_val(comp)->data)[0];
+    //int dir_len = Int_val(Field(comp, 0));
     int* stack = malloc(sizeof(int) * stack_size);
     int* dir = malloc(sizeof(int) * dir_len);
 
-    for(int i = 0; i < dir_len; i++)
-        dir[i] = Int_val(Field(comp, i+1));
+    for(int i = 0; i < dir_len; i++) {
+
+        dir[i] = ((int*)Caml_ba_array_val(comp)->data)[i+1];
+        //fprintf(stderr, "%i ", dir[i]);
+    }
 
     return (directive_info) {
         .stack = stack,
@@ -370,13 +380,6 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
             for(int i = 0; i < player_count; i++) {
                 value player_info = Field(Field(unwrapped_result, 6),i);
                 
-                directive_info di;
-
-                char* file_path = strdup(String_val(Field(player_info, 3)));
-                int success = compile_player(file_path, gr->stack_size, gr->program_size_limit, &di);
-
-                if (!success) exit(1);              
-                
                 player_state* player = malloc(sizeof(player_state));
                 int player_x = Int_val(Field(Field(player_info, 2), 0));
                 int player_y = Int_val(Field(Field(player_info, 2), 1));
@@ -386,12 +389,9 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 player->team = &gs->team_states[Int_val(Field(player_info, 0))];
                 player->name = strdup(String_val(Field(player_info, 1)));
                 player->id = gs->id_counter++;
-                player->stack = di.stack;
                 player->bp = 0;
                 player->sp = 0;
-                player->path = file_path;
-                player->directive = di.directive;
-                player->directive_len = di.dir_len;
+                player->path = strdup(String_val(Field(player_info, 3)));
                 player->dp = 0;
                 player->location = (location) { .type = VOID_LOCATION };
                 player->remaining_steps = gr->steps;
@@ -409,6 +409,18 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 move_player_to_location(player, field_location_from_coords(player_x, player_y));
             }
             memset(gs->feed_buffer, 0, feed_size+1);
+
+            // Load player directives after loading all information from the compiled game file.
+            // This seems to prevent the OCaml GC from wrecking the data
+            for(int i = 0; i < gs->players->count; i++) {
+                directive_info di;
+                player_state* player = get_player(gs->players, i);
+                int success = compile_player(player->path, gr->stack_size, gr->program_size_limit, &di);
+                if (!success) exit(1);
+                player->stack = di.stack;
+                player->directive = di.directive;
+                player->directive_len = di.dir_len;
+            }
 
             return 1;
         }

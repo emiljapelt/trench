@@ -80,14 +80,18 @@ let rec compile_value val_expr (state:compile_state) acc =
     | "*", T_Int, T_Int -> compile_value e1 state (compile_value e2 state (Instr_Mul :: acc))
     | "&", T_Int, T_Int -> compile_value e1 state (compile_value e2 state (Instr_And :: acc))
     | "|", T_Int, T_Int -> compile_value e1 state (compile_value e2 state (Instr_Or :: acc))
-    | "=", T_Int, T_Int -> compile_value e1 state (compile_value e2 state (Instr_Eq :: acc))
-    | "=", T_Dir, T_Dir -> compile_value e1 state (compile_value e2 state (Instr_Eq :: acc))
-    | "=", T_Prop, T_Prop -> compile_value e1 state (compile_value e2 state (Instr_Eq :: acc))
-    | "=", T_Resource, T_Resource -> compile_value e1 state (compile_value e2 state (Instr_Eq :: acc))
-    | "!=", T_Int, T_Int -> compile_value e1 state (compile_value e2 state (Instr_Eq :: Instr_Not :: acc))
-    | "!=", T_Dir, T_Dir -> compile_value e1 state (compile_value e2 state (Instr_Eq :: Instr_Not :: acc))
-    | "!=", T_Prop, T_Prop -> compile_value e1 state (compile_value e2 state (Instr_Eq :: Instr_Not :: acc))
-    | "!=", T_Resource, T_Resource -> compile_value e1 state (compile_value e2 state (Instr_Eq :: Instr_Not :: acc))
+    | "=", T_Int, T_Int 
+    | "=", T_Dir, T_Dir 
+    | "=", T_Prop, T_Prop
+    | "=", T_Resource, T_Resource
+    | "=", T_Null, T_Func _
+    | "=", T_Func _, T_Null -> compile_value e1 state (compile_value e2 state (Instr_Eq :: acc))
+    | "!=", T_Int, T_Int 
+    | "!=", T_Dir, T_Dir 
+    | "!=", T_Prop, T_Prop 
+    | "!=", T_Resource, T_Resource 
+    | "!=", T_Null, T_Func _
+    | "!=", T_Func _, T_Null -> compile_value e1 state (compile_value e2 state (Instr_Eq :: Instr_Not :: acc))
     | "<", T_Int, T_Int -> compile_value e2 state (compile_value e1 state (Instr_Lt :: acc))
     | ">", T_Int, T_Int -> compile_value e1 state (compile_value e2 state (Instr_Lt :: acc))
     | "<=", T_Int, T_Int -> compile_value e1 state (compile_value e2 state (Instr_Lt :: Instr_Not :: acc))
@@ -154,6 +158,7 @@ let rec compile_value val_expr (state:compile_state) acc =
     let label_stop = Helpers.new_label () in
     compile_value c state (Instr_GoToIf :: LabelRef(label_true) :: (compile_value b state (Instr_GoTo :: LabelRef(label_stop) :: Label(label_true) :: (compile_value a state (Label(label_stop) :: acc)))))
   )
+  | Null -> Instr_Place :: I(0) :: acc
 
 
 and compile_target_index target (state:compile_state) acc = match target with

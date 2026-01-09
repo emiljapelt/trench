@@ -18,7 +18,7 @@
 				"match": "\\b(while|break|continue|return|goto|if|is|else|repeat)\\b"
 			},{
 				"name": "constant.language",
-				"match": "\\b(N|S|E|W)\\b"
+				"match": "\\b(N|S|E|W|null)\\b"
 			},{
 				"name": "constant.numeric",
 				"match": "\\b(-?[0-9]+)\\b"

@@ -457,7 +457,7 @@ int main(int argc, char** argv) {
     _gr = malloc(sizeof(game_rules));
     _gs = malloc(sizeof(game_state));
 
-    _log(INFO, "--- COMPILING ----");
+    _log(INFO, "--- COMPILING ----"); 
 
     if(!compile_game(argv[1], _gr, _gs)) return 1;
 

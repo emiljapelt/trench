@@ -23,6 +23,7 @@
                         "resource", RESOURCE;
                         "let", LET;
                         "return", RETURN;
+                        "null", NULL;
                       ] 
   
   let char_of_string s lexbuf = match s with

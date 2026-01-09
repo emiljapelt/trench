@@ -29,8 +29,8 @@ let rec extract_declarations stmt : variable list = match stmt with
     regs |> List.rev |> List.flatten
   )
   | Stmt(If(_,s0,s1),_) ->
-    let (regs0) =  extract_declarations s0 in
-    let (regs1) =  extract_declarations s1 in
+    let (regs0) = extract_declarations s0 in
+    let (regs1) = extract_declarations s1 in
     regs0@regs1
   | Stmt(IfIs(_,alts,opt),_) ->
     let (_,alts_stmts) = List.split alts in

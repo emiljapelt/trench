@@ -58,6 +58,8 @@ typedef enum {
   Instr_GlobalAssign = 32,
   Instr_Index = 33,
   Meta_Round = 34,
+
+  Instr_DEBUG = 99,
 } instruction;
 
 // all instructions return 1 if the board should be updated, and 0 if not.
@@ -198,7 +200,7 @@ int instr_mod(player_state* ps) {
 
 int instr_not(player_state* ps) {
     int v = ps->stack[--ps->sp];
-    ps->stack[ps->sp++] = v > 0 ? 0 : 1;
+    ps->stack[ps->sp++] = (v > 0) ? 0 : 1;
     return 0;
 }
 
@@ -421,6 +423,30 @@ int meta_round(player_state* ps) {
     ps->stack[ps->sp++] = _gs->round;
     return 0;
 }
+
+
+/* NOT USED BUT KEEP IT AROUND FOR NOW */
+/*
+int instr_debug(player_state* ps) {
+
+    char buf[10000];
+    memset(buf, 0, 10000);
+
+    
+    for(int i = 0; i < ps->sp; i++) {
+        char int_buf[10];
+        memset(int_buf, 0, 10);
+        sprintf(int_buf, ", %i", ps->stack[i]);
+        strcat(buf, int_buf);
+    }
+    _log(DEBUG, "Player %i, dp: %i, sp: %i", ps->id, ps->dp, ps->sp);
+    _log(DEBUG, buf);
+
+    ps->stack[ps->sp++] = 1;
+    return 0;
+}
+*/
+
 
 #pragma endregion
 

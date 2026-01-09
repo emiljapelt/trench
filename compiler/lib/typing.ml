@@ -39,10 +39,14 @@ let rec type_value state v = match v with
       | "=", T_Dir, T_Dir
       | "=", T_Prop, T_Prop
       | "=", T_Resource, T_Resource
+      | "=", T_Func _, T_Null
+      | "=", T_Null, T_Func _
       | "!=", T_Int, T_Int
       | "!=", T_Dir, T_Dir
       | "!=", T_Prop, T_Prop
       | "!=", T_Resource, T_Resource
+      | "!=", T_Func _, T_Null
+      | "!=", T_Null, T_Func _
       | "<", T_Int, T_Int 
       | ">", T_Int, T_Int 
       | "<=", T_Int, T_Int
@@ -53,8 +57,11 @@ let rec type_value state v = match v with
       | ">>", T_Dir, T_Int -> T_Dir
       | _,t0,t1 -> raise_failure ("Unknown binary operation: "^type_string t0^op^type_string t1)
     )
-    | Unary_op _
-    | Random
+    | Unary_op(op, v) -> ( match op, type_value state v with
+      | "!", T_Int -> T_Int
+      | _, t -> raise_failure ("Unknown unary operation: " ^ op ^ type_string t)
+    )
+    | Random 
     | Int _ -> T_Int
     | Prop _ -> T_Prop
     | Resource _ -> T_Resource
@@ -125,6 +132,12 @@ let rec type_value state v = match v with
       let b_typ = type_value state b in
       if not(type_eq a_typ b_typ) then raise_failure "Ternary of differing types"
       else a_typ;
+    | Null -> T_Null
+
+and can_assign target_type value_type = match target_type, value_type with
+      | T_Func _, T_Null
+      | T_Null, T_Func _ -> true
+      | t1, t2 -> type_eq t1 t2
 
 and type_check_stmt_inner state stmt = match stmt with
   | If(c,a,b) -> require T_Int (type_value state c) (fun () -> type_check_stmt state a |> ignore ; type_check_stmt state b |> ignore ; (stmt, state))
@@ -150,7 +163,12 @@ and type_check_stmt_inner state stmt = match stmt with
       let (si,_) = type_check_stmt state si in 
       (While(v,s,Some si), state)
     )
-  | Assign(Local n,e) -> require (var_type state.scopes n) (type_value state e) (fun () -> (stmt,state))
+  | Assign(Local n,e) -> 
+    let var_type = var_type state.scopes n in
+    let value_type = type_value state e in
+    if can_assign var_type value_type 
+    then (stmt,state)
+    else raise_failure ("Cannot assign a value of type '" ^ type_string value_type ^ "' to a variable of type '" ^ type_string var_type ^ "'")
   | Assign(Array(target, index), e) -> (
     require T_Int (type_value state index) (fun () -> 
       match type_value state (Reference target) with
@@ -158,10 +176,15 @@ and type_check_stmt_inner state stmt = match stmt with
       | _ -> raise_failure "array assignment to non-array"
     )
   )
-  | DeclareAssign(Some t, n, v) -> require t (type_value state v) (fun () -> (stmt, {state with scopes = { local = Var(t,n)::state.scopes.local; global = state.scopes.global } }))
+  | DeclareAssign(Some t, n, v) ->
+    let value_type = type_value state v in
+    if can_assign t value_type 
+    then (stmt, {state with scopes = { local = Var(t,n)::state.scopes.local; global = state.scopes.global } })
+    else raise_failure ("Cannot assign a value of type '" ^ type_string value_type ^ "' to a variable of type '" ^ type_string t ^ "'")
   | DeclareAssign(None, n, v) -> (
-    let typ = type_value state v in
-    (DeclareAssign(Some typ, n, v), {state with scopes = { local = Var(typ,n)::state.scopes.local; global = state.scopes.global } })
+    match type_value state v with
+    | T_Null -> raise_failure "Cannot infere a type from null"
+    | typ -> (DeclareAssign(Some typ, n, v), {state with scopes = { local = Var(typ,n)::state.scopes.local; global = state.scopes.global } })
   )
   | Declare(t,n) -> (stmt, {state with scopes = { local = Var(t,n)::state.scopes.local; global = state.scopes.global } })
   | GoTo _

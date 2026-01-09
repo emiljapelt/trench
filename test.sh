@@ -5,6 +5,11 @@
 
 ./trench ./tests/test.trg
 
+if [ $? != 0 ]; then 
+    echo "Failed to run!"
+    exit
+fi
+
 failure_points=$(cat ./trench.log | grep "tester#0:" | awk -F: '{ print $3 }')
 failure_count=$(cat ./trench.log | grep -c "tester#0:")
 

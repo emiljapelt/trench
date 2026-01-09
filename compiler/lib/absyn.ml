@@ -37,6 +37,7 @@ and typ =
     | T_Resource
     | T_Array of typ * int
     | T_Func of typ * typ list
+    | T_Null
 
 and statement =
     | Stmt of statement_inner * int
@@ -76,6 +77,7 @@ and value =
     | Func of typ * (typ * string) list * statement
     | Call of value * value list
     | Ternary of value * value * value
+    | Null
 
 and variable =
     | Var of typ * string
@@ -114,6 +116,7 @@ let rec type_size t = match t with
     | T_Prop
     | T_Resource
     | T_Func _
+    | T_Null
     | T_Field -> 1
     | T_Array(t,s) -> s * (type_size t)
 
@@ -124,7 +127,8 @@ let rec type_string t = match t with
   | T_Prop -> "property"
   | T_Resource -> "resource"
   | T_Array(t,_) -> (type_string t) ^ "[]"
-  | T_Func(r,args) -> (type_string r) ^ ":(" ^ (args |> List.map type_string |> String.concat ",")  ^ ")"
+  | T_Func(r,args) -> (type_string r) ^ "(" ^ (args |> List.map type_string |> String.concat ",")  ^ ")"
+  | T_Null -> "null"
 
 let rec type_eq t1 t2 = match t1,t2 with
   | T_Int, T_Int

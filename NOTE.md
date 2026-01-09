@@ -1,5 +1,6 @@
-# Consolidation entity destruction
+# Consolidation of entity
 Entities can be destroyed, but they are handled very differently. 
+
 Larger refactor
 
 # Field visual priority
