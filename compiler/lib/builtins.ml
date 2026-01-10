@@ -57,7 +57,7 @@ let builtin_infos : builtin StringMap.t = StringMap.of_list [
 
   builtin_var "wait" [] [] T_Int [Instr_Wait];
   builtin_var "pass" [] [] T_Int [Instr_Pass];
-  
+
   
   
   builtin_var "_SUCCESS" [] [] T_Int [Instr_Place; I(1)];

@@ -229,4 +229,23 @@ test_case(9, int:() {
     assert(f == null);
 });
 
+// can pass builtin functions
+test_case(10, int:() {
+
+    let f = int:(int(dir) f) {
+        return f(N);
+    };
+
+    let _y = y;
+    assert(f(move));
+    assert(y == _y - 1);
+
+
+    let f = move;
+
+    _y = y;
+    assert(f(S));
+    assert(y == _y + 1);
+});
+
 end_test();
