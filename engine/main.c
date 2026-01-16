@@ -27,11 +27,13 @@ void debug_print(player_state* ps) {
 
 void try_kill_player(player_state* ps) {
     if (ps->alive && ps->death_msg != NULL) {
-        update_events(entity.of_player(ps), ps->pre_death_events, (situation){ .type = NO_SITUATION});
+        entity_t* ps_e = entity.of_player(ps);
+        update_events(ps_e, ps->pre_death_events, (situation){ .type = NO_SITUATION});
         if (ps->alive && ps->death_msg != NULL) {
             kill_player(ps);
-            update_events(entity.of_player(ps), ps->post_death_events, (situation){ .type = NO_SITUATION});
+            update_events(ps_e, ps->post_death_events, (situation){ .type = NO_SITUATION});
         }
+        free(ps_e);
     }
 }
 
@@ -118,8 +120,8 @@ void player_turn_default(player_state* ps) {
     while(1) {
         int change = 0;
         if (ps->dp >= ps->directive_len) return;
-        if (!use_resource(1,&ps->remaining_steps)) return;
-        // debug_print(ps);
+        if (!use_resource(1, &ps->remaining_steps)) return;
+        //debug_print(ps);
         _log(DEBUG, "%s executes %i", ps->name, ps->directive[ps->dp]);
         switch (ps->directive[ps->dp++]) {
             case Meta_PlayerX: change = meta_player_x(ps);break;
@@ -135,7 +137,8 @@ void player_turn_default(player_state* ps) {
             }
             case Instr_Pass: {
                 ps->stack[ps->sp++] = 1;
-                return;
+                ps->remaining_steps = 0;
+                break;
             }
             case Instr_Random: instr_random_int(ps); break; 
             case Instr_RandomSet: instr_random_range(ps); break;
@@ -370,7 +373,8 @@ void play_round_default() {
     for(int i = 0; i < player_count; i++) {
         handle_input();
         player_state* player = get_player(_gs->players, i);
-        int finished_events = update_events(entity.of_player(player), _gs->events, (situation){ .type = NO_SITUATION});
+        entity_t* player_e = entity.of_player(player);
+        int finished_events = update_events(player_e, _gs->events, (situation){ .type = NO_SITUATION});
         if (finished_events) { print_board(); wait(1); }
         kill_players();
         if (_gs->feed_point) { print_board(); wait(1); }
@@ -380,6 +384,7 @@ void play_round_default() {
             set_player_steps_and_actions(player);
         }
         check_win_condition();
+        free(player_e);
     }
     if (_gr->nuke > 0 && _gs->round % _gr->nuke == 0) nuke_board();
     remove_dead_players();

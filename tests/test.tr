@@ -22,6 +22,7 @@ let test_case = int:(int test_id, int() test) {
     current_test = test_id;
     has_failed = 0;
     assertions = 0;
+    pass;
     test();
 };
 
@@ -173,12 +174,18 @@ test_case(6, int:() {
 // stack overflow kills
 test_case(7, int:() {
 
+    write(1);
     clone(int:() {
+        if (read() == 1) {
+            write(0);
+            pass; 
+        }
         this();
     });
 
     move(S);
-    repeat 50 pass;
+    assert(look(N, @player));
+    repeat 5 pass;
     assert(look(N, @player) == _OUT_OF_BOUNDS);
 });
 
@@ -246,6 +253,25 @@ test_case(10, int:() {
     _y = y;
     assert(f(S));
     assert(y == _y + 1);
+});
+
+// array bounds check
+
+test_case(11, int:() {
+
+    clone(int:() {
+        int[2] arr;
+        while(pager_read() != 1) pass;
+
+        arr[-1] = 1;
+    });
+
+    move(S);
+    assert(look(N, @player));
+    pager_write(1);
+    repeat 2 pass;
+    assert(look(N, @player) == _OUT_OF_BOUNDS);
+
 });
 
 end_test();

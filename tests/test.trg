@@ -1,4 +1,5 @@
 actions: 1
+steps: 100000;
 mode: inf
 time_scale: 0
 seed: 0
@@ -10,7 +11,7 @@ themes: *
 features: *
 
 auto_start: true
-debug: false
+debug: true
 
 resources: {
     mana: 10000

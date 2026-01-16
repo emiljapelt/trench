@@ -517,6 +517,7 @@ int builtin_pager_set(player_state* ps) {
     return 0;
 }
 
+// Saving an int as a void pointer is a bit hacky
 int builtin_pager_read(player_state* ps) {
     if (ps->sp + 1 >= _gr->stack_size) {
         death_mark_player(ps, stack_overflow_msg);
@@ -526,24 +527,23 @@ int builtin_pager_read(player_state* ps) {
     if (ps->pager_msgs->count <= 0) 
         ps->stack[ps->sp++] = INSTR_ERROR;
     else {
-        void* msg = array_list.get(ps->pager_msgs, 0);
-        void** msg_bypass = &msg;
-        ps->stack[ps->sp++] = *(int*)msg_bypass;
+        int msg = (int)array_list.get(ps->pager_msgs, 0);
+        ps->stack[ps->sp++] = msg;
         array_list.remove(ps->pager_msgs, 0, 0);
     }
     return 0;
 }
 
+// Saving an int as a void pointer is a bit hacky
 int builtin_pager_write(player_state* ps) {
     int msg = ps->stack[--ps->sp];
-    int* msg_bypass = &msg;
     int channel = ps->pager_channel;
     int hits = 0;
     for(int i = 0; i < _gs->players->count; i++) {
         player_state* other = array_list.get(_gs->players, i);
         if (other->id != ps->id && other->pager_channel == channel) {
             hits++;
-            array_list.add(other->pager_msgs, *(void**)msg_bypass);
+            array_list.add(other->pager_msgs, (void*)msg);
         }
     }
     ps->stack[ps->sp++] = hits > 0 ? INSTR_SUCCESS : INSTR_ERROR;
@@ -752,12 +752,14 @@ int builtin_dismount(player_state* ps) {
     }
 
 
-    free(remove_entity(ps->location.vehicle->entities, ps->id));
+    entity_t* ent = remove_entity(ps->location.vehicle->entities, ps->id);
+
     field_state* field = fields.get(x,y);
     location prev_loc = ps->location;
     ps->location = field_location_from_field(field);
-    add_entity(field->entities, entity.of_player(ps));
-    update_events(entity.of_player(ps), fields.get(x,y)->enter_events, (situation){ .type = MOVEMENT_SITUATION, .movement.loc = prev_loc });
+    entity_t* ps_e = entity.of_player(ps);
+    add_entity(field->entities, ent);
+    update_events(ent, fields.get(x,y)->enter_events, (situation){ .type = MOVEMENT_SITUATION, .movement.loc = prev_loc });
 
     ps->stack[ps->sp++] = INSTR_SUCCESS;
     return 1;
