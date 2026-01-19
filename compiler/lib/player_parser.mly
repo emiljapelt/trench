@@ -27,7 +27,7 @@
 %token GOTO
 %token NORTH EAST SOUTH WEST
 %token INT DIR FIELD PROP RESOURCE L_SHIFT R_SHIFT
-%token RETURN
+%token RETURN NULL
 %token TIMES_EQ MINUS_EQ PLUS_EQ L_SHIFT_EQ R_SHIFT_EQ
 
 // Precedence and assosiativity inspired by https://en.cppreference.com/w/c/language/operator_precedence.html
@@ -85,6 +85,7 @@ block:
 
 const_value:
   | CSTINT        { Int $1 }
+  | NULL          { Null }
   | direction     { Direction $1 }
   | FIELD_PROP    { Prop(string_to_prop $1) }
   | RESOURCE_NAME { Resource(string_to_resource $1) }
@@ -172,7 +173,7 @@ stmt1_inner:
 ;
 
 alt:
-  | IS const_value stmt1   { ($2,$3) }
+  | IS simple_value stmt1   { ($2,$3) }
 ;
 
 target:

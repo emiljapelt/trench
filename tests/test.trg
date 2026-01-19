@@ -1,4 +1,5 @@
 actions: 1
+steps: 100000;
 mode: inf
 time_scale: 0
 seed: 0
@@ -31,3 +32,9 @@ team: {
     }
 }
 
+settings: {
+    projection: {
+        upkeep: 0
+        cost: 0
+    }
+}

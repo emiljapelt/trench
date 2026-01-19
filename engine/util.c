@@ -6,6 +6,13 @@
 
 #include "game_state.h"
 
+const char* stack_overflow_msg = "Had an aneurysm (STACK_OVERFLOW)";
+const char* frame_break_msg = "Had an aneurysm (FRAME_BREAK)";
+const char* div_zero_msg = "Had an aneurysm (DIV_BY_ZERO)";
+const char* null_call_msg = "Had an aneurysm (NULL_CALL)";
+const char* out_of_bounds_msg = "Had an aneurysm (OUT_OF_BOUNDS)";
+
+
 int max(int a, int b) {
     if (a > b) return a;
     return b;

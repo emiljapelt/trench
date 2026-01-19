@@ -2,15 +2,22 @@
 
 #include "game_state.h"
 #include "game_rules.h"
+#include "builtins.h"
 #include "util.h"
-#include <stdlib.h>
 
+#include <stdlib.h>
 #include <stdio.h>
 
 int boat_move(vehicle_state* v, direction d) {
     int x, y;
     location_coords(v->location, &x, &y);
+
+    if (fields.properties(x,y) & PROP_OBSTRUCTION)
+        return INSTR_OBSTRUCTED;
+
     move_coord(&x, &y, d, 1);
+    if (!in_bounds(x,y))
+        return INSTR_OUT_OF_BOUNDS;
 
     field_state* target = fields.get(x,y);
     if (target->type == OCEAN || target->type == BRIDGE) {
@@ -19,9 +26,10 @@ int boat_move(vehicle_state* v, direction d) {
         if (v->destroy)
             destroy_vehicle(v, "The boat sank");
 
-        return 1;
+        return INSTR_SUCCESS;
     }
-    return 0;
+    else 
+        return INSTR_OBSTRUCTED;
 }
 
 vehicle_move_function get_vehicle_move_func(vehicle_type type) {

@@ -60,6 +60,7 @@ let rec optimize_value expr =
   | RandomSet _
   | Int _
   | Prop _
+  | Null
   | Resource _
   | FieldProp _ 
   | Decrement _ 

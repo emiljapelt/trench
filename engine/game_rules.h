@@ -66,6 +66,7 @@ typedef struct game_rules {
         } chop;
 
         struct {
+            int range;
             int cost;
         } fortify;
 
@@ -124,6 +125,14 @@ typedef struct game_rules {
             int ammo_per_metal;
             int beartraps_per_metal;
         } craft;
+
+        struct {
+            int range;
+        } trench;
+
+        struct {
+            int range;
+        } collect;
     } settings;
 } game_rules;
 

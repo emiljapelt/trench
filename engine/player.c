@@ -40,6 +40,7 @@ player_state* copy_player_state(const player_state* ps) {
     new_player->pager_msgs = array_list.create(10);
     new_player->pre_death_events = array_list.create(10);
     new_player->post_death_events = array_list.create(10);
+    new_player->extra_files = NULL;
 
     for(int r = 0; r < RESOURCE_COUNT; r++) {
         new_player->resources.resource[r].amount = 0;

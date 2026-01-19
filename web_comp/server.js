@@ -10,7 +10,8 @@ const upload = multer();
 app.use(cookie_parser());
 
 const mode = process.argv[2];
-const secret = process.argv[3];
+const trenchc_path = process.argv[3] ?? '../trenchc';
+const save_dir = process.argv[4] ?? '.';
 let counter = 0;
 let map = {};
 
@@ -75,9 +76,9 @@ const modes = {
         const { body, file } = req;
         if (file && body.name) {
             const content = Buffer.from(file.buffer).toString("utf-8");
-            const path = `./file_${counter++}.tr`;
+            const path = `${save_dir}/file_${counter++}.tr`;
             fs.writeFileSync(path, content);
-            exec(`../trenchc ${path}`, { cwd: '.'}, (err,stdout,stderr) => {
+            exec(`${trenchc_path} ${path}`, { cwd: '.'}, (err,stdout,stderr) => {
                 fs.unlinkSync(path);
                 respond(res, 200, form(body.name, `<p>${stdout}</p>`));
             });
@@ -92,9 +93,9 @@ const modes = {
         const { body, file } = req;
         if (file && body.name) {
             const content = Buffer.from(file.buffer).toString("utf-8");
-            const path = `./file_${counter++}.tr`;
+            const path = `${save_dir}/file_${counter++}.tr`;
             fs.writeFileSync(path, content);
-            exec(`../trenchc ${path}`, { cwd: '.'}, (err,stdout,stderr) => {
+            exec(`${trenchc_path} ${path}`, { cwd: '.'}, (err,stdout,stderr) => {
                 if (err) fs.unlinkSync(path);
                 else console.log(`${body.name} submitted ${path} at ${(new Date()).toISOString()}`);
                 respond(res, 200, form(body.name, `<p>${stdout}</p>`));
@@ -110,9 +111,9 @@ const modes = {
         const { body, file } = req;
         if (file && body.name) {
             const content = Buffer.from(file.buffer).toString("utf-8");
-            const path = `./file_${counter++}.tr`;
+            const path = `${save_dir}/file_${counter++}.tr`;
             fs.writeFileSync(path, content);
-            exec(`../trenchc ${path}`, { cwd: '.'}, (err,stdout,stderr) => {
+            exec(`${trenchc_path} ${path}`, { cwd: '.'}, (err,stdout,stderr) => {
                 if (err) fs.unlinkSync(path);
                 else {
                     console.log(`${body.name} submitted at ${(new Date()).toISOString()}`);

@@ -3,446 +3,129 @@ open ProgramRep
 open Flags
 open Exceptions
 
-type builtin_func_compile =
-  | FixedFuncComp of (instruction list -> instruction list)
-  | FuncComp of instruction
+type builtin_info = 
+  | BuiltinVar of { 
+    typ: typ;
+    comp: instruction list;
+  }
+  | BuiltinFunc of {
+    ret: typ;
+    canonical: typ list;
+    addr: int;
+    short_hands: (typ list * (instruction list -> instruction list)) list;
+  }
 
-
-(* Functions *)
-
-type builtin_func_version = {
-  args: typ list;
-  ret: typ;
-  comp: builtin_func_compile;
-}
-
-type builtin_func_info = {
+type builtin = {
   themes: string list;
   features: string list;
-  versions: builtin_func_version list;
+  info: builtin_info;
 }
 
-let builtin_func_infos : builtin_func_info StringMap.t = StringMap.of_list [
-  ("move", {
-    themes = []; 
-    features = [];
-    versions = [{
-      args = [T_Dir];
-      ret = T_Int;
-      comp = FuncComp Instr_Move;
-    }];
-  });
-  ("trench", {
-    themes = []; 
-    features = [];
-    versions = [{
-      args = [T_Dir];
-      ret = T_Int;
-      comp = FuncComp Instr_Trench;
-    };{
-      args = [];
-      ret = T_Int;
-      comp = FixedFuncComp (fun acc -> Instr_Place :: I(4) :: Instr_Trench :: acc);
-    }]
-  });
-  ("fortify", {
-    themes = []; 
-    features = [];
-    versions = [{
-      args = [T_Dir];
-      ret = T_Int;
-      comp = FuncComp Instr_Fortify;
-    };{
-      args = [];
-      ret = T_Int;
-      comp = FixedFuncComp (fun acc -> Instr_Place :: I(4) :: Instr_Fortify :: acc);
-    };]
-  });
-  ("wait", {
-    themes = []; 
-    features = [];
-    versions = [{
-      args = [];
-      ret = T_Int;
-      comp = FuncComp Instr_Wait;
-    }];
-  });
-  ("pass", {
-    themes = []; 
-    features = [];
-    versions = [{
-      args = [];
-      ret = T_Int;
-      comp = FuncComp Instr_Pass;
-    }];
-  });
-  ("meditate", {
-    themes = ["wizardry"];
-    features = [];
-    versions = [{
-      args = [];
-      ret = T_Int;
-      comp = FuncComp Instr_Meditate;
-    }];
-  });
-  ("projection", {
-    themes = ["wizardry"];
-    features = ["fork"];
-    versions = [{
-      args = [];
-      ret = T_Int;
-      comp = FuncComp Instr_Projection;
-    }];
-  });
-  ("collect", {
-    themes = []; 
-    features = [];
-    versions = [{
-      args = [T_Dir];
-      ret = T_Int;
-      comp = FuncComp Instr_Collect;
-    };{
-      args = [];
-      ret = T_Int;
-      comp = FixedFuncComp (fun acc -> Instr_Place :: I(4) :: Instr_Collect :: acc);
-    }];
-  });
-  ("bomb", {
-    themes = ["military"];
-    features = [];
-    versions = [{
-      args = [T_Dir; T_Int];
-      ret = T_Int;
-      comp = FuncComp Instr_Bomb;
-    }];
-  });
-  ("freeze", {
-    themes = ["wizardry"];
-    features = [];
-    versions = [{
-      args = [T_Dir; T_Int];
-      ret = T_Int;
-      comp = FuncComp Instr_Freeze;
-    }];
-  });
-  ("shoot", {
-    themes = ["military"; "forestry"];
-    features = [];
-    versions = [{
-      args = [T_Dir];
-      ret = T_Int;
-      comp = FuncComp Instr_Shoot;
-    }];
-  });
-  ("mine", {
-    themes = ["military"];
-    features = [];
-    versions = [{
-      args = [T_Dir];
-      ret = T_Int;
-      comp = FuncComp Instr_Mine;
-    }];
-  });
-  ("fireball", {
-    themes = ["wizardry"];
-    features = [];
-    versions = [{
-      args = [T_Dir];
-      ret = T_Int;
-      comp = FuncComp Instr_Fireball;
-    }];
-  });
-  ("chop", {
-    themes = ["forestry"];
-    features = [];
-    versions = [{
-      args = [T_Dir];
-      ret = T_Int;
-      comp = FuncComp Instr_Chop;
-    }];
-  });
-  ("dispel", {
-    themes = ["wizardry"];
-    features = [];
-    versions = [{
-      args = [T_Dir];
-      ret = T_Int;
-      comp = FuncComp Instr_Dispel;
-    }];
-  });
-  ("disarm", {
-    themes = ["forestry"; "military"];
-    features = [];
-    versions = [{
-      args = [T_Dir];
-      ret = T_Int;
-      comp = FuncComp Instr_Disarm;
-    }];
-  });
-  ("mana_drain", {
-    themes = ["wizardry"];
-    features = [];
-    versions = [{
-      args = [T_Dir];
-      ret = T_Int;
-      comp = FuncComp Instr_ManaDrain;
-    }];
-  });
-  ("wall", {
-    themes = []; 
-    features = [];
-    versions = [{
-      args = [T_Dir];
-      ret = T_Int;
-      comp = FuncComp Instr_Wall;
-    }];
-  });
-  ("bridge", {
-    themes = []; 
-    features = [];
-    versions = [{
-      args = [T_Dir];
-      ret = T_Int;
-      comp = FuncComp Instr_Bridge;
-    }];
-  });
-  ("plant_tree", {
-    themes = ["forestry"];
-    features = [];
-    versions = [{
-      args = [T_Dir];
-      ret = T_Int;
-      comp = FuncComp Instr_PlantTree;
-    }];
-  });
-  ("mount", {
-    themes = []; 
-    features = [];
-    versions = [{
-      args = [T_Dir];
-      ret = T_Int;
-      comp = FuncComp Instr_Mount;
-    }];
-  });
-  ("dismount", {
-    themes = [];
-    features = [];
-    versions = [{
-      args = [T_Dir];
-      ret = T_Int;
-      comp = FuncComp Instr_Dismount;
-    }];
-  });
-  ("boat", {
-    themes = [];
-    features = [];
-    versions = [{
-      args = [T_Dir];
-      ret = T_Int;
-      comp = FuncComp Instr_Boat;
-    }];
-  });
-  ("bear_trap", {
-    themes = ["forestry"];
-    features = [];
-    versions = [{
-      args = [T_Dir];
-      ret = T_Int;
-      comp = FuncComp Instr_BearTrap;
-    }];
-  });
-  ("write", {
-    themes = [];
-    features = ["ipc"];
-    versions = [{
-      args = [T_Int];
-      ret = T_Int;
-      comp = FuncComp Instr_Write;
-    }];
-  });
-  ("pager_write", {
-    themes = [];
-    features = ["ipc"];
-    versions = [{
-      args = [T_Int];
-      ret = T_Int;
-      comp = FuncComp Instr_PagerWrite;
-    }];
-  });
-  ("pager_set", {
-    themes = [];
-    features = ["ipc"];
-    versions = [{
-      args = [T_Int];
-      ret = T_Int;
-      comp = FuncComp Instr_PagerSet;
-    }];
-  });
-  ("say", {
-    themes = [];
-    features = [];
-    versions = [{
-      args = [T_Int];
-      ret = T_Int;
-      comp = FuncComp Instr_Say;
-    }];
-  });
-  ("pager_read", {
-    themes = [];
-    features = [];
-    versions = [{
-      args = [];
-      ret = T_Int;
-      comp = FuncComp Instr_PagerRead;
-    }];
-  });
-  ("read", {
-    themes = [];
-    features = ["ipc"];
-    versions = [{
-      args = [];
-      ret = T_Int;
-      comp = FuncComp Instr_Read;
-    }];
-  });
-  ("scan", {
-    themes = [];
-    features = [];
-    versions = [{
-      args = [T_Dir; T_Int];
-      ret = T_Field;
-      comp = FuncComp Instr_Scan;
-    }];
-  });
-  ("look", {
-    themes = [];
-    features = [];
-    versions = [{
-      args = [T_Dir; T_Prop];
-      ret = T_Int;
-      comp = FuncComp Instr_Look;
-    }];
-  });
-  ("throw_clay", {
-    themes = ["pottery"];
-    features = [];
-    versions = [{
-      args = [T_Dir; T_Int];
-      ret = T_Int;
-      comp = FuncComp Instr_ThrowClay;
-    }];
-  });
-  ("clay_golem", {
-    themes = ["pottery"];
-    features = ["fork"];
-    versions = [{
-      args = [];
-      ret = T_Int;
-      comp = FuncComp Instr_ClayGolem;
-    }];
-  });
-  ("count", {
-    themes = [];
-    features = [];
-    versions = [{
-      args = [T_Resource];
-      ret = T_Int;
-      comp = FuncComp Meta_Resource;
-    }];
-  });
-  ("drop", {
-    themes = [];
-    features = [];
-    versions = [{
-      args = [T_Int; T_Resource];
-      ret = T_Int;
-      comp = FuncComp Instr_Drop;
-    }];
-  });
-  ("take", {
-    themes = [];
-    features = [];
-    versions = [{
-      args = [T_Int; T_Resource];
-      ret = T_Int;
-      comp = FuncComp Instr_Take;
-    }];
-  });
-  ("mine_shaft", {
-    themes = [];
-    features = [];
-    versions = [{
-      args = [T_Dir];
-      ret = T_Int;
-      comp = FuncComp Instr_MineShaft;
-    };{
-      args = [];
-      ret = T_Int;
-      comp = FixedFuncComp (fun acc -> Instr_Place :: I(4) :: Instr_MineShaft :: acc);
-    }];
-  });
-  ("craft", {
-    themes = [];
-    features = ["craft"];
-    versions = [{
-      args = [T_Resource];
-      ret = T_Int;
-      comp = FuncComp Instr_Craft;
-    }];
-  });
-]
-
-
-(* Variables *)
-
-type builtin_var_compile =
-  | VarComp of instruction list
-
-type builtin_var_info = {
-  themes: string list;
-  features: string list;
-  typ: typ;
-  comp: builtin_var_compile;
-}
-
-let create_builtin_var typ name comp = (name, {
-    themes = [];
-    features = [];
-    typ = typ;
-    comp = VarComp comp
+let builtin_var name themes features typ comp = (name, {
+    themes = themes;
+    features = features;
+    info = BuiltinVar {
+      typ = typ;
+      comp = comp;
+    };
   })
 
+let builtin_func name themes features addr ret canon short_hands = (name, {
+    themes = themes;
+    features = features;
+    info = BuiltinFunc {
+      addr = addr;
+      ret = ret;
+      canonical = canon;
+      short_hands = short_hands;
+    };
+  })
 
-let builtin_var_infos : builtin_var_info StringMap.t = StringMap.of_list [
-  create_builtin_var T_Int "id" [Meta_PlayerID];
-  create_builtin_var T_Int "x" [Meta_PlayerX];
-  create_builtin_var T_Int "y" [Meta_PlayerY];
-  create_builtin_var T_Int "map_width" [Meta_BoardX];
-  create_builtin_var T_Int "map_height" [Meta_BoardY];
-  create_builtin_var T_Int "round" [Meta_Round];
+let builtin_canonical_type builtin = match builtin.info with
+  | BuiltinFunc f -> T_Func(f.ret, f.canonical)
+  | BuiltinVar v -> v.typ
+
+
+let builtin_infos : builtin StringMap.t = StringMap.of_list [
+  builtin_var "id" [] [] T_Int  [Meta_PlayerID];
+  builtin_var "x" [] [] T_Int [Meta_PlayerX];
+  builtin_var "y" [] [] T_Int [Meta_PlayerY];
+  builtin_var "map_width" [] [] T_Int [Meta_BoardX];
+  builtin_var "map_height" [] [] T_Int [Meta_BoardY];
+  builtin_var "round" [] [] T_Int [Meta_Round];
+
+
+  builtin_var "wait" [] [] T_Int [Instr_Wait];
+  builtin_var "pass" [] [] T_Int [Instr_Pass];
+
   
-  create_builtin_var T_Int "_SUCCESS" [Instr_Place; I(1)];
-  create_builtin_var T_Int "_ERROR" [Instr_Place; I(0)];
-  create_builtin_var T_Int "_MISSING_RESOURCE" [Instr_Place; I(-1)];
-  create_builtin_var T_Int "_OUT_OF_BOUNDS" [Instr_Place; I(-2)];
-  create_builtin_var T_Int "_INVALID_TARGET" [Instr_Place; I(-3)];
-  create_builtin_var T_Int "_OUT_OF_RANGE" [Instr_Place; I(-4)];
-  create_builtin_var T_Int "_OBSTRUCTED" [Instr_Place; I(-5)];
-  create_builtin_var T_Int "_MISSING_SPACE" [Instr_Place; I(-6)];
+  
+  builtin_var "_SUCCESS" [] [] T_Int [Instr_Place; I(1)];
+  builtin_var "_ERROR" [] [] T_Int [Instr_Place; I(0)];
+  builtin_var "_MISSING_RESOURCE" [] [] T_Int [Instr_Place; I(-1)];
+  builtin_var "_OUT_OF_BOUNDS" [] [] T_Int [Instr_Place; I(-2)];
+  builtin_var "_INVALID_TARGET" [] [] T_Int [Instr_Place; I(-3)];
+  builtin_var "_OUT_OF_RANGE" [] [] T_Int [Instr_Place; I(-4)];
+  builtin_var "_OBSTRUCTED" [] [] T_Int [Instr_Place; I(-5)];
+  builtin_var "_MISSING_SPACE" [] [] T_Int [Instr_Place; I(-6)];
+  
+  
+  builtin_func "shoot" ["military";"forestry"] [] (-1) T_Int[T_Dir] [];
+  builtin_func "look" [] [] (-2) T_Int[T_Dir;T_Prop] [];
+  builtin_func "scan" [] [] (-3) T_Field[T_Dir;T_Int] [];
+  builtin_func "mine" ["military"] [] (-4) T_Int[T_Dir] [];
+  builtin_func "move" [] [] (-5) T_Int[T_Dir] [];
+  builtin_func "chop" ["forestry"] [] (-6) T_Int[T_Dir] [];
+  builtin_func "trench" [] [] (-7) T_Int[T_Dir; T_Int] [
+    ([], fun _ -> [Instr_Place; I(0); Instr_Place; I(0); Instr_Place; I(-7); Instr_Place; I(2); Instr_Call]);
+    ([T_Dir], fun arg -> arg @ [Instr_Place; I(1); Instr_Place; I(-7); Instr_Place; I(2); Instr_Call]);
+  ];
+  builtin_func "fortify" [] [] (-8) T_Int[T_Dir; T_Int] [
+    ([], fun _ -> [Instr_Place; I(0); Instr_Place; I(0); Instr_Place; I(-8); Instr_Place; I(2); Instr_Call]);
+    ([T_Dir], fun arg -> arg @ [Instr_Place; I(1); Instr_Place; I(-8); Instr_Place; I(2); Instr_Call]);
+  ];
+  builtin_func "bomb" ["military"] [] (-9) T_Int[T_Dir; T_Int] [];
+  builtin_func "write" [] ["ipc"] (-10) T_Int[T_Int] [];
+  builtin_func "read" [] ["ipc"] (-11) T_Int[] [];
+  builtin_func "projection" ["wizardry"] ["fork"] (-12) T_Int[] [];
+  builtin_func "freeze" ["wizardry"] [] (-13) T_Int[T_Dir; T_Int] [];
+  builtin_func "fireball" ["wizardry"] [] (-14) T_Int[T_Dir] [];
+  builtin_func "meditate" ["wizardry"] [] (-15) T_Int[] [];
+  builtin_func "dispel" ["wizardry"] [] (-16) T_Int[T_Dir] [];
+  builtin_func "disarm" ["forestry";"military"] [] (-17) T_Int[T_Dir] [];
+  builtin_func "mana_drain" ["wizardry"] [] (-18) T_Int[T_Dir] [];
+  builtin_func "pager_set" [] ["ipc"] (-19) T_Int[T_Int] [];
+  builtin_func "pager_read" [] ["ipc"] (-20) T_Int[] [];
+  builtin_func "pager_write" [] ["ipc"] (-21) T_Int[T_Int] [];
+  builtin_func "wall" [] [] (-22) T_Int[T_Dir] [];
+  builtin_func "plant_tree" ["forestry"] [] (-23) T_Int[T_Dir] [];
+  builtin_func "bridge" [] [] (-24) T_Int[T_Dir] [];
+  builtin_func "collect" [] [] (-25) T_Int[T_Dir; T_Int] [
+    ([], fun _ -> [Instr_Place; I(0); Instr_Place; I(0); Instr_Place; I(-25); Instr_Place; I(2); Instr_Call]);
+    ([T_Dir], fun arg -> arg @ [Instr_Place; I(1); Instr_Place; I(-25); Instr_Place; I(2); Instr_Call]);
+  ];
+  builtin_func "say" [] [] (-26) T_Int[T_Int] [];
+  builtin_func "mount" [] [] (-27) T_Int[T_Dir] [];
+  builtin_func "dismount" [] [] (-28) T_Int[T_Dir] [];
+  builtin_func "boat" [] [] (-29) T_Int[T_Dir] [];
+  builtin_func "bear_trap" ["forestry"] [] (-30) T_Int[T_Dir] [];
+  builtin_func "throw_clay" ["pottery"] [] (-31) T_Int[T_Dir;T_Int] [];
+  builtin_func "clay_golem" ["pottery"] ["fork"] (-32) T_Int[] [];
+  builtin_func "drop" [] [] (-33) T_Int[T_Int;T_Resource] [];
+  builtin_func "take" [] [] (-34) T_Int[T_Int;T_Resource] [];
+  builtin_func "mine_shaft" [] [] (-35) T_Int[T_Dir] [];
+  builtin_func "craft" [] ["craft"] (-36) T_Int[T_Resource] [];
+  builtin_func "count" [] [] (-37) T_Int[T_Resource] [];
 ]
 
 
 
 let builtin_rename_map = 
-  let vars = builtin_var_infos
+  let vars = builtin_infos
     |> StringMap.bindings
     |> List.map (fun ii -> (fst ii, fst ii))
   in
-  let funcs = builtin_func_infos
-    |> StringMap.bindings
-    |> List.map (fun ii -> (fst ii, fst ii))
-  in
-  StringMap.of_list (vars @ funcs)
+  StringMap.of_list vars
 
 
 let themes ts =
@@ -456,21 +139,7 @@ let features fs =
   then ()
   else raise_failure ("Attempt to access an inactive feature: " ^ (String.concat ", " fs))
 
-
-let lookup_builtin_func_info name arg_types = 
-  match StringMap.find_opt name builtin_func_infos with
-  | None -> None
-  | Some builtin -> 
-    match
-      builtin.versions |>
-      List.find_opt (fun builtin -> 
-        List.length arg_types = List.length builtin.args
-        && List.for_all (fun (a,b) -> type_eq a b) (List.combine arg_types builtin.args))
-    with 
-    | None -> None
-    | Some version -> (features builtin.features ; themes builtin.themes ; Some version)
-  
-let lookup_builtin_var_info name = 
-  match StringMap.find_opt name builtin_var_infos with
+let lookup_builtin_info name = 
+  match StringMap.find_opt name builtin_infos with
   | None -> None
   | Some builtin -> (features builtin.features ; themes builtin.themes ; Some builtin)

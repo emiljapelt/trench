@@ -1,14 +1,14 @@
+# Consolidation of entity
+Entities can be destroyed, but they are handled very differently. 
+
+Larger refactor
+
 # Field visual priority
 Assign a priority (render layer) to field_visual. Such that players can hide in trenches again...
 
 # Refactor event system
 - Consider naming of stuff
 - Player start/end turn events (so fewer checks are needed)
-
-# Builtin variables
-- Very similar system to builtin functions
-- Removes the need for meta variables
-- Cool, but is it better?
 
 # Optimize
 - None: 0
@@ -36,6 +36,6 @@ ToDo
 - [X] Make game start in a paused state
 - [X] Fix crash when dismounting nothing
 - [-] Fix memory leak (and malloc abuse) in movement functions such as 'move_player_to_location', caused by use of entity.of_...
-- [ ] Start working on test game and real game. (smallish maps see not in F2??)
+- [ ] Start working on test game and real game. (smallish maps see note in F2??)
 - [ ] MORE TESTING!
 

@@ -106,50 +106,63 @@ void move_coord(int* x, int* y, direction dir, unsigned int dist) {
 }
 
 void move_player_to_location(player_state* player, location loc) {
+    entity_t* ent;
+
     switch (player->location.type) {
-        case VOID_LOCATION: break;
+        case VOID_LOCATION: 
+            ent = entity.of_player(player);
+            break;
         case FIELD_LOCATION: { 
             field_state* field = player->location.field;
-            update_events(entity.of_player(player), field->exit_events, (situation){ .type = MOVEMENT_SITUATION, .movement.loc = loc });
-            free(remove_entity(field->entities, player->id));
+            ent = get_entity_from_id(field->entities, player->id);
+            update_events(ent, field->exit_events, (situation){ .type = MOVEMENT_SITUATION, .movement.loc = loc });
+            remove_entity(field->entities, player->id);
             break;
         }
         case VEHICLE_LOCATION: {
             vehicle_state* vehicle = player->location.vehicle;
-            free(remove_entity(vehicle->entities, player->id));
+            ent = get_entity_from_id(vehicle->entities, player->id);
+            remove_entity(vehicle->entities, player->id);
             break;
         }
     }
 
-    if (player->death_msg) return;
+    if (player->death_msg || ent == NULL) return;
 
     
     location prev_loc = player->location;
 
     player->location = loc;
     switch (loc.type) {
-        case VOID_LOCATION: break;
+        case VOID_LOCATION: 
+            free(ent);    
+            break;
         case FIELD_LOCATION: {
             field_state* field = location_field(loc);
-            add_entity(field->entities, entity.of_player(player));
-            update_events(entity.of_player(player), field->enter_events, (situation){ .type = MOVEMENT_SITUATION, .movement.loc = prev_loc });
+            add_entity(field->entities, ent);
+            update_events(ent, field->enter_events, (situation){ .type = MOVEMENT_SITUATION, .movement.loc = prev_loc });
             break;
         }
         case VEHICLE_LOCATION: {
             vehicle_state* vehicle = loc.vehicle;
-            add_entity(vehicle->entities, entity.of_player(player));
+            add_entity(vehicle->entities, ent);
             break;
         }
     }
 }
 
 void move_vehicle_to_location(vehicle_state* vehicle, location loc) {
+    entity_t* ent;
+
     switch (vehicle->location.type) {
-        case VOID_LOCATION: break;
+        case VOID_LOCATION: 
+            ent = entity.of_vehicle(vehicle);
+            break;
         case FIELD_LOCATION: { 
             field_state* field = vehicle->location.field;
-            update_events(entity.of_vehicle(vehicle), field->exit_events, (situation){ .type = MOVEMENT_SITUATION, .movement.loc = loc });
-            free(remove_entity(field->entities, vehicle->id));
+            ent = get_entity_from_id(field->entities, vehicle->id);
+            update_events(ent, field->exit_events, (situation){ .type = MOVEMENT_SITUATION, .movement.loc = loc });
+            remove_entity(field->entities, vehicle->id);
             break;
         }
         case VEHICLE_LOCATION: {
@@ -158,17 +171,19 @@ void move_vehicle_to_location(vehicle_state* vehicle, location loc) {
         }
     }
 
-    if (vehicle->destroy) return;
+    if (vehicle->destroy || ent == NULL) return; 
 
     location prev_loc = vehicle->location;
 
     vehicle->location = loc;
     switch (loc.type) {
-        case VOID_LOCATION: break;
+        case VOID_LOCATION: 
+            free(ent);
+            break;
         case FIELD_LOCATION: {
             field_state* field = location_field(loc);
-            add_entity(field->entities, entity.of_vehicle(vehicle));
-            update_events(entity.of_vehicle(vehicle), field->enter_events, (situation){ .type = MOVEMENT_SITUATION, .movement.loc = prev_loc });
+            add_entity(field->entities, ent);
+            update_events(ent, field->enter_events, (situation){ .type = MOVEMENT_SITUATION, .movement.loc = prev_loc });
             break;
         }
         case VEHICLE_LOCATION: {
