@@ -219,6 +219,12 @@ test_case(8, int:() {
             both(1,0)
         )
     );
+
+    assert(not(-1));
+
+    assert(either(1, -1));
+
+    assert(not(both(1, -1)));
 });
 
 // null test
