@@ -24,7 +24,7 @@
 %token COMMA SEMI COLON EOF
 %token QMARK PLUSPLUS MINUSMINUS
 %token IF ELSE IS REPEAT WHILE CONTINUE BREAK LET
-%token GOTO
+%token GOTO RARROW
 %token NORTH EAST SOUTH WEST
 %token INT DIR FIELD PROP RESOURCE L_SHIFT R_SHIFT
 %token RETURN NULL
@@ -33,6 +33,7 @@
 // Precedence and assosiativity inspired by https://en.cppreference.com/w/c/language/operator_precedence.html
 
 /*Low precedence*/
+%left RARROW
 %right QMARK COLON
 %left LOGIC_OR
 %left LOGIC_AND 
@@ -105,7 +106,10 @@ value:
   | EXCLAIM value                      { Unary_op ("!", $2) } %prec UNARY
   | value binop value                  { Binary_op ($2, $1, $3) }
   | value IS value                     { FieldProp($1, $3) }
-  | typ COLON LPAR seperated_or_empty(COMMA,func_arg) RPAR block           { features ["func"] ; Func($1, $4, Stmt($6,$symbolstartpos.pos_lnum)) }
+  | typ COLON LPAR seperated_or_empty(COMMA,func_arg) RPAR block          { features ["func"] ; Func($1, $4, Stmt($6,$symbolstartpos.pos_lnum)) }
+  | COLON LPAR seperated_or_empty(COMMA,func_arg) RPAR block              { features ["func";"sugar"] ; Func(T_Int, $3, Stmt($5,$symbolstartpos.pos_lnum)) }
+  | typ COLON LPAR seperated_or_empty(COMMA,func_arg) RPAR RARROW value   { features ["func";"sugar"] ; Func($1, $4, Stmt(Return $7,$symbolstartpos.pos_lnum)) }
+  | COLON LPAR seperated_or_empty(COMMA,func_arg) RPAR RARROW value       { features ["func";"sugar"] ; Func(T_Int, $3, Stmt(Return $6,$symbolstartpos.pos_lnum)) }
   | value QMARK value COLON value      { features ["control";"sugar"] ; Ternary($1,$3,$5) }
   | PLUSPLUS target                    { features ["sugar"] ; Increment($2, true)}
   | target PLUSPLUS                    { features ["sugar"] ; Increment($1, false)}

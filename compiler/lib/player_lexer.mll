@@ -79,6 +79,7 @@ rule lex = parse
     |   ">="          { GTEQ }
     |   ">>"          { R_SHIFT }
     |   ">"           { GT }
+    |   "=>"          { RARROW }
     |   "&"           { LOGIC_AND }
     |   "|"           { LOGIC_OR }
     |   '?'           { QMARK }

@@ -76,6 +76,10 @@ int global_scope_sp(player_state* ps, int bp, int sp) {
     return sp;
 }
 
+int is_true(int a) {
+    return a > 0 ? 1 : 0;
+}
+
 #pragma endregion
 
 #pragma region LANGUAGE_CORE
@@ -140,7 +144,7 @@ int instr_goto(player_state* ps) {
 
 int instr_goto_if(player_state* ps) {
     int v = ps->stack[--ps->sp];
-    if (v > 0)
+    if (is_true(v))
         ps->dp = ps->directive[ps->dp];
     else 
         ps->dp++;
@@ -200,21 +204,21 @@ int instr_mod(player_state* ps) {
 
 int instr_not(player_state* ps) {
     int v = ps->stack[--ps->sp];
-    ps->stack[ps->sp++] = (v > 0) ? 0 : 1;
+    ps->stack[ps->sp++] = !is_true(v);
     return 0;
 }
 
 int instr_or(player_state* ps) {
     int v0 = ps->stack[--ps->sp];
     int v1 = ps->stack[--ps->sp];
-    ps->stack[ps->sp++] = v0 || v1;
+    ps->stack[ps->sp++] = is_true(v0) || is_true(v1);
     return 0;
 }
 
 int instr_and(player_state* ps) {
     int v0 = ps->stack[--ps->sp];
     int v1 = ps->stack[--ps->sp];
-    ps->stack[ps->sp++] = v0 && v1;
+    ps->stack[ps->sp++] = is_true(v0) && is_true(v1);
     return 0;
 }
 

@@ -78,7 +78,18 @@ These properties of a field can be queried using the ```is``` expression.
 
 ### resource
 
-TODO
+The `resource` type describes the different resources that a player can have, such as wood and bullets. The syntax is a hashtag followed by the name of the resource, e.g. `#wood` or `#explosive`. Players can use the builtin [count](./builtins.md#count) to get their current amount a resource.
+
+The available properties are:
+
+- explosive
+- ammo
+- mana
+- sapling
+- clay
+- wood
+- bear_trap
+- metal
 
 ### array
 
@@ -97,9 +108,11 @@ say(my_array[0]);
 
 ### function
 
-Functions are useful for encapsulating logic. The type is written as such:
+Functions are useful for encapsulating logic. The trench language contains [builtin](./builtins.md) functions, which lets players interact with the game, and players can also define their own functions in their programs.
 
-```type:(type, ...)```
+The type of a function is written as such:
+
+```type(type, ...)```
 
 and a function is specified as such:
 
@@ -110,7 +123,7 @@ The first type is the return type, all functions must have one. Inside the paren
 Examples:
 
 ```
-int:(int,int) add = int:(int a, int b) {
+int(int,int) add = int:(int a, int b) {
     return a + b;
 };
 
@@ -119,8 +132,9 @@ let move = int:(dir d) {
 };
 
 let random_move = int:() {
-    move(?(N S E W));
+    move(?[N S E W]);
 };
+
 
 ```
 
@@ -148,6 +162,29 @@ let g = 0;
 
 ```
 
+If a variable of the function type is declared, but it is not assigned a function it will get the `null` value. Players can check for this case as in the example below.
+
+```
+int() f;
+
+if (f != null)
+    f();
+```
+
+Functions have a few pieces of syntactic sugar. 
+- If a return type is not specified, the return type will be `int`. 
+- If the function should just return the result of an expression the `=>` synax can be used:
+
+```
+let sqr = :(int a) => a * a;
+
+let negate = :(int a) {
+    if (a < 0) return a;
+    else return -a;
+};
+
+let opposite = dir:(dir d) => d << 2;
+```
 
 
 ## Expressions
@@ -202,28 +239,35 @@ Evaluates to one of the given values. All values must have the same type, which 
 ---
 ### Unary operation
 
-These are operations on a single value. The operation symbol prefixes the value, as such:
-
 *op* *value*
 
-| Operation | Type | Description |
-| --- | --- | --- | 
+| Operation | Operand | Description |
+| :---: | --- | --- | 
 | - | int | Negates the integer value |
-| ~ | int | Returns the opposite boolean value |
-
+| ! | int | Returns the opposite boolean value |
 ---
 
 ### Binary operation
 
-These are operation on two values, with the operation symbol placed between the values:
-
 *value* *op* *value*
 
-#### Boolean operators
-#### Equality operators
-#### Comparision operators
-#### Integer operators
-#### Direction operators
+| Left | Operation | Right | Description |
+| --- | :---: | --- | --- | 
+| int | + | int | Addition |
+| int | - | int | Subtraction |
+| int | / | int | Division |
+| int | % | int | Modulo |
+| int | & | int | Logical AND |
+| int | \| | int | Logical OR |
+| * | == | * | Equality |
+| * | != | * | Inequality |
+| int | < | int | Less than |
+| int | <= | int | Less than or equal |
+| int | > | int | Greater than |
+| int | >= | int | Greater than or equal |
+| dir | << | int | Rotate left |
+| dir | >> | int | Rotate right |
+
 
 ---
 
@@ -255,6 +299,22 @@ This can only be called on variables.
 ---
 
 ## Statements
+
+### Expression
+
+**syntax:** *expr*`;`
+
+Expression can be used as statements. This will evaluate the expression, and discard the result. As examples this can be used to call a function, where the returned value is irrelevant, or to increment or decrement an integer.
+
+Examples
+
+```
+move();
+
+i++;
+
+2 + 2;
+```
 
 ### Label
 **syntax:** *name*`:`
@@ -288,31 +348,72 @@ Assigns the resulting value of evaluating the expression, to the variable of the
 
 ---
 
-### Increment/Decrement
-**features:** memory, sugar
-
 ### If-Else
 **features:** control
 
+```
+
+if (look(N, @ocean) > 10)
+    give_up();
+
+if (#mana == 0) meditate();
+else fireball(d);
+```
+
 ### If-Is
 **features:** control, sugar
+
+```
+if (x) 
+    is 1 move(N);
+    is y move(S);
+    is (2 * y) move(E);
+else
+    say(0);
+```
 
 ### Repeat
 **syntax:** `repeat` *x* *stmt*
 
 Where *x* is a constant integer. Compiles the given statement *x* times 
 
+```
+repeat 5 move(N);
+
+repeat 3 {
+    move(N);
+    trench();
+}
+```
+
 ---
 
 ### While
 **features:** loops
 
-### Break
-**features:** loops
+```
+while (x) {
+    do_stuff();
+}
 
-### Continue
-**features:** loops
 
+while (x) : (x--) {
+    do_stuff();
+    if (x <= 0) break;
+    else continue;
+}
+```
+
+---
+
+### Return
+
+**syntax:** `return` *expr*`;`
+
+Is only allowed inside functions, and the return type must match the function.
+
+
+---
 
 
 [Back to overview](../README.md)

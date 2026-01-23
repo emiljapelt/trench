@@ -357,7 +357,14 @@ Create a golem of clay.
 
 ---
 
+### Count
+`count` `int:(resource r)`
 
+**Returns:**
+
+The amount of resource `r` that the player currently has.
+
+---
 
 
 
