@@ -34,14 +34,14 @@ int builtin_shoot(player_state* ps) {
         if (!in_bounds(x,y)) break;
 
         field_state* field = fields.get(x,y);
-        unsigned int props = fields.properties_of_field(field);
+        unsigned int props = fields.properties_of_field(field, ps);
 
         set_overlay(field, BULLET);
         set_color_overlay(field, FORE, YELLOW);
         print_board(); wait(0.02);
 
         if (props & PROP_OBSTRUCTION) {
-            fields.damage_field(field, KINETIC_DMG | PROJECTILE_DMG, "Got shot");
+            fields.damage_field(field, KINETIC_DMG | PROJECTILE_DMG, ps, "Got shot");
             ps->stack[ps->sp++] = INSTR_SUCCESS;
             return 1;
         }
@@ -73,7 +73,7 @@ int builtin_look(player_state* ps) {
     if (_gr->settings.look.range >= 0 && i > _gr->settings.look.range) { ps->stack[ps->sp++] = INSTR_OUT_OF_RANGE; return 0; }
     move_coord(&x, &y, d, 1);
     if (!in_bounds(x,y)) { ps->stack[ps->sp++] = INSTR_OUT_OF_BOUNDS; return 0; }
-    unsigned int props = fields.properties(x,y);
+    unsigned int props = fields.properties(x,y,ps);
     if (props & (1 << offset)) { ps->stack[ps->sp++] = i; return 0; }
     if (props & PROP_OBSTRUCTION) { ps->stack[ps->sp++] = INSTR_OBSTRUCTED; return 0; }
     goto incr;
@@ -90,7 +90,7 @@ int builtin_scan(player_state* ps) {
     if (_gr->settings.scan.range >= 0 && p > _gr->settings.scan.range) { ps->stack[ps->sp++] = 0; return 0; }
     move_coord(&x, &y, d, p);
     if (in_bounds(x, y)) {   
-        result = fields.properties(x,y);
+        result = fields.properties(x,y,ps);
     }
 
     ps->stack[ps->sp++] = result;
@@ -144,14 +144,14 @@ int builtin_move(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
 
     if (ps->location.type == VEHICLE_LOCATION) {
-        int result = get_vehicle_move_func(ps->location.vehicle->type)(ps->location.vehicle, d);
+        int result = get_vehicle_move_func(ps->location.vehicle->type)(ps->location.vehicle, ps, d);
         ps->stack[ps->sp++] = result;
         return result > 0;
     }
 
     int x, y;
     location_coords(ps->location, &x, &y);
-    if (fields.properties(x,y) & PROP_OBSTRUCTION) {
+    if (fields.properties(x,y,ps) & PROP_OBSTRUCTION) {
         ps->stack[ps->sp++] = INSTR_OBSTRUCTED;
         return 0;
     }
@@ -160,7 +160,7 @@ int builtin_move(player_state* ps) {
         ps->stack[ps->sp++] = INSTR_OUT_OF_BOUNDS;
         return 0; 
     }
-    if(fields.properties(x,y) & PROP_OBSTRUCTION) {
+    if(fields.properties(x,y,ps) & PROP_OBSTRUCTION) {
         ps->stack[ps->sp++] = INSTR_OBSTRUCTED;
         return 0; 
     }
@@ -183,7 +183,13 @@ int builtin_chop(player_state* ps) {
 
     field_state* field = fields.get(x,y);
 
-    if (field->type == EMPTY)
+    if (field->type == TREE) {
+        fields.remove_field(field);
+        add_resource(&ps->resources, R_Wood, _gr->settings.chop.wood_gain);
+        int got_sapling = rand() % 100 < _gr->settings.chop.sapling_chance;
+        if (got_sapling) add_resource(&ps->resources, R_Sapling, 1);
+    }
+    else {
         for(int i = 0; i < field->entities->count; i++) {
             entity_t* e = get_entity(field->entities, i);
             if (e->type == ENTITY_PLAYER) {
@@ -191,11 +197,6 @@ int builtin_chop(player_state* ps) {
                 break;
             }
         }
-    else if (field->type == TREE) {
-        fields.remove_field(field);
-        add_resource(&ps->resources, R_Wood, _gr->settings.chop.wood_gain);
-        int got_sapling = rand() % 100 < _gr->settings.chop.sapling_chance;
-        if (got_sapling) add_resource(&ps->resources, R_Sapling, 1);
     }
 
     ps->stack[ps->sp++] = INSTR_SUCCESS;
@@ -396,10 +397,10 @@ int builtin_fireball(player_state* ps) {
         if (!in_bounds(x,y)) break;
 
         field_state* field = fields.get(x,y);
-        unsigned int props = fields.properties_of_field(field);
+        unsigned int props = fields.properties_of_field(field, ps);
 
         if (props & PROP_OBSTRUCTION) {
-            fields.damage_field(field, FIRE_DMG | PROJECTILE_DMG, "Hit by a fireball");
+            fields.damage_field(field, FIRE_DMG | PROJECTILE_DMG, ps, "Hit by a fireball");
             ps->stack[ps->sp++] = INSTR_SUCCESS;
             return 1;
         }
@@ -858,14 +859,14 @@ int builtin_throw_clay(player_state* ps) {
         }
 
         field_state* field = fields.get(x,y);
-        unsigned int props = fields.properties_of_field(field);
+        unsigned int props = fields.properties_of_field(field, ps);
 
         set_overlay(field, FILLED_CIRCLE);
         set_color_overlay(field, FORE, CLAY_BROWN);
         print_board(); wait(0.02);
         
         if (props & PROP_OBSTRUCTION) {
-            fields.damage_field(field, KINETIC_DMG | PROJECTILE_DMG, "Got shot");
+            fields.damage_field(field, KINETIC_DMG | PROJECTILE_DMG, ps, "Got shot");
             ps->stack[ps->sp++] = INSTR_SUCCESS;
             return 1;
         }

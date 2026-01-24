@@ -69,6 +69,24 @@ int has_player(field_state* field) {
     return 0;
 }
 
+int has_enemy(field_state* field, player_state* player) {
+    entity_list_t* list = field->entities;
+    for(int i = 0; i < list->count; i++) {
+        entity_t* ent = get_entity(list,i);
+        if (ent->type == ENTITY_PLAYER && (ent->player->team != NULL || ent->player->team != player->team)) return 1;
+    }
+    return 0;
+}
+
+int has_ally(field_state* field, player_state* player) {
+    entity_list_t* list = field->entities;
+    for(int i = 0; i < list->count; i++) {
+        entity_t* ent = get_entity(list,i);
+        if (ent->type == ENTITY_PLAYER && (ent->player->team != NULL || ent->player->team == player->team)) return 1;
+    }
+    return 0;
+}
+
 int has_trap(field_state* field) {
     return field->enter_events->count + field->exit_events->count;
 }
@@ -112,15 +130,17 @@ unsigned int scan_field(field_type type, field_data* data) {
     return result;
 }
 
-unsigned int properties_of_field(field_state* field) {
+unsigned int properties_of_field(field_state* field, player_state* player) {
     unsigned int result = scan_field(field->type, field->data);
     if (has_player(field)) result |= PROP_PLAYER;
+    if (has_enemy(field, player)) result |= PROP_IS_ENEMY;
+    if (has_ally(field, player)) result |= PROP_IS_ALLY;
     if (has_trap(field)) result |= PROP_TRAPPED;
     return result;
 }
 
-unsigned int properties(const int x, const int y) {
-    return properties_of_field(fields.get(x,y));
+unsigned int properties(const int x, const int y, player_state* player) {
+    return properties_of_field(fields.get(x,y), player);
 }
 
 void destroy_field(field_state* field, char* death_msg) {
@@ -213,8 +233,8 @@ void remove_field(field_state* field) {
     }
 }
 
-void damage_field(field_state* field, damage_t d_type, char* death_msg) {
-    unsigned int props = properties_of_field(field);
+void damage_field(field_state* field, damage_t d_type, player_state* player, char* death_msg) {
+    unsigned int props = properties_of_field(field, player);
     if ((props & PROP_FLAMMABLE) && IS_DAMAGE_TYPE(FIRE_DMG, d_type))
         destroy_field(field, death_msg);
     else if ((props & PROP_MELTABLE) && IS_DAMAGE_TYPE(FIRE_DMG, d_type))

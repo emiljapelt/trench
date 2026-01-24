@@ -53,6 +53,8 @@ let builtin_infos : builtin StringMap.t = StringMap.of_list [
   builtin_var "map_width" [] [] T_Int [Meta_BoardX];
   builtin_var "map_height" [] [] T_Int [Meta_BoardY];
   builtin_var "round" [] [] T_Int [Meta_Round];
+  builtin_var "true" [] [] T_Int [Instr_Place; I(1)];
+  builtin_var "false" [] [] T_Int [Instr_Place; I(0)];
 
 
   builtin_var "wait" [] [] T_Int [Instr_Wait];

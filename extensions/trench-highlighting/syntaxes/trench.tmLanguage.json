@@ -18,7 +18,7 @@
 				"match": "\\b(while|break|continue|return|goto|if|is|else|repeat)\\b"
 			},{
 				"name": "constant.language",
-				"match": "\\b(N|S|E|W|null)\\b"
+				"match": "\\b(N|S|E|W|null|true|false)\\b"
 			},{
 				"name": "constant.numeric",
 				"match": "\\b(-?[0-9]+)\\b"
@@ -30,7 +30,7 @@
 				"match": "(#(clay|explosive|ammo|mana|sapling|wood|metal))\\b"
 			},{
 				"name": "constant.language",
-				"match": "(@(obstruction|player|trapped|flammable|cover|shelter|empty|trench|ice_block|tree|ocean|wall|bridge|clay|mine_shaft))\\b"
+				"match": "(@(obstruction|player|trapped|flammable|cover|shelter|empty|trench|ice_block|tree|ocean|wall|bridge|clay|mine_shaft|enemy|mountain|ally))\\b"
 			},{
 				"name": "constant.language",
 				"match": "\\b(id|x|y|board_width|board_height|_SUCCESS|_ERROR|_MISSING_RESOURCE|_OUT_OF_BOUNDS|_INVALID_TARGET|_OUT_OF_RANGE|_OBSTRUCTED|_MISSING_SPACE|round)\\b"

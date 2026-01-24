@@ -19,7 +19,7 @@ typedef struct vehicle_state {
     resource_registry resources;
 } vehicle_state;
 
-typedef int (*vehicle_move_function)(vehicle_state* v, direction d);
+typedef int (*vehicle_move_function)(vehicle_state* v, player_state* player, direction d);
 
 vehicle_move_function get_vehicle_move_func(vehicle_type type);
 

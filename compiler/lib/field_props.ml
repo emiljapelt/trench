@@ -18,6 +18,8 @@ let string_to_prop s = match s with
   | "clay" -> IsClay_Prop
   | "mine_shaft" -> IsMineShaft_Prop
   | "mountain" -> IsMountain_Prop
+  | "enemy" -> IsEnemy_Prop
+  | "ally" -> IsAlly_Prop
   | _ -> raise_failure ("Unknown field property: "^s)
 
 
@@ -39,3 +41,5 @@ let prop_index p = match p with
   | IsClay_Prop -> 14
   | IsMineShaft_Prop -> 15
   | IsMountain_Prop -> 16
+  | IsEnemy_Prop -> 17
+  | IsAlly_Prop -> 18

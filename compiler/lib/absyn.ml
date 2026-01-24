@@ -28,6 +28,8 @@ type field_prop =
     | IsClay_Prop
     | IsMineShaft_Prop
     | IsMountain_Prop
+    | IsEnemy_Prop
+    | IsAlly_Prop
 
 and typ =
     | T_Int

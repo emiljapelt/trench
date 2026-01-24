@@ -31,6 +31,8 @@ Some builtin functions return a result in the form of an `int`, which may be an 
 | round | int | The current round number |
 | wait | int | 1, and uses an action |
 | pass | int | 1, and ends the current turn |
+| true | int | Is just 1 |
+| false | int | Ist just 0 |
 
 
 ## Functions

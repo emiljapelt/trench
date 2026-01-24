@@ -8,11 +8,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-int boat_move(vehicle_state* v, direction d) {
+int boat_move(vehicle_state* v, player_state* player, direction d) {
     int x, y;
     location_coords(v->location, &x, &y);
 
-    if (fields.properties(x,y) & PROP_OBSTRUCTION)
+    if (fields.properties(x,y, player) & PROP_OBSTRUCTION)
         return INSTR_OBSTRUCTED;
 
     move_coord(&x, &y, d, 1);

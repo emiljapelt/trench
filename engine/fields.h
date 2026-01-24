@@ -67,6 +67,8 @@ typedef union field_data {
 #define PROP_IS_CLAY        0b00000000000000000100000000000000
 #define PROP_IS_MINE_SHAFT  0b00000000000000001000000000000000
 #define PROP_IS_MOUNTAIN    0b00000000000000010000000000000000
+#define PROP_IS_ENEMY       0b00000000000000100000000000000000
+#define PROP_IS_ALLY        0b00000000000001000000000000000000
 
 
 #define FOREGROUND_COLOR_OVERLAY    0b0001
@@ -105,11 +107,11 @@ typedef struct fields_namespace {
     field_state* (*const get)(const int x, const int y);
     void (*const set)(const int x, const int y, field_state* f);
     void (*const destroy_field)(field_state* field, char* death_msg);
-    void (*const damage_field)(field_state* field, damage_t d_type, char* death_msg);
+    void (*const damage_field)(field_state* field, damage_t d_type, player_state* player, char* death_msg);
     void (*const remove_field)(field_state* field);
     int (*const fortify_field)(field_state* field);
-    unsigned int (*const properties_of_field)(field_state* field);
-    unsigned int (*const properties)(const int x, const int y);
+    unsigned int (*const properties_of_field)(field_state* field, player_state* player);
+    unsigned int (*const properties)(const int x, const int y, player_state* player);
     field_builders build;
 } fields_namespace;
 

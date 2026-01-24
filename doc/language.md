@@ -73,6 +73,9 @@ The available properties are:
 | wall | This field is a wall |
 | bridge | This field is a bridge |
 | clay | This field is a clay pit |
+| mountain | This field is a mountain |
+| enemy | There is an enemy on the field |
+| ally | There is an ally on the field |
 
 These properties of a field can be queried using the ```is``` expression.
 
