@@ -57,11 +57,6 @@ let builtin_infos : builtin StringMap.t = StringMap.of_list [
   builtin_var "false" [] [] T_Int [Instr_Place; I(0)];
 
 
-  builtin_var "wait" [] [] T_Int [Instr_Wait];
-  builtin_var "pass" [] [] T_Int [Instr_Pass];
-
-  
-  
   builtin_var "_SUCCESS" [] [] T_Int [Instr_Place; I(1)];
   builtin_var "_ERROR" [] [] T_Int [Instr_Place; I(0)];
   builtin_var "_MISSING_RESOURCE" [] [] T_Int [Instr_Place; I(-1)];
@@ -118,6 +113,9 @@ let builtin_infos : builtin StringMap.t = StringMap.of_list [
   builtin_func "mine_shaft" [] [] (-35) T_Int[T_Dir] [];
   builtin_func "craft" [] ["craft"] (-36) T_Int[T_Resource] [];
   builtin_func "count" [] [] (-37) T_Int[T_Resource] [];
+
+  builtin_func "pass" [] [] (-38) T_Int[] [];
+  builtin_func "wait" [] [] (-39) T_Int[] [];
 ]
 
 

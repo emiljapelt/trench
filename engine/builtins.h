@@ -53,6 +53,8 @@ typedef enum {
     BUILTIN_MINE_SHAFT = -35,
     BUILTIN_CRAFT = -36,
     BUILTIN_COUNT = -37,
+    BUILTIN_PASS = -38,
+    BUILTIN_WAIT = -39,
 } builtin_func;
 
 

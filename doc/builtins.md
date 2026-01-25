@@ -29,13 +29,30 @@ Some builtin functions return a result in the form of an `int`, which may be an 
 | map_width | int | The width of the map |
 | map_height | int | The height of the map |
 | round | int | The current round number |
-| wait | int | 1, and uses an action |
-| pass | int | 1, and ends the current turn |
 | true | int | Is just 1 |
 | false | int | Ist just 0 |
 
 
 ## Functions
+
+
+### Wait <sub><small>action</small></sub>
+`wait` `int:()`
+
+Spend an action doing nothing.
+
+**Returns:** 1
+
+---
+
+### Pass 
+`pass` `int:()`
+
+End the current turn.
+
+**Returns:** 1
+
+---
 
 
 ### Move <sub><small>action</small></sub>

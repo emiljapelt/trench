@@ -22,7 +22,7 @@ let test_case = int:(int test_id, int() test) {
     current_test = test_id;
     has_failed = 0;
     assertions = 0;
-    pass;
+    pass();
     test();
 };
 
@@ -65,7 +65,7 @@ test_case(2, int:() {
         end_test();
     });
 
-    repeat 2 pass;
+    repeat 2 pass();
     assert(pager_read() == 123);
 
     clone(int:() {
@@ -74,7 +74,7 @@ test_case(2, int:() {
     });
 
     pager_set(420);
-    repeat 2 pass;
+    repeat 2 pass();
     assert(pager_read() == 0);
 });
 
@@ -88,7 +88,7 @@ test_case(3, int:() {
         pager_write(420);
         end_test();
     });
-    repeat 2 pass;
+    repeat 2 pass();
     assert(pager_read() == 0);
 
     bridge(W);
@@ -98,7 +98,7 @@ test_case(3, int:() {
         pager_write(420);
         end_test();
     });
-    repeat 2 pass;
+    repeat 2 pass();
     assert(pager_read() == 420);
 
     bomb(W, 1);
@@ -108,7 +108,7 @@ test_case(3, int:() {
         pager_write(420);
         end_test();
     });
-    repeat 2 pass;
+    repeat 2 pass();
     assert(pager_read() == 0);
 });
 
@@ -117,7 +117,7 @@ test_case(4, int:() {
     int prev = count(#sapling);
     plant_tree(E);
     assert(count(#sapling) < prev);
-    repeat 3 pass;
+    repeat 3 pass();
 
     assert(scan(E, 1) is @tree);
 
@@ -149,7 +149,7 @@ test_case(5, int:() {
         end_test();
     });
 
-    repeat 2 pass;
+    repeat 2 pass();
     let prev = count(#wood);
     take(1, #wood);
     assert(count(#wood) == prev);
@@ -178,14 +178,14 @@ test_case(7, int:() {
     clone(int:() {
         if (read() == 1) {
             write(0);
-            pass; 
+            pass(); 
         }
         this();
     });
 
     move(S);
     assert(look(N, @player));
-    repeat 5 pass;
+    repeat 5 pass();
     assert(look(N, @player) == _OUT_OF_BOUNDS);
 });
 
@@ -242,7 +242,7 @@ test_case(9, int:() {
     assert(f == null);
 });
 
-// can pass builtin functions
+// can pass() builtin functions
 test_case(10, int:() {
 
     let f = int:(int(dir) f) {
@@ -267,7 +267,7 @@ test_case(11, int:() {
 
     clone(int:() {
         int[2] arr;
-        while(pager_read() != 1) pass;
+        while(pager_read() != 1) pass();
 
         arr[-1] = 1;
     });
@@ -275,7 +275,7 @@ test_case(11, int:() {
     move(S);
     assert(look(N, @player));
     pager_write(1);
-    repeat 2 pass;
+    repeat 2 pass();
     assert(look(N, @player) == _OUT_OF_BOUNDS);
 
 });

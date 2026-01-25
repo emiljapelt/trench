@@ -1076,6 +1076,18 @@ int builtin_count(player_state* ps) {
     return 0;
 }
 
+int builtin_pass(player_state* ps) {
+    ps->remaining_actions = 0;
+    ps->remaining_steps = 0;
+    ps->stack[ps->sp++] = 1;
+    return 0;
+}
+
+int builtin_wait(player_state* ps) {
+    ps->stack[ps->sp++] = 1;
+    return 0;
+}
+
 #pragma endregion
 
 
@@ -1118,6 +1130,8 @@ int handle_builtin_function(player_state* ps, builtin_func func_addr) {
         case BUILTIN_MINE_SHAFT: return builtin_mine_shaft(ps);
         case BUILTIN_CRAFT: return builtin_craft(ps);
         case BUILTIN_COUNT: return builtin_count(ps);
+        case BUILTIN_PASS: return builtin_pass(ps);
+        case BUILTIN_WAIT: return builtin_wait(ps);
     }
 }
 
@@ -1150,6 +1164,7 @@ int is_action(builtin_func func_addr) {
         case BUILTIN_MINE_SHAFT:
         case BUILTIN_CRAFT:
         case BUILTIN_COUNT:
+        case BUILTIN_WAIT:
             return 1;
         default: 
             return 0;
