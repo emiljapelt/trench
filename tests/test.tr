@@ -225,6 +225,9 @@ test_case(8, int:() {
     assert(either(1, -1));
 
     assert(not(both(1, -1)));
+
+    assert(true);
+    assert(!false);
 });
 
 // null test
