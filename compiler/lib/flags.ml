@@ -1,5 +1,5 @@
 
-module StringSet = Set.Make(String)
+open Helpers
 
 type flag_record = {
   mutable features : StringSet.t;

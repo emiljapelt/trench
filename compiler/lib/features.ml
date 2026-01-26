@@ -1,4 +1,4 @@
-module StringSet = Set.Make(String)
+open Helpers
 
 let all_features = [
   "random";

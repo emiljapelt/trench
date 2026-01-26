@@ -9,7 +9,6 @@
    absyn
    field_props
    optimize
-   helpers
    player_lexer
    player_parser
    game_lexer
@@ -24,5 +23,6 @@
    compile
    builtins
    resources
+   helpers
  )
 )

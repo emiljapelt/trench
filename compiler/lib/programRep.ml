@@ -1,7 +1,5 @@
 open Absyn
-
-module StringMap = Map.Make(String)
-module StringSet = Set.Make(String)
+open Helpers
 
 type instruction =
   | I of int

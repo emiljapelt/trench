@@ -7,12 +7,12 @@ fi
 mkdir _build &&
 cp ../compiler/lib/* ./_build &&
 cd _build &&
-ocamlc flags.ml features.ml themes.ml exceptions.ml resources.ml absyn.ml settings.ml field_props.ml helpers.ml programRep.ml builtins.ml typing.ml &&
+ocamlc exceptions.ml helpers.ml flags.ml features.ml themes.ml resources.ml absyn.ml settings.ml field_props.ml programRep.ml builtins.ml typing.ml &&
 menhir --infer player_parser.mly &&
 menhir --infer game_parser.mly &&
 ocamllex player_lexer.mll &&
 ocamllex game_lexer.mll &&
-ocamlc -custom -output-complete-obj -o compiler_lib.o exceptions.ml resources.ml absyn.ml features.ml themes.ml flags.ml settings.ml field_props.ml helpers.ml programRep.ml builtins.ml typing.ml optimize.ml player_parser.mli player_parser.ml player_lexer.ml game_parser.mli game_parser.ml game_lexer.ml  transform.ml toProgramRep.ml compile.ml &&
+ocamlc -custom -output-complete-obj -o compiler_lib.o exceptions.ml  helpers.ml resources.ml absyn.ml features.ml themes.ml flags.ml settings.ml field_props.ml programRep.ml builtins.ml typing.ml optimize.ml player_parser.mli player_parser.ml player_lexer.ml game_parser.mli game_parser.ml game_lexer.ml  transform.ml toProgramRep.ml compile.ml &&
 ocamlc -c ../compiler_wrapper.c &&
 cp $(ocamlc -where)/libcamlrun.a compiler_module.a && chmod +w compiler_module.a &&
 ar r compiler_module.a compiler_lib.o compiler_wrapper.o  &&

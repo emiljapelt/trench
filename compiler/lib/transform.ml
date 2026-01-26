@@ -54,8 +54,6 @@ let rec extract_declarations stmt : variable list = match stmt with
   | _ -> []
   
 
-module StringMap = Map.Make(String)
-
 let rec rename_variables_of_target map t =
   match t with
   | Local n -> Local(StringMap.find n map)

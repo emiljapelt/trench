@@ -2,6 +2,7 @@ open Absyn
 open ProgramRep
 open Exceptions
 open Builtins
+open Helpers
 
 let require req_typ expr_t res = 
   if type_eq req_typ expr_t then res ()

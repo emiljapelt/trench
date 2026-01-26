@@ -1,6 +1,3 @@
-
-module StringSet = Set.Make(String)
-
 let () = Printexc.record_backtrace true    
 
 let handle_cmd_line argv = 

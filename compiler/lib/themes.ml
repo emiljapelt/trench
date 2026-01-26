@@ -1,5 +1,4 @@
-
-module StringSet = Set.Make(String)
+open Helpers
 
 let all_themes = [
   "military";

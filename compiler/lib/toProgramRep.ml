@@ -6,10 +6,9 @@ open Field_props
 open Transform
 open Builtins
 open Resources
+open Helpers
 
 (*** Compiling functions ***)
-
-module StringSet = Set.Make(String)
 
 let target_scope target scopes : scope = 
   let rec find_name target = match target with

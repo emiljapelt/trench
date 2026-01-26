@@ -5,10 +5,10 @@ open ToProgramRep
 open ProgramRep
 open Absyn
 open Transform
-open Themes
 open Settings
 open Resources
 open Bigarray
+open Helpers
 
 let check_path path extensions =
   try (
@@ -243,8 +243,6 @@ let set_themes ts =
 
 let set_features fs =
   Flags.compile_flags.features <- fs ; ()
-
-module IntSet = Set.Make(Int)
 
 let add_team_info board_size (teams : team_info list) : team_info list =
   let compute_origin (PI player) (TI team) = 

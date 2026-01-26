@@ -2,6 +2,7 @@ open Absyn
 open ProgramRep
 open Flags
 open Exceptions
+open Helpers
 
 type builtin_info = 
   | BuiltinVar of { 

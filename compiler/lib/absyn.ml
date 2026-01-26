@@ -1,4 +1,4 @@
-module StringSet = Set.Make(String)
+open Helpers
 open Resources
 
 type direction =
