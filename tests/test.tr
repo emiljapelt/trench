@@ -283,4 +283,25 @@ test_case(11, int:() {
 
 });
 
+// scope test
+let a = 1;
+test_case(12, :() {
+    assert(a == 1);
+    let a = 2;
+    assert(a == 2);
+    {
+        assert(a == 2);
+        let a = 3;
+        assert(a == 3);
+    }
+    assert(a == 2);
+
+    if true {
+        assert(a == 2);
+        let a = 3;
+        assert(a == 3);
+    }
+    assert(a == 2);
+});
+
 end_test();

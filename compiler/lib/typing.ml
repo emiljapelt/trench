@@ -140,16 +140,20 @@ and can_assign target_type value_type = match target_type, value_type with
       | t1, t2 -> type_eq t1 t2
 
 and type_check_stmt_inner state stmt = match stmt with
-  | If(c,a,b) -> require T_Int (type_value state c) (fun () -> type_check_stmt state a |> ignore ; type_check_stmt state b |> ignore ; (stmt, state))
+  | If(c,a,b) -> require T_Int (type_value state c) (fun () -> 
+    let (a',_) = type_check_stmt state a in
+    let (b',_) = type_check_stmt state b in 
+    (If(c,a',b'), state)
+  )
   | IfIs(v,alts,opt) -> 
     let v_typ = type_value state v in
     let (alt_vs, alt_stmts) = List.split alts in
     let _ = List.iter (fun v -> require v_typ (type_value state v) (fun _ -> state) |> ignore) alt_vs in
-    type_check_stmts state alt_stmts |> ignore ;
-    Option.map (type_check_stmt state) opt |> ignore ;
-    (stmt, state)
+    let (alt_stmts',_) = type_check_stmts state alt_stmts in
+    let else_stmt = Option.map (fun else_stmt -> type_check_stmt state else_stmt |> fst) opt in
+    (IfIs(v, List.combine alt_vs alt_stmts',else_stmt), state)
   | Block stmts -> (
-    let (state', stmts') = type_check_stmts state stmts in
+    let (stmts', state') = type_check_stmts state stmts in
     (Block stmts', state')
   )
   | While(v,s,None) -> 
@@ -214,7 +218,7 @@ and type_check_stmts state stmts =
     (state', stmt'::stmts)
   ) (state,[]) stmts 
   in
-  (state, List.rev stmts)
+  (List.rev stmts, state)
 
 let type_check_program (File prog) =
-  let (_, prog') = type_check_stmts {scopes = { local = []; global = None}; labels = available_labels (Stmt(Block prog,0)); break = None; continue = None; ret_type = None;} prog in File prog'
+  let (prog',_) = type_check_stmts {scopes = { local = []; global = None}; labels = available_labels (Stmt(Block prog,0)); break = None; continue = None; ret_type = None;} prog in File prog'
