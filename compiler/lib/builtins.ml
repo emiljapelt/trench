@@ -101,7 +101,7 @@ let builtin_infos : builtin StringMap.t = StringMap.of_list [
     ([], fun _ -> [Instr_Place; I(0); Instr_Place; I(0); Instr_Place; I(-25); Instr_Place; I(2); Instr_Call]);
     ([T_Dir], fun arg -> arg @ [Instr_Place; I(1); Instr_Place; I(-25); Instr_Place; I(2); Instr_Call]);
   ];
-  builtin_func "say" [] [] (-26) T_Int[T_Int] [];
+  builtin_func "say" [] ["debug"] (-26) T_Int[T_Int] [];
   builtin_func "mount" [] [] (-27) T_Int[T_Dir] [];
   builtin_func "dismount" [] [] (-28) T_Int[T_Dir] [];
   builtin_func "boat" [] [] (-29) T_Int[T_Dir] [];

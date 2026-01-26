@@ -46,7 +46,7 @@
 %token <int> CSTINT
 %token <float> CSTFLOAT
 %token <string> WORD
-%token LPAR RPAR LBRACE RBRACE OF DOT 
+%token LPAR RPAR LBRACE RBRACE OF DOT MINUS
 %token COMMA SEMI COLON EOF STAR FEATURES COLOR INFINITE MANUAL TRUE FALSE DEBUG VIEWPORT AUTO_START
 %token PLAYER RESOURCES THEMES TIME_SCALE SEED ACTIONS STEPS MODE MAP NUKE NAME TEAM ORIGIN FILES EXEC_MODE DEFAULT SETTINGS
 /*Low precedence*/
@@ -90,6 +90,12 @@ resource:
   | WORD COLON CSTINT SEMI? { ($1, ($3, -1)) }
 ;
 
+set_part:
+  | STAR  { All }
+  | WORD  { Add $1 }
+  | MINUS WORD { Remove $2 }
+;
+
 game_mode:
   | CSTINT { Mode $1 }
   | MANUAL { Mode (-1) }
@@ -99,10 +105,12 @@ game_mode:
 game_setup_part:
   | TEAM COLON LBRACE team_info+ RBRACE { team_info_fields_to_team_info $4 }
   | RESOURCES COLON LBRACE resource* RBRACE { Resources $4 }
-  | THEMES COLON seperated(COMMA, WORD) SEMI? { Themes ($3 |> StringSet.of_list) }
-  | THEMES COLON STAR SEMI? { Themes all_themes }
-  | FEATURES COLON seperated(COMMA, WORD) SEMI? { Features ($3 |> StringSet.of_list) }
-  | FEATURES COLON STAR SEMI? { Features all_features }
+  //| THEMES COLON seperated(COMMA, WORD) SEMI? { Themes ($3 |> StringSet.of_list) }
+  //| THEMES COLON STAR SEMI? { Themes all_themes }
+  //| FEATURES COLON seperated(COMMA, WORD) SEMI? { Features ($3 |> StringSet.of_list) }
+  //| FEATURES COLON STAR SEMI? { Features all_features }
+  | THEMES COLON seperated(COMMA, set_part) SEMI? { Themes ($3 |> resolve_string_set all_themes) }
+  | FEATURES COLON seperated(COMMA, set_part) SEMI? { Features ($3 |> resolve_string_set all_features) }
   | ACTIONS COLON CSTINT SEMI? { Actions $3 }
   | STEPS COLON CSTINT SEMI? { Steps $3 }
   | MODE COLON game_mode SEMI? { $3 }

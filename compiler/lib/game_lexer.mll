@@ -66,6 +66,7 @@ rule lex = parse
                   with Not_found -> WORD id }
     |   ','           { COMMA }
     |   ':'           { COLON }
+    |   '-'           { MINUS }
     |   ';'           { SEMI }
     |   '('           { LPAR }
     |   '.'           { DOT }

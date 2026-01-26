@@ -171,6 +171,11 @@ type map =
 
 type setting_overwrites = string * (string * int) list
 
+type string_set_part =
+    | Add of string
+    | Remove of string
+    | All
+
 type game_setup_part =
     | Team of team_info
     | Resources of (string * (int * int)) list
@@ -207,3 +212,12 @@ type game_setup = GS of {
     viewport: int * int;
     auto_start: bool
 }
+
+let resolve_string_set all parts =
+    let rec aux ps acc = match ps with
+        | [] -> acc
+        | Add n :: t -> aux t (StringSet.add n acc)
+        | Remove n :: t -> aux t (StringSet.remove n acc)
+        | All :: t -> aux t (StringSet.union all acc)
+    in
+    aux parts StringSet.empty
