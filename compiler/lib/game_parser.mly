@@ -105,10 +105,6 @@ game_mode:
 game_setup_part:
   | TEAM COLON LBRACE team_info+ RBRACE { team_info_fields_to_team_info $4 }
   | RESOURCES COLON LBRACE resource* RBRACE { Resources $4 }
-  //| THEMES COLON seperated(COMMA, WORD) SEMI? { Themes ($3 |> StringSet.of_list) }
-  //| THEMES COLON STAR SEMI? { Themes all_themes }
-  //| FEATURES COLON seperated(COMMA, WORD) SEMI? { Features ($3 |> StringSet.of_list) }
-  //| FEATURES COLON STAR SEMI? { Features all_features }
   | THEMES COLON seperated(COMMA, set_part) SEMI? { Themes ($3 |> resolve_string_set all_themes) }
   | FEATURES COLON seperated(COMMA, set_part) SEMI? { Features ($3 |> resolve_string_set all_features) }
   | ACTIONS COLON CSTINT SEMI? { Actions $3 }
