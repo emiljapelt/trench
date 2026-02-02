@@ -17,209 +17,256 @@ let var_type scopes name =
     | None -> raise_failure ("No such variable: "^name)
   )
 
-let rec type_value state v = match v with
-    | Reference(Local name) when not (is_var name state.scopes) -> (
-      match lookup_builtin_info name with
-      | Some builtin -> builtin_canonical_type builtin
-      | _ -> raise_failure ("Unknown variable: "^name)
+let assignable (Expr(expr,_)) = match expr with
+  | VarAccess _ 
+  | ArrayAccess _ -> true
+  | _ -> false
+
+let get_type (Expr(_, (_,t))) = t
+let get_line (Expr(_, (ln,_))) = ln
+
+let rec type_expr (e : int expr) state : ((int * typ) expr * typ) = match e with
+  | VarAccess name when not (is_var name state.scopes) -> (
+    match lookup_builtin_info name with
+    | Some builtin -> (VarAccess name, builtin_canonical_type builtin)
+    | _ -> raise_failure ("Unknown variable: "^name)
+    )
+  | VarAccess name -> 
+    let typ = var_type state.scopes name in
+    (VarAccess name, typ)
+  | ArrayAccess(target, index) -> (
+    let index = type_expression index state in
+    let index_type = get_type index in
+    let target = type_expression target state in
+    let target_type = get_type target in
+    match target_type, index_type with
+    | T_Array(t,_), T_Int -> (ArrayAccess(target, index), t)
+    | T_Array(_,_), _ -> raise_failure "Indexing expression must be of type 'int'"
+    | _, _ -> raise_failure "Indexing must be done on an array"
+  )
+  | Binary_op(op,left,right) -> 
+    let left = type_expression left state in
+    let right = type_expression right state in
+    let result_type = match op, get_type left, get_type right with
+    | "+", T_Int, T_Int 
+    | "-", T_Int, T_Int 
+    | "*", T_Int, T_Int 
+    | "&", T_Int, T_Int
+    | "|", T_Int, T_Int 
+    | "=", T_Int, T_Int
+    | "=", T_Dir, T_Dir
+    | "=", T_Prop, T_Prop
+    | "=", T_Resource, T_Resource
+    | "=", T_Func _, T_Null
+    | "=", T_Null, T_Func _
+    | "!=", T_Int, T_Int
+    | "!=", T_Dir, T_Dir
+    | "!=", T_Prop, T_Prop
+    | "!=", T_Resource, T_Resource
+    | "!=", T_Func _, T_Null
+    | "!=", T_Null, T_Func _
+    | "<", T_Int, T_Int 
+    | ">", T_Int, T_Int 
+    | "<=", T_Int, T_Int
+    | ">=", T_Int, T_Int 
+    | "/", T_Int, T_Int
+    | "%", T_Int, T_Int -> T_Int
+    | "<<", T_Dir, T_Int 
+    | ">>", T_Dir, T_Int -> T_Dir
+    | _,t0,t1 -> raise_failure ("Unknown binary operation: "^type_string t0^op^type_string t1)
+    in
+    (Binary_op(op,left,right),result_type)
+  | Unary_op(op, e) -> 
+    let e = type_expression e state in
+    let result_type = match op, get_type e with
+    | "!", T_Int -> T_Int
+    | _, t -> raise_failure ("Unknown unary operation: " ^ op ^ type_string t)
+    in
+    (Unary_op(op, e), result_type)
+  | Random -> (Random, T_Int)
+  | Int i -> (Int i, T_Int)
+  | Prop p -> (Prop p, T_Prop)
+  | Resource r -> (Resource r, T_Resource)
+  | Decrement(target, post) -> 
+    if not(assignable target) then raise_failure ("Cannot decrement expression") else
+    let target = type_expression target state in
+    let target_type = get_type target in
+    (match target_type with 
+    | T_Int -> (Decrement(target, post), T_Int)
+    | _ -> raise_failure ("Only int can be decremented")
+  )
+  | Increment(target, post) -> 
+    if not(assignable target) then raise_failure ("Cannot increment expression") else
+    let target = type_expression target state in
+    let target_type = get_type target in
+    (match target_type with 
+    | T_Int -> (Increment(target, post), T_Int)
+    | _ -> raise_failure ("Only int can be incremented")
+  )
+  | FieldProp(f,p) -> 
+    let f = type_expression f state in
+    let p = type_expression p state in
+    (match get_type f, get_type p with
+      | T_Field, T_Prop -> (FieldProp(f,p), T_Int)
+      | T_Field, _ -> raise_failure ""
+      | _, _ -> raise_failure ""
+    )
+  | Direction d -> (Direction d, T_Dir)
+  | RandomSet exprs -> (
+    let exprs = List.map (fun e -> type_expression e state) exprs in
+    match exprs with 
+    | [] -> raise_failure "Empty random set"
+    | h::t -> 
+      let h_type = get_type h in
+      if not(t |> List.map get_type |> List.for_all (type_eq h_type)) then raise_failure "Random set of differing types"
+      else (RandomSet exprs, h_type)
+    )
+  | Func(ret,args,body) -> (
+    let typ = T_Func(ret, List.map fst args) in
+    let func_scope = { 
+      local = List.map (fun (t,n) -> Var(t,n)) args @ [Var(typ, "this")] ; 
+      global = if state.scopes.global = None then Some(state.scopes.local) else state.scopes.global
+    } in
+    let (body,_) = type_statement body ({scopes = func_scope; ret_type = Some ret; continue = None; break = None; labels = StringSet.empty})in
+    (Func(ret, args, body), typ)
+  )
+  | Call(Expr(VarAccess name, ln), args) when not (is_var name state.scopes) -> (
+    let args = List.map (fun a -> type_expression a state) args in
+    let arg_types = List.map get_type args in
+    match lookup_builtin_info name with
+    | Some builtin -> (match builtin.info with
+    | BuiltinVar _ -> raise_failure ("Unknown function: "^name^"("^String.concat "," (List.map type_string arg_types) ^")")
+    | BuiltinFunc bf -> (
+        if 
+          (bf.canonical :: (List.map fst bf.short_hands))
+          |> List.exists (type_list_eq arg_types) 
+        then (Call(Expr(VarAccess name, (ln, bf.ret)), args), bf.ret)
+        else raise_failure ("No version of builtin function '"^name^"' takes: "^ String.concat "," (List.map type_string arg_types))
       )
-    | Reference Local n -> var_type state.scopes n
-    | Reference Array(target,idx) -> (
-      require T_Int (type_value state idx) (fun () -> ()) ;
-      match type_value state (Reference target) with 
-      | T_Array(t,_) -> t
-      | _ -> raise_failure ("not an array")
     )
-    | Binary_op(op,v0,v1) -> (match op, type_value state v0, type_value state v1 with
-      | "+", T_Int, T_Int 
-      | "-", T_Int, T_Int 
-      | "*", T_Int, T_Int 
-      | "&", T_Int, T_Int
-      | "|", T_Int, T_Int 
-      | "=", T_Int, T_Int
-      | "=", T_Dir, T_Dir
-      | "=", T_Prop, T_Prop
-      | "=", T_Resource, T_Resource
-      | "=", T_Func _, T_Null
-      | "=", T_Null, T_Func _
-      | "!=", T_Int, T_Int
-      | "!=", T_Dir, T_Dir
-      | "!=", T_Prop, T_Prop
-      | "!=", T_Resource, T_Resource
-      | "!=", T_Func _, T_Null
-      | "!=", T_Null, T_Func _
-      | "<", T_Int, T_Int 
-      | ">", T_Int, T_Int 
-      | "<=", T_Int, T_Int
-      | ">=", T_Int, T_Int 
-      | "/", T_Int, T_Int
-      | "%", T_Int, T_Int -> T_Int
-      | "<<", T_Dir, T_Int 
-      | ">>", T_Dir, T_Int -> T_Dir
-      | _,t0,t1 -> raise_failure ("Unknown binary operation: "^type_string t0^op^type_string t1)
-    )
-    | Unary_op(op, v) -> ( match op, type_value state v with
-      | "!", T_Int -> T_Int
-      | _, t -> raise_failure ("Unknown unary operation: " ^ op ^ type_string t)
-    )
-    | Random 
-    | Int _ -> T_Int
-    | Prop _ -> T_Prop
-    | Resource _ -> T_Resource
-    | Decrement(target,_) -> (match type_value state (Reference target) with 
-      | T_Int -> T_Int
-      | _ -> raise_failure ("Only int can be decremented")
-    )
-    | Increment(target,_) -> (match type_value state (Reference target) with 
-      | T_Int -> T_Int
-      | _ -> raise_failure ("Only int can be incremented")
-    )
-    | FieldProp(v,fp) -> 
-      require T_Field (type_value state v) (fun () -> ()) ;
-      require T_Prop (type_value state fp) (fun () -> ()) ;
-      T_Int
-    | Direction _ -> T_Dir
-    | RandomSet vals -> (match vals with
-      | [] -> raise_failure "Empty random set"
-      | h::t -> 
-        let ty = type_value state h in
-        List.iter (fun h -> require ty (type_value state h) (fun () -> ())) t ;
-        ty
-    )
-    | Func(ret,args,body) -> (
-      (* Not super good, any transformation incured by the typing, is lost because type_value does not return a value *)
-      (* Instead the type check is done again in toProgramRep... *)
-      let typ = T_Func(ret, List.map fst args) in
-      let func_scope = { 
-        local = List.map (fun (t,n) -> Var(t,n)) args @ [Var(typ, "this")] ; 
-        global = if state.scopes.global = None then Some(state.scopes.local) else state.scopes.global
-      } in
-      let _ = type_check_stmt ({scopes = func_scope; ret_type = Some ret; continue = None; break = None; labels = StringSet.empty}) body in
-      typ
-    )
-    | Call(Reference(Local name), args) when not (is_var name state.scopes) -> (
-      let arg_types = List.map (type_value state) args in
-      match lookup_builtin_info name with
-      | Some builtin -> (match builtin.info with
-      | BuiltinVar _ -> raise_failure ("Unknown function: "^name^"("^String.concat "," (List.map type_string arg_types) ^")")
-      | BuiltinFunc bf -> (
-            if 
-              (bf.canonical :: (List.map fst bf.short_hands))
-              |> List.exists (type_list_eq arg_types) 
-            then bf.ret
-            else raise_failure ("No version of builtin function '"^name^"' takes: "^ String.concat "," (List.map type_string arg_types))
-          )
-        )
-        | _ -> raise_failure ("Unknown function: "^name^"("^String.concat "," (List.map type_string arg_types) ^")")
-    )
-    | Call(f,args) -> (
-      let f_type = type_value state f in match f_type with
-      | T_Func(ret, params) -> (
-        let arg_types = List.map (type_value state) args in
-        let raise_arg_type_failure = fun () -> raise_failure ("Expected arguments of types: ("^ String.concat "," (List.map type_string params) ^"), but got: (" ^ String.concat "," (List.map type_string arg_types) ^ ")") in
-        if List.length params != List.length args then raise_arg_type_failure ()
-        else if not (
-          List.combine params arg_types
-          |> List.for_all (fun (p, a) -> type_eq p a)
-        )
-        then raise_arg_type_failure ()
-        else ret
+    | _ -> raise_failure ("Unknown function: "^name^"("^String.concat "," (List.map type_string arg_types) ^")")
+  )
+  | Call(f,args) -> (
+    let f = type_expression f state in
+    let f_type = get_type f in
+    let args = List.map (fun a -> type_expression a state) args in
+    let arg_types = List.map get_type args in
+    match f_type with
+    | T_Func(ret, params) -> (
+      let raise_arg_type_failure = fun () -> raise_failure ("Expected arguments of types: ("^ String.concat "," (List.map type_string params) ^"), but got: (" ^ String.concat "," (List.map type_string arg_types) ^ ")") in
+      if List.length params != List.length args then raise_arg_type_failure ()
+      else if not (
+        List.combine params arg_types
+        |> List.for_all (fun (p, a) -> type_eq p a)
       )
-      | _ -> raise_failure ("Not a callable type: '" ^ type_string f_type ^ "'")
+      then raise_arg_type_failure ()
+      else (Call(f,args), ret)
     )
-    | Ternary(c,a,b) -> 
-      require T_Int (type_value state c) (fun () -> ()) ;
-      let a_typ = type_value state a in
-      let b_typ = type_value state b in
-      if not(type_eq a_typ b_typ) then raise_failure "Ternary of differing types"
-      else a_typ;
-    | Null -> T_Null
+    | _ -> raise_failure ("Not a callable type: '" ^ type_string f_type ^ "'")
+  )
+  | Ternary(c,a,b) -> 
+    let c = type_expression c state in
+    let a = type_expression a state in
+    let b = type_expression b state in
+    if not(type_eq T_Int (get_type c)) then raise_failure "Condition must be of type 'int'" else
+    if not(type_eq (get_type a) (get_type b)) then raise_failure "Ternary of differing types" else
+    (Ternary(c,a,b), get_type a)
+  | Null -> (Null, T_Null)
+
+and type_expression (Expr(e,ln)) state : (int * typ) expression = 
+  try
+    let (e,t) = type_expr e state in
+    Expr(e, (ln, t))
+  with
+  | Failure(p, None, msg) -> raise (Failure(p, Some ln, msg))
+  | e -> raise e
 
 and can_assign target_type value_type = match target_type, value_type with
       | T_Func _, T_Null
       | T_Null, T_Func _ -> true
       | t1, t2 -> type_eq t1 t2
 
-and type_check_stmt_inner state stmt = match stmt with
-  | If(c,a,b) -> require T_Int (type_value state c) (fun () -> 
-    let (a',_) = type_check_stmt state a in
-    let (b',_) = type_check_stmt state b in 
-    (If(c,a',b'), state)
-  )
-  | IfIs(v,alts,opt) -> 
-    let v_typ = type_value state v in
-    let (alt_vs, alt_stmts) = List.split alts in
-    let _ = List.iter (fun v -> require v_typ (type_value state v) (fun _ -> state) |> ignore) alt_vs in
-    let (alt_stmts',_) = type_check_stmts state alt_stmts in
-    let else_stmt = Option.map (fun else_stmt -> type_check_stmt state else_stmt |> fst) opt in
-    (IfIs(v, List.combine alt_vs alt_stmts',else_stmt), state)
+and type_check_stmt_inner stmt state : ((int * typ) stmt * compile_state) = match stmt with
+  | If(c,a,b) -> 
+    let c = type_expression c state in
+    let (a,_) = type_statement a state in
+    let (b,_) = type_statement b state in
+    if not(type_eq T_Int (get_type c)) then raise_failure "Condition must be of type 'int'" else
+    (If(c,a,b), state)
+  | IfIs(c,alts,else_opt) -> 
+    let c = type_expression c state in
+    let c_type = get_type c in
+    let (alt_expressions, alt_statements) = List.split alts in
+    let alt_expressions = List.map (fun e -> type_expression e state) alt_expressions in
+    let alt_statements = List.map (fun s -> type_statement s state |> fst) alt_statements in
+    let else_statement = Option.map (fun s -> type_statement s state |> fst) else_opt in
+    let match_failures = alt_expressions |> List.filter (fun e -> not(type_eq c_type (get_type e))) in (
+    match match_failures with
+      | [] -> (IfIs(c, List.combine alt_expressions alt_statements, else_statement), state)
+      | h::_ -> raise(Failure(None, Some(get_line h), "A case did not match the condition type, expected '"^type_string c_type^"' but got '"^type_string(get_type h)^"'"))
+    )
   | Block stmts -> (
-    let (stmts', state') = type_check_stmts state stmts in
+    let (stmts', state') = type_statements stmts state in
     (Block stmts', state')
   )
-  | While(v,s,None) -> 
-    require T_Int (type_value state v) (fun () -> 
-      let (s,_) = type_check_stmt state s in 
-      (While(v,s,None),state)
-    )
-  | While(v,s,Some si) -> 
-    require T_Int (type_value state v) (fun () -> 
-      let (s,_) = type_check_stmt state s in 
-      let (si,_) = type_check_stmt state si in 
-      (While(v,s,Some si), state)
-    )
-  | Assign(Local n,e) -> 
-    let var_type = var_type state.scopes n in
-    let value_type = type_value state e in
-    if can_assign var_type value_type 
-    then (stmt,state)
-    else raise_failure ("Cannot assign a value of type '" ^ type_string value_type ^ "' to a variable of type '" ^ type_string var_type ^ "'")
-  | Assign(Array(target, index), e) -> (
-    require T_Int (type_value state index) (fun () -> 
-      match type_value state (Reference target) with
-      | T_Array(t,_) -> require (t) (type_value state e) (fun () -> (stmt,state))
-      | _ -> raise_failure "array assignment to non-array"
-    )
-  )
-  | DeclareAssign(Some t, n, v) ->
-    let value_type = type_value state v in
-    if can_assign t value_type 
-    then (stmt, {state with scopes = { local = Var(t,n)::state.scopes.local; global = state.scopes.global } })
-    else raise_failure ("Cannot assign a value of type '" ^ type_string value_type ^ "' to a variable of type '" ^ type_string t ^ "'")
-  | DeclareAssign(None, n, v) -> (
-    match type_value state v with
+  | While(c,s,iter_opt) -> 
+    let c = type_expression c state in
+    let (s,_) = type_statement s state in
+    let iter_opt = Option.map (fun iter -> type_statement iter state |> fst) iter_opt in
+    if not(type_eq T_Int (get_type c)) then raise_failure "The condition of a while loop must be of type 'int'" else
+    (While(c,s,iter_opt), state)
+  | Assign(target,e) -> (* Needs a seperate impl. for arrays *)
+    let target = type_expression target state in
+    let target_type = get_type target in
+    let e = type_expression e state in
+    let e_type = get_type e in
+    if can_assign target_type e_type 
+    then (Assign(target, e), state)
+    else raise_failure ("Cannot assign a value of type '" ^ type_string e_type ^ "' to a target of type '" ^ type_string target_type ^ "'")
+  | DeclareAssign(Some typ, name, e) ->
+    let e = type_expression e state in
+    let e_type = get_type e in
+    if can_assign typ e_type 
+    then (DeclareAssign(Some typ, name, e), {state with scopes = { local = Var(typ,name)::state.scopes.local; global = state.scopes.global } })
+    else raise_failure ("Cannot assign a value of type '" ^ type_string e_type ^ "' to a variable of type '" ^ type_string typ ^ "'")
+  | DeclareAssign(None, name, e) -> (
+    let e = type_expression e state in
+    let e_type = get_type e in
+    match e_type with
     | T_Null -> raise_failure "Cannot infere a type from null"
-    | typ -> (DeclareAssign(Some typ, n, v), {state with scopes = { local = Var(typ,n)::state.scopes.local; global = state.scopes.global } })
+    | typ -> (DeclareAssign(Some typ, name, e), {state with scopes = { local = Var(typ,name)::state.scopes.local; global = state.scopes.global } })
   )
-  | Declare(t,n) -> (stmt, {state with scopes = { local = Var(t,n)::state.scopes.local; global = state.scopes.global } })
-  | GoTo _
-  | Label _
-  | Continue
-  | Break -> (stmt, state)
-  | Return v -> ( match state.ret_type with
+  | Declare(t,n) -> (Declare(t,n), {state with scopes = { local = Var(t,n)::state.scopes.local; global = state.scopes.global } })
+  | GoTo l -> (GoTo l, state)
+  | Label l -> (Label l, state)
+  | Continue -> (Continue, state)
+  | Break -> (Break, state)
+  | Return e -> ( match state.ret_type with
       | None -> raise_failure "Return statement outside function"
       | Some ret_type -> 
-        let v_type = type_value state v in
-        if not(type_eq ret_type v_type) then raise_failure ("Return type mismatch: expected '" ^type_string ret_type^ "', but got '" ^type_string v_type^ "'")
-        else (stmt, state)
+        let e = type_expression e state in
+        let e_type = get_type e in
+        if not(type_eq ret_type e_type) then raise_failure ("Return type mismatch: expected '" ^type_string ret_type^ "', but got '" ^type_string e_type^ "'")
+        else (Return e, state)
   )
-  | Expr e -> type_value state e |> ignore ; (stmt, state)
+  | ExprStmt e -> (ExprStmt(type_expression e state), state)
 
-and type_check_stmt regs (Stmt(stmt,ln)) = 
+and type_statement (Stmt(stmt,ln)) state = 
   try 
-    let (stmt', state') = type_check_stmt_inner regs stmt in
-    (Stmt(stmt', ln), state')
+    let (stmt', state') = type_check_stmt_inner stmt state in
+    (Stmt(stmt', (ln, T_Null)), state')
   with 
   | Failure(p, None, msg) -> raise (Failure(p, Some ln, msg))
   | e -> raise e
 
-and type_check_stmts state stmts =
-  let (state, stmts) = List.fold_left (fun (state, stmts) stmt -> 
-    let (stmt', state') = type_check_stmt state stmt in 
-    (state', stmt'::stmts)
-  ) (state,[]) stmts 
+and type_statements stmts state  =
+  let (stmts, state) = List.fold_left (fun (stmts, state) stmt -> 
+    let (stmt', state') = type_statement stmt state in 
+    (stmt'::stmts, state')
+  ) ([], state) stmts
   in
   (List.rev stmts, state)
 
-let type_check_program (File prog) =
-  let (prog',_) = type_check_stmts {scopes = { local = []; global = None}; labels = available_labels (Stmt(Block prog,0)); break = None; continue = None; ret_type = None;} prog in File prog'
+let type_program (File(prog,i)) =
+  let (prog',_) = type_statements prog {scopes = { local = []; global = None}; labels = available_labels (Stmt(Block prog,i)); break = None; continue = None; ret_type = None;} 
+  in File(prog', (i,T_Null))

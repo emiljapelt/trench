@@ -53,20 +53,15 @@ let rec extract_declarations stmt : variable list = match stmt with
   | Stmt(DeclareAssign(None,_,_),_) -> (failwith "Untyped declaration meet in declaration pull out phase")
   | _ -> []
   
-
-let rec rename_variables_of_target map t =
-  match t with
-  | Local n -> Local(StringMap.find n map)
-  | Array(target,index) -> Array(rename_variables_of_target map target, rename_variables_of_value map index)
-
-and rename_variables_of_value map v = match v with
-  | Reference target -> Reference(rename_variables_of_target map target)
-  | Binary_op(op,v0,v1) -> Binary_op(op,rename_variables_of_value map v0, rename_variables_of_value map v1)
-  | Unary_op(op,v) -> Unary_op(op, rename_variables_of_value map v)
-  | RandomSet vs -> RandomSet(List.map (rename_variables_of_value map) vs)
-  | FieldProp(v,fp) -> FieldProp(rename_variables_of_value map v, rename_variables_of_value map fp)
-  | Decrement(target,pre) -> Decrement(rename_variables_of_target map target, pre)
-  | Increment(target,pre) -> Increment(rename_variables_of_target map target, pre)
+and rename_variables_of_expression map (Expr(e,ln)) = match e with
+  | VarAccess name -> Expr(VarAccess(StringMap.find name map),ln)
+  | ArrayAccess(target,index) -> Expr(ArrayAccess(rename_variables_of_expression map target, rename_variables_of_expression map index),ln)
+  | Binary_op(op,v0,v1) -> Expr(Binary_op(op,rename_variables_of_expression map v0, rename_variables_of_expression map v1),ln)
+  | Unary_op(op,v) -> Expr(Unary_op(op, rename_variables_of_expression map v),ln)
+  | RandomSet vs -> Expr(RandomSet(List.map (rename_variables_of_expression map) vs),ln)
+  | FieldProp(v,fp) -> Expr(FieldProp(rename_variables_of_expression map v, rename_variables_of_expression map fp),ln)
+  | Decrement(target,pre) -> Expr(Decrement(rename_variables_of_expression map target, pre), ln)
+  | Increment(target,pre) -> Expr(Increment(rename_variables_of_expression map target, pre), ln)
   | Func(ret,params,body) -> (    
     let new_map = StringMap.merge (fun _ old_value new_value -> match new_value with
     | Some v -> Some v
@@ -74,21 +69,21 @@ and rename_variables_of_value map v = match v with
     ) map (StringMap.of_list(List.map (fun (_,n) -> (n,n)) params @ [("this","this")]))
     in
     let (_,renamed_body) = rename_variables_of_stmt (new_map) body in
-    Func(ret,params,renamed_body)
+    Expr(Func(ret,params,renamed_body), ln)
   )
-  | Call(f,args) -> Call(rename_variables_of_value map f, List.map (rename_variables_of_value map) args)
-  | Ternary(c,a,b) -> Ternary(rename_variables_of_value map c, rename_variables_of_value map a, rename_variables_of_value map b)
-  | _ -> v
+  | Call(f,args) -> Expr(Call(rename_variables_of_expression map f, List.map (rename_variables_of_expression map) args),ln)
+  | Ternary(c,a,b) -> Expr(Ternary(rename_variables_of_expression map c, rename_variables_of_expression map a, rename_variables_of_expression map b),ln)
+  | _ -> Expr(e,ln)
 
 and rename_variables_of_stmt map (Stmt(stmt,ln)) = match stmt with
   | If(v,s0,s1) -> 
     let  (_,s0) = rename_variables_of_stmt map s0 in
     let  (_,s1) = rename_variables_of_stmt map s1 in
-     ( map, Stmt(If(rename_variables_of_value map v, s0, s1),ln))
+     ( map, Stmt(If(rename_variables_of_expression map v, s0, s1),ln))
   | IfIs(v,alts,opt) -> 
-    let v = rename_variables_of_value map v in
+    let v = rename_variables_of_expression map v in
     let (alt_vs, alt_stmts) = List.split alts in
-    let alt_vs = List.map (rename_variables_of_value map) alt_vs in
+    let alt_vs = List.map (rename_variables_of_expression map) alt_vs in
     let (alt_stmts) = List.map (fun s -> 
       let (_,s) = rename_variables_of_stmt map s in s
      ) alt_stmts in
@@ -106,27 +101,27 @@ and rename_variables_of_stmt map (Stmt(stmt,ln)) = match stmt with
      (map,Stmt(Block(List.rev stmts),ln))
   | While(v,s,None) -> 
     let  (_,s) = rename_variables_of_stmt map s in
-     (map,Stmt(While(rename_variables_of_value map v,s,None),ln))
+     (map,Stmt(While(rename_variables_of_expression map v,s,None),ln))
   | While(v,s,Some si) -> 
     let  (_,s) = rename_variables_of_stmt map s in
     let  (_,si) = rename_variables_of_stmt map si in
-     (map,Stmt(While(rename_variables_of_value map v,s,Some si),ln))
+     (map,Stmt(While(rename_variables_of_expression map v,s,Some si),ln))
   | Assign(target,v) -> 
-     (map,Stmt(Assign(rename_variables_of_target map target, rename_variables_of_value map v),ln))
+     (map,Stmt(Assign(rename_variables_of_expression map target, rename_variables_of_expression map v),ln))
   | Label s ->  (map,Stmt(Label s,ln))
   | Declare(t,n) -> 
     let new_name = rename n in
     (StringMap.add n new_name map,Stmt(Declare(t,new_name),ln))
   | DeclareAssign(t,n,v) ->
     let new_name = rename n in
-    (StringMap.add n new_name map,Stmt(DeclareAssign(t,new_name,rename_variables_of_value map v),ln))
-  | Return v ->  (map,Stmt(Return(rename_variables_of_value map v),ln))
-  | Expr e ->  (map,Stmt(Expr(rename_variables_of_value map e),ln))
+    (StringMap.add n new_name map,Stmt(DeclareAssign(t,new_name,rename_variables_of_expression map v),ln))
+  | Return v ->  (map,Stmt(Return(rename_variables_of_expression map v),ln))
+  | ExprStmt e ->  (map,Stmt(ExprStmt(rename_variables_of_expression map e),ln))
   | _ ->  (map,Stmt(stmt,ln))
 
 
-let rename_variables_of_file (File stmts) =
+let rename_variables_of_file (File(stmts, i)) =
   reset_rename_generator () ;
-  match rename_variables_of_stmt builtin_rename_map (Stmt(Block stmts,0)) with
-  | (_,Stmt(Block stmts,_)) -> File stmts
+  match rename_variables_of_stmt builtin_rename_map (Stmt(Block stmts,i)) with
+  | (_,Stmt(Block stmts,_)) -> File(stmts, i)
   | _ -> failwith "Renaming failed"

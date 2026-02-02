@@ -41,51 +41,51 @@ and typ =
     | T_Func of typ * typ list
     | T_Null
 
-and statement =
-    | Stmt of statement_inner * int
+and 'a statement =
+    | Stmt of 'a stmt * 'a
 
-and target =
-    | Local of string
-    | Array of target * value
-
-and statement_inner =
-    | If of value * statement * statement
-    | IfIs of value * (value * statement) list * statement option
-    | Block of statement list
-    | While of value * statement * statement option
+and 'a stmt =
+    | If of 'a expression * 'a statement * 'a statement
+    | IfIs of 'a expression * ('a expression * 'a statement) list * 'a statement option
+    | Block of 'a statement list
+    | While of 'a expression * 'a statement * 'a statement option
     | Continue
     | Break
-    | Assign of target * value
+    | Assign of 'a expression * 'a expression
     | Label of string
     | GoTo of string
     | Declare of typ * string
-    | DeclareAssign of typ option * string * value
-    | Return of value
-    | Expr of value
+    | DeclareAssign of typ option * string * 'a expression
+    | Return of 'a expression
+    | ExprStmt of 'a expression
 
-and value =
-    | Reference of target
+and 'a expression =
+    | Expr of 'a expr * 'a
+
+and 'a expr =
+    | VarAccess of string
+    | ArrayAccess of 'a expression * 'a expression
     | Resource of resource
-    | Increment of target * bool
-    | Decrement of target * bool
-    | Binary_op of string * value * value
-    | Unary_op of string * value
+    | Increment of 'a expression * bool
+    | Decrement of 'a expression * bool
+    | Binary_op of string * 'a expression * 'a expression
+    | Unary_op of string * 'a expression
     | Int of int
     | Prop of field_prop
     | Direction of direction
     | Random
-    | RandomSet of value list
-    | FieldProp of value * value
-    | Func of typ * (typ * string) list * statement
-    | Call of value * value list
-    | Ternary of value * value * value
+    | RandomSet of 'a expression list
+    | FieldProp of 'a expression * 'a expression
+    | Func of typ * (typ * string) list * 'a statement
+    | Call of 'a expression * 'a expression list
+    | Ternary of 'a expression * 'a expression * 'a expression
     | Null
 
 and variable =
     | Var of typ * string
 
-and file = 
-    | File of statement list
+and 'a file = 
+    | File of 'a statement list * 'a
 
 type scopes = {
     local: variable list;

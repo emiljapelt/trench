@@ -140,20 +140,17 @@ let to_game_setup game_file_dir gsps =
   in
   aux gsps default_game_setup
 
-let compile parser lexer transforms checks compiler stringer path =
+let compile parser lexer path =
   let path = (compress_path (total_path path)) in
   try (
     let lexbuf = (Lexing.from_string (read_file path)) in
-    let result = 
     try 
       parser (lexer path) lexbuf
     with
     | Failure(None,None,m) -> raise (Failure(Some path,Some(lexbuf.lex_curr_p.pos_lnum),m))
     | Failure(p,l,m) -> raise (Failure(p,l,m))
     | _ -> raise (Failure(Some path, Some(lexbuf.lex_curr_p.pos_lnum), "Syntax error"))
-    in
-    List.iter (fun check -> check result) checks ;
-    List.fold_left (fun acc trans -> trans acc) result transforms |> compiler |> stringer
+    
   )
   with 
   | Failure(None,ln,msg) -> raise (Failure(Some path,ln,msg))
@@ -212,12 +209,13 @@ type compiled_game_file = {
 
 let compile_player_file path size_limit = try (
   check_path path [".tr"] ;
-  let result = (compile Player_parser.main Player_lexer.start [
-    type_check_program;
-    rename_variables_of_file;
-    optimize_program;
-  ] (*[check_no_negative_arrays]*)[] compile_player (player_to_program size_limit) path)
-in Ok(result)
+  compile Player_parser.main Player_lexer.start path 
+  |> rename_variables_of_file 
+  |> optimize_program
+  |> type_program
+  |> compile_player
+  |> (player_to_program size_limit)
+  |> Result.ok
 ) with
 | Failure(None,ln,msg) -> Error(format_failure (Failure(Some path, ln, msg)))
 | Failure _ as f -> Error(format_failure f)
@@ -305,9 +303,12 @@ let format_game_setup (GS gs) =
   }
 
 let compile_game_file path = try (
-  let _ = check_path path [".trg"] in
+  check_path path [".trg"];
   let game_file_dir = Filename.dirname path in
-  Ok(compile Game_parser.main Game_lexer.start [] [] (to_game_setup game_file_dir) (format_game_setup) path)
+  compile Game_parser.main Game_lexer.start path
+  |> to_game_setup game_file_dir
+  |> format_game_setup
+  |> Result.ok
 ) with
 | Failure(None,ln,msg) -> Error(format_failure (Failure(Some path, ln, msg)))
 | Failure _ as f -> Error(format_failure f)

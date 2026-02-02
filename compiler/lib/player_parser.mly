@@ -43,11 +43,12 @@
 %left PLUS MINUS 
 %left TIMES FSLASH PCT
 %right UNARY
-%left LPAR
+%left LPAR 
+%left PLUSPLUS MINUSMINUS LBRAKE
 /*High precedence*/
 
 %start main
-%type <Absyn.file> main
+%type <int Absyn.file> main
 %%
 
 %public seperated_or_empty(S,C):
@@ -62,7 +63,7 @@
 ;
 
 main:
-  stmt* EOF     { (File $1) }
+  stmt* EOF     { (File($1, 0)) }
 ;
 
 simple_typ:
@@ -84,7 +85,11 @@ block:
   LBRACE stmt* RBRACE    { Block $2 }
 ;
 
-const_value:
+//const_expression:
+//  | const_expr { Expr($1, $symbolstartpos.pos_lnum) }
+//;
+
+const_expr:
   | CSTINT        { Int $1 }
   | NULL          { Null }
   | direction     { Direction $1 }
@@ -92,30 +97,39 @@ const_value:
   | RESOURCE_NAME { Resource(string_to_resource $1) }
 ;
 
-simple_value:
-  | const_value                        { $1 }
-  | QMARK                              { features ["random"] ; Random }
-  | QMARK LBRAKE simple_value+ RBRAKE  { features ["random"] ; RandomSet $3 }
-  | target                             { Reference($1) }
-  | LPAR value RPAR                    { $2 }
+simple_expression:
+  | simple_expr { Expr($1, $symbolstartpos.pos_lnum) }
 ;
 
-value:
-  | simple_value                       { $1 }
-  | MINUS value                        { Binary_op ("-", Int 0, $2) }  %prec UNARY
-  | EXCLAIM value                      { Unary_op ("!", $2) } %prec UNARY
-  | value binop value                  { Binary_op ($2, $1, $3) }
-  | value IS value                     { FieldProp($1, $3) }
+simple_expr:
+  | const_expr                              { $1 }
+  | QMARK                                   { features ["random"] ; Random }
+  | QMARK LBRAKE simple_expression+ RBRAKE  { features ["random"] ; RandomSet $3 }
+  | NAME                                    { features ["memory"] ; VarAccess $1 }
+  | LPAR expr RPAR                          { $2 }
+;
+
+expression:
+  | expr { Expr($1,$symbolstartpos.pos_lnum) }
+;
+
+expr:
+  | simple_expr                             { $1 }
+  | expression LBRAKE expression RBRAKE     { features ["memory"] ; ArrayAccess($1,$3) }
+  | MINUS expression                        { Binary_op ("-", Expr(Int 0, $symbolstartpos.pos_lnum), $2) }  %prec UNARY
+  | EXCLAIM expression                      { Unary_op ("!", $2) } %prec UNARY
+  | expression binop expression                  { Binary_op ($2, $1, $3) }
+  | expression IS expression                     { FieldProp($1, $3) }
   | typ COLON LPAR seperated_or_empty(COMMA,func_arg) RPAR block          { features ["func"] ; Func($1, $4, Stmt($6,$symbolstartpos.pos_lnum)) }
   | COLON LPAR seperated_or_empty(COMMA,func_arg) RPAR block              { features ["func";"sugar"] ; Func(T_Int, $3, Stmt($5,$symbolstartpos.pos_lnum)) }
-  | typ COLON LPAR seperated_or_empty(COMMA,func_arg) RPAR RARROW value   { features ["func";"sugar"] ; Func($1, $4, Stmt(Return $7,$symbolstartpos.pos_lnum)) }
-  | COLON LPAR seperated_or_empty(COMMA,func_arg) RPAR RARROW value       { features ["func";"sugar"] ; Func(T_Int, $3, Stmt(Return $6,$symbolstartpos.pos_lnum)) }
-  | value QMARK value COLON value      { features ["control";"sugar"] ; Ternary($1,$3,$5) }
-  | PLUSPLUS target                    { features ["sugar"] ; Increment($2, true)}
-  | target PLUSPLUS                    { features ["sugar"] ; Increment($1, false)}
-  | MINUSMINUS target                  { features ["sugar"] ; Decrement($2, true)}
-  | target MINUSMINUS                  { features ["sugar"] ; Decrement($1, false)}
-  | value LPAR seperated_or_empty(COMMA, value) RPAR { Call($1, $3) }
+  | typ COLON LPAR seperated_or_empty(COMMA,func_arg) RPAR RARROW expression   { features ["func";"sugar"] ; Func($1, $4, Stmt(Return $7,$symbolstartpos.pos_lnum)) }
+  | COLON LPAR seperated_or_empty(COMMA,func_arg) RPAR RARROW expression       { features ["func";"sugar"] ; Func(T_Int, $3, Stmt(Return $6,$symbolstartpos.pos_lnum)) }
+  | expression QMARK expression COLON expression      { features ["control";"sugar"] ; Ternary($1,$3,$5) }
+  | PLUSPLUS expression                    { features ["sugar"] ; Increment($2, true)} 
+  | expression PLUSPLUS                    { features ["sugar"] ; Increment($1, false)}
+  | MINUSMINUS expression                  { features ["sugar"] ; Decrement($2, true)} 
+  | expression MINUSMINUS                  { features ["sugar"] ; Decrement($1, false)}
+  | expression LPAR seperated_or_empty(COMMA, expression) RPAR { Call($1, $3) }
 ;
 
 func_arg:
@@ -149,10 +163,10 @@ stmt2:
   stmt2_inner { Stmt($1,$symbolstartpos.pos_lnum) }
 ;
 stmt2_inner:
-  | IF simple_value stmt1 ELSE stmt2         { features ["control"] ; If ($2, $3, $5) }
-  | IF simple_value stmt1                    { features ["control"] ; If ($2, $3, Stmt(Block [], $symbolstartpos.pos_lnum)) }
-  | IF simple_value alt+                     { features ["control"; "sugar"] ; IfIs($2, $3, None)}
-  | IF simple_value alt+ ELSE stmt2          { features ["control"; "sugar"] ; IfIs($2, $3, Some $5) }
+  | IF simple_expression stmt1 ELSE stmt2         { features ["control"] ; If ($2, $3, $5) }
+  | IF simple_expression stmt1                    { features ["control"] ; If ($2, $3, Stmt(Block [], $symbolstartpos.pos_lnum)) }
+  | IF simple_expression alt+                     { features ["control"; "sugar"] ; IfIs($2, $3, None)}
+  | IF simple_expression alt+ ELSE stmt2          { features ["control"; "sugar"] ; IfIs($2, $3, Some $5) }
 ;
 
 /* No unbalanced if-else */
@@ -160,41 +174,36 @@ stmt1:
   stmt1_inner { Stmt($1,$symbolstartpos.pos_lnum) }
 ;
 stmt1_inner: 
-  | block                                     { $1 }
-  | value SEMI                                { Expr $1}
-  | non_control_flow_stmt SEMI                { $1 }
-  | IF simple_value stmt1 ELSE stmt1          { features ["control"] ; If ($2, $3, $5) }
-  | IF simple_value alt+ ELSE stmt1           { features ["control"; "sugar"] ; IfIs($2, $3, Some $5) }
-  | WHILE simple_value stmt1                  { features ["loops"] ; While($2,$3,None) }
-  | WHILE simple_value COLON LPAR value RPAR stmt1     { features ["loops"; "sugar"] ; While($2,$7,Some(Stmt(Expr $5, $symbolstartpos.pos_lnum))) }
+  | block                                          { $1 }
+  | expression SEMI                                { ExprStmt $1}
+  | non_control_flow_stmt SEMI                     { $1 }
+  | IF simple_expression stmt1 ELSE stmt1          { features ["control"] ; If ($2, $3, $5) }
+  | IF simple_expression alt+ ELSE stmt1           { features ["control"; "sugar"] ; IfIs($2, $3, Some $5) }
+  | WHILE simple_expression stmt1                  { features ["loops"] ; While($2,$3,None) }
+  | WHILE simple_expression COLON LPAR expression RPAR stmt1     { features ["loops"; "sugar"] ; While($2,$7,Some(Stmt(ExprStmt $5, $symbolstartpos.pos_lnum))) }
   | BREAK SEMI                                { features ["loops"] ; Break }
   | CONTINUE SEMI                             { features ["loops"] ; Continue }
   | GOTO NAME SEMI                            { GoTo $2 }
   | NAME COLON                                { Label $1 }
   | REPEAT CSTINT stmt1                       { features ["loops"] ; Block(List.init $2 (fun _ -> $3)) }
   | REPEAT LPAR CSTINT RPAR stmt1             { features ["loops"] ; Block(List.init $3 (fun _ -> $5)) }
-  | RETURN value SEMI                         { features ["func"] ; Return $2 }
+  | RETURN expression SEMI                         { features ["func"] ; Return $2 }
 ;
 
 alt:
-  | IS simple_value stmt1   { ($2,$3) }
-;
-
-target:
-  | NAME { features ["memory"] ; Local $1 }
-  | target LBRAKE value RBRAKE  { features ["memory"] ; Array($1,$3)}
+  | IS simple_expression stmt1   { ($2,$3) }
 ;
 
 non_control_flow_stmt:
-  | target EQ value          { features ["memory"] ; Assign ($1, $3) }
-  | target PLUS_EQ value     { features ["memory"; "sugar"] ; Assign ($1, Binary_op("+", Reference $1, $3)) }
-  | target MINUS_EQ value    { features ["memory"; "sugar"] ; Assign ($1, Binary_op("-", Reference $1, $3)) }
-  | target TIMES_EQ value    { features ["memory"; "sugar"] ; Assign ($1, Binary_op("*", Reference $1, $3)) }
-  | target L_SHIFT_EQ value  { features ["memory"; "sugar"] ; Assign ($1, Binary_op("<<", Reference $1, $3)) }
-  | target R_SHIFT_EQ value  { features ["memory"; "sugar"] ; Assign ($1, Binary_op(">>", Reference $1, $3)) }
-  | typ NAME                 { features ["memory"] ; Declare($1,$2) }
-  | typ NAME EQ value        { features ["memory"] ; DeclareAssign(Some $1, $2, $4) }
-  | LET NAME EQ value        { features ["memory"; "sugar"] ; DeclareAssign(None, $2, $4) }
+  | expression EQ expression          { features ["memory"] ; Assign ($1, $3) }
+  | expression PLUS_EQ expression     { features ["memory"; "sugar"] ; Assign ($1, Expr(Binary_op("+", $1, $3), $symbolstartpos.pos_lnum)) }
+  | expression MINUS_EQ expression    { features ["memory"; "sugar"] ; Assign ($1, Expr(Binary_op("-", $1, $3), $symbolstartpos.pos_lnum)) }
+  | expression TIMES_EQ expression    { features ["memory"; "sugar"] ; Assign ($1, Expr(Binary_op("*", $1, $3), $symbolstartpos.pos_lnum)) }
+  | expression L_SHIFT_EQ expression  { features ["memory"; "sugar"] ; Assign ($1, Expr(Binary_op("<<", $1, $3), $symbolstartpos.pos_lnum)) }
+  | expression R_SHIFT_EQ expression  { features ["memory"; "sugar"] ; Assign ($1, Expr(Binary_op(">>", $1, $3), $symbolstartpos.pos_lnum)) }
+  | typ NAME                      { features ["memory"] ; Declare($1,$2) }
+  | typ NAME EQ expression        { features ["memory"] ; DeclareAssign(Some $1, $2, $4) }
+  | LET NAME EQ expression        { features ["memory"; "sugar"] ; DeclareAssign(None, $2, $4) }
 ;
 
 direction:
