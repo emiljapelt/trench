@@ -80,7 +80,7 @@ const modes = {
             fs.writeFileSync(path, content);
             exec(`${trenchc_path} ${path}`, { cwd: '.'}, (err,stdout,stderr) => {
                 fs.unlinkSync(path);
-                respond(res, 200, form(body.name, `<p>${stdout}</p>`));
+                respond(res, 200, form(body.name, `<pre>${stdout}</pre>`));
             });
         }
         else {   
@@ -98,7 +98,7 @@ const modes = {
             exec(`${trenchc_path} ${path}`, { cwd: '.'}, (err,stdout,stderr) => {
                 if (err) fs.unlinkSync(path);
                 else console.log(`${body.name} submitted ${path} at ${(new Date()).toISOString()}`);
-                respond(res, 200, form(body.name, `<p>${stdout}</p>`));
+                respond(res, 200, form(body.name, `<pre>${stdout}</pre>`));
             });
         }
         else {   
@@ -126,7 +126,7 @@ const modes = {
                         map[body.name] = path;
                     }
                 }
-                respond(res, 200, form(body.name, `<p>${stdout}</p>`));
+                respond(res, 200, form(body.name, `<pre>${stdout}</pre>`));
             });
         }
         else {   
