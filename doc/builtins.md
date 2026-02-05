@@ -146,13 +146,13 @@ Returns a snapshot of the properties of the field in direction `d`, at a distanc
 ---
 
 ### Look
-`look` `int:(dir d, property p)`
+`look` `int:(dir d, field f)`
 
-Get the distance to the nearest field in the direction `d`, which has the property `p`. By default the is no limit to the range.
+Get the distance to the nearest field in the direction `d`, which has all the properties of `f`. By default the is no limit to the range.
 
 **Returns:**
 
-The distance to the first field with property `p`, or `_ERROR` if no such field was found.
+The distance to the first field with property `f`, or `_ERROR` if no such field was found.
 
 ---
 

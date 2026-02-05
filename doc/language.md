@@ -51,9 +51,9 @@ E
 W
 ```
 
-### property / field
+### field
 
-a value of the `property` type is a property that a field may have. a value of the `field` type is a collection of properties describing a specific field.
+A value of the `field` type is a collection of properties describing a specific field.
 
 The available properties are:
 
@@ -77,7 +77,19 @@ The available properties are:
 | enemy | There is an enemy on the field |
 | ally | There is an ally on the field |
 
-These properties of a field can be queried using the ```is``` expression.
+A field value with a single property can be created with the syntax: `@`*property*.
+
+Values of this type can be used with the following operators.
+
+| Operator | Result | Type |
+| --- | --- | --- |
+| + | The union of the properties of the operands | field |
+| - | The properties of the left hand operand, except the properties of the right hand operand | field |
+| = | 1 if the operands are entirely equal, otherwise 0 | int |
+| != | 1 if the operands are at all different, otherwise 0 | int |
+| is | 1 if the left hand operand has atleast all the properties of the right hand operand, otherwise 0 | int |
+
+
 
 ### resource
 
@@ -271,15 +283,6 @@ Evaluates to one of the given values. All values must have the same type, which 
 | dir | << | int | Rotate left |
 | dir | >> | int | Rotate right |
 
-
----
-
-### Is
-**type:** int
-
-**syntax:** *field* `is` *property*
-
-Evaluates to `1` if the given field has the given property. Otherwise it evaluates to `0`.
 
 ---
 
