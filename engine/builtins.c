@@ -62,7 +62,7 @@ int builtin_shoot(player_state* ps) {
 }
 
 int builtin_look(player_state* ps) {
-    int offset = ps->stack[--ps->sp];
+    int looking_for = ps->stack[--ps->sp];
     direction d = (direction)ps->stack[--ps->sp];
 
     int x, y;
@@ -74,7 +74,8 @@ int builtin_look(player_state* ps) {
     move_coord(&x, &y, d, 1);
     if (!in_bounds(x,y)) { ps->stack[ps->sp++] = INSTR_OUT_OF_BOUNDS; return 0; }
     unsigned int props = fields.properties(x,y,ps);
-    if (props & (1 << offset)) { ps->stack[ps->sp++] = i; return 0; }
+    // basically using field 'is' operator 
+    if ((props & looking_for) == looking_for) { ps->stack[ps->sp++] = i; return 0; }
     if (props & PROP_OBSTRUCTION) { ps->stack[ps->sp++] = INSTR_OBSTRUCTED; return 0; }
     goto incr;
 }

@@ -35,7 +35,6 @@ and typ =
     | T_Int
     | T_Dir
     | T_Field
-    | T_Prop
     | T_Resource
     | T_Array of typ * int
     | T_Func of typ * typ list
@@ -75,7 +74,6 @@ and 'a expr =
     | Direction of direction
     | Random
     | RandomSet of 'a expression list
-    | FieldProp of 'a expression * 'a expression
     | Func of typ * (typ * string) list * 'a statement
     | Call of 'a expression * 'a expression list
     | Ternary of 'a expression * 'a expression * 'a expression
@@ -115,7 +113,6 @@ let int_of_dir d = match d with
 let rec type_size t = match t with
     | T_Int 
     | T_Dir 
-    | T_Prop
     | T_Resource
     | T_Func _
     | T_Null
@@ -126,7 +123,6 @@ let rec type_string t = match t with
   | T_Int -> "int"
   | T_Dir -> "dir"
   | T_Field -> "field"
-  | T_Prop -> "property"
   | T_Resource -> "resource"
   | T_Array(t,_) -> (type_string t) ^ "[]"
   | T_Func(r,args) -> (type_string r) ^ "(" ^ (args |> List.map type_string |> String.concat ",")  ^ ")"
@@ -135,7 +131,6 @@ let rec type_string t = match t with
 let rec type_eq t1 t2 = match t1,t2 with
   | T_Int, T_Int
   | T_Dir, T_Dir
-  | T_Prop, T_Prop
   | T_Resource, T_Resource
   | T_Field, T_Field -> true
   | T_Array(st1,_), T_Array(st2,_) -> type_eq st1 st2

@@ -83,14 +83,14 @@ let rec compile_expr (Expr(expr, (ln, _)) as e) (state:compile_state) acc =
     | "|", T_Int, T_Int -> compile_expr e1 state (compile_expr e2 state (Instr_Or :: acc))
     | "=", T_Int, T_Int 
     | "=", T_Dir, T_Dir 
-    | "=", T_Prop, T_Prop
     | "=", T_Resource, T_Resource
+    | "=", T_Field, T_Field
     | "=", T_Null, T_Func _
     | "=", T_Func _, T_Null -> compile_expr e1 state (compile_expr e2 state (Instr_Eq :: acc))
     | "!=", T_Int, T_Int 
     | "!=", T_Dir, T_Dir 
-    | "!=", T_Prop, T_Prop 
     | "!=", T_Resource, T_Resource 
+    | "!=", T_Field, T_Field
     | "!=", T_Null, T_Func _
     | "!=", T_Func _, T_Null -> compile_expr e1 state (compile_expr e2 state (Instr_Eq :: Instr_Not :: acc))
     | "<", T_Int, T_Int -> compile_expr e2 state (compile_expr e1 state (Instr_Lt :: acc))
@@ -101,13 +101,15 @@ let rec compile_expr (Expr(expr, (ln, _)) as e) (state:compile_state) acc =
     | "%", T_Int, T_Int -> compile_expr e2 state (compile_expr e1 state (Instr_Mod :: acc))
     | ">>", T_Dir, T_Int -> Instr_Place :: I(4) :: (compile_expr e1 state (compile_expr e2 state (Instr_Add :: Instr_Mod :: acc)))
     | "<<", T_Dir, T_Int -> Instr_Place :: I(4) :: (compile_expr e1 state (compile_expr e2 state (Instr_Sub :: Instr_Mod :: acc)))
+    | "+", T_Field, T_Field -> compile_expr e1 state (compile_expr e2 state (Instr_BinOr :: acc))
+    | "-", T_Field, T_Field -> compile_expr e1 state (compile_expr e2 state (Instr_BinNot :: Instr_BinAnd :: acc))
+    | "is", T_Field, T_Field -> compile_expr e2 state (Instr_Copy :: compile_expr e1 state (Instr_BinAnd :: Instr_Eq :: acc))
     | _ -> raise_failure "Unknown binary operation"
   )
   | Unary_op (op, e) -> ( match op with 
       | "!" -> compile_expr e state (Instr_Not :: acc)
       | _ -> raise_failure "Unknown unary operation"
   )
-  | FieldProp(v,f) -> compile_expr v state (compile_expr f state (Instr_FieldProp :: acc))
   (* true = pre *)
   | Increment(target, true)  -> compile_addr target state (Instr_Copy :: Instr_Copy :: instr_access target state.scopes :: Instr_Place :: I(1) :: Instr_Add :: instr_assign target state.scopes :: instr_access target state.scopes :: acc)
   | Increment(target, false) -> compile_addr target state (Instr_Copy :: instr_access target state.scopes :: Instr_Swap :: Instr_Copy :: instr_access target state.scopes :: Instr_Place :: I(1) :: Instr_Add :: instr_assign target state.scopes :: acc)

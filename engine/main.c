@@ -157,7 +157,6 @@ void player_turn_default(player_state* ps) {
             case Instr_Or: change = instr_or(ps); break;
             case Instr_And: change = instr_and(ps); break;
             case Instr_Assign: change = instr_assign(ps); break;
-            case Instr_FieldProp: change = instr_field_prop(ps); break;
             case Instr_DecStack: change = instr_dec_stack(ps); break;
             case Instr_Copy: change = instr_copy(ps); break;
             case Instr_Swap: change = instr_swap(ps); break;
@@ -167,6 +166,9 @@ void player_turn_default(player_state* ps) {
             case Instr_GlobalAccess: change = instr_global_access(ps); break;
             case Instr_GlobalAssign: change = instr_global_assign(ps); break;
             case Instr_Index: change = instr_index(ps); break;
+            case Instr_BinOr: change = instr_binor(ps); break;
+            case Instr_BinNot: change = instr_binnot(ps); break;
+            case Instr_BinAnd: change = instr_binand(ps); break;
             default: return;
         }
 

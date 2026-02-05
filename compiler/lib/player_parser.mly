@@ -26,7 +26,7 @@
 %token IF ELSE IS REPEAT WHILE CONTINUE BREAK LET
 %token GOTO RARROW
 %token NORTH EAST SOUTH WEST
-%token INT DIR FIELD PROP RESOURCE L_SHIFT R_SHIFT
+%token INT DIR FIELD RESOURCE L_SHIFT R_SHIFT
 %token RETURN NULL
 %token TIMES_EQ MINUS_EQ PLUS_EQ L_SHIFT_EQ R_SHIFT_EQ
 
@@ -71,7 +71,6 @@ simple_typ:
   | DIR { T_Dir }
   | FIELD { T_Field }
   | RESOURCE { T_Resource }
-  | PROP { T_Prop }
   | LPAR typ RPAR { $2 }
   | typ  LPAR seperated_or_empty(COMMA, simple_typ) RPAR { T_Func($1, $3) }
 ;
@@ -119,7 +118,6 @@ expr:
   | MINUS expression                        { Binary_op ("-", Expr(Int 0, $symbolstartpos.pos_lnum), $2) }  %prec UNARY
   | EXCLAIM expression                      { Unary_op ("!", $2) } %prec UNARY
   | expression binop expression                  { Binary_op ($2, $1, $3) }
-  | expression IS expression                     { FieldProp($1, $3) }
   | typ COLON LPAR seperated_or_empty(COMMA,func_arg) RPAR block          { features ["func"] ; Func($1, $4, Stmt($6,$symbolstartpos.pos_lnum)) }
   | COLON LPAR seperated_or_empty(COMMA,func_arg) RPAR block              { features ["func";"sugar"] ; Func(T_Int, $3, Stmt($5,$symbolstartpos.pos_lnum)) }
   | typ COLON LPAR seperated_or_empty(COMMA,func_arg) RPAR RARROW expression   { features ["func";"sugar"] ; Func($1, $4, Stmt(Return $7,$symbolstartpos.pos_lnum)) }
@@ -152,6 +150,7 @@ func_arg:
   | PCT         { "%"  }
   | L_SHIFT     { "<<" }
   | R_SHIFT     { ">>" }
+  | IS          { "is" }
 ;
 
 stmt:

@@ -27,7 +27,6 @@ type instruction =
   | Instr_Swap
   | Instr_Copy
   | Instr_DecStack
-  | Instr_FieldProp
   | Instr_Assign
   | Instr_GoToIf
   | Instr_GoTo
@@ -40,6 +39,9 @@ type instruction =
   | Instr_GlobalAssign
   | Instr_Index
   | Meta_Round
+  | Instr_BinOr
+  | Instr_BinNot
+  | Instr_BinAnd
 
 let instruction_to_int label_map instr = match instr with
     | I i -> Some i
@@ -67,19 +69,21 @@ let instruction_to_int label_map instr = match instr with
     | Instr_Swap -> Some 19
     | Instr_Copy -> Some 20
     | Instr_DecStack -> Some 21
-    | Instr_FieldProp -> Some 22
-    | Instr_Assign -> Some 23
-    | Instr_GoToIf -> Some 24
-    | Instr_GoTo -> Some 25
-    | Instr_Wait -> Some 26
-    | Instr_Pass -> Some 27
-    | Instr_Call -> Some 28
-    | Instr_Return -> Some 29
-    | Instr_Declare -> Some 30
-    | Instr_GlobalAccess -> Some 31
-    | Instr_GlobalAssign -> Some 32
-    | Instr_Index -> Some 33
-    | Meta_Round -> Some 34
+    | Instr_Assign -> Some 22
+    | Instr_GoToIf -> Some 23
+    | Instr_GoTo -> Some 24
+    | Instr_Wait -> Some 25
+    | Instr_Pass -> Some 26
+    | Instr_Call -> Some 27
+    | Instr_Return -> Some 28
+    | Instr_Declare -> Some 29
+    | Instr_GlobalAccess -> Some 30
+    | Instr_GlobalAssign -> Some 31
+    | Instr_Index -> Some 32
+    | Meta_Round -> Some 33
+    | Instr_BinOr -> Some 34
+    | Instr_BinNot -> Some 35
+    | Instr_BinAnd -> Some 36
 
     
 

@@ -11,6 +11,7 @@ node_modules
 package-lock.json
 package.json
 web_view
+map_gen
 
 !logo.tr
 !extensions/trench-highlighting/package.json

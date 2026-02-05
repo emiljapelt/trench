@@ -59,7 +59,6 @@ and rename_variables_of_expression map (Expr(e,ln)) = match e with
   | Binary_op(op,v0,v1) -> Expr(Binary_op(op,rename_variables_of_expression map v0, rename_variables_of_expression map v1),ln)
   | Unary_op(op,v) -> Expr(Unary_op(op, rename_variables_of_expression map v),ln)
   | RandomSet vs -> Expr(RandomSet(List.map (rename_variables_of_expression map) vs),ln)
-  | FieldProp(v,fp) -> Expr(FieldProp(rename_variables_of_expression map v, rename_variables_of_expression map fp),ln)
   | Decrement(target,pre) -> Expr(Decrement(rename_variables_of_expression map target, pre), ln)
   | Increment(target,pre) -> Expr(Increment(rename_variables_of_expression map target, pre), ln)
   | Func(ret,params,body) -> (    

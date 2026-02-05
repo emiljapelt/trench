@@ -45,19 +45,21 @@ typedef enum {
   Instr_Swap = 19,
   Instr_Copy = 20,
   Instr_DecStack = 21,
-  Instr_FieldProp = 22,
-  Instr_Assign = 23,
-  Instr_GoToIf = 24,
-  Instr_GoTo = 25,
-  Instr_Wait = 26,
-  Instr_Pass = 27,
-  Instr_Call = 28,
-  Instr_Return = 29,
-  Instr_Declare = 30,
-  Instr_GlobalAccess = 31,
-  Instr_GlobalAssign = 32,
-  Instr_Index = 33,
-  Meta_Round = 34,
+  Instr_Assign = 22,
+  Instr_GoToIf = 23,
+  Instr_GoTo = 24,
+  Instr_Wait = 25,
+  Instr_Pass = 26,
+  Instr_Call = 27,
+  Instr_Return = 28,
+  Instr_Declare = 29,
+  Instr_GlobalAccess = 30,
+  Instr_GlobalAssign = 31,
+  Instr_Index = 32,
+  Meta_Round = 33,
+  Instr_BinOr = 34,
+  Instr_BinNot = 35,
+  Instr_BinAnd = 36,
 
   Instr_DEBUG = 99,
 } instruction;
@@ -246,13 +248,6 @@ int instr_global_assign(player_state* ps) {
     return 0;
 }
 
-int instr_field_prop(player_state* ps) { 
-    int offset = ps->stack[--ps->sp];
-    int v = ps->stack[--ps->sp];
-    ps->stack[ps->sp++] = v & (1 << offset) ? 1 : 0;
-    return 0;
-}
-
 int instr_dec_stack(player_state* ps) {
     ps->sp--;
     return 0;
@@ -428,6 +423,25 @@ int meta_round(player_state* ps) {
     return 0;
 }
 
+int instr_binor(player_state* ps) {
+    int v0 = ps->stack[--ps->sp];
+    int v1 = ps->stack[--ps->sp];
+    ps->stack[ps->sp++] = v0 | v1;
+    return 0;
+}
+
+int instr_binnot(player_state* ps) {
+    int v = ps->stack[--ps->sp];
+    ps->stack[ps->sp++] = ~v;
+    return 0;
+}
+
+int instr_binand(player_state* ps) {
+    int v0 = ps->stack[--ps->sp];
+    int v1 = ps->stack[--ps->sp];
+    ps->stack[ps->sp++] = v0 & v1;
+    return 0;
+}
 
 /* NOT USED BUT KEEP IT AROUND FOR NOW */
 /*

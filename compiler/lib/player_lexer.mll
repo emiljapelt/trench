@@ -19,7 +19,6 @@
                         "int", INT;
                         "dir", DIR;
                         "field", FIELD;
-                        "property", PROP;
                         "resource", RESOURCE;
                         "let", LET;
                         "return", RETURN;

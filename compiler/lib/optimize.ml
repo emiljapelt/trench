@@ -62,7 +62,6 @@ let rec optimize_expr expr =
   | Prop _
   | Null
   | Resource _
-  | FieldProp _ 
   | Decrement _ 
   | Increment _
   | VarAccess _

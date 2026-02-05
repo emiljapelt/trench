@@ -55,14 +55,14 @@ let rec type_expr (e : int expr) state : ((int * typ) expr * typ) = match e with
     | "|", T_Int, T_Int 
     | "=", T_Int, T_Int
     | "=", T_Dir, T_Dir
-    | "=", T_Prop, T_Prop
     | "=", T_Resource, T_Resource
+    | "=", T_Field, T_Field
     | "=", T_Func _, T_Null
     | "=", T_Null, T_Func _
     | "!=", T_Int, T_Int
     | "!=", T_Dir, T_Dir
-    | "!=", T_Prop, T_Prop
     | "!=", T_Resource, T_Resource
+    | "!=", T_Field, T_Field
     | "!=", T_Func _, T_Null
     | "!=", T_Null, T_Func _
     | "<", T_Int, T_Int 
@@ -70,10 +70,13 @@ let rec type_expr (e : int expr) state : ((int * typ) expr * typ) = match e with
     | "<=", T_Int, T_Int
     | ">=", T_Int, T_Int 
     | "/", T_Int, T_Int
-    | "%", T_Int, T_Int -> T_Int
+    | "%", T_Int, T_Int
+    | "is", T_Field, T_Field -> T_Int
     | "<<", T_Dir, T_Int 
     | ">>", T_Dir, T_Int -> T_Dir
-    | _,t0,t1 -> raise_failure ("Unknown binary operation: "^type_string t0^op^type_string t1)
+    | "+", T_Field, T_Field -> T_Field
+    | "-", T_Field, T_Field -> T_Field
+    | _,t0,t1 -> raise_failure ("Unknown binary operation: "^type_string t0^" "^op^" "^type_string t1)
     in
     (Binary_op(op,left,right),result_type)
   | Unary_op(op, e) -> 
@@ -85,7 +88,7 @@ let rec type_expr (e : int expr) state : ((int * typ) expr * typ) = match e with
     (Unary_op(op, e), result_type)
   | Random -> (Random, T_Int)
   | Int i -> (Int i, T_Int)
-  | Prop p -> (Prop p, T_Prop)
+  | Prop p -> (Prop p, T_Field)
   | Resource r -> (Resource r, T_Resource)
   | Decrement(target, post) -> 
     if not(assignable target) then raise_failure ("Cannot decrement expression") else
@@ -103,14 +106,6 @@ let rec type_expr (e : int expr) state : ((int * typ) expr * typ) = match e with
     | T_Int -> (Increment(target, post), T_Int)
     | _ -> raise_failure ("Only int can be incremented")
   )
-  | FieldProp(f,p) -> 
-    let f = type_expression f state in
-    let p = type_expression p state in
-    (match get_type f, get_type p with
-      | T_Field, T_Prop -> (FieldProp(f,p), T_Int)
-      | T_Field, _ -> raise_failure ""
-      | _, _ -> raise_failure ""
-    )
   | Direction d -> (Direction d, T_Dir)
   | RandomSet exprs -> (
     let exprs = List.map (fun e -> type_expression e state) exprs in
@@ -215,7 +210,7 @@ and type_check_stmt_inner stmt state : ((int * typ) stmt * compile_state) = matc
     let iter_opt = Option.map (fun iter -> type_statement iter state |> fst) iter_opt in
     if not(type_eq T_Int (get_type c)) then raise_failure "The condition of a while loop must be of type 'int'" else
     (While(c,s,iter_opt), state)
-  | Assign(target,e) -> (* Needs a seperate impl. for arrays *)
+  | Assign(target,e) -> (* Needs a seperate impl. for arrays ??? *)
     let target = type_expression target state in
     let target_type = get_type target in
     let e = type_expression e state in

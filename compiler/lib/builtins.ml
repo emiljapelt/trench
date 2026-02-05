@@ -69,7 +69,7 @@ let builtin_infos : builtin StringMap.t = StringMap.of_list [
   
   
   builtin_func "shoot" ["military";"forestry"] [] (-1) T_Int[T_Dir] [];
-  builtin_func "look" [] [] (-2) T_Int[T_Dir;T_Prop] [];
+  builtin_func "look" [] [] (-2) T_Int[T_Dir;T_Field] [];
   builtin_func "scan" [] [] (-3) T_Field[T_Dir;T_Int] [];
   builtin_func "mine" ["military"] [] (-4) T_Int[T_Dir] [];
   builtin_func "move" [] [] (-5) T_Int[T_Dir] [];
