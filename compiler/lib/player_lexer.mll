@@ -23,6 +23,7 @@
                         "let", LET;
                         "return", RETURN;
                         "null", NULL;
+                        "any", ANY;
                       ] 
   
   let char_of_string s lexbuf = match s with
@@ -79,7 +80,9 @@ rule lex = parse
     |   ">>"          { R_SHIFT }
     |   ">"           { GT }
     |   "=>"          { RARROW }
+    |   "&&"          { LOGIC_AND }
     |   "&"           { LOGIC_AND }
+    |   "||"          { LOGIC_OR }
     |   "|"           { LOGIC_OR }
     |   '?'           { QMARK }
     |   '!'           { EXCLAIM }

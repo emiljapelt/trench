@@ -24,7 +24,7 @@
 %token COMMA SEMI COLON EOF
 %token QMARK PLUSPLUS MINUSMINUS
 %token IF ELSE IS REPEAT WHILE CONTINUE BREAK LET
-%token GOTO RARROW
+%token GOTO RARROW ANY
 %token NORTH EAST SOUTH WEST
 %token INT DIR FIELD RESOURCE L_SHIFT R_SHIFT
 %token RETURN NULL
@@ -36,8 +36,8 @@
 %left RARROW
 %right QMARK COLON
 %left LOGIC_OR
-%left LOGIC_AND 
-%left EQEQ NEQ IS
+%left LOGIC_AND
+%left EQEQ NEQ IS ANY
 %left GT LT GTEQ LTEQ
 %left L_SHIFT R_SHIFT
 %left PLUS MINUS 
@@ -151,6 +151,7 @@ func_arg:
   | L_SHIFT     { "<<" }
   | R_SHIFT     { ">>" }
   | IS          { "is" }
+  | ANY         { "any" }
 ;
 
 stmt:

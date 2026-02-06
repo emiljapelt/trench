@@ -30,6 +30,7 @@ type field_prop =
     | IsMountain_Prop
     | IsEnemy_Prop
     | IsAlly_Prop
+    | All_Prop
 
 and typ =
     | T_Int

@@ -76,6 +76,7 @@ The available properties are:
 | mountain | This field is a mountain |
 | enemy | There is an enemy on the field |
 | ally | There is an ally on the field |
+| all | A field with every property |
 
 A field value with a single property can be created with the syntax: `@`*property*.
 
@@ -88,6 +89,7 @@ Values of this type can be used with the following operators.
 | = | 1 if the operands are entirely equal, otherwise 0 | int |
 | != | 1 if the operands are at all different, otherwise 0 | int |
 | is | 1 if the left hand operand has atleast all the properties of the right hand operand, otherwise 0 | int |
+| any | 1 if the operands have any property in common, otherwise 0 | int |
 
 
 

@@ -104,6 +104,7 @@ let rec compile_expr (Expr(expr, (ln, _)) as e) (state:compile_state) acc =
     | "+", T_Field, T_Field -> compile_expr e1 state (compile_expr e2 state (Instr_BinOr :: acc))
     | "-", T_Field, T_Field -> compile_expr e1 state (compile_expr e2 state (Instr_BinNot :: Instr_BinAnd :: acc))
     | "is", T_Field, T_Field -> compile_expr e2 state (Instr_Copy :: compile_expr e1 state (Instr_BinAnd :: Instr_Eq :: acc))
+    | "any", T_Field, T_Field -> compile_expr e1 state (compile_expr e2 state (Instr_BinAnd :: acc))
     | _ -> raise_failure "Unknown binary operation"
   )
   | Unary_op (op, e) -> ( match op with 

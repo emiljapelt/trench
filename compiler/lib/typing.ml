@@ -71,6 +71,7 @@ let rec type_expr (e : int expr) state : ((int * typ) expr * typ) = match e with
     | ">=", T_Int, T_Int 
     | "/", T_Int, T_Int
     | "%", T_Int, T_Int
+    | "any", T_Field, T_Field
     | "is", T_Field, T_Field -> T_Int
     | "<<", T_Dir, T_Int 
     | ">>", T_Dir, T_Int -> T_Dir
