@@ -85,12 +85,13 @@ Values of this type can be used with the following operators.
 
 | Operator | Result | Type |
 | --- | --- | --- |
-| + | The union of the properties of the operands | field |
-| - | The properties of the left hand operand, except the properties of the right hand operand | field |
-| = | 1 if the operands are entirely equal, otherwise 0 | int |
-| != | 1 if the operands are at all different, otherwise 0 | int |
-| is | 1 if the left hand operand has atleast all the properties of the right hand operand, otherwise 0 | int |
-| any | 1 if the operands have any property in common, otherwise 0 | int |
+| *a* + *b* | The union of the properties of the operands | field |
+| *a* - *b* | The properties of the left hand operand, except the properties of the right hand operand | field |
+| *a* == *b* | 1 if the operands are entirely equal, otherwise 0 | int |
+| *a* != *b* | 1 if the operands are at all different, otherwise 0 | int |
+| *a* is *b* | 1 if the left hand operand has atleast all the properties of the right hand operand, otherwise 0 | int |
+| *a* any *b* | 1 if the operands have any property in common, otherwise 0 | int |
+| ! *a* | The field with the opposite properties of the operands | field |
 
 
 

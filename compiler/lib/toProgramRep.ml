@@ -107,8 +107,9 @@ let rec compile_expr (Expr(expr, (ln, _)) as e) (state:compile_state) acc =
     | "any", T_Field, T_Field -> compile_expr e1 state (compile_expr e2 state (Instr_BinAnd :: acc))
     | _ -> raise_failure "Unknown binary operation"
   )
-  | Unary_op (op, e) -> ( match op with 
-      | "!" -> compile_expr e state (Instr_Not :: acc)
+  | Unary_op (op, e) -> ( match op, get_type e with 
+      | "!", T_Int -> compile_expr e state (Instr_Not :: acc)
+      | "!", T_Field -> Instr_Place :: I(prop_index All_Prop) :: compile_expr e state (Instr_BinNot :: Instr_BinAnd :: acc)
       | _ -> raise_failure "Unknown unary operation"
   )
   (* true = pre *)

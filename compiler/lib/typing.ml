@@ -84,6 +84,7 @@ let rec type_expr (e : int expr) state : ((int * typ) expr * typ) = match e with
     let e = type_expression e state in
     let result_type = match op, get_type e with
     | "!", T_Int -> T_Int
+    | "!", T_Field -> T_Field
     | _, t -> raise_failure ("Unknown unary operation: " ^ op ^ type_string t)
     in
     (Unary_op(op, e), result_type)
