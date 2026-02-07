@@ -20,6 +20,7 @@ let string_to_prop s = match s with
   | "mountain" -> IsMountain_Prop
   | "enemy" -> IsEnemy_Prop
   | "ally" -> IsAlly_Prop
+  | "vehicle" -> IsVehicle_Prop
   | "all" -> All_Prop
   | _ -> raise_failure ("Unknown field property: "^s)
 
@@ -44,5 +45,6 @@ let prop_index p = match p with
   | IsMountain_Prop ->      0b00000000000000010000000000000000
   | IsEnemy_Prop ->         0b00000000000000100000000000000000
   | IsAlly_Prop ->          0b00000000000001000000000000000000
+  | IsVehicle_Prop ->       0b00000000000010000000000000000000
   (* Compound fields *)
-  | All_Prop ->             0b00000000000001111111111111111111
+  | All_Prop ->             0b00000000000011111111111111111111

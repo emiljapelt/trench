@@ -30,6 +30,7 @@ type field_prop =
     | IsMountain_Prop
     | IsEnemy_Prop
     | IsAlly_Prop
+    | IsVehicle_Prop
     | All_Prop
 
 and typ =
