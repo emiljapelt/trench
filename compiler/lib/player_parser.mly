@@ -72,7 +72,7 @@ simple_typ:
   | FIELD { T_Field }
   | RESOURCE { T_Resource }
   | LPAR typ RPAR { $2 }
-  | typ  LPAR seperated_or_empty(COMMA, simple_typ) RPAR { T_Func($1, $3) }
+  | typ LPAR seperated_or_empty(COMMA, typ) RPAR { T_Func($1, $3) }
 ;
 
 typ:
@@ -105,6 +105,7 @@ simple_expr:
   | QMARK                                   { features ["random"] ; Random }
   | QMARK LBRAKE simple_expression+ RBRAKE  { features ["random"] ; RandomSet $3 }
   | NAME                                    { features ["memory"] ; VarAccess $1 }
+  | LBRAKE seperated_or_empty(COMMA, expression) RBRAKE { ArrayLiteral $2 }
   | LPAR expr RPAR                          { $2 }
 ;
 
@@ -131,7 +132,7 @@ expr:
 ;
 
 func_arg:
-  | simple_typ NAME { ($1,$2) }
+  | typ NAME { ($1,$2) }
 ;
 
 %inline binop:
@@ -187,7 +188,7 @@ stmt1_inner:
   | NAME COLON                                { Label $1 }
   | REPEAT CSTINT stmt1                       { features ["loops"] ; Block(List.init $2 (fun _ -> $3)) }
   | REPEAT LPAR CSTINT RPAR stmt1             { features ["loops"] ; Block(List.init $3 (fun _ -> $5)) }
-  | RETURN expression SEMI                         { features ["func"] ; Return $2 }
+  | RETURN expression SEMI                    { features ["func"] ; Return $2 }
 ;
 
 alt:

@@ -169,6 +169,15 @@ let rec type_expr (e : int expr) state : ((int * typ) expr * typ) = match e with
     if not(type_eq (get_type a) (get_type b)) then raise_failure "Ternary of differing types" else
     (Ternary(c,a,b), get_type a)
   | Null -> (Null, T_Null)
+  | ArrayLiteral exprs -> (
+    let exprs = List.map (fun e -> type_expression e state) exprs in
+    match exprs with 
+    | [] -> raise_failure "Empty array literal"
+    | h::t -> 
+      let h_type = get_type h in
+      if not(t |> List.map get_type |> List.for_all (type_eq h_type)) then raise_failure "Array literal of differing types"
+      else (ArrayLiteral exprs, T_Array(h_type, List.length exprs))
+  )
 
 and type_expression (Expr(e,ln)) state : (int * typ) expression = 
   try

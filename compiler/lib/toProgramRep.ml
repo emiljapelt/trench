@@ -10,6 +10,8 @@ open Helpers
 
 (*** Compiling functions ***)
 
+(* TODO: Indexing/Extracting on compute stack *)
+
 let target_scope (Expr(target,_)) scopes : scope = 
   let rec find_name t = match t with
     | VarAccess n -> n
@@ -30,13 +32,14 @@ let target_scope (Expr(target,_)) scopes : scope =
     | _ -> raise_failure ("No such variable: "^name)
   )
 
-let instr_access target scopes = match target_scope target scopes with
-  | LocalScope -> Instr_Access
-  | GlobalScope -> Instr_GlobalAccess
+  (* TODO: Remove LoadN, and rename LoadGlobalN *)
+let instr_access target scopes acc = match target_scope target scopes with
+  | LocalScope -> Instr_BP :: Instr_Add :: Instr_LoadN :: I(type_size(get_type target)) :: acc
+  | GlobalScope -> Instr_LoadN :: I(type_size(get_type target)) :: acc
 
-let instr_assign target scopes = match target_scope target scopes with
-  | LocalScope -> Instr_Assign
-  | GlobalScope -> Instr_GlobalAssign
+let instr_assign target scopes acc = match target_scope target scopes with
+  | LocalScope -> Instr_BP :: Instr_Add :: Instr_StoreN :: I(type_size(get_type target)) :: acc
+  | GlobalScope -> Instr_StoreN :: I(type_size(get_type target)) :: acc
 
 
 let fetch_var_index name scopes = 
@@ -66,8 +69,8 @@ let rec compile_expr (Expr(expr, (ln, _)) as e) (state:compile_state) acc =
     )
     | _ -> raise_failure ("Unknown variable: "^name)
   )
-  | VarAccess _ -> compile_addr e state (instr_access e state.scopes :: acc)
-  | ArrayAccess _ -> compile_addr e state (instr_access e state.scopes :: acc)
+  | VarAccess _ -> compile_addr e state (instr_access e state.scopes acc)
+  | ArrayAccess _ -> compile_addr e state (instr_access e state.scopes acc)
   | Int i -> Instr_Place :: I(i) :: acc
   | Prop fp -> Instr_Place :: I(prop_index fp) :: acc
   | Resource r -> Instr_Place :: I(resource_value r) :: acc
@@ -113,10 +116,10 @@ let rec compile_expr (Expr(expr, (ln, _)) as e) (state:compile_state) acc =
       | _ -> raise_failure "Unknown unary operation"
   )
   (* true = pre *)
-  | Increment(target, true)  -> compile_addr target state (Instr_Copy :: Instr_Copy :: instr_access target state.scopes :: Instr_Place :: I(1) :: Instr_Add :: instr_assign target state.scopes :: instr_access target state.scopes :: acc)
-  | Increment(target, false) -> compile_addr target state (Instr_Copy :: instr_access target state.scopes :: Instr_Swap :: Instr_Copy :: instr_access target state.scopes :: Instr_Place :: I(1) :: Instr_Add :: instr_assign target state.scopes :: acc)
-  | Decrement(target, true)  -> compile_addr target state (Instr_Copy :: Instr_Copy :: instr_access target state.scopes :: Instr_Place :: I(1) :: Instr_Sub :: instr_assign target state.scopes :: instr_access target state.scopes :: acc)
-  | Decrement(target, false) -> compile_addr target state (Instr_Copy :: instr_access target state.scopes :: Instr_Swap :: Instr_Copy :: instr_access target state.scopes :: Instr_Place :: I(1) :: Instr_Sub :: instr_assign target state.scopes :: acc)
+  | Increment(target, true)  -> compile_addr target state (Instr_Copy :: Instr_Copy :: instr_access target state.scopes (Instr_Place :: I(1) :: Instr_Add :: instr_assign target state.scopes (instr_access target state.scopes acc)))
+  | Increment(target, false) -> compile_addr target state (Instr_Copy :: instr_access target state.scopes (Instr_Swap :: Instr_Copy :: instr_access target state.scopes (Instr_Place :: I(1) :: Instr_Add :: instr_assign target state.scopes acc)))
+  | Decrement(target, true)  -> compile_addr target state (Instr_Copy :: Instr_Copy :: instr_access target state.scopes (Instr_Place :: I(1) :: Instr_Sub :: instr_assign target state.scopes (instr_access target state.scopes acc)))
+  | Decrement(target, false) -> compile_addr target state (Instr_Copy :: instr_access target state.scopes (Instr_Swap :: Instr_Copy :: instr_access target state.scopes (Instr_Place :: I(1) :: Instr_Sub :: instr_assign target state.scopes acc)))
   | Func(ret,args,body) -> (
     let func_label = Helpers.new_label () in
     let end_label = Helpers.new_label () in
@@ -132,7 +135,7 @@ let rec compile_expr (Expr(expr, (ln, _)) as e) (state:compile_state) acc =
       ret_type = Some ret;
     } in
     let vars = extract_declarations body |> List.rev in
-    Instr_GoTo :: LabelRef(end_label) :: Label(func_label) :: Instr_Declare :: I(size_of_vars vars) :: compile_stmt body {new_state with scopes = ({ local = new_state.scopes.local @ vars; global = new_state.scopes.global })} (Instr_Place :: I(0) :: Instr_Return :: Label(end_label) :: Instr_Place :: LabelRef(func_label) :: acc)
+    Instr_GoTo :: LabelRef(end_label) :: Label(func_label) :: Instr_Declare :: I(size_of_vars vars) :: compile_stmt body {new_state with scopes = ({ local = new_state.scopes.local @ vars; global = new_state.scopes.global })} (Instr_Declare :: I(type_size ret) :: Instr_Return :: Label(end_label) :: Instr_Place :: LabelRef(func_label) :: acc)
   )
   | Call(Expr(VarAccess name,_), args) when not(is_var name state.scopes) -> (
     let arg_types = List.map get_type args in  
@@ -153,9 +156,12 @@ let rec compile_expr (Expr(expr, (ln, _)) as e) (state:compile_state) acc =
     )
     | _ -> raise_failure ("Unknown function: "^name)
   )
-  | Call(f,args) -> (
-    let comped_args = List.map (fun arg -> compile_expr arg state []) args |> List.flatten in
-    comped_args @ (compile_expr f state (Instr_Place :: I(List.length args) :: Instr_Call :: acc))
+  | Call(f,args) -> ( match get_type f with
+    | T_Func(_, params) ->
+      let total_params_size = params |> List.map type_size |> List.fold_left (+) 0 in
+      let comped_args = args |> List.combine params |> List.map (fun (param, arg) -> fix_size arg param state []) |> List.flatten in
+      comped_args @ (compile_expr f state (Instr_Place :: I(total_params_size) :: Instr_Call :: acc))
+    | _ -> raise_failure "Calling non-function"
   )
   | Ternary(c,a,b) -> (
     let label_true = Helpers.new_label () in
@@ -163,14 +169,23 @@ let rec compile_expr (Expr(expr, (ln, _)) as e) (state:compile_state) acc =
     compile_expr c state (Instr_GoToIf :: LabelRef(label_true) :: (compile_expr b state (Instr_GoTo :: LabelRef(label_stop) :: Label(label_true) :: (compile_expr a state (Label(label_stop) :: acc)))))
   )
   | Null -> Instr_Place :: I(0) :: acc
+  | ArrayLiteral exprs -> 
+    exprs |> List.rev |> List.fold_left (fun acc v -> compile_expr v state acc) acc
   with
   | Failure(p,None,msg) -> raise (Failure(p,Some ln, msg))
   | a -> raise a
 
+and fix_size expr typ state acc = 
+  let size_diff = type_size typ - type_size(get_type expr) in
+  match size_diff with
+  | 0 -> compile_expr expr state acc
+  | x when x < 0 ->  compile_expr expr state (Instr_MoveSP :: I(x) :: acc) (*arg is too large*)
+  | x -> compile_expr expr state (Instr_Declare :: I(x) :: acc) (*arg is too small*)
 
 and compile_var_addr name state acc =
   Instr_Place :: I(fetch_var_index name state.scopes) :: acc
 
+(* Could be made into an int option ??? *)
 and compile_addr (Expr(expr, _)) state acc = match expr with
   | VarAccess name -> Instr_Place :: I(fetch_var_index name state.scopes) :: acc
   | ArrayAccess(t,i) -> (
@@ -183,15 +198,7 @@ and compile_addr (Expr(expr, _)) state acc = match expr with
 
 
 and compile_assignment target expr state acc =
-    (*let expr_type = get_type expr in
-    match target_type, expr_type, expr with
-    | T_Array(_,st), T_Array(_,se), Expr(Reference(t),_) -> (
-      let num = min st se in
-      List.init num (fun i -> i)
-      |> List.fold_left (fun acc i -> compile_assignment (Target(Array(target, Int(i)), )) (Reference(Array(e,Int(i)))) state acc) acc
-    )
-    | _,_,_ -> compile_target_index target state (compile_expr expr state (instr_assign target state.scopes :: acc))*)
-    compile_addr target state (compile_expr expr state (instr_assign target state.scopes :: acc))
+  fix_size expr (get_type target) state (compile_addr target state (instr_assign target state.scopes acc))
 
 and compile_stmt (Stmt(stmt,(ln,_))) state acc =
   try match stmt with
@@ -208,7 +215,7 @@ and compile_stmt (Stmt(stmt,(ln,_))) state acc =
     in
     match opt with
     | None -> compile_expr v state (comp_alts alts (Helpers.new_label ()) (Label(label_end) :: acc))
-    | Some other -> compile_expr v state (comp_alts alts (Helpers.new_label ()) (Instr_DecStack :: compile_stmt other state (Label(label_end) :: acc)))
+    | Some other -> compile_expr v state (comp_alts alts (Helpers.new_label ()) (Instr_MoveSP :: I(-1) :: compile_stmt other state (Label(label_end) :: acc)))
   )
   | Block (stmt_list) -> (
     List.fold_left (fun acc stmt -> compile_stmt stmt state acc) acc (List.rev stmt_list) 
@@ -235,15 +242,18 @@ and compile_stmt (Stmt(stmt,(ln,_))) state acc =
     | None -> raise_failure "Nothing to break out of"
   )
   | Assign (target, expr) -> compile_assignment target expr state acc
-  | DeclareAssign (_, name, expr) -> compile_assignment (Expr(VarAccess name, (ln, T_Null))) expr state acc
+  | DeclareAssign (_, name, expr) -> compile_assignment (Expr(VarAccess name, (ln, get_type expr))) expr state acc
   | Label name -> Label name :: acc
   | GoTo n -> 
     if StringSet.mem n state.labels
     then Instr_GoTo :: LabelRef n :: acc
     else raise_failure ("Unavailable label: "^n)
   | Declare _ -> acc
-  | Return v -> compile_expr v state (Instr_Return :: acc)
-  | ExprStmt e -> compile_expr e state (Instr_DecStack :: acc)
+  | Return v -> (match state.ret_type with 
+    | Some t -> fix_size v t state (Instr_Return :: I(type_size t) :: acc)
+    | None -> raise_failure ""
+  )
+  | ExprStmt e -> compile_expr e state (Instr_MoveSP :: I(-(type_size(get_type e))) :: acc)
   with 
   | Failure(p,None,msg) -> raise (Failure(p,Some ln, msg))
   | a -> raise a

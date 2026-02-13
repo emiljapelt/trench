@@ -80,6 +80,7 @@ and 'a expr =
     | Call of 'a expression * 'a expression list
     | Ternary of 'a expression * 'a expression * 'a expression
     | Null
+    | ArrayLiteral of 'a expression list
 
 and variable =
     | Var of typ * string

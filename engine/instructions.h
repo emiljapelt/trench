@@ -44,7 +44,7 @@ typedef enum {
   Instr_Access = 18,
   Instr_Swap = 19,
   Instr_Copy = 20,
-  Instr_DecStack = 21,
+  Instr_MoveSP = 21,
   Instr_Assign = 22,
   Instr_GoToIf = 23,
   Instr_GoTo = 24,
@@ -60,6 +60,10 @@ typedef enum {
   Instr_BinOr = 34,
   Instr_BinNot = 35,
   Instr_BinAnd = 36,
+
+  Instr_LoadN = 37,
+  Instr_BP = 38,
+  Instr_StoreN = 39,
 
   Instr_DEBUG = 99,
 } instruction;
@@ -113,6 +117,7 @@ int instr_place(player_state* ps) {
 
     ps->stack[ps->sp++] = ps->directive[ps->dp];
     ps->dp++;
+
     return 0;
 }
 
@@ -248,8 +253,12 @@ int instr_global_assign(player_state* ps) {
     return 0;
 }
 
-int instr_dec_stack(player_state* ps) {
-    ps->sp--;
+int instr_move_sp(player_state* ps) {
+    int amount = ps->directive[ps->dp++];
+    _log(DEBUG, "MOVE SP: %i", amount);
+    ps->sp += amount;
+    // Guard?
+
     return 0;
 }
 
@@ -315,7 +324,8 @@ int instr_call(player_state* ps) {
 }
 
 int instr_return(player_state* ps) {
-    int ret = ps->stack[--ps->sp];
+    int size = ps->directive[ps->dp++];
+    int ret_start = ps->sp - size;
     int old_dp = ps->stack[ps->bp - 1];
     int old_bp = ps->stack[ps->bp - 2];
 
@@ -323,8 +333,11 @@ int instr_return(player_state* ps) {
     ps->sp = ps->bp - 2;
     ps->bp = old_bp;
 
-    ps->stack[ps->sp++] = ret;
-    _log(DEBUG, "RETURN: ret:%i old_dp: %i, old_bp: %i", ret, old_dp, old_bp);
+    memcpy(ps->stack + ps->sp, ps->stack + ret_start, sizeof(int) * size);
+    ps->sp += size;
+
+    //ps->stack[ps->sp++] = ret;
+    //_log(DEBUG, "RETURN: ret:%i old_dp: %i, old_bp: %i", ret, old_dp, old_bp);
 }
 
 int instr_declare(player_state* ps) {
@@ -440,6 +453,35 @@ int instr_binand(player_state* ps) {
     int v0 = ps->stack[--ps->sp];
     int v1 = ps->stack[--ps->sp];
     ps->stack[ps->sp++] = v0 & v1;
+    return 0;
+}
+
+int instr_loadN(player_state* ps) {
+    int n = ps->stack[--ps->sp];
+    int size = ps->directive[ps->dp++];
+
+    // Guarding needed
+
+    memcpy(ps->stack + ps->sp, ps->stack + n, sizeof(int) * size);
+
+    ps->sp += size;
+    
+    return 0;
+}
+
+int instr_bp(player_state* ps) {
+    ps->stack[ps->sp++] = ps->bp;
+    return 0;
+}
+
+int instr_storeN(player_state* ps) {
+    int addr = ps->stack[--ps->sp];
+    int size = ps->directive[ps->dp++];
+
+    ps->sp -= size;
+
+    memcpy(ps->stack + addr, ps->stack + ps->sp, sizeof(int) * size);
+
     return 0;
 }
 

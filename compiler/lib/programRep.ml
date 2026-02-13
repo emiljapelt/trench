@@ -26,7 +26,7 @@ type instruction =
   | Instr_Access
   | Instr_Swap
   | Instr_Copy
-  | Instr_DecStack
+  | Instr_MoveSP
   | Instr_Assign
   | Instr_GoToIf
   | Instr_GoTo
@@ -42,6 +42,11 @@ type instruction =
   | Instr_BinOr
   | Instr_BinNot
   | Instr_BinAnd
+  
+  | Instr_LoadN
+  | Instr_BP
+  | Instr_StoreN
+
 
 let instruction_to_int label_map instr = match instr with
     | I i -> Some i
@@ -68,7 +73,7 @@ let instruction_to_int label_map instr = match instr with
     | Instr_Access -> Some 18
     | Instr_Swap -> Some 19
     | Instr_Copy -> Some 20
-    | Instr_DecStack -> Some 21
+    | Instr_MoveSP -> Some 21
     | Instr_Assign -> Some 22
     | Instr_GoToIf -> Some 23
     | Instr_GoTo -> Some 24
@@ -85,7 +90,9 @@ let instruction_to_int label_map instr = match instr with
     | Instr_BinNot -> Some 35
     | Instr_BinAnd -> Some 36
 
-    
+    | Instr_LoadN -> Some 37
+    | Instr_BP -> Some 38
+    | Instr_StoreN -> Some 39
 
 let label_set pp =
   let rec aux pp set = match pp with

@@ -72,6 +72,7 @@ and rename_variables_of_expression map (Expr(e,ln)) = match e with
   )
   | Call(f,args) -> Expr(Call(rename_variables_of_expression map f, List.map (rename_variables_of_expression map) args),ln)
   | Ternary(c,a,b) -> Expr(Ternary(rename_variables_of_expression map c, rename_variables_of_expression map a, rename_variables_of_expression map b),ln)
+  | ArrayLiteral vs -> Expr(ArrayLiteral(List.map (rename_variables_of_expression map) vs),ln)
   | _ -> Expr(e,ln)
 
 and rename_variables_of_stmt map (Stmt(stmt,ln)) = match stmt with

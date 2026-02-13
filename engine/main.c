@@ -18,10 +18,11 @@
 #include "log.h"
 
 void debug_print(player_state* ps) {
-    fprintf(stderr,"\nPlayer %s(%i)\ninstr:%i\ndp:%i\nbp:%i\nsp:%i\n", ps->name, ps->id, ps->directive[ps->dp], ps->dp, ps->bp, ps->sp); wait(0.5);
+    fprintf(stderr,"\nPlayer %s(%i)\n", ps->name, ps->id);
     for(int i = 0; i < ps->sp; i++) {
         fprintf(stderr,"%i, ", ps->stack[i]); wait(0.1);
     }
+    fprintf(stderr,"\ninstr:%i\ndp:%i\nbp:%i\nsp:%i\n\n", ps->directive[ps->dp], ps->dp, ps->bp, ps->sp); 
     wait(1);
 }
 
@@ -121,7 +122,7 @@ void player_turn_default(player_state* ps) {
         int change = 0;
         if (ps->dp >= ps->directive_len) return;
         if (!use_resource(1, &ps->remaining_steps)) return;
-        //debug_print(ps);
+        debug_print(ps);
         _log(DEBUG, "%s executes %i", ps->name, ps->directive[ps->dp]);
         switch (ps->directive[ps->dp++]) {
             case Meta_PlayerX: change = meta_player_x(ps);break;
@@ -157,7 +158,7 @@ void player_turn_default(player_state* ps) {
             case Instr_Or: change = instr_or(ps); break;
             case Instr_And: change = instr_and(ps); break;
             case Instr_Assign: change = instr_assign(ps); break;
-            case Instr_DecStack: change = instr_dec_stack(ps); break;
+            case Instr_MoveSP: change = instr_move_sp(ps); break;
             case Instr_Copy: change = instr_copy(ps); break;
             case Instr_Swap: change = instr_swap(ps); break;
             case Instr_Call: change = instr_call(ps); break;
@@ -169,6 +170,10 @@ void player_turn_default(player_state* ps) {
             case Instr_BinOr: change = instr_binor(ps); break;
             case Instr_BinNot: change = instr_binnot(ps); break;
             case Instr_BinAnd: change = instr_binand(ps); break;
+
+            case Instr_LoadN: change = instr_loadN(ps); break;
+            case Instr_BP: change = instr_bp(ps); break;
+            case Instr_StoreN: change = instr_storeN(ps); break;
             default: return;
         }
 

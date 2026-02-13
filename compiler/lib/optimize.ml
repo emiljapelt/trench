@@ -57,7 +57,6 @@ let rec optimize_expr expr =
   )
   | Direction _
   | Random
-  | RandomSet _
   | Int _
   | Prop _
   | Null
@@ -66,6 +65,8 @@ let rec optimize_expr expr =
   | Increment _
   | VarAccess _
   | ArrayAccess(_,_) -> expr
+  | RandomSet exprs -> RandomSet(List.map optimize_expression exprs)
+  | ArrayLiteral exprs -> ArrayLiteral(List.map optimize_expression exprs)
   | Func(ret,args,body) -> Func(ret,args,optimize_stmt body)
   | Call(f,args) -> Call(optimize_expression f, List.map optimize_expression args)
   | Ternary(c,a,b) -> 
