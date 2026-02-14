@@ -61,9 +61,10 @@ typedef enum {
   Instr_BinNot = 35,
   Instr_BinAnd = 36,
 
-  Instr_LoadN = 37,
+  Instr_Load = 37,
   Instr_BP = 38,
-  Instr_StoreN = 39,
+  Instr_Store = 39,
+  Instr_Extract = 40,
 
   Instr_DEBUG = 99,
 } instruction;
@@ -353,19 +354,19 @@ int instr_declare(player_state* ps) {
 }
 
 int instr_index(player_state* ps) {
-    int idx = ps->stack[--ps->sp];
-    int arr = ps->stack[--ps->sp];
-    int arr_size = ps->directive[ps->dp++];
+    int index = ps->stack[--ps->sp];
+    int target = ps->stack[--ps->sp];
+    int array_size = ps->directive[ps->dp++];
     int elem_size = ps->directive[ps->dp++];
 
-    _log(DEBUG, "idx: %i, arr: %i, arr_size: %i, elem_size: %i", idx, arr, arr_size, elem_size);
+    _log(DEBUG, "INDEX:: index: %i, target: %i, array_size: %i, elem_size: %i", index, target, array_size, elem_size);
 
-    if (idx < 0 || idx >= arr_size) {
+    if (index < 0 || index >= array_size) {
         death_mark_player(ps, out_of_bounds_msg);
         return 0;
     }
 
-    ps->stack[ps->sp++] = arr + idx * elem_size;
+    ps->stack[ps->sp++] = target + index * elem_size;
 
     return 0;
 }
@@ -456,13 +457,18 @@ int instr_binand(player_state* ps) {
     return 0;
 }
 
-int instr_loadN(player_state* ps) {
-    int n = ps->stack[--ps->sp];
+int instr_load(player_state* ps) {
+    int addr = ps->stack[--ps->sp];
     int size = ps->directive[ps->dp++];
 
-    // Guarding needed
+    _log(DEBUG, "LOAD:: addr: %i, size: %i", addr, size);
 
-    memcpy(ps->stack + ps->sp, ps->stack + n, sizeof(int) * size);
+    if (ps->sp + size >= _gr->stack_size) {
+        death_mark_player(ps, stack_overflow_msg);
+        return 0;
+    }
+
+    memcpy(ps->stack + ps->sp, ps->stack + addr, sizeof(int) * size);
 
     ps->sp += size;
     
@@ -474,9 +480,11 @@ int instr_bp(player_state* ps) {
     return 0;
 }
 
-int instr_storeN(player_state* ps) {
+int instr_store(player_state* ps) {
     int addr = ps->stack[--ps->sp];
     int size = ps->directive[ps->dp++];
+
+    _log(DEBUG, "STORE:: addr: %i, size: %i", addr, size);
 
     ps->sp -= size;
 
@@ -484,6 +492,30 @@ int instr_storeN(player_state* ps) {
 
     return 0;
 }
+
+int instr_extract(player_state* ps) {
+    int index = ps->stack[--ps->sp];
+    int size = ps->directive[ps->dp++];
+    int take = ps->directive[ps->dp++];
+
+    _log(DEBUG, "EXTRACT:: index: %i, size: %i, take: %i", index, size, take);
+
+    if (take > size || index < 0 || index + take > size) {
+        death_mark_player(ps, out_of_bounds_msg);
+        return 0;
+    }
+
+    ps->sp -= size;
+
+    memcpy(ps->stack + ps->sp, ps->stack + ps->sp + index, sizeof(int) * take);
+
+    ps->sp += take;
+
+    return 0;
+}
+
+
+
 
 /* NOT USED BUT KEEP IT AROUND FOR NOW */
 /*

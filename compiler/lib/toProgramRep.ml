@@ -10,7 +10,12 @@ open Helpers
 
 (*** Compiling functions ***)
 
-(* TODO: Indexing/Extracting on compute stack *)
+type location =
+  | ComputeStack
+  | StorageStack of instruction list
+(* Local and global ?? *)
+
+
 
 let target_scope (Expr(target,_)) scopes : scope = 
   let rec find_name t = match t with
@@ -34,12 +39,12 @@ let target_scope (Expr(target,_)) scopes : scope =
 
   (* TODO: Remove LoadN, and rename LoadGlobalN *)
 let instr_access target scopes acc = match target_scope target scopes with
-  | LocalScope -> Instr_BP :: Instr_Add :: Instr_LoadN :: I(type_size(get_type target)) :: acc
-  | GlobalScope -> Instr_LoadN :: I(type_size(get_type target)) :: acc
+  | LocalScope -> Instr_BP :: Instr_Add :: Instr_Load :: I(type_size(get_type target)) :: acc
+  | GlobalScope -> Instr_Load :: I(type_size(get_type target)) :: acc
 
 let instr_assign target scopes acc = match target_scope target scopes with
-  | LocalScope -> Instr_BP :: Instr_Add :: Instr_StoreN :: I(type_size(get_type target)) :: acc
-  | GlobalScope -> Instr_StoreN :: I(type_size(get_type target)) :: acc
+  | LocalScope -> Instr_BP :: Instr_Add :: Instr_Store :: I(type_size(get_type target)) :: acc
+  | GlobalScope -> Instr_Store :: I(type_size(get_type target)) :: acc
 
 
 let fetch_var_index name scopes = 
@@ -70,7 +75,12 @@ let rec compile_expr (Expr(expr, (ln, _)) as e) (state:compile_state) acc =
     | _ -> raise_failure ("Unknown variable: "^name)
   )
   | VarAccess _ -> compile_addr e state (instr_access e state.scopes acc)
-  | ArrayAccess _ -> compile_addr e state (instr_access e state.scopes acc)
+  | ArrayAccess(target, index) -> (
+    match get_type target, find_expr_location target state with
+    | T_Array(elem_t, size), ComputeStack -> compile_expr target state (compile_expr index state (Instr_Extract :: I(size * type_size(elem_t)) :: I(type_size(elem_t)) :: acc))
+    | T_Array(elem_t, size), StorageStack(loc_instrs) -> loc_instrs @ (compile_expr index state (Instr_Index :: I(size) :: I(type_size elem_t) :: Instr_Load :: I(type_size(elem_t)) :: acc))
+    | _ -> raise_failure "Dont know how to access array"
+  )
   | Int i -> Instr_Place :: I(i) :: acc
   | Prop fp -> Instr_Place :: I(prop_index fp) :: acc
   | Resource r -> Instr_Place :: I(resource_value r) :: acc
@@ -182,6 +192,56 @@ and fix_size expr typ state acc =
   | x when x < 0 ->  compile_expr expr state (Instr_MoveSP :: I(x) :: acc) (*arg is too large*)
   | x -> compile_expr expr state (Instr_Declare :: I(x) :: acc) (*arg is too small*)
 
+
+
+
+(* CONSOLIDATE TO ONLY USE find_* FUNCTIONS, DELETE THE OLD!! *)
+
+
+
+
+
+and find_expr_location e state = match e with
+  | Expr(e,_) -> find_expression_location e state
+
+and find_expression_location e state = match e with
+  | VarAccess name -> find_variable_location name state.scopes
+  | ArrayAccess (target, index) -> (match get_type target, find_expr_location target state with
+    | _, ComputeStack -> ComputeStack
+    (* | T_Array(elem_t, _), StorageStack instrs -> StorageStack(instrs @ compile_expr index state ([Instr_Place ; I(type_size elem_t) ; Instr_Mul ; Instr_Add])) *)
+    | T_Array(elem_t, array_size), StorageStack instrs -> StorageStack(instrs @ compile_expr index state ([Instr_Index ; I(array_size) ; I(type_size elem_t) ]))
+    | _ -> raise_failure ""
+  )
+  | _ -> ComputeStack
+
+and find_variable_location name scopes =
+  let rec aux vars i = match vars with
+    | [] -> None
+    | Var(ty,n)::t ->
+      if n = name then Some i else aux t (i+type_size ty)
+  in
+  match aux scopes.local 0 with
+  | Some i -> (StorageStack [Instr_BP ; Instr_Place ; I(i) ; Instr_Add])
+  | None -> (
+    match Option.map (fun scope -> aux scope 0) scopes.global |> Option.join with
+    | Some i -> (StorageStack [I(i)])
+    | None -> raise_failure ("No such variable: "^name)
+  )
+
+
+
+
+
+
+
+
+
+
+
+
+
+(* DELETE THESE V V V V *)
+
 and compile_var_addr name state acc =
   Instr_Place :: I(fetch_var_index name state.scopes) :: acc
 
@@ -191,10 +251,12 @@ and compile_addr (Expr(expr, _)) state acc = match expr with
   | ArrayAccess(t,i) -> (
     match get_type t with
     | T_Array(typ,array_size) ->
-      compile_addr t state (compile_expr i state (Instr_Index :: I(array_size) :: I(type_size typ)  :: acc))
+      compile_addr t state (compile_expr i state (Instr_Index :: I(array_size) :: I(type_size typ) :: acc))
     | _ -> raise_failure "Not an array"
   )
   | _ -> raise_failure "Expression does not have a stack address"
+
+
 
 
 and compile_assignment target expr state acc =

@@ -43,9 +43,10 @@ type instruction =
   | Instr_BinNot
   | Instr_BinAnd
   
-  | Instr_LoadN
+  | Instr_Load
   | Instr_BP
-  | Instr_StoreN
+  | Instr_Store
+  | Instr_Extract
 
 
 let instruction_to_int label_map instr = match instr with
@@ -90,9 +91,10 @@ let instruction_to_int label_map instr = match instr with
     | Instr_BinNot -> Some 35
     | Instr_BinAnd -> Some 36
 
-    | Instr_LoadN -> Some 37
+    | Instr_Load -> Some 37
     | Instr_BP -> Some 38
-    | Instr_StoreN -> Some 39
+    | Instr_Store -> Some 39
+    | Instr_Extract -> Some 40
 
 let label_set pp =
   let rec aux pp set = match pp with

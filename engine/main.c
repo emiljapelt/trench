@@ -171,9 +171,10 @@ void player_turn_default(player_state* ps) {
             case Instr_BinNot: change = instr_binnot(ps); break;
             case Instr_BinAnd: change = instr_binand(ps); break;
 
-            case Instr_LoadN: change = instr_loadN(ps); break;
+            case Instr_Load: change = instr_load(ps); break;
             case Instr_BP: change = instr_bp(ps); break;
-            case Instr_StoreN: change = instr_storeN(ps); break;
+            case Instr_Store: change = instr_store(ps); break;
+            case Instr_Extract: change = instr_extract(ps); break;
             default: return;
         }
 
