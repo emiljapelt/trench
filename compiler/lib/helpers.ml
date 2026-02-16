@@ -21,10 +21,10 @@ let reset_rename_generator () =
 (* Labels *)
 let lg = ( {next = 0;} )
 
-let new_label () =
+let new_label name =
   let number = lg.next in
   let () = lg.next <- lg.next+1 in
-  Int.to_string number
+  name ^ Int.to_string number
 
 (* Lookup *)
 let rec lookup f l =

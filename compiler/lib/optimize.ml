@@ -109,3 +109,6 @@ and optimize_stmts stmts =
 
 let optimize_program (File(prog,i)) =
   File(optimize_stmts prog, i)
+
+
+let optimize_instruction_list instrs = instrs

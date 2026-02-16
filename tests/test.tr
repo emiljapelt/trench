@@ -4,9 +4,9 @@ let end_test = int:() {
     let a = 1 / b;
 };
 
-let current_test = 0;
-let assertions = 0;
-let has_failed = 0;
+int current_test;
+int assertions;
+int has_failed;
 
 let assert = int:(int v) {
     if (has_failed) return 0;

@@ -101,13 +101,13 @@ let label_set pp =
     | [] -> set
     | Label n :: t -> ( 
       if StringSet.mem n set then failwith ("Duplicate label: "^n)   
-      else aux t (StringSet.add n set)
+      else (Printf.printf "%s\n" n ; aux t (StringSet.add n set))
     )
     | _::t -> aux t set
   in
   aux pp StringSet.empty
 
-let rec check_labels_exist pp set = match pp with
+let rec check_labels_exist instrs set = match instrs with
   | [] -> ()
   | LabelRef(n)::t -> if StringSet.mem n set then check_labels_exist t set else failwith ("Undefined label: "^n)
   | _ ::t -> check_labels_exist t set

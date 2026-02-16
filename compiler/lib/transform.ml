@@ -90,7 +90,7 @@ and rename_variables_of_stmt map (Stmt(stmt,ln)) = match stmt with
     let alts = List.combine alt_vs (List.rev alt_stmts) in
     (match opt with
       | Some s -> 
-        let  (_,s) = rename_variables_of_stmt map s in  (map,Stmt(IfIs(v,alts,Some s),ln))
+        let  (_,s) = rename_variables_of_stmt map s in (map,Stmt(IfIs(v,alts,Some s),ln))
       | None ->  (map,Stmt(IfIs(v,alts,None),ln))
     )
   | Block stmts -> 
