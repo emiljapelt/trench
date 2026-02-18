@@ -144,7 +144,6 @@ void player_turn_default(player_state* ps) {
             case Instr_Random: instr_random_int(ps); break; 
             case Instr_RandomSet: instr_random_range(ps); break;
             case Instr_Place: instr_place(ps); break;
-            case Instr_Access: change = instr_access(ps); break;
             case Instr_GoTo: change = instr_goto(ps); break;
             case Instr_GoToIf: change = instr_goto_if(ps); break;
             case Instr_Eq: change = instr_eq(ps); break;
@@ -157,24 +156,22 @@ void player_turn_default(player_state* ps) {
             case Instr_Not: change = instr_not(ps); break;
             case Instr_Or: change = instr_or(ps); break;
             case Instr_And: change = instr_and(ps); break;
-            case Instr_Assign: change = instr_assign(ps); break;
             case Instr_MoveSP: change = instr_move_sp(ps); break;
             case Instr_Copy: change = instr_copy(ps); break;
             case Instr_Swap: change = instr_swap(ps); break;
             case Instr_Call: change = instr_call(ps); break;
             case Instr_Return: change = instr_return(ps); break;
             case Instr_Declare: change = instr_declare(ps); break;
-            case Instr_GlobalAccess: change = instr_global_access(ps); break;
-            case Instr_GlobalAssign: change = instr_global_assign(ps); break;
             case Instr_Index: change = instr_index(ps); break;
             case Instr_BinOr: change = instr_binor(ps); break;
             case Instr_BinNot: change = instr_binnot(ps); break;
             case Instr_BinAnd: change = instr_binand(ps); break;
-
-            case Instr_Load: change = instr_load(ps); break;
+            case Instr_LoadLocal: change = instr_load(ps, ps->bp); break;
+            case Instr_StoreLocal: change = instr_store(ps, ps->bp); break;
             case Instr_BP: change = instr_bp(ps); break;
-            case Instr_Store: change = instr_store(ps); break;
             case Instr_Extract: change = instr_extract(ps); break;
+            case Instr_LoadGlobal: change = instr_load(ps, 0); break;
+            case Instr_StoreGlobal: change = instr_store(ps, 0); break;
             default: return;
         }
 

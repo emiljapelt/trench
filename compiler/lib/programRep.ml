@@ -5,11 +5,6 @@ type instruction =
   | I of int
   | Label of string
   | LabelRef of string
-  | Meta_PlayerX
-  | Meta_PlayerY
-  | Meta_BoardX
-  | Meta_BoardY
-  | Meta_PlayerID
   | Instr_Add
   | Instr_Sub
   | Instr_Mul
@@ -20,14 +15,11 @@ type instruction =
   | Instr_Lt
   | Instr_Div
   | Instr_Mod
+  | Instr_BinOr
+  | Instr_BinNot
+  | Instr_BinAnd
   | Instr_Random
   | Instr_RandomSet
-  | Instr_Place
-  | Instr_Access
-  | Instr_Swap
-  | Instr_Copy
-  | Instr_MoveSP
-  | Instr_Assign
   | Instr_GoToIf
   | Instr_GoTo
   | Instr_Wait
@@ -35,73 +27,75 @@ type instruction =
   | Instr_Call
   | Instr_Return
   | Instr_Declare
-  | Instr_GlobalAccess
-  | Instr_GlobalAssign
-  | Instr_Index
-  | Meta_Round
-  | Instr_BinOr
-  | Instr_BinNot
-  | Instr_BinAnd
-  
-  | Instr_Load
+  | Instr_Place
+  | Instr_Swap
+  | Instr_Copy
+  | Instr_MoveSP
   | Instr_BP
-  | Instr_Store
+  | Instr_Index
   | Instr_Extract
+  | Instr_LoadGlobal
+  | Instr_StoreGlobal
+  | Instr_LoadLocal
+  | Instr_StoreLocal
+  | Meta_PlayerX
+  | Meta_PlayerY
+  | Meta_BoardX
+  | Meta_BoardY
+  | Meta_PlayerID
+  | Meta_Round
 
 
 let instruction_to_int label_map instr = match instr with
     | I i -> Some i
     | Label _ -> None
     | LabelRef l -> StringMap.find_opt l label_map
-    | Meta_PlayerX -> Some 0
-    | Meta_PlayerY -> Some 1
-    | Meta_BoardX -> Some 2
-    | Meta_BoardY -> Some 3
-    | Meta_PlayerID -> Some 4
-    | Instr_Add -> Some 5
-    | Instr_Sub -> Some 6
-    | Instr_Mul -> Some 7
-    | Instr_And -> Some 8 
-    | Instr_Or -> Some 9
-    | Instr_Eq -> Some 10
-    | Instr_Not -> Some 11
-    | Instr_Lt -> Some 12
-    | Instr_Div -> Some 13
-    | Instr_Mod -> Some 14
-    | Instr_Random -> Some 15
-    | Instr_RandomSet -> Some 16
-    | Instr_Place -> Some 17
-    | Instr_Access -> Some 18
-    | Instr_Swap -> Some 19
-    | Instr_Copy -> Some 20
-    | Instr_MoveSP -> Some 21
-    | Instr_Assign -> Some 22
-    | Instr_GoToIf -> Some 23
-    | Instr_GoTo -> Some 24
-    | Instr_Wait -> Some 25
-    | Instr_Pass -> Some 26
-    | Instr_Call -> Some 27
-    | Instr_Return -> Some 28
-    | Instr_Declare -> Some 29
-    | Instr_GlobalAccess -> Some 30
-    | Instr_GlobalAssign -> Some 31
-    | Instr_Index -> Some 32
-    | Meta_Round -> Some 33
-    | Instr_BinOr -> Some 34
-    | Instr_BinNot -> Some 35
-    | Instr_BinAnd -> Some 36
-
-    | Instr_Load -> Some 37
-    | Instr_BP -> Some 38
-    | Instr_Store -> Some 39
-    | Instr_Extract -> Some 40
+    | Instr_Add ->          Some 0
+    | Instr_Sub ->          Some 1
+    | Instr_Mul ->          Some 2
+    | Instr_And ->          Some 3
+    | Instr_Or ->           Some 4
+    | Instr_Eq ->           Some 5
+    | Instr_Not ->          Some 6
+    | Instr_Lt ->           Some 7
+    | Instr_Div ->          Some 8 
+    | Instr_Mod ->          Some 9
+    | Instr_BinOr ->        Some 10
+    | Instr_BinNot ->       Some 11
+    | Instr_BinAnd ->       Some 12
+    | Instr_Random ->       Some 13
+    | Instr_RandomSet ->    Some 14
+    | Instr_GoToIf ->       Some 15
+    | Instr_GoTo ->         Some 16
+    | Instr_Wait ->         Some 17
+    | Instr_Pass ->         Some 18
+    | Instr_Call ->         Some 19
+    | Instr_Return ->       Some 20
+    | Instr_Declare ->      Some 21
+    | Instr_Place ->        Some 22
+    | Instr_Swap ->         Some 23
+    | Instr_Copy ->         Some 24
+    | Instr_MoveSP ->       Some 25
+    | Instr_BP ->           Some 26
+    | Instr_Index ->        Some 27
+    | Instr_Extract ->      Some 28
+    | Instr_LoadGlobal ->   Some 29
+    | Instr_StoreGlobal ->  Some 30
+    | Instr_LoadLocal ->    Some 31
+    | Instr_StoreLocal ->   Some 32
+    | Meta_PlayerX ->       Some 33
+    | Meta_PlayerY ->       Some 34
+    | Meta_BoardX ->        Some 35
+    | Meta_BoardY ->        Some 36
+    | Meta_PlayerID ->      Some 37
+    | Meta_Round ->         Some 38
 
 let label_set pp =
   let rec aux pp set = match pp with
     | [] -> set
     | Label n :: t -> ( 
       if StringSet.mem n set then failwith ("Duplicate label: "^n)   
-      else (Printf.printf "%s\n" n ; aux t (StringSet.add n set))
+      else aux t (StringSet.add n set)
     )
     | _::t -> aux t set
   in

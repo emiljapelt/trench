@@ -304,4 +304,19 @@ test_case(12, :() {
     assert(a == 2);
 });
 
+// arithmatics
+test_case(12, :() {
+    int a;
+
+    assert(a++ == 0);
+    assert(a == 1);
+    assert(a-- == 1);
+    assert(a == 0);
+
+    assert(++a == 1);
+    assert(a == 1);
+    assert(--a == 0);
+    assert(a == 0);
+});
+
 end_test();

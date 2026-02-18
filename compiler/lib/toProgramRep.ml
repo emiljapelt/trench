@@ -12,14 +12,17 @@ open Helpers
 
 
 (* TODO: 
-- Entirely remove Instr_Access and Instr_Assign 
 - Cleanup
 - More helper functions, especially for using 'find_expression_location'
 *)
 
 type location =
   | ComputeStack
-  | StorageStack of instruction list
+  | StorageStack of { 
+    address: instruction list;
+    load: instruction;
+    store: instruction;
+  }
 
 let expr_size (Expr(_, (_, t))) = type_size t
 
@@ -37,13 +40,13 @@ let rec compile_expr (Expr(expr, (ln, _)) as e) (state:compile_state) acc =
     | _ -> raise_failure ("Unknown variable: "^name)
   )
   | VarAccess _ -> ( match find_expr_location e state with
-    | StorageStack instr -> instr @ Instr_Load :: I(expr_size e) :: acc
+    | StorageStack loc -> loc.address @ loc.load :: I(expr_size e) :: acc
     | ComputeStack -> raise_failure ""
   ) 
   | ArrayAccess(target, index) -> (
     match get_type target, find_expr_location target state with
     | T_Array(elem_t, size), ComputeStack -> compile_expr target state (compile_expr index state (Instr_Extract :: I(size * type_size elem_t) :: I(type_size elem_t) :: acc))
-    | T_Array(elem_t, size), StorageStack(loc_instrs) -> loc_instrs @ (compile_expr index state (Instr_Index :: I(size) :: I(type_size elem_t) :: Instr_Load :: I(type_size elem_t) :: acc))
+    | T_Array(elem_t, size), StorageStack(loc) -> loc.address @ (compile_expr index state (Instr_Index :: I(size) :: I(type_size elem_t) :: loc.load :: I(type_size elem_t) :: acc))
     | _ -> raise_failure "Dont know how to access array"
   )
   | Int i -> Instr_Place :: I(i) :: acc
@@ -92,19 +95,19 @@ let rec compile_expr (Expr(expr, (ln, _)) as e) (state:compile_state) acc =
   )
   (* true = pre *)
   | Increment(target, true) -> (match find_expr_location target state with
-    | StorageStack location -> location @ Instr_Copy :: Instr_Copy :: Instr_Load :: I(expr_size target) :: Instr_Place :: I(1) :: Instr_Add :: Instr_Store :: I(expr_size target) :: Instr_Load :: I(expr_size target) :: acc
+    | StorageStack loc -> loc.address @ Instr_Copy :: Instr_Copy :: loc.load :: I(expr_size target) :: Instr_Place :: I(1) :: Instr_Add :: Instr_Swap :: loc.store :: I(expr_size target) :: loc.load :: I(expr_size target) :: acc
     | ComputeStack -> raise_failure ""
   )
   | Decrement(target, true)  -> (match find_expr_location target state with
-    | StorageStack location -> location @ Instr_Copy :: Instr_Copy :: Instr_Load :: I(expr_size target) :: Instr_Place :: I(1) :: Instr_Sub :: Instr_Store :: I(expr_size target) :: Instr_Load :: I(expr_size target) :: acc
+    | StorageStack loc -> loc.address @ Instr_Copy :: Instr_Copy :: loc.load :: I(expr_size target) :: Instr_Place :: I(1) :: Instr_Sub :: Instr_Swap :: loc.store :: I(expr_size target) :: loc.load :: I(expr_size target) :: acc
     | ComputeStack -> raise_failure ""
   )
   | Increment(target, false) -> (match find_expr_location target state with
-    | StorageStack location -> location @ Instr_Copy :: Instr_Load :: I(expr_size target) :: Instr_Swap :: Instr_Copy :: Instr_Load :: I(expr_size target) :: Instr_Place :: I(1) :: Instr_Add :: Instr_Swap :: Instr_Store :: I(expr_size target) :: acc 
+    | StorageStack loc -> loc.address @ Instr_Copy :: loc.load :: I(expr_size target) :: Instr_Swap :: Instr_Copy :: loc.load :: I(expr_size target) :: Instr_Place :: I(1) :: Instr_Add :: Instr_Swap :: loc.store :: I(expr_size target) :: acc 
     | ComputeStack -> raise_failure ""
   )
   | Decrement(target, false) -> (match find_expr_location target state with
-    | StorageStack location -> location @ Instr_Copy :: Instr_Load :: I(expr_size target) :: Instr_Swap :: Instr_Copy :: Instr_Load :: I(expr_size target) :: Instr_Place :: I(1) :: Instr_Sub :: Instr_Swap :: Instr_Store  :: I(expr_size target) :: acc 
+    | StorageStack loc -> loc.address @ Instr_Copy :: loc.load :: I(expr_size target) :: Instr_Swap :: Instr_Copy :: loc.load :: I(expr_size target) :: Instr_Place :: I(1) :: Instr_Sub :: Instr_Swap :: loc.store  :: I(expr_size target) :: acc 
     | ComputeStack -> raise_failure ""
   )
   | Func(ret,args,body) -> (
@@ -176,7 +179,7 @@ and find_expression_location e state = match e with
   | VarAccess name -> find_variable_location name state.scopes
   | ArrayAccess (target, index) -> (match get_type target, find_expr_location target state with
     | _, ComputeStack -> ComputeStack
-    | T_Array(elem_t, array_size), StorageStack instrs -> StorageStack(instrs @ compile_expr index state ([Instr_Index ; I(array_size) ; I(type_size elem_t) ]))
+    | T_Array(elem_t, array_size), StorageStack loc -> StorageStack { loc with address = loc.address @ compile_expr index state [Instr_Index ; I(array_size) ; I(type_size elem_t)] }
     | _ -> raise_failure ""
   )
   | _ -> ComputeStack
@@ -188,17 +191,17 @@ and find_variable_location name scopes =
       if n = name then Some i else aux t (i+type_size ty)
   in
   match aux scopes.local 0 with
-  | Some i -> (StorageStack [Instr_BP ; Instr_Place ; I(i) ; Instr_Add])
+  | Some i -> (StorageStack {address = [Instr_Place ; I(i)]; load = Instr_LoadLocal; store = Instr_StoreLocal })
   | None -> (
     match scopes.global |> Option.map (fun scope -> aux scope 0) |> Option.join with
-    | Some i -> (StorageStack [Instr_Place ; I(i)])
+    | Some i -> (StorageStack {address = [Instr_Place ; I(i)]; load = Instr_LoadGlobal; store = Instr_StoreGlobal })
     | None -> raise_failure ("No such variable: "^name)
   )
 
 
 and compile_assignment target expr state acc = match find_expr_location target state with
   | ComputeStack -> raise_failure "";
-  | StorageStack instr -> fix_size expr (get_type target) state (instr @ Instr_Store :: I(expr_size target) :: acc)
+  | StorageStack loc -> fix_size expr (get_type target) state (loc.address @ loc.store :: I(expr_size target) :: acc)
 
 and compile_stmt (Stmt(stmt,(ln,_))) state acc =
   try match stmt with

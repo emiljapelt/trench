@@ -23,48 +23,45 @@
 #pragma region DEFINITIONS
 
 typedef enum {
-  Meta_PlayerX = 0,
-  Meta_PlayerY = 1,
-  Meta_BoardX = 2,
-  Meta_BoardY = 3,
-  Meta_PlayerID = 4,
-  Instr_Add = 5,
-  Instr_Sub = 6,
-  Instr_Mul = 7,
-  Instr_And = 8,
-  Instr_Or = 9,
-  Instr_Eq = 10,
-  Instr_Not = 11,
-  Instr_Lt = 12,
-  Instr_Div = 13,
-  Instr_Mod = 14,
-  Instr_Random = 15,
-  Instr_RandomSet = 16,
-  Instr_Place = 17,
-  Instr_Access = 18,
-  Instr_Swap = 19,
-  Instr_Copy = 20,
-  Instr_MoveSP = 21,
-  Instr_Assign = 22,
-  Instr_GoToIf = 23,
-  Instr_GoTo = 24,
-  Instr_Wait = 25,
-  Instr_Pass = 26,
-  Instr_Call = 27,
-  Instr_Return = 28,
-  Instr_Declare = 29,
-  Instr_GlobalAccess = 30,
-  Instr_GlobalAssign = 31,
-  Instr_Index = 32,
-  Meta_Round = 33,
-  Instr_BinOr = 34,
-  Instr_BinNot = 35,
-  Instr_BinAnd = 36,
-
-  Instr_Load = 37,
-  Instr_BP = 38,
-  Instr_Store = 39,
-  Instr_Extract = 40,
+  Instr_Add =           0,
+  Instr_Sub =           1,
+  Instr_Mul =           2,
+  Instr_And =           3,
+  Instr_Or =            4,
+  Instr_Eq =            5,
+  Instr_Not =           6,
+  Instr_Lt =            7,
+  Instr_Div =           8,
+  Instr_Mod =           9,
+  Instr_BinOr =         10,
+  Instr_BinNot =        11,
+  Instr_BinAnd =        12,
+  Instr_Random =        13,
+  Instr_RandomSet =     14,
+  Instr_GoToIf =        15,
+  Instr_GoTo =          16,
+  Instr_Wait =          17,
+  Instr_Pass =          18,
+  Instr_Call =          19,
+  Instr_Return =        20,
+  Instr_Declare =       21,
+  Instr_Place =         22,
+  Instr_Swap =          23,
+  Instr_Copy =          24,
+  Instr_MoveSP =        25,
+  Instr_BP =            26,
+  Instr_Index =         27,
+  Instr_Extract =       28,
+  Instr_LoadGlobal =    29,
+  Instr_StoreGlobal =   30,
+  Instr_LoadLocal =     31,
+  Instr_StoreLocal =    32,
+  Meta_PlayerX =        33,
+  Meta_PlayerY =        34,
+  Meta_BoardX =         35,
+  Meta_BoardY =         36,
+  Meta_PlayerID =       37,
+  Meta_Round =          38,
 
   Instr_DEBUG = 99,
 } instruction;
@@ -119,29 +116,6 @@ int instr_place(player_state* ps) {
     ps->stack[ps->sp++] = ps->directive[ps->dp];
     ps->dp++;
 
-    return 0;
-}
-
-int instr_access(player_state* ps) {
-    int n = ps->stack[ps->sp-1];
-    if (n < 0 || n >= (ps->sp - ps->bp)) {
-        death_mark_player(ps, frame_break_msg);
-        return 0;
-    }
-    ps->stack[ps->sp-1] = ps->stack[ps->bp + n];
-    _log(DEBUG, "ACCESS: v: %i, bp: %i, target: %i", ps->stack[ps->sp-1], ps->bp, n);
-    return 0;
-}
-
-int instr_global_access(player_state* ps) {
-    int n = ps->stack[ps->sp-1];
-    _log(DEBUG, "GLOBAL ACCESS: bp: %i, target: %i", ps->bp, n);
-    if (n < 0 || n >= global_scope_sp(ps, ps->bp, ps->sp)) {
-        death_mark_player(ps, frame_break_msg);
-        return 0;
-    }
-    ps->stack[ps->sp-1] = ps->stack[n];
-    _log(DEBUG, "found %i", ps->stack[ps->sp-1]);
     return 0;
 }
 
@@ -227,30 +201,6 @@ int instr_and(player_state* ps) {
     int v0 = ps->stack[--ps->sp];
     int v1 = ps->stack[--ps->sp];
     ps->stack[ps->sp++] = is_true(v0) && is_true(v1);
-    return 0;
-}
-
-int instr_assign(player_state* ps) { 
-    int v = ps->stack[--ps->sp];
-    int n = ps->stack[--ps->sp];
-    _log(DEBUG, "ASSIGN: v: %i, bp: %i, target: %i", v, ps->bp, n);
-    if (n < 0 || n >= (ps->sp - ps->bp)) {
-        death_mark_player(ps, frame_break_msg);
-        return 0;
-    }
-    ps->stack[ps->bp + n] = v;
-    return 0;
-}
-
-int instr_global_assign(player_state* ps) { 
-    int v = ps->stack[--ps->sp];
-    int n = ps->stack[--ps->sp];
-    _log(DEBUG, "GLOBAL ASSIGN: v: %i, bp: %i, target: %i", v, ps->bp, n);
-    if (n < 0 || n >= global_scope_sp(ps, ps->bp, ps->sp)) {
-        death_mark_player(ps, frame_break_msg);
-        return 0;
-    }
-    ps->stack[n] = v;
     return 0;
 }
 
@@ -457,18 +407,29 @@ int instr_binand(player_state* ps) {
     return 0;
 }
 
-int instr_load(player_state* ps) {
+
+
+/*
+Maybe loading negative addresses should work like functions do.
+Such that builtin variables wont need to polute the ISA.
+
+But... CISC or RISC ???
+- Negative addresses reduce the ISA, but increases instructions used.
+- Current solution increase ISA, but reduces instructions used.
+*/
+
+int instr_load(player_state* ps, int base) {
     int addr = ps->stack[--ps->sp];
     int size = ps->directive[ps->dp++];
 
-    _log(DEBUG, "LOAD:: addr: %i, size: %i", addr, size);
+    _log(DEBUG, "LOAD:: base: %i, addr: %i, size: %i", base, addr, size);
 
     if (ps->sp + size >= _gr->stack_size) {
         death_mark_player(ps, stack_overflow_msg);
         return 0;
     }
 
-    memcpy(ps->stack + ps->sp, ps->stack + addr, sizeof(int) * size);
+    memcpy(ps->stack + ps->sp, ps->stack + addr + base, sizeof(int) * size);
 
     ps->sp += size;
     
@@ -480,15 +441,15 @@ int instr_bp(player_state* ps) {
     return 0;
 }
 
-int instr_store(player_state* ps) {
+int instr_store(player_state* ps, int base) {
     int addr = ps->stack[--ps->sp];
     int size = ps->directive[ps->dp++];
 
-    _log(DEBUG, "STORE:: addr: %i, size: %i", addr, size);
+    _log(DEBUG, "STORE:: base: %i, addr: %i, size: %i", base, addr, size);
 
     ps->sp -= size;
 
-    memcpy(ps->stack + addr, ps->stack + ps->sp, sizeof(int) * size);
+    memcpy(ps->stack + addr + base, ps->stack + ps->sp, sizeof(int) * size);
 
     return 0;
 }
