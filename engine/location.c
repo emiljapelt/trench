@@ -27,10 +27,10 @@ location vehicle_location(struct vehicle_state* vehicle) {
 void location_coords(location loc, int* x, int* y) {
     switch (loc.type) {
         case FIELD_LOCATION: {
-            size_t diff = (size_t)loc.field - (size_t)_gs->board;
+            size_t diff = (size_t)loc.field - (size_t)_gs->map;
             diff /= sizeof(field_state);
-            *y = diff / _gs->board_x;
-            *x = diff % _gs->board_x;
+            *y = diff / _gs->map_width;
+            *x = diff % _gs->map_width;
             break;
         }
         case VEHICLE_LOCATION: {

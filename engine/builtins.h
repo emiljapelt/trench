@@ -57,7 +57,6 @@ typedef enum {
     BUILTIN_WAIT = -39,
 } builtin_func;
 
-
 int handle_builtin_function(player_state* ps, builtin_func func_addr);
 int is_action(builtin_func func_addr);
 

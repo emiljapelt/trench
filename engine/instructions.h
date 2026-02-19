@@ -56,12 +56,7 @@ typedef enum {
   Instr_StoreGlobal =   30,
   Instr_LoadLocal =     31,
   Instr_StoreLocal =    32,
-  Meta_PlayerX =        33,
-  Meta_PlayerY =        34,
-  Meta_BoardX =         35,
-  Meta_BoardY =         36,
-  Meta_PlayerID =       37,
-  Meta_Round =          38,
+  Instr_Meta =          33,
 
   Instr_DEBUG = 99,
 } instruction;
@@ -322,71 +317,6 @@ int instr_index(player_state* ps) {
 }
 
 
-#pragma endregion
-
-#pragma region META_VARIABLES
-
-int meta_player_x(player_state* ps) {
-    if (ps->sp + 1 >= _gr->stack_size) {
-        death_mark_player(ps, stack_overflow_msg);
-        return 0;
-    }
-
-    int x, y;
-    location_coords(ps->location, &x, &y);
-    ps->stack[ps->sp++] = x;
-    return 0;
-}
-int meta_player_y(player_state* ps) {
-    if (ps->sp + 1 >= _gr->stack_size) {
-        death_mark_player(ps, stack_overflow_msg);
-        return 0;
-    }
-
-    int x, y;
-    location_coords(ps->location, &x, &y);
-    ps->stack[ps->sp++] = y;
-    return 0;
-}
-int meta_board_x(player_state* ps) {
-    if (ps->sp + 1 >= _gr->stack_size) {
-        death_mark_player(ps, stack_overflow_msg);
-        return 0;
-    }
-
-    ps->stack[ps->sp++] = _gs->board_x;
-    return 0;
-}
-int meta_board_y(player_state* ps) {
-    if (ps->sp + 1 >= _gr->stack_size) {
-        death_mark_player(ps, stack_overflow_msg);
-        return 0;
-    }
-
-    ps->stack[ps->sp++] = _gs->board_y;
-    return 0;
-}
-
-int meta_player_id(player_state* ps) {
-    if (ps->sp + 1 >= _gr->stack_size) {
-        death_mark_player(ps, stack_overflow_msg);
-        return 0;
-    }
-
-    ps->stack[ps->sp++] = ps->id;
-    return 0;
-}
-
-int meta_round(player_state* ps) {
-    if (ps->sp + 1 >= _gr->stack_size) {
-        death_mark_player(ps, stack_overflow_msg);
-        return 0;
-    }
-
-    ps->stack[ps->sp++] = _gs->round;
-    return 0;
-}
-
 int instr_binor(player_state* ps) {
     int v0 = ps->stack[--ps->sp];
     int v1 = ps->stack[--ps->sp];
@@ -475,8 +405,57 @@ int instr_extract(player_state* ps) {
     return 0;
 }
 
+typedef enum {
+    META_PLAYER_X =     0,
+    META_PLAYER_Y =     1,
+    META_PLAYER_ID =    2,
+    META_BOARD_WIDTH =  3,
+    META_BOARD_HEIGHT = 4,
+    META_ROUND =        5,
+} meta_value;
 
+int instr_meta(player_state* ps) {
+    meta_value meta = (meta_value)ps->directive[ps->dp++];
 
+    if (ps->sp + 1 >= _gr->stack_size) {
+        death_mark_player(ps, stack_overflow_msg);
+        return 0;
+    }
+
+    switch (meta) {
+        case META_PLAYER_X: {
+            int x, y;
+            location_coords(ps->location, &x, &y);
+            ps->stack[ps->sp++] = x;
+            break;
+        }
+        case META_PLAYER_Y: {
+            int x, y;
+            location_coords(ps->location, &x, &y);
+            ps->stack[ps->sp++] = y;
+            break;
+        }
+        case META_PLAYER_ID:
+            ps->stack[ps->sp++] = ps->id;
+            break;
+        case META_BOARD_WIDTH:
+            ps->stack[ps->sp++] = _gs->map_width;
+            break;
+        case META_BOARD_HEIGHT:
+            ps->stack[ps->sp++] = _gs->map_height;
+            break;
+        case META_ROUND:
+            ps->stack[ps->sp++] = _gs->round;
+            break;
+        default:
+            ps->stack[ps->sp++] = 0;
+            break;
+    }
+
+    return 0;
+}
+
+#pragma endregion
 
 /* NOT USED BUT KEEP IT AROUND FOR NOW */
 /*

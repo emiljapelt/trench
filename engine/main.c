@@ -125,12 +125,6 @@ void player_turn_default(player_state* ps) {
         //debug_print(ps);
         _log(DEBUG, "%s executes %i", ps->name, ps->directive[ps->dp]);
         switch (ps->directive[ps->dp++]) {
-            case Meta_PlayerX: change = meta_player_x(ps);break;
-            case Meta_PlayerY: change = meta_player_y(ps);break;
-            case Meta_BoardX: change = meta_board_x(ps);break;
-            case Meta_BoardY: change = meta_board_y(ps);break;
-            case Meta_PlayerID: change = meta_player_id(ps);break;
-            case Meta_Round: change = meta_round(ps);break;
             case Instr_Wait: {
                 if(!use_resource(1,&ps->remaining_actions)) {ps->dp--;return;}
                 ps->stack[ps->sp++] = 1;
@@ -172,6 +166,7 @@ void player_turn_default(player_state* ps) {
             case Instr_Extract: change = instr_extract(ps); break;
             case Instr_LoadGlobal: change = instr_load(ps, 0); break;
             case Instr_StoreGlobal: change = instr_store(ps, 0); break;
+            case Instr_Meta: change = instr_meta(ps); break;
             default: return;
         }
 
@@ -253,8 +248,8 @@ void get_new_directive(player_state* ps) {
 }
 
 void nuke_board() {
-    for(int y = 0; y < _gs->board_y; y++)
-    for(int x = 0; x < _gs->board_x; x++) 
+    for(int y = 0; y < _gs->map_height; y++)
+    for(int x = 0; x < _gs->map_width; x++) 
         fields.destroy_field(fields.get(x,y), "Got nuked");
 }
 

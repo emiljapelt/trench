@@ -24,11 +24,11 @@ typedef struct team_state {
 
 typedef struct game_state {
     int round;
-    int board_x;
-    int board_y;
+    int map_width;
+    int map_height;
     int id_counter;
     player_list_t* players;
-    field_state* board;
+    field_state* map;
     int feed_point;
     char* feed_buffer;
     int team_count;
@@ -53,7 +53,7 @@ void print_to_feed(const char* msg);
 void clear_feed();
 
 static inline char in_bounds(const int x, const int y) {
-    return ((0 <= x) && (x < _gs->board_x) && (0 <= y) && (y < _gs->board_y));
+    return ((0 <= x) && (x < _gs->map_width) && (0 <= y) && (y < _gs->map_height));
 }
 
 void move_coord(int* x, int* y, direction dir, unsigned int dist);

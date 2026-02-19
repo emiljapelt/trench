@@ -18,13 +18,13 @@
 #include "fields.h"
 #include "log.h"
 
-field_state* create_board(char* map_data, const int x, const int y) {
+field_state* create_map(char* map_data, const int x, const int y) {
     int size = sizeof(field_state)*x*y;
-    field_state* brd = malloc(size);
+    field_state* map = malloc(size);
 
     for (int _x = 0; _x < x; _x++) 
     for (int _y = 0; _y < y; _y++) {
-        brd[(_y * x) + _x] = (field_state) {
+        map[(_y * x) + _x] = (field_state) {
             .overlays = 0,
             .type = EMPTY,
             .data = NULL,
@@ -34,51 +34,51 @@ field_state* create_board(char* map_data, const int x, const int y) {
             .exit_events = array_list.create(10),
         };
 
-        zero_out_registry(&brd[(_y * x) + _x].resources);
-        set_resource_entry(&brd[(_y * x) + _x].resources, R_Wood, 0, -1);
-        set_resource_entry(&brd[(_y * x) + _x].resources, R_Clay, 0, -1);
-        set_resource_entry(&brd[(_y * x) + _x].resources, R_Ammo, 0, -1);
-        set_resource_entry(&brd[(_y * x) + _x].resources, R_Sapling, 0, -1);
-        set_resource_entry(&brd[(_y * x) + _x].resources, R_BearTrap, 0, -1);
-        set_resource_entry(&brd[(_y * x) + _x].resources, R_Explosive, 0, -1);
-        set_resource_entry(&brd[(_y * x) + _x].resources, R_Metal, 0, -1);
+        zero_out_registry(&map[(_y * x) + _x].resources);
+        set_resource_entry(&map[(_y * x) + _x].resources, R_Wood, 0, -1);
+        set_resource_entry(&map[(_y * x) + _x].resources, R_Clay, 0, -1);
+        set_resource_entry(&map[(_y * x) + _x].resources, R_Ammo, 0, -1);
+        set_resource_entry(&map[(_y * x) + _x].resources, R_Sapling, 0, -1);
+        set_resource_entry(&map[(_y * x) + _x].resources, R_BearTrap, 0, -1);
+        set_resource_entry(&map[(_y * x) + _x].resources, R_Explosive, 0, -1);
+        set_resource_entry(&map[(_y * x) + _x].resources, R_Metal, 0, -1);
 
         if (map_data) switch(map_data[(_y * x) + _x]) {
             case '+': {
                 field_data* data = malloc(sizeof(field_data));
                 data->trench.fortified = 0;
-                brd[(_y * x) + _x].type = TRENCH;
-                brd[(_y * x) + _x].data = data;
+                map[(_y * x) + _x].type = TRENCH;
+                map[(_y * x) + _x].data = data;
                 break;
             }
             case 'w': {
                 field_data* data = malloc(sizeof(field_data));
                 data->wall.fortified = 0;
-                brd[(_y * x) + _x].type = WALL;
-                brd[(_y * x) + _x].data = data;
+                map[(_y * x) + _x].type = WALL;
+                map[(_y * x) + _x].data = data;
                 break;
             }
             case '~':
-                brd[(_y * x) + _x].type = OCEAN;
-                add_event(brd[(_y * x) + _x].enter_events, FIELD_EVENT, events.ocean_drowning, NULL);
+                map[(_y * x) + _x].type = OCEAN;
+                add_event(map[(_y * x) + _x].enter_events, FIELD_EVENT, events.ocean_drowning, NULL);
                 break;
             case 'T': 
-                brd[(_y * x) + _x].type = TREE;
+                map[(_y * x) + _x].type = TREE;
                 break;
             case 'C':
                 field_data* data = malloc(sizeof(field_data));
                 data->clay_pit.amount = 0;
-                brd[(_y * x) + _x].type = CLAY;
-                brd[(_y * x) + _x].data = data;
-                add_event(brd[(_y * x) + _x].exit_events, FIELD_EVENT, events.clay_spread, NULL);
+                map[(_y * x) + _x].type = CLAY;
+                map[(_y * x) + _x].data = data;
+                add_event(map[(_y * x) + _x].exit_events, FIELD_EVENT, events.clay_spread, NULL);
                 break;
             case 'M':
-                brd[(_y * x) + _x].type = MOUNTAIN;
+                map[(_y * x) + _x].type = MOUNTAIN;
                 break;
         }
     }
 
-    return brd;
+    return map;
 }
 /*
 
@@ -320,22 +320,22 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
 
             load_settings_struct(gr, Field(unwrapped_result, 13));
 
-            value map = Field(unwrapped_result, 4);
-            field_state* board = NULL;
-            int board_x;
-            int board_y;
-            switch (Tag_val(map)) {
+            value _map = Field(unwrapped_result, 4);
+            field_state* map = NULL;
+            int map_width;
+            int map_height;
+            switch (Tag_val(_map)) {
                 case 0: { // EmptyMap
-                    board_x = Int_val(Field(map, 0));
-                    board_y = Int_val(Field(map, 1));
-                    board = create_board(NULL, board_x, board_y);
+                    map_width = Int_val(Field(_map, 0));
+                    map_height = Int_val(Field(_map, 1));
+                    map = create_map(NULL, map_width, map_height);
                     break;
                 }
                 case 1: { // FileMap
-                    char* map_data = strdup(String_val(Field(map, 0)));
-                    board_x = Int_val(Field(Field(map, 1), 0));
-                    board_y = Int_val(Field(Field(map, 1), 1));
-                    board = create_board(map_data, board_x, board_y);
+                    char* map_data = strdup(String_val(Field(_map, 0)));
+                    map_width = Int_val(Field(Field(_map, 1), 0));
+                    map_height = Int_val(Field(Field(_map, 1), 1));
+                    map = create_map(map_data, map_width, map_height);
                     free(map_data);
                     break;
                 }
@@ -347,11 +347,11 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
 
             *gs = (game_state) {
                 .round = 1,
-                .board_x = board_x,
-                .board_y = board_y,
+                .map_width = map_width,
+                .map_height = map_height,
                 .id_counter = 0,
                 .players = array_list.create(player_count + 1),
-                .board = board,
+                .map = map,
                 .feed_point = 0,
                 .feed_buffer = malloc(feed_size+1),
                 .team_count = team_count,
@@ -360,8 +360,8 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
             };
 
             // Center board in viewport;
-            gr->viewport.x = -(gr->viewport.width / 2) + (board_x / 2);
-            gr->viewport.y = -(gr->viewport.height / 2) + (board_y / 2);
+            gr->viewport.x = -(gr->viewport.width / 2) + (map_width / 2);
+            gr->viewport.y = -(gr->viewport.height / 2) + (map_height / 2);
 
             for(int i = 0; i < team_count; i++) {
                 value team_info = Field(Field(unwrapped_result, 8),i);

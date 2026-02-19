@@ -38,13 +38,7 @@ type instruction =
   | Instr_StoreGlobal
   | Instr_LoadLocal
   | Instr_StoreLocal
-  | Meta_PlayerX
-  | Meta_PlayerY
-  | Meta_BoardX
-  | Meta_BoardY
-  | Meta_PlayerID
-  | Meta_Round
-
+  | Instr_Meta
 
 let instruction_to_int label_map instr = match instr with
     | I i -> Some i
@@ -83,12 +77,7 @@ let instruction_to_int label_map instr = match instr with
     | Instr_StoreGlobal ->  Some 30
     | Instr_LoadLocal ->    Some 31
     | Instr_StoreLocal ->   Some 32
-    | Meta_PlayerX ->       Some 33
-    | Meta_PlayerY ->       Some 34
-    | Meta_BoardX ->        Some 35
-    | Meta_BoardY ->        Some 36
-    | Meta_PlayerID ->      Some 37
-    | Meta_Round ->         Some 38
+    | Instr_Meta ->         Some 33
 
 let label_set pp =
   let rec aux pp set = match pp with

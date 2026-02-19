@@ -7,11 +7,11 @@
 #include "damage.h"
 
 field_state* get_field(const int x, const int y) {
-    return _gs->board + ((y * _gs->board_x) + x);
+    return _gs->map + ((y * _gs->map_width) + x);
 }
 
 void set_field(const int x, const int y, field_state* f) {
-    _gs->board[(y * _gs->board_x) + x] = *f;
+    _gs->map[(y * _gs->map_width) + x] = *f;
 }
 
 
