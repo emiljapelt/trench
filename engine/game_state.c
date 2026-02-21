@@ -54,22 +54,22 @@ void set_player_steps_and_actions(player_state* ps) {
 }
 
 void kill_player(player_state* ps) {
-    field_state* field = location_field(ps->location);
+    field_state* field = location_field(ps->entity->location);
     field->symbol = COFFIN;
     field->foreground_color = WHITE;
     
 
-    switch (ps->location.type) {
+    switch (ps->entity->location.type) {
         case VEHICLE_LOCATION: 
-            remove_entity(ps->location.vehicle->entities, ps->id);
+            remove_entity(ps->entity->location.vehicle->entities, ps->entity->id);
             break;
         case FIELD_LOCATION:
-            remove_entity(field->entities, ps->id);
+            remove_entity(field->entities, ps->entity->id);
             break;
     }
 
     char msg[100];
-    sprintf(msg, "%s (#%i) died: %s\n", ps->name, ps->id, (ps->death_msg) ? ps->death_msg : "Unknown reason");
+    sprintf(msg, "%s (#%i) died: %s\n", ps->name, ps->entity->id, (ps->death_msg) ? ps->death_msg : "Unknown reason");
     print_to_feed(msg);
     _log(INFO, msg);
     ps->alive = 0;
@@ -105,117 +105,33 @@ void move_coord(int* x, int* y, direction dir, unsigned int dist) {
     }
 }
 
-void move_player_to_location(player_state* player, location loc) {
-    entity_t* ent;
-
-    switch (player->location.type) {
-        case VOID_LOCATION: 
-            ent = entity.of_player(player);
-            break;
-        case FIELD_LOCATION: { 
-            field_state* field = player->location.field;
-            ent = get_entity_from_id(field->entities, player->id);
-            update_events(ent, field->exit_events, (situation){ .type = MOVEMENT_SITUATION, .movement.loc = loc });
-            remove_entity(field->entities, player->id);
-            break;
-        }
-        case VEHICLE_LOCATION: {
-            vehicle_state* vehicle = player->location.vehicle;
-            ent = get_entity_from_id(vehicle->entities, player->id);
-            remove_entity(vehicle->entities, player->id);
-            break;
-        }
-    }
-
-    if (player->death_msg || ent == NULL) return;
-
-    
-    location prev_loc = player->location;
-
-    player->location = loc;
-    switch (loc.type) {
-        case VOID_LOCATION: 
-            free(ent);    
-            break;
-        case FIELD_LOCATION: {
-            field_state* field = location_field(loc);
-            add_entity(field->entities, ent);
-            update_events(ent, field->enter_events, (situation){ .type = MOVEMENT_SITUATION, .movement.loc = prev_loc });
-            break;
-        }
-        case VEHICLE_LOCATION: {
-            vehicle_state* vehicle = loc.vehicle;
-            add_entity(vehicle->entities, ent);
-            break;
-        }
-    }
-}
-
-void move_vehicle_to_location(vehicle_state* vehicle, location loc) {
-    entity_t* ent;
-
-    switch (vehicle->location.type) {
-        case VOID_LOCATION: 
-            ent = entity.of_vehicle(vehicle);
-            break;
-        case FIELD_LOCATION: { 
-            field_state* field = vehicle->location.field;
-            ent = get_entity_from_id(field->entities, vehicle->id);
-            update_events(ent, field->exit_events, (situation){ .type = MOVEMENT_SITUATION, .movement.loc = loc });
-            remove_entity(field->entities, vehicle->id);
-            break;
-        }
-        case VEHICLE_LOCATION: {
-            // Do something
-            break;
-        }
-    }
-
-    if (vehicle->destroy || ent == NULL) return; 
-
-    location prev_loc = vehicle->location;
-
-    vehicle->location = loc;
-    switch (loc.type) {
-        case VOID_LOCATION: 
-            free(ent);
-            break;
-        case FIELD_LOCATION: {
-            field_state* field = location_field(loc);
-            add_entity(field->entities, ent);
-            update_events(ent, field->enter_events, (situation){ .type = MOVEMENT_SITUATION, .movement.loc = prev_loc });
-            break;
-        }
-        case VEHICLE_LOCATION: {
-            // Do something
-            break;
-        }
-    }
-}
-
-
 void move_entity_to_location(entity_t* e, location loc) {
-    location curr = entity.get_location(e);
+    location curr = e->location;
     switch (curr.type) {
         case VOID_LOCATION: break;
         case FIELD_LOCATION: { 
             field_state* field = curr.field;
             update_events(e, field->exit_events, (situation){ .type = MOVEMENT_SITUATION, .movement.loc = loc });
-            free(remove_entity(field->entities, entity.get_id(e)));
+            remove_entity(field->entities, e->id);
             break;
         }
         case VEHICLE_LOCATION: {
-            // Do something
+            vehicle_state* vehicle = curr.vehicle;
+            remove_entity(vehicle->entities, e->id);
             break;
         }
     }
 
-    if ((e->type == ENTITY_PLAYER && e->player->death_msg) || (e->type == ENTITY_VEHICLE && e->vehicle->destroy))
+    if (
+        (e->type == ENTITY_PLAYER && e->player->death_msg) || 
+        (e->type == ENTITY_VEHICLE && e->vehicle->destroy)
+    )
         return;
 
-    location prev_loc = entity.get_location(e);
+    location prev_loc = e->location;
     
-    entity.set_location(e, loc);
+    e->location = loc;
+    
     switch (loc.type) {
         case VOID_LOCATION: break;
         case FIELD_LOCATION: {
@@ -225,7 +141,9 @@ void move_entity_to_location(entity_t* e, location loc) {
             break;
         }
         case VEHICLE_LOCATION: {
-            // Do something
+            vehicle_state* vehicle = loc.vehicle;
+            add_entity(vehicle->entities, e);
+            break;
             break;
         }
     }

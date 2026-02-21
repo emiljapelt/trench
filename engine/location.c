@@ -34,7 +34,7 @@ void location_coords(location loc, int* x, int* y) {
             break;
         }
         case VEHICLE_LOCATION: {
-            location_coords(loc.vehicle->location, x, y);
+            location_coords(loc.vehicle->entity->location, x, y);
             break;
         }
     }

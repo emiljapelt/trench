@@ -20,7 +20,7 @@ int mine(entity_t* entity, void* data, situation situ) {
         case ENTITY_PLAYER: {
             death_mark_player(entity->player, "Blown up by a mine");
 
-            field_state* field = location_field(entity->player->location);
+            field_state* field = location_field(entity->location);
             set_overlay(field, EXPLOSION);
             set_color_overlay(field, FORE, RED);
             set_mod_overlay(field, BOLD);
@@ -30,7 +30,7 @@ int mine(entity_t* entity, void* data, situation situ) {
         case ENTITY_VEHICLE: {
             entity->vehicle->destroy = 1;
 
-            field_state* field = location_field(entity->vehicle->location);
+            field_state* field = location_field(entity->location);
             set_overlay(field, EXPLOSION);
             set_color_overlay(field, FORE, RED);
             set_mod_overlay(field, BOLD);
@@ -46,7 +46,7 @@ int bomb(entity_t* entity, void* data, situation situ) {
     switch (entity->type) {
         case ENTITY_PLAYER: {
             bomb_event_args* args = (bomb_event_args*)data;
-            if (args->player_id != entity->player->id) return 0;
+            if (args->player_id != entity->id) return 0;
             field_state* field = fields.get(args->x, args->y);
             set_overlay(field, EXPLOSION);
             set_color_overlay(field, FORE, RED);
@@ -63,7 +63,7 @@ int projection_upkeep(entity_t* entity, void* data, situation situ) {
     switch (entity->type) {
         case ENTITY_PLAYER: {
             player_event_args* args = (player_event_args*)data;
-            if (args->player_id != entity->player->id) return 0;
+            if (args->player_id != entity->id) return 0;
             if (!entity->player->alive) return 1;
 
             if (!spend_resource(&entity->player->resources, R_Mana, _gr->settings.projection.upkeep)) {
@@ -84,7 +84,7 @@ int ice_block_melt(entity_t* entity, void* data, situation situ) {
             field_state* field = fields.get(args->x, args->y);
 
             if (field->type != ICE_BLOCK) return 1;
-            if (args->player_id != entity->player->id) 
+            if (args->player_id != entity->id) 
                 return 0;
             if (args->remaining) {
                 args->remaining--;
@@ -116,7 +116,7 @@ int tree_grow(entity_t* entity, void* data, situation situ) {
     switch (entity->type) {
         case ENTITY_PLAYER: {
             field_countdown_args* args = (field_countdown_args*)data;
-            if (entity->player->id != args->player_id) return 0;
+            if (entity->id != args->player_id) return 0;
 
             args->remaining--;
             if (args->remaining != 0) return 0;
@@ -147,7 +147,7 @@ int ocean_drowning(entity_t* entity, void* data, situation situ) {
 int bear_trap_escape(entity_t* entity, void* data, situation situ) {
     if (entity->type == ENTITY_PLAYER) {
         player_event_args* args = (player_event_args*)data;
-        if (args->player_id != entity->player->id) return 0;
+        if (args->player_id != entity->id) return 0;
         entity->player->remaining_actions = 0;
         entity->player->remaining_steps = 0;
         return 1;
@@ -161,7 +161,7 @@ int bear_trap_trigger(entity_t* entity, void* data, situation situ) {
         entity->player->remaining_steps = 0;
 
         player_event_args* args = malloc(sizeof(player_event_args));
-        args->player_id = entity->player->id;
+        args->player_id = entity->id;
         add_event(
             _gs->events,
             PHYSICAL_EVENT,
@@ -175,7 +175,7 @@ int bear_trap_trigger(entity_t* entity, void* data, situation situ) {
 int clay_spread(entity_t* entity, void* data, situation situ) {
     if (entity->type == ENTITY_PLAYER) {
         field_state* field = location_field(situ.movement.loc);
-        field_state* clay_field = location_field(entity->player->location);
+        field_state* clay_field = location_field(entity->location);
         if (clay_field->data->clay_pit.amount >= _gr->settings.clay_pit.spread_limit)
         switch (field->type) {
             case EMPTY:

@@ -10,7 +10,7 @@
 
 int boat_move(vehicle_state* v, player_state* player, direction d) {
     int x, y;
-    location_coords(v->location, &x, &y);
+    location_coords(v->entity->location, &x, &y);
 
     if (fields.properties(x,y, player) & PROP_OBSTRUCTION)
         return INSTR_OBSTRUCTED;
@@ -22,7 +22,7 @@ int boat_move(vehicle_state* v, player_state* player, direction d) {
     field_state* target = fields.get(x,y);
     if (target->type == OCEAN || target->type == BRIDGE) {
 
-        move_vehicle_to_location(v, field_location_from_field(target));
+        move_entity_to_location(v->entity, field_location_from_field(target));
         if (v->destroy)
             destroy_vehicle(v, "The boat sank");
 
@@ -46,9 +46,10 @@ int get_vehicle_capacity(vehicle_type type) {
     }
 }
 
+// garbage collect while handling dead players?
 void destroy_vehicle(vehicle_state* v, char* death_msg) {
     entity_list_t* entities = v->entities;
-    location loc = v->location;
+    location loc = v->entity->location;
 
     for(int i = 0; i < entities->count; i++) {
         move_entity_to_location(get_entity(entities, i), loc);
@@ -56,7 +57,7 @@ void destroy_vehicle(vehicle_state* v, char* death_msg) {
 
     switch (v->type) {
         case VEHICLE_BOAT: {
-            move_vehicle_to_location(v, (location){ .type = VOID_LOCATION });
+            move_entity_to_location(v->entity, (location){ .type = VOID_LOCATION });
             free(v);
         }
     }

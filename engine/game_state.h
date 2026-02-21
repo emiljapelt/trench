@@ -5,7 +5,6 @@
 #include "player.h"
 #include "game_rules.h"
 #include "event_list.h"
-#include "player_list.h"
 #include "resource_registry.h"
 #include "visual.h"
 #include "fields.h"
@@ -27,7 +26,7 @@ typedef struct game_state {
     int map_width;
     int map_height;
     int id_counter;
-    player_list_t* players;
+    entity_list_t* entities;
     field_state* map;
     int feed_point;
     char* feed_buffer;
@@ -58,8 +57,8 @@ static inline char in_bounds(const int x, const int y) {
 
 void move_coord(int* x, int* y, direction dir, unsigned int dist);
 
-void move_player_to_location(player_state*, location);
-void move_vehicle_to_location(vehicle_state*, location);
+/*void move_player_to_location(player_state*, location);
+void move_vehicle_to_location(vehicle_state*, location);*/
 void move_entity_to_location(entity_t*, location);
 
 

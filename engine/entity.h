@@ -10,21 +10,16 @@ typedef enum {
 
 typedef struct entity_t {
     entity_type type : 8;
+    int id;
+    location location;
     union {
         struct player_state* player;
         struct vehicle_state* vehicle;
     };
 } entity_t;
 
-typedef struct entity_namespace {
-    entity_t* (*of_player)(struct player_state*);
-    entity_t* (*of_vehicle)(struct vehicle_state*);
-    int (*get_id)(struct entity_t*);
-    location (*get_location)(struct entity_t*);
-    void (*set_location)(struct entity_t*, location);
-} entity_namespace;
+entity_t* entity_of_player(struct player_state* player);
 
-extern const entity_namespace entity;
-
+entity_t* entity_of_vehicle(struct vehicle_state* vehicle);
 
 #endif

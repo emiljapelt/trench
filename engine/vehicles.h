@@ -11,11 +11,10 @@ typedef enum {
 } vehicle_type;
 
 typedef struct vehicle_state {
-    int id;
     vehicle_type type : 8;
-    entity_list_t* entities;
-    location location;
     unsigned int destroy : 1;
+    entity_t* entity;
+    entity_list_t* entities;
     resource_registry resources;
 } vehicle_state;
 

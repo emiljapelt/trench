@@ -16,7 +16,7 @@ entity_t* get_entity(entity_list_t* list, int index) {
 
 entity_t* remove_entity(entity_list_t* list, int id) {
     for(int i = 0; i < list->count; i++) {
-        if (entity.get_id(get_entity(list, i)) == id) {
+        if (get_entity(list, i)->id == id) {
             return array_list.remove(list, i, 0);
         }
     }
@@ -26,7 +26,7 @@ entity_t* remove_entity(entity_list_t* list, int id) {
 entity_t* get_entity_from_id(entity_list_t* list, int id) {
     for(int i = 0; i < list->count; i++) {
         entity_t* e = get_entity(list, i); 
-        if (entity.get_id(e) == id) {
+        if (e->id == id) {
             return e;
         }
     }

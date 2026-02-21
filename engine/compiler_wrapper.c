@@ -14,7 +14,6 @@
 #include "game_state.h"
 #include "visual.h"
 #include "resource_registry.h"
-#include "player_list.h"
 #include "fields.h"
 #include "log.h"
 
@@ -350,7 +349,7 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 .map_width = map_width,
                 .map_height = map_height,
                 .id_counter = 0,
-                .players = array_list.create(player_count + 1),
+                .entities = array_list.create(player_count + 1),
                 .map = map,
                 .feed_point = 0,
                 .feed_buffer = malloc(feed_size+1),
@@ -388,12 +387,10 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 player->death_msg = NULL;
                 player->team = &gs->team_states[Int_val(Field(player_info, 0))];
                 player->name = strdup(String_val(Field(player_info, 1)));
-                player->id = gs->id_counter++;
                 player->bp = 0;
                 player->sp = 0;
                 player->path = strdup(String_val(Field(player_info, 3)));
                 player->dp = 0;
-                player->location = (location) { .type = VOID_LOCATION };
                 player->remaining_steps = gr->steps;
                 player->remaining_actions = gr->actions;
                 player->pager_channel = 0;
@@ -405,21 +402,24 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 for(int f = 0; f < player->extra_files->size; f++) {
                     array_list.add(player->extra_files, strdup(String_val(Field((Field(player_info, 5)), f))));
                 }
-                add_player(gs->players, player);
-                move_player_to_location(player, field_location_from_coords(player_x, player_y));
+                entity_t* e = entity_of_player(player);
+                add_entity(gs->entities, e);
+                move_entity_to_location(e, field_location_from_coords(player_x, player_y));
             }
             memset(gs->feed_buffer, 0, feed_size+1);
 
             // Load player directives after loading all information from the compiled game file.
             // This seems to prevent the OCaml GC from wrecking the data
-            for(int i = 0; i < gs->players->count; i++) {
+            for(int i = 0; i < gs->entities->count; i++) {
                 directive_info di;
-                player_state* player = get_player(gs->players, i);
-                int success = compile_player(player->path, gr->stack_size, gr->program_size_limit, &di);
-                if (!success) exit(1);
-                player->stack = di.stack;
-                player->directive = di.directive;
-                player->directive_len = di.dir_len;
+                entity_t* entity = get_entity(gs->entities, i);
+                if (entity->type == ENTITY_PLAYER) {
+                    int success = compile_player(entity->player->path, gr->stack_size, gr->program_size_limit, &di);
+                    if (!success) exit(1);
+                    entity->player->stack = di.stack;
+                    entity->player->directive = di.directive;
+                    entity->player->directive_len = di.dir_len;
+                }
             }
 
             return 1;

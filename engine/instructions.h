@@ -425,18 +425,18 @@ int instr_meta(player_state* ps) {
     switch (meta) {
         case META_PLAYER_X: {
             int x, y;
-            location_coords(ps->location, &x, &y);
+            location_coords(ps->entity->location, &x, &y);
             ps->stack[ps->sp++] = x;
             break;
         }
         case META_PLAYER_Y: {
             int x, y;
-            location_coords(ps->location, &x, &y);
+            location_coords(ps->entity->location, &x, &y);
             ps->stack[ps->sp++] = y;
             break;
         }
         case META_PLAYER_ID:
-            ps->stack[ps->sp++] = ps->id;
+            ps->stack[ps->sp++] = ps->entity->id;
             break;
         case META_BOARD_WIDTH:
             ps->stack[ps->sp++] = _gs->map_width;
