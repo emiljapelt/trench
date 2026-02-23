@@ -32,6 +32,8 @@ void garbage_collect() {
             count_active++;
     }
 
+    if (count_active == _gs->entities->count) return; // Nothing to collect
+
     entity_list_t* active_entities = array_list.create(count_active);
 
     for(int i = _gs->entities->count - 1; i >= 0; i--) {
