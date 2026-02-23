@@ -24,4 +24,6 @@ void location_coords(location, int*, int*);
 int location_equal(location, location);
 int location_is(location, int, int);
 
+#define VOID ((location){ .type = VOID_LOCATION })
+
 #endif

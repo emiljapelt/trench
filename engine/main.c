@@ -25,62 +25,39 @@ void debug_print(player_state* ps) {
     wait(1);
 }
 
-void try_kill_player(player_state* ps) {
-    if (ps->alive && ps->death_msg != NULL) {
-        update_events(ps->entity, ps->pre_death_events, (situation){ .type = NO_SITUATION});
-        if (ps->alive && ps->death_msg != NULL) {
-            kill_player(ps);
-            update_events(ps->entity, ps->post_death_events, (situation){ .type = NO_SITUATION});
-        }
-    }
-}
-
-void kill_players() {
+void garbage_collect() {
+    int count_active = 0;
     for(int i = 0; i < _gs->entities->count; i++) {
-        entity_t* entity = get_entity(_gs->entities, i);
-        if(entity->type != ENTITY_PLAYER) continue;
-        try_kill_player(entity->player);
-    }
-}
-
-// rename to sometinhg like "garbage_collect" and also handle destoryed vehicles here ??
-void remove_dead_players() {
-    int count_alive = 0;
-    for(int i = 0; i < _gs->entities->count; i++) {
-        entity_t* entity = get_entity(_gs->entities, i);
-
-        switch (entity->type) {
-            case ENTITY_PLAYER:
-                if (entity->player->alive) count_alive++;
-                break;
-            default:
-                count_alive++;
-                break;
-        }
+        if (get_entity(_gs->entities, i)->active)
+            count_active++;
     }
 
-    entity_list_t* cleared_list = array_list.create(count_alive);
+    entity_list_t* active_entities = array_list.create(count_active);
 
     for(int i = _gs->entities->count - 1; i >= 0; i--) {
         entity_t* entity = get_entity(_gs->entities, i);
         
-        switch (entity->type) {
-            case ENTITY_PLAYER:
-                if (entity->player->alive)
-                    array_list.add(cleared_list, entity);
-                else {
-                    free_player(entity->player);
-                    free(entity);
-                }
+        if (entity->active) {
+            array_list.add(active_entities, entity);
+        } 
+        else switch (entity->type) {
+            case ENTITY_PLAYER: {
+                free_player(entity->player);
+                free(entity);
                 break;
+            }
+            case ENTITY_VEHICLE: {
+                array_list.free(entity->vehicle->entities);
+                free(entity);
+                break;
+            }
             default:
-                array_list.add(cleared_list, entity);
-                break;
+                _log(WARN, "Failed to GC entity: %i", entity->id);        
         }
     }
 
     array_list.free(_gs->entities);
-    _gs->entities = cleared_list;
+    _gs->entities = active_entities;
 }
 
 int is_in_view(int x, int y) {
@@ -198,9 +175,8 @@ void player_turn_default(player_state* ps) {
             wait(1); 
         }
 
-        kill_players();
         if (_gs->feed_point) { print_board(); wait(1); }
-        if (!ps->alive) return;
+        if (!ps->entity->active) return;
     }
 }
 
@@ -284,10 +260,6 @@ int teams_alive() {
         }
     }
     return alive;
-}
-
-int player_alive(player_state* ps) {
-    return ps->alive;
 }
 
 char* first_team_alive() {
@@ -401,13 +373,12 @@ void play_round_default() {
         handle_input();
         entity_t* entity = get_entity(_gs->entities, i);
         int finished_events = update_events(entity, _gs->events, (situation){ .type = NO_SITUATION});
-        if (finished_events) { print_board(); wait(1); }
-        kill_players();
-        if (_gs->feed_point) { print_board(); wait(1); }
+        
+        if (finished_events || _gs->feed_point) { print_board(); wait(1); }
 
         switch (entity->type) {
             case ENTITY_PLAYER:
-                if (entity->player->alive) {
+                if (entity->active) {
                     _log(DEBUG, "Turn: %s (#%i)", entity->player->name, entity->id);
                     player_turn_default(entity->player);
                     set_player_steps_and_actions(entity->player);
@@ -420,7 +391,7 @@ void play_round_default() {
         check_win_condition();
     }
     if (_gr->nuke > 0 && _gs->round % _gr->nuke == 0) nuke_board();
-    remove_dead_players();
+    garbage_collect();
 }
 
 void play_round() {
@@ -453,7 +424,7 @@ void dynamic_mode() {
                 entity_t* entity = get_entity(_gs->entities, i);
 
                 if (entity->type == ENTITY_PLAYER) {
-                    if (!entity->player->alive) continue; 
+                    if (!entity->active) continue; 
                     if (entity->player->is_original_player)
                         get_new_directive(entity->player);
                     clear_screen();
@@ -475,7 +446,7 @@ void manual_mode() {
             entity_t* entity = get_entity(_gs->entities, i);
 
             if (entity->type == ENTITY_PLAYER) {
-                if (!entity->player->alive) continue;
+                if (!entity->active) continue;
                 if (entity->player->is_original_player)
                     get_new_directive(entity->player);
                 clear_screen();

@@ -85,7 +85,7 @@ int is_true(int a) {
 
 int instr_random_int(player_state* ps) { 
     if (ps->sp + 1 >= _gr->stack_size) {
-        death_mark_player(ps, stack_overflow_msg);
+        kill_player(ps, stack_overflow_msg);
         return 0;
     }
 
@@ -104,7 +104,7 @@ int instr_random_range(player_state* ps) {
 
 int instr_place(player_state* ps) {
     if (ps->sp + 1 >= _gr->stack_size) {
-        death_mark_player(ps, stack_overflow_msg);
+        kill_player(ps, stack_overflow_msg);
         return 0;
     }
 
@@ -166,7 +166,7 @@ int instr_mul(player_state* ps) {
 int instr_div(player_state* ps) { 
     int v0 = ps->stack[--ps->sp];
     int v1 = ps->stack[--ps->sp];
-    if (v1 == 0) { death_mark_player(ps, div_zero_msg); return 0; }
+    if (v1 == 0) { kill_player(ps, div_zero_msg); return 0; }
     ps->stack[ps->sp++] = v0 / v1;
     return 0;
 }
@@ -174,7 +174,7 @@ int instr_div(player_state* ps) {
 int instr_mod(player_state* ps) {
     int v0 = ps->stack[--ps->sp];
     int v1 = ps->stack[--ps->sp];
-    if (v1 == 0) { death_mark_player(ps, div_zero_msg); return 0; }
+    if (v1 == 0) { kill_player(ps, div_zero_msg); return 0; }
     ps->stack[ps->sp++] = ((v0%v1) + v1)%v1;
     return 0;
 }
@@ -210,7 +210,7 @@ int instr_move_sp(player_state* ps) {
 
 int instr_copy(player_state* ps) {
     if (ps->sp + 1 >= _gr->stack_size) {
-        death_mark_player(ps, stack_overflow_msg);
+        kill_player(ps, stack_overflow_msg);
         return 1;
     }
 
@@ -232,12 +232,12 @@ int instr_call(player_state* ps) {
     int func_addr = ps->stack[--ps->sp];
 
     if (func_addr == 0) {
-        death_mark_player(ps, null_call_msg);
+        kill_player(ps, null_call_msg);
         return 0;
     }
 
     if (ps->sp + arg_count + 3 >= _gr->stack_size) {
-        death_mark_player(ps, stack_overflow_msg);
+        kill_player(ps, stack_overflow_msg);
         return 0;
     }
 
@@ -289,7 +289,7 @@ int instr_return(player_state* ps) {
 int instr_declare(player_state* ps) {
     int n = ps->directive[ps->dp];
     if (ps->sp + n >= _gr->stack_size) {
-        death_mark_player(ps, stack_overflow_msg);
+        kill_player(ps, stack_overflow_msg);
         return 0;
     }
     memset(ps->stack + ps->sp, 0, sizeof(int) * n);
@@ -307,7 +307,7 @@ int instr_index(player_state* ps) {
     _log(DEBUG, "INDEX:: index: %i, target: %i, array_size: %i, elem_size: %i", index, target, array_size, elem_size);
 
     if (index < 0 || index >= array_size) {
-        death_mark_player(ps, out_of_bounds_msg);
+        kill_player(ps, out_of_bounds_msg);
         return 0;
     }
 
@@ -355,7 +355,7 @@ int instr_load(player_state* ps, int base) {
     _log(DEBUG, "LOAD:: base: %i, addr: %i, size: %i", base, addr, size);
 
     if (ps->sp + size >= _gr->stack_size) {
-        death_mark_player(ps, stack_overflow_msg);
+        kill_player(ps, stack_overflow_msg);
         return 0;
     }
 
@@ -392,7 +392,7 @@ int instr_extract(player_state* ps) {
     _log(DEBUG, "EXTRACT:: index: %i, size: %i, take: %i", index, size, take);
 
     if (take > size || index < 0 || index + take > size) {
-        death_mark_player(ps, out_of_bounds_msg);
+        kill_player(ps, out_of_bounds_msg);
         return 0;
     }
 
@@ -418,7 +418,7 @@ int instr_meta(player_state* ps) {
     meta_value meta = (meta_value)ps->directive[ps->dp++];
 
     if (ps->sp + 1 >= _gr->stack_size) {
-        death_mark_player(ps, stack_overflow_msg);
+        kill_player(ps, stack_overflow_msg);
         return 0;
     }
 

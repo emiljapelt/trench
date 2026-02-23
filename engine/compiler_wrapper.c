@@ -382,9 +382,7 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 player_state* player = malloc(sizeof(player_state));
                 int player_x = Int_val(Field(Field(player_info, 2), 0));
                 int player_y = Int_val(Field(Field(player_info, 2), 1));
-                player->alive = 1;
                 player->is_original_player = 1;
-                player->death_msg = NULL;
                 player->team = &gs->team_states[Int_val(Field(player_info, 0))];
                 player->name = strdup(String_val(Field(player_info, 1)));
                 player->bp = 0;

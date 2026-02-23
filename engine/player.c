@@ -22,9 +22,7 @@ player_state* copy_player_state(const player_state* ps) {
     memcpy(new_directive, ps->directive, dir_bytes);
     memcpy(new_stack, ps->stack, stack_bytes);
 
-    new_player->alive = 1;
     new_player->is_original_player = 0;
-    new_player->death_msg = NULL;
     new_player->team = ps->team;
     new_player->name = strdup(ps->name);
     new_player->stack = new_stack;

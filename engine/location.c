@@ -37,6 +37,7 @@ void location_coords(location loc, int* x, int* y) {
             location_coords(loc.vehicle->entity->location, x, y);
             break;
         }
+        // SHOULD HANDLE THE VOID, AND RETURN FALSE
     }
 }
 
@@ -45,7 +46,6 @@ struct field_state* location_field(location loc) {
     location_coords(loc, &x, &y);
     return fields.get(x,y);
 }
-
 
 int location_equal(location loc1, location loc2) {
     int x1, y1, x2, y2;

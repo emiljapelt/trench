@@ -49,7 +49,7 @@ int builtin_shoot(player_state* ps) {
             for(int i = 0; i < field->entities->count; i++) {
                 entity_t* e = get_entity(field->entities, i);
                 if (e->type == ENTITY_PLAYER) {
-                    death_mark_player(e->player, "Got shot");
+                    kill_player(e->player, "Got shot");
                     break;
                 }
             }
@@ -118,7 +118,7 @@ int builtin_mine(player_state* ps) {
     for(int i = 0; i < field->entities->count; i++) {
         entity_t* e = get_entity(field->entities, i);
         if (e->type == ENTITY_PLAYER) {
-            death_mark_player(e->player, "Hit by a thrown mine"); 
+            kill_player(e->player, "Hit by a thrown mine"); 
             kill = 1; 
         }
     }
@@ -194,7 +194,7 @@ int builtin_chop(player_state* ps) {
         for(int i = 0; i < field->entities->count; i++) {
             entity_t* e = get_entity(field->entities, i);
             if (e->type == ENTITY_PLAYER) {
-                death_mark_player(e->player, "Chopped to pieces");
+                kill_player(e->player, "Chopped to pieces");
                 break;
             }
         }
@@ -294,7 +294,7 @@ int builtin_write(player_state* ps) {
 
 int builtin_read(player_state* ps) {
     if (ps->sp + 1 >= _gr->stack_size) {
-        death_mark_player(ps, stack_overflow_msg);
+        kill_player(ps, stack_overflow_msg);
         return 0;
     }
 
@@ -409,7 +409,7 @@ int builtin_fireball(player_state* ps) {
             for(int i = 0; i < field->entities->count; i++) {
                 entity_t* e = get_entity(field->entities, i);
                 if (e->type == ENTITY_PLAYER) {
-                    death_mark_player(e->player, "Hit by a fireball");
+                    kill_player(e->player, "Hit by a fireball");
                     break;
                 }
             }
@@ -522,7 +522,7 @@ int builtin_pager_set(player_state* ps) {
 // Saving an int as a void pointer is a bit hacky
 int builtin_pager_read(player_state* ps) {
     if (ps->sp + 1 >= _gr->stack_size) {
-        death_mark_player(ps, stack_overflow_msg);
+        kill_player(ps, stack_overflow_msg);
         return 0;
     }
 
@@ -787,7 +787,6 @@ int builtin_boat(player_state* ps) {
     vehicle_state* boat = malloc(sizeof(vehicle_state));
     boat->entities = array_list.create(get_vehicle_capacity(VEHICLE_BOAT));
     boat->type = VEHICLE_BOAT;
-    boat->destroy = 0;
 
     zero_out_registry(&boat->resources);
     set_resource_entry(&boat->resources, R_Wood, 0, _gr->settings.boat.wood_cap);
@@ -871,7 +870,7 @@ int builtin_throw_clay(player_state* ps) {
             for(int i = 0; i < field->entities->count; i++) {
                 entity_t* e = get_entity(field->entities, i);
                 if (e->type == ENTITY_PLAYER) {
-                    death_mark_player(e->player, "Got shot");
+                    kill_player(e->player, "Got shot");
                     break;
                 }
             }

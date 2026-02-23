@@ -204,7 +204,7 @@ void destroy_field(field_state* field, char* death_msg) {
     for(int i = 0; i < field->entities->count; i++) {
         entity_t* entity = get_entity(field->entities, i);
         if (entity->type == ENTITY_PLAYER)
-            death_mark_player(entity->player, death_msg);
+            kill_player(entity->player, death_msg);
     }
 }
 

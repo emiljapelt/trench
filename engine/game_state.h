@@ -38,8 +38,7 @@ typedef struct game_state {
 extern game_state* _gs;
 extern game_rules* _gr;
 
-void death_mark_player(player_state* ps, const char* reason);
-void kill_player(player_state* ps);
+void kill_player(player_state* ps, const char* reason);
 void set_player_steps_and_actions(player_state* ps);
 
 void set_color_overlay(field_state* field, color_target ct, color_predef c);
@@ -57,8 +56,6 @@ static inline char in_bounds(const int x, const int y) {
 
 void move_coord(int* x, int* y, direction dir, unsigned int dist);
 
-/*void move_player_to_location(player_state*, location);
-void move_vehicle_to_location(vehicle_state*, location);*/
 void move_entity_to_location(entity_t*, location);
 
 

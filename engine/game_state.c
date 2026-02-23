@@ -53,27 +53,22 @@ void set_player_steps_and_actions(player_state* ps) {
     ps->remaining_actions = _gr->actions;
 }
 
-void kill_player(player_state* ps) {
+void kill_player(player_state* ps, const char* reason) {
     field_state* field = location_field(ps->entity->location);
     field->symbol = COFFIN;
     field->foreground_color = WHITE;
     
+    ps->entity->active = 0;
+    update_events(ps->entity, ps->pre_death_events, (situation){ .type = NO_SITUATION});
+    if (ps->entity->active) return;
+    update_events(ps->entity, ps->post_death_events, (situation){ .type = NO_SITUATION});
 
-    switch (ps->entity->location.type) {
-        case VEHICLE_LOCATION: 
-            remove_entity(ps->entity->location.vehicle->entities, ps->entity->id);
-            break;
-        case FIELD_LOCATION:
-            remove_entity(field->entities, ps->entity->id);
-            break;
-    }
+    move_entity_to_location(ps->entity, VOID);
 
     char msg[100];
-    sprintf(msg, "%s (#%i) died: %s\n", ps->name, ps->entity->id, (ps->death_msg) ? ps->death_msg : "Unknown reason");
+    sprintf(msg, "%s (#%i) died: %s\n", ps->name, ps->entity->id, reason ? reason : "Unknown reason");
     print_to_feed(msg);
     _log(INFO, msg);
-    ps->alive = 0;
-    ps->death_msg = NULL;
     if (ps->team)
         ps->team->members_alive--;
 
@@ -87,12 +82,6 @@ void kill_player(player_state* ps) {
     add_resource(&field->resources, R_Metal, ps->resources.resource[R_Metal].amount);
 
     zero_out_registry(&ps->resources);
-
-    // The player struct is freed and removed elsewere.
-}
-
-void death_mark_player(player_state* ps, const char* reason) {
-    ps->death_msg = reason;
 }
 
 void move_coord(int* x, int* y, direction dir, unsigned int dist) {
@@ -122,11 +111,7 @@ void move_entity_to_location(entity_t* e, location loc) {
         }
     }
 
-    if (
-        (e->type == ENTITY_PLAYER && e->player->death_msg) || 
-        (e->type == ENTITY_VEHICLE && e->vehicle->destroy)
-    )
-        return;
+    if (!e->active) return;
 
     location prev_loc = e->location;
     

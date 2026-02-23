@@ -18,7 +18,7 @@ int mine(entity_t* entity, void* data, situation situ) {
 
     switch (entity->type) {
         case ENTITY_PLAYER: {
-            death_mark_player(entity->player, "Blown up by a mine");
+            kill_player(entity->player, "Blown up by a mine");
 
             field_state* field = location_field(entity->location);
             set_overlay(field, EXPLOSION);
@@ -28,7 +28,7 @@ int mine(entity_t* entity, void* data, situation situ) {
         }
         
         case ENTITY_VEHICLE: {
-            entity->vehicle->destroy = 1;
+            entity->active = 0;
 
             field_state* field = location_field(entity->location);
             set_overlay(field, EXPLOSION);
@@ -64,10 +64,10 @@ int projection_upkeep(entity_t* entity, void* data, situation situ) {
         case ENTITY_PLAYER: {
             player_event_args* args = (player_event_args*)data;
             if (args->player_id != entity->id) return 0;
-            if (!entity->player->alive) return 1;
+            if (!entity->active) return 1;
 
             if (!spend_resource(&entity->player->resources, R_Mana, _gr->settings.projection.upkeep)) {
-                entity->player->death_msg = "Projection faded";
+                kill_player(entity->player, "Projection faded");
                 return 1;
             }
         }
@@ -136,7 +136,7 @@ int ocean_drowning(entity_t* entity, void* data, situation situ) {
 
     switch (entity->type) {
         case ENTITY_PLAYER: {
-            death_mark_player(entity->player, "Drowned");
+            kill_player(entity->player, "Drowned");
             return 0;
         }
     }
