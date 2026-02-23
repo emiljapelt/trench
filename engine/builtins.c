@@ -842,10 +842,6 @@ int builtin_mount(player_state* ps) {
         return 0;
     } 
 
-    //remove_entity(location_field(ps->entity->location)->entities, ps->entity->id);
-    //ps->entity->location = vehicle_location(vehicle);
-    //add_entity(vehicle->entities, ps->entity);
-
     move_entity_to_location(ps->entity, vehicle_location(vehicle));
 
     ps->stack[ps->sp++] = INSTR_SUCCESS;
@@ -1164,7 +1160,7 @@ int builtin_mine_shaft(player_state* ps) {
     }
 
     move_coord(&x, &y, d, 1);
-    
+
     if (!in_bounds(x, y)) {
         ps->stack[ps->sp++] = INSTR_OUT_OF_BOUNDS;
         return 0;

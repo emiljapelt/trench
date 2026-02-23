@@ -281,9 +281,6 @@ int instr_return(player_state* ps) {
 
     memcpy(ps->stack + ps->sp, ps->stack + ret_start, sizeof(int) * size);
     ps->sp += size;
-
-    //ps->stack[ps->sp++] = ret;
-    //_log(DEBUG, "RETURN: ret:%i old_dp: %i, old_bp: %i", ret, old_dp, old_bp);
 }
 
 int instr_declare(player_state* ps) {
