@@ -10,7 +10,8 @@
 
 int boat_move(vehicle_state* v, player_state* player, direction d) {
     int x, y;
-    location_coords(v->entity->location, &x, &y);
+    if(!location_coords(v->entity->location, &x, &y))
+        return INSTR_ERROR;
 
     if (fields.properties(x,y, player) & PROP_OBSTRUCTION)
         return INSTR_OBSTRUCTED;

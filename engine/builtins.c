@@ -26,7 +26,10 @@ int builtin_shoot(player_state* ps) {
     }
     
     int x, y;
-    location_coords(ps->entity->location, &x, &y);
+    if(!location_coords(ps->entity->location, &x, &y)) {
+        ps->stack[ps->sp++] = INSTR_ERROR;
+        return 0;
+    }
     
     int limit = _gr->settings.shoot.range;
     while (limit--) { 
@@ -66,7 +69,11 @@ int builtin_look(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
 
     int x, y;
-    location_coords(ps->entity->location, &x, &y);
+    if(!location_coords(ps->entity->location, &x, &y)) {
+        ps->stack[ps->sp++] = INSTR_ERROR;
+        return 0;
+    }
+
     int i = 0;
     incr:
     i++;
@@ -84,8 +91,13 @@ int builtin_look(player_state* ps) {
 int builtin_scan(player_state* ps) {
     int p = ps->stack[--ps->sp];
     direction d = (direction)ps->stack[--ps->sp];
+
     int x, y;
-    location_coords(ps->entity->location, &x, &y);
+    if(!location_coords(ps->entity->location, &x, &y)) {
+        ps->stack[ps->sp++] = INSTR_ERROR;
+        return 0;
+    }
+
     int result = 0;
 
     if (_gr->settings.scan.range >= 0 && p > _gr->settings.scan.range) { ps->stack[ps->sp++] = 0; return 0; }
@@ -100,13 +112,18 @@ int builtin_scan(player_state* ps) {
 
 int builtin_mine(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
+
     if(!spend_resource(&ps->resources, R_Explosive, 1)) {
         ps->stack[ps->sp++] = INSTR_MISSING_RESOURCE;
         return 0;
     }
 
     int x, y;
-    location_coords(ps->entity->location, &x, &y);
+    if(!location_coords(ps->entity->location, &x, &y)) {
+        ps->stack[ps->sp++] = INSTR_ERROR;
+        return 0;
+    }
+
     move_coord(&x, &y, d, 1);
     if (!in_bounds(x,y)) {
         ps->stack[ps->sp++] = INSTR_OUT_OF_BOUNDS;
@@ -151,16 +168,23 @@ int builtin_move(player_state* ps) {
     }
 
     int x, y;
-    location_coords(ps->entity->location, &x, &y);
+    if(!location_coords(ps->entity->location, &x, &y)) {
+        ps->stack[ps->sp++] = INSTR_ERROR;
+        return 0;
+    }
+
     if (fields.properties(x,y,ps) & PROP_OBSTRUCTION) {
         ps->stack[ps->sp++] = INSTR_OBSTRUCTED;
         return 0;
     }
+
     move_coord(&x, &y, d, 1);
+
     if(!in_bounds(x,y)) {
         ps->stack[ps->sp++] = INSTR_OUT_OF_BOUNDS;
         return 0; 
     }
+
     if(fields.properties(x,y,ps) & PROP_OBSTRUCTION) {
         ps->stack[ps->sp++] = INSTR_OBSTRUCTED;
         return 0; 
@@ -174,9 +198,15 @@ int builtin_move(player_state* ps) {
 
 int builtin_chop(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
+
     int x, y;
-    location_coords(ps->entity->location, &x, &y);
+    if(!location_coords(ps->entity->location, &x, &y)) {
+        ps->stack[ps->sp++] = INSTR_ERROR;
+        return 0;
+    }
+
     move_coord(&x, &y, d, 1);
+
     if (!in_bounds(x,y)) {
         ps->stack[ps->sp++] = INSTR_OBSTRUCTED;
         return 0; 
@@ -207,11 +237,16 @@ int builtin_chop(player_state* ps) {
 int builtin_trench(player_state* ps) {
     int p = ps->stack[--ps->sp];
     direction d = (direction)ps->stack[--ps->sp];
-    int x, y;
 
+    int x, y;
+    if(!location_coords(ps->entity->location, &x, &y)) {
+        ps->stack[ps->sp++] = INSTR_ERROR;
+        return 0;
+    }
     p = clamp(p, _gr->settings.trench.range, 0);
-    location_coords(ps->entity->location, &x, &y);
+
     move_coord(&x, &y, d, p);
+
     if (!in_bounds(x, y)) {
         ps->stack[ps->sp++] = INSTR_OUT_OF_BOUNDS;
         return 0;
@@ -239,8 +274,12 @@ int builtin_fortify(player_state* ps) {
     } 
 
     int x, y;
+    if(!location_coords(ps->entity->location, &x, &y)) {
+        ps->stack[ps->sp++] = INSTR_ERROR;
+        return 0;
+    }
     p = clamp(p, _gr->settings.fortify.range, 0);
-    location_coords(ps->entity->location, &x, &y);
+
     move_coord(&x, &y, d, p);
 
     if (!in_bounds(x, y)) {
@@ -257,14 +296,19 @@ int builtin_fortify(player_state* ps) {
 int builtin_bomb(player_state* ps) {
     int p = ps->stack[--ps->sp];
     direction d = (direction)ps->stack[--ps->sp];
+
     if(!spend_resource(&ps->resources, R_Explosive, 1)) {
         ps->stack[ps->sp++] = INSTR_MISSING_RESOURCE;
         return 0;
     }
 
-    p = clamp(p, _gr->settings.bomb.range, 0);
     int x, y;
-    location_coords(ps->entity->location, &x, &y);
+    if(!location_coords(ps->entity->location, &x, &y)) {
+        ps->stack[ps->sp++] = INSTR_ERROR;
+        return 0;
+    }
+    p = clamp(p, _gr->settings.bomb.range, 0);
+
     move_coord(&x, &y, d, p);
 
     if (!in_bounds(x,y)) {
@@ -287,7 +331,14 @@ int builtin_bomb(player_state* ps) {
 }
 
 int builtin_write(player_state* ps) {
-    location_field(ps->entity->location)->player_data = ps->stack[--ps->sp];
+    field_state* field = location_field(ps->entity->location);
+    if (field == NULL) {
+        ps->stack[ps->sp++] = INSTR_ERROR;
+        return 0;
+    }
+
+    field->player_data = ps->stack[--ps->sp];
+
     ps->stack[ps->sp++] = INSTR_SUCCESS;
     return 0;
 }
@@ -298,7 +349,13 @@ int builtin_read(player_state* ps) {
         return 0;
     }
 
-    ps->stack[ps->sp++] = location_field(ps->entity->location)->player_data;
+    field_state* field = location_field(ps->entity->location);
+    if (field == NULL) {
+        ps->stack[ps->sp++] = INSTR_ERROR;
+        return 0;
+    }
+
+    ps->stack[ps->sp++] = field->player_data;
     return 0;
 }
 
@@ -343,16 +400,22 @@ int builtin_freeze(player_state* ps) {
         return 0;
     }
 
-    p = clamp(p, _gr->settings.freeze.range, 0);
     int x, y;
-    location_coords(ps->entity->location, &x, &y);
+    if(!location_coords(ps->entity->location, &x, &y)) {
+        ps->stack[ps->sp++] = INSTR_ERROR;
+        return 0;
+    }
+    p = clamp(p, _gr->settings.freeze.range, 0);
+
     move_coord(&x, &y, d, p);
 
     if (!in_bounds(x,y)) {
         ps->stack[ps->sp++] = INSTR_OUT_OF_BOUNDS;
         return 0;
     }
+
     field_state* field = fields.get(x,y);
+
     if(field->type == ICE_BLOCK) {
         field->data->ice_block.melt_event_args->remaining += _gr->settings.freeze.refreeze;
         ps->stack[ps->sp++] = INSTR_SUCCESS;
@@ -390,7 +453,10 @@ int builtin_fireball(player_state* ps) {
     }
 
     int x, y;
-    location_coords(ps->entity->location, &x, &y);
+    if(!location_coords(ps->entity->location, &x, &y)) {
+        ps->stack[ps->sp++] = INSTR_ERROR;
+        return 0;
+    }
 
     int limit = _gr->settings.fireball.range;
     while(limit--) {
@@ -429,8 +495,11 @@ int builtin_fireball(player_state* ps) {
 int builtin_meditate(player_state* ps) {
     add_resource(&ps->resources, R_Mana, _gr->settings.meditate.amount);
     field_state* field = location_field(ps->entity->location);
-    field->background_color = MAGIC_PURPLE;
-    field->overlays |= BACKGROUND_COLOR_OVERLAY;
+
+    if (field != NULL) {
+        field->background_color = MAGIC_PURPLE;
+        field->overlays |= BACKGROUND_COLOR_OVERLAY;
+    }
 
     ps->stack[ps->sp++] = INSTR_SUCCESS;
     return 1;
@@ -444,8 +513,13 @@ int builtin_dispel(player_state* ps) {
     } 
 
     int x, y;
-    location_coords(ps->entity->location, &x, &y);
+    if(!location_coords(ps->entity->location, &x, &y)) {
+        ps->stack[ps->sp++] = INSTR_ERROR;
+        return 0;
+    }
+
     move_coord(&x, &y, d, 1);
+
     if (!in_bounds(x,y)) {
         ps->stack[ps->sp++] = INSTR_OUT_OF_BOUNDS;
         return 0;
@@ -466,8 +540,13 @@ int builtin_disarm(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
 
     int x, y;
-    location_coords(ps->entity->location, &x, &y);
+    if(!location_coords(ps->entity->location, &x, &y)) {
+        ps->stack[ps->sp++] = INSTR_ERROR;
+        return 0;
+    }
+
     move_coord(&x, &y, d, 1);
+
     if (!in_bounds(x,y)) {
         ps->stack[ps->sp++] = INSTR_OUT_OF_BOUNDS;
         return 0;
@@ -485,14 +564,20 @@ int builtin_disarm(player_state* ps) {
 
 int builtin_mana_drain(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
+
     if(!spend_resource(&ps->resources, R_Mana, _gr->settings.mana_drain.cost)) {
         ps->stack[ps->sp++] = INSTR_MISSING_RESOURCE;
         return 0;
     }
 
     int x, y;
-    location_coords(ps->entity->location, &x, &y);
+    if(!location_coords(ps->entity->location, &x, &y)) {
+        ps->stack[ps->sp++] = INSTR_ERROR;
+        return 0;
+    }
+
     move_coord(&x, &y, d, 1);
+
     if (!in_bounds(x,y)) {
         ps->stack[ps->sp++] = INSTR_OUT_OF_BOUNDS;
         return 0;
@@ -557,8 +642,13 @@ int builtin_pager_write(player_state* ps) {
 
 int builtin_wall(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
+
     int x, y;
-    location_coords(ps->entity->location, &x, &y);
+    if(!location_coords(ps->entity->location, &x, &y)) {
+        ps->stack[ps->sp++] = INSTR_ERROR;
+        return 0;
+    }
+
     move_coord(&x, &y, d, 1);
 
     if (!spend_resource(&ps->resources, R_Wood, _gr->settings.wall.cost)) {
@@ -593,8 +683,13 @@ int builtin_plant_tree(player_state* ps) {
     } 
     
     int x, y;
-    location_coords(ps->entity->location, &x, &y);
+    if(!location_coords(ps->entity->location, &x, &y)) {
+        ps->stack[ps->sp++] = INSTR_ERROR;
+        return 0;
+    }
+
     move_coord(&x, &y, d, 1);
+
     if (!in_bounds(x, y)) {
         ps->stack[ps->sp++] = INSTR_OUT_OF_BOUNDS;
         return 0;
@@ -620,8 +715,13 @@ int builtin_bridge(player_state* ps) {
     }
 
     int x, y;
-    location_coords(ps->entity->location, &x, &y);
+    if(!location_coords(ps->entity->location, &x, &y)) {
+        ps->stack[ps->sp++] = INSTR_ERROR;
+        return 0;
+    }
+
     move_coord(&x, &y, d, 1);
+
     if (!in_bounds(x, y)) {
         ps->stack[ps->sp++] = INSTR_OUT_OF_BOUNDS;
         return 0;
@@ -633,6 +733,7 @@ int builtin_bridge(player_state* ps) {
         return 0;
     }
 
+    // Better way of building / replacing fields
     remove_events_of_kind(field->enter_events, FIELD_EVENT);
     remove_events_of_kind(field->exit_events, FIELD_EVENT);
 
@@ -644,15 +745,21 @@ int builtin_bridge(player_state* ps) {
 int builtin_collect(player_state* ps) {
     int p = ps->stack[--ps->sp];
     direction d = (direction)ps->stack[--ps->sp];
+
     int x, y;
+    if(!location_coords(ps->entity->location, &x, &y)) {
+        ps->stack[ps->sp++] = INSTR_ERROR;
+        return 0;
+    }
     p = clamp(p, _gr->settings.collect.range, 0);
-    location_coords(ps->entity->location, &x, &y);
+
     move_coord(&x, &y, d, p);
 
     if (!in_bounds(x, y)) {
         ps->stack[ps->sp++] = INSTR_OUT_OF_BOUNDS;
         return 0;
     }
+
     field_state* field = fields.get(x,y);
 
     int success = 0;
@@ -703,14 +810,20 @@ int builtin_say(player_state* ps) {
 
 int builtin_mount(player_state* ps) {
     int d = ps->stack[--ps->sp];
+
     int x, y;
-    location_coords(ps->entity->location, &x, &y);
+    if(!location_coords(ps->entity->location, &x, &y)) {
+        ps->stack[ps->sp++] = INSTR_ERROR;
+        return 0;
+    }
+
     move_coord(&x, &y, d, 1);
 
     if (!in_bounds(x,y)) {
         ps->stack[ps->sp++] = INSTR_OUT_OF_BOUNDS;
         return 0;
     } 
+
     field_state* field = fields.get(x,y);
     
     vehicle_state* vehicle = NULL;
@@ -729,21 +842,30 @@ int builtin_mount(player_state* ps) {
         return 0;
     } 
 
-    remove_entity(location_field(ps->entity->location)->entities, ps->entity->id);
-    ps->entity->location = vehicle_location(vehicle);
-    add_entity(vehicle->entities, ps->entity);
+    //remove_entity(location_field(ps->entity->location)->entities, ps->entity->id);
+    //ps->entity->location = vehicle_location(vehicle);
+    //add_entity(vehicle->entities, ps->entity);
+
+    move_entity_to_location(ps->entity, vehicle_location(vehicle));
+
     ps->stack[ps->sp++] = INSTR_SUCCESS;
     return 1;
 }
 
 int builtin_dismount(player_state* ps) {
     int d = ps->stack[--ps->sp];
+
     if (!ps->entity->location.type == VEHICLE_LOCATION) {
         ps->stack[ps->sp++] = INSTR_ERROR;
         return 0;
     }
+
     int x, y;
-    location_coords(ps->entity->location, &x, &y);
+    if(!location_coords(ps->entity->location, &x, &y)) {
+        ps->stack[ps->sp++] = INSTR_ERROR;
+        return 0;
+    }
+
     move_coord(&x, &y, d, 1);
 
     if (!in_bounds(x,y)) {
@@ -772,13 +894,20 @@ int builtin_boat(player_state* ps) {
     }
     
     int x, y;
-    location_coords(ps->entity->location, &x, &y);
+    if(!location_coords(ps->entity->location, &x, &y)) {
+        ps->stack[ps->sp++] = INSTR_ERROR;
+        return 0;
+    }
+
     move_coord(&x, &y, d, 1);
+
     if (!in_bounds(x,y)) {
         ps->stack[ps->sp++] = INSTR_OUT_OF_BOUNDS;
         return 0;
     }
+
     field_state* field = fields.get(x,y);
+
     if (field->type != OCEAN) {
         ps->stack[ps->sp++] = INSTR_INVALID_TARGET;
         return 0;
@@ -807,14 +936,20 @@ int builtin_boat(player_state* ps) {
 
 int builtin_bear_trap(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
+
     if(!spend_resource(&ps->resources, R_BearTrap, 1)) {
         ps->stack[ps->sp++] = INSTR_MISSING_RESOURCE;
         return 0;
     }
 
     int x, y;
-    location_coords(ps->entity->location, &x, &y);
+    if(!location_coords(ps->entity->location, &x, &y)) {
+        ps->stack[ps->sp++] = INSTR_ERROR;
+        return 0;
+    }
+
     move_coord(&x, &y, d, 1);
+
     if (!in_bounds(x,y)) {
         ps->stack[ps->sp++] = INSTR_OUT_OF_BOUNDS;
         return 0;
@@ -842,10 +977,12 @@ int builtin_throw_clay(player_state* ps) {
         return 0;
     }
 
-    p = clamp(p, _gr->settings.throw_clay.range, 0);
-    
     int x, y;
-    location_coords(ps->entity->location, &x, &y);
+    if(!location_coords(ps->entity->location, &x, &y)) {
+        ps->stack[ps->sp++] = INSTR_ERROR;
+        return 0;
+    }
+    p = clamp(p, _gr->settings.throw_clay.range, 0);
     
     while (p--) { 
         move_coord(&x, &y, d, 1);
@@ -955,7 +1092,8 @@ int builtin_drop(player_state* ps) {
             else {
                 add_resource(&loc.vehicle->resources, resource, remaining_space);
                 field_state* field  = location_field(loc);
-                add_resource(&field->resources, resource, drop_amount - remaining_space);
+                if (field != NULL)
+                    add_resource(&field->resources, resource, drop_amount - remaining_space);
             }
             success = 1;
             break;
@@ -1020,8 +1158,13 @@ int builtin_mine_shaft(player_state* ps) {
     }
 
     int x, y;
-    location_coords(ps->entity->location, &x, &y);
+    if(!location_coords(ps->entity->location, &x, &y)) {
+        ps->stack[ps->sp++] = INSTR_ERROR;
+        return 0;
+    }
+
     move_coord(&x, &y, d, 1);
+    
     if (!in_bounds(x, y)) {
         ps->stack[ps->sp++] = INSTR_OUT_OF_BOUNDS;
         return 0;

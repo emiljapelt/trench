@@ -425,14 +425,18 @@ int instr_meta(player_state* ps) {
     switch (meta) {
         case META_PLAYER_X: {
             int x, y;
-            location_coords(ps->entity->location, &x, &y);
-            ps->stack[ps->sp++] = x;
+            if (location_coords(ps->entity->location, &x, &y))
+                ps->stack[ps->sp++] = x;
+            else 
+                ps->stack[ps->sp++] = -1;
             break;
         }
         case META_PLAYER_Y: {
             int x, y;
-            location_coords(ps->entity->location, &x, &y);
-            ps->stack[ps->sp++] = y;
+            if (location_coords(ps->entity->location, &x, &y))
+                ps->stack[ps->sp++] = y;
+            else 
+                ps->stack[ps->sp++] = -1;
             break;
         }
         case META_PLAYER_ID:

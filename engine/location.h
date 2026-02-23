@@ -20,9 +20,8 @@ location field_location_from_field(struct field_state*);
 location vehicle_location(struct vehicle_state*);
 
 struct field_state* location_field(location);
-void location_coords(location, int*, int*);
+int location_coords(location, int*, int*);
 int location_equal(location, location);
-int location_is(location, int, int);
 
 #define VOID ((location){ .type = VOID_LOCATION })
 

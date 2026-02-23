@@ -97,8 +97,8 @@ void pan_viewport(float time, const int x, const int y) {
 
 void pan_viewport_player(float time, player_state* ps) {
     int x, y;
-    location_coords(ps->entity->location, &x, &y);
-    pan_viewport(time, x, y);
+    if (location_coords(ps->entity->location, &x, &y))
+        pan_viewport(time, x, y);
 }
 
 void auto_viewport(int x, int y) {
@@ -110,8 +110,8 @@ void auto_viewport(int x, int y) {
 void auto_viewport_player(player_state* ps) {
     if (_gr->viewport.automatic) {
         int x, y;
-        location_coords(ps->entity->location, &x, &y);
-        auto_viewport(x,y);
+        if (location_coords(ps->entity->location, &x, &y))
+            auto_viewport(x,y);
     }
 }
 

@@ -21,9 +21,11 @@ int mine(entity_t* entity, void* data, situation situ) {
             kill_player(entity->player, "Blown up by a mine");
 
             field_state* field = location_field(entity->location);
-            set_overlay(field, EXPLOSION);
-            set_color_overlay(field, FORE, RED);
-            set_mod_overlay(field, BOLD);
+            if (field != NULL) {
+                set_overlay(field, EXPLOSION);
+                set_color_overlay(field, FORE, RED);
+                set_mod_overlay(field, BOLD);
+            }
             return 1;
         }
         
@@ -31,9 +33,11 @@ int mine(entity_t* entity, void* data, situation situ) {
             entity->active = 0;
 
             field_state* field = location_field(entity->location);
-            set_overlay(field, EXPLOSION);
-            set_color_overlay(field, FORE, RED);
-            set_mod_overlay(field, BOLD);
+            if (field != NULL) {
+                set_overlay(field, EXPLOSION);
+                set_color_overlay(field, FORE, RED);
+                set_mod_overlay(field, BOLD);
+            }
             return 1;
         }
     }
@@ -176,12 +180,15 @@ int clay_spread(entity_t* entity, void* data, situation situ) {
     if (entity->type == ENTITY_PLAYER) {
         field_state* field = location_field(situ.movement.loc);
         field_state* clay_field = location_field(entity->location);
+
+        if (field == NULL || clay_field == NULL) return 0;
+
         if (clay_field->data->clay_pit.amount >= _gr->settings.clay_pit.spread_limit)
         switch (field->type) {
             case EMPTY:
                 int x, y;
-                location_coords(situ.movement.loc, &x, &y);
-                fields.build.clay_pit(field);
+                if(location_coords(situ.movement.loc, &x, &y)) 
+                    fields.build.clay_pit(field);
                 break;
             case CLAY:
                 if (field->data->clay_pit.amount < _gr->settings.clay_pit.contain_limit) {

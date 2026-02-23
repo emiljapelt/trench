@@ -54,14 +54,27 @@ void set_player_steps_and_actions(player_state* ps) {
 }
 
 void kill_player(player_state* ps, const char* reason) {
-    field_state* field = location_field(ps->entity->location);
-    field->symbol = COFFIN;
-    field->foreground_color = WHITE;
-    
     ps->entity->active = 0;
     update_events(ps->entity, ps->pre_death_events, (situation){ .type = NO_SITUATION});
     if (ps->entity->active) return;
     update_events(ps->entity, ps->post_death_events, (situation){ .type = NO_SITUATION});
+
+    field_state* field = location_field(ps->entity->location);
+    if (field != NULL) {
+        field->symbol = COFFIN;
+        field->foreground_color = WHITE;
+        
+        // drop resources
+        add_resource(&field->resources, R_Wood, ps->resources.resource[R_Wood].amount);
+        add_resource(&field->resources, R_Clay, ps->resources.resource[R_Clay].amount);
+        add_resource(&field->resources, R_Ammo, ps->resources.resource[R_Ammo].amount);
+        add_resource(&field->resources, R_Sapling, ps->resources.resource[R_Sapling].amount);
+        add_resource(&field->resources, R_BearTrap, ps->resources.resource[R_BearTrap].amount);
+        add_resource(&field->resources, R_Explosive, ps->resources.resource[R_Explosive].amount);
+        add_resource(&field->resources, R_Metal, ps->resources.resource[R_Metal].amount);
+    }
+
+    zero_out_registry(&ps->resources);
 
     move_entity_to_location(ps->entity, VOID);
 
@@ -71,17 +84,6 @@ void kill_player(player_state* ps, const char* reason) {
     _log(INFO, msg);
     if (ps->team)
         ps->team->members_alive--;
-
-    // drop resources
-    add_resource(&field->resources, R_Wood, ps->resources.resource[R_Wood].amount);
-    add_resource(&field->resources, R_Clay, ps->resources.resource[R_Clay].amount);
-    add_resource(&field->resources, R_Ammo, ps->resources.resource[R_Ammo].amount);
-    add_resource(&field->resources, R_Sapling, ps->resources.resource[R_Sapling].amount);
-    add_resource(&field->resources, R_BearTrap, ps->resources.resource[R_BearTrap].amount);
-    add_resource(&field->resources, R_Explosive, ps->resources.resource[R_Explosive].amount);
-    add_resource(&field->resources, R_Metal, ps->resources.resource[R_Metal].amount);
-
-    zero_out_registry(&ps->resources);
 }
 
 void move_coord(int* x, int* y, direction dir, unsigned int dist) {
