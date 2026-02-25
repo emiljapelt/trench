@@ -1224,6 +1224,93 @@ int builtin_wait(player_state* ps) {
     return 0;
 }
 
+int builtin_obliviate(player_state* ps) {
+    direction d = (direction)ps->stack[--ps->sp];
+
+    if(!spend_resource(&ps->resources, R_Mana, _gr->settings.obliviate.cost)) {
+        ps->stack[ps->sp++] = INSTR_MISSING_RESOURCE;
+        return 0;
+    }
+    
+    int x, y;
+    if(!location_coords(ps->entity->location, &x, &y)) {
+        ps->stack[ps->sp++] = INSTR_ERROR;
+        return 0;
+    }
+    
+    int limit = _gr->settings.obliviate.range;
+    while (limit--) { 
+        move_coord(&x, &y, d, 1);
+        if (!in_bounds(x,y)) break;
+
+        field_state* field = fields.get(x,y);
+        unsigned int props = fields.properties_of_field(field, ps);
+
+        set_overlay(field, BULLET);
+        set_color_overlay(field, FORE, MAGIC_PURPLE);
+        print_board(); wait(0.02);
+
+        if (props & PROP_OBSTRUCTION) {
+            ps->stack[ps->sp++] = INSTR_SUCCESS;
+            return 1;
+        }
+        else if ((props & PROP_PLAYER) && !((props & PROP_COVER) || (props & PROP_SHELTER))) {
+            for(int i = 0; i < field->entities->count; i++) {
+                entity_t* e = get_entity(field->entities, i);
+                if (e->type == ENTITY_PLAYER) {
+                    e->player->bp = 0;
+                    e->player->sp = 0;
+                    e->player->dp = 0;
+                    break;
+                }
+            }
+            ps->stack[ps->sp++] = INSTR_SUCCESS;
+            return 1;
+        }
+    }
+    ps->stack[ps->sp++] = INSTR_SUCCESS;
+    return 1;
+}
+
+int builtin_blink(player_state* ps) {
+    direction d = (direction)ps->stack[--ps->sp];
+
+    if(!spend_resource(&ps->resources, R_Mana, _gr->settings.blink.cost)) {
+        ps->stack[ps->sp++] = INSTR_MISSING_RESOURCE;
+        return 0;
+    }
+
+    int x, y;
+    if(!location_coords(ps->entity->location, &x, &y)) {
+        ps->stack[ps->sp++] = INSTR_ERROR;
+        return 0;
+    }
+
+    field_state* field = fields.get(x,y);
+    field->symbol = PERSON;
+    field->foreground_color = MAGIC_PURPLE;
+    print_board(); wait(0.5); // why no work?
+
+    // more generic name?
+    ice_block_melt_event_args* args = malloc(sizeof(ice_block_melt_event_args));
+    args->player_id = ps->entity->id;
+    args->remaining = _gr->settings.blink.duration;
+    args->x = x;
+    args->y = y;
+
+    add_event(
+        _gs->events,
+        MAGICAL_EVENT,
+        events.blink_return, 
+        args
+    );
+
+    move_entity_to_location(ps->entity, VOID);
+
+    ps->stack[ps->sp++] = INSTR_SUCCESS;
+    return 1;
+}
+
 #pragma endregion
 
 
@@ -1268,6 +1355,8 @@ int handle_builtin_function(player_state* ps, builtin_func func_addr) {
         case BUILTIN_COUNT: return builtin_count(ps);
         case BUILTIN_PASS: return builtin_pass(ps);
         case BUILTIN_WAIT: return builtin_wait(ps);
+        case BUILTIN_OBLIVIATE: return builtin_obliviate(ps);
+        case BUILTIN_BLINK: return builtin_blink(ps);
     }
 }
 
@@ -1301,6 +1390,8 @@ int is_action(builtin_func func_addr) {
         case BUILTIN_CRAFT:
         case BUILTIN_COUNT:
         case BUILTIN_WAIT:
+        case BUILTIN_OBLIVIATE:
+        case BUILTIN_BLINK:
             return 1;
         default: 
             return 0;

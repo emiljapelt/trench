@@ -68,6 +68,7 @@ typedef struct events_namespace {
     event_function bear_trap_trigger;
     event_function bear_trap_escape;
     event_function clay_spread;
+    event_function blink_return;
 } events_namespace;
 extern const events_namespace events;
 

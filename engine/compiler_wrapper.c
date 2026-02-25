@@ -254,13 +254,25 @@ void load_settings_struct(game_rules* gr, value settings) {
     }
 
     {
-        value trench_settings = Field(settings, 21);
+        value trench_settings = Field(settings, 22);
         gr->settings.trench.range = Int_val(Field(trench_settings, 0));
     }
 
     {
-        value collect_settings = Field(settings, 21);
+        value collect_settings = Field(settings, 23);
         gr->settings.collect.range = Int_val(Field(collect_settings, 0));
+    }
+
+    {
+        value obliviate_settings = Field(settings, 24);
+        gr->settings.obliviate.range = Int_val(Field(obliviate_settings, 0));
+        gr->settings.obliviate.cost = Int_val(Field(obliviate_settings, 1));
+    }
+
+    {
+        value blink_settings = Field(settings, 25);
+        gr->settings.blink.cost = Int_val(Field(blink_settings, 0));
+        gr->settings.blink.duration = Int_val(Field(blink_settings, 1));
     }
 }
 

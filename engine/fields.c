@@ -203,6 +203,7 @@ void destroy_field(field_state* field, char* death_msg) {
     }
     for(int i = 0; i < field->entities->count; i++) {
         entity_t* entity = get_entity(field->entities, i);
+        // What about vehicles?
         if (entity->type == ENTITY_PLAYER)
             kill_player(entity->player, death_msg);
     }

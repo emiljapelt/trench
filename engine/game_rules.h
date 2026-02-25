@@ -133,6 +133,16 @@ typedef struct game_rules {
         struct {
             int range;
         } collect;
+
+        struct {
+            int cost;
+            int range;
+        } obliviate;
+
+        struct {
+            int cost;
+            int duration;
+        } blink;
     } settings;
 } game_rules;
 

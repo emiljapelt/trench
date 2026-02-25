@@ -9,6 +9,7 @@
 #include "color.h"
 #include "player.h"
 #include "util.h"
+#include "log.h"
 
 int mine(entity_t* entity, void* data, situation situ) {
     field_args* args = (field_args*)data;
@@ -202,6 +203,29 @@ int clay_spread(entity_t* entity, void* data, situation situ) {
     return 0;
 }
 
+int blink_return(entity_t* entity, void* data, situation situ) {
+
+    ice_block_melt_event_args* args = (ice_block_melt_event_args*)data;
+    _log(INFO, "!!!!! %i vs %i, r:%i", entity->id, args->player_id, args->remaining); 
+
+    if (args->player_id != entity->id) 
+        return 0;
+
+    if (entity->location.type != VOID_LOCATION)
+        return 1;
+
+    if (args->remaining) {
+        args->remaining--;
+        return 0;
+    }
+
+    move_entity_to_location(entity, field_location_from_coords(args->x, args->y));
+    
+    return 1;
+    
+    return 0;
+}
+
 const events_namespace events = {
     .bomb = &bomb,
     .mine = &mine,
@@ -212,5 +236,6 @@ const events_namespace events = {
     .ocean_drowning = &ocean_drowning,
     .bear_trap_trigger = &bear_trap_trigger,
     .bear_trap_escape = &bear_trap_escape,
-    .clay_spread = &clay_spread
+    .clay_spread = &clay_spread,
+    .blink_return = &blink_return,
 };
