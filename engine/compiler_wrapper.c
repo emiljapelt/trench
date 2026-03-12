@@ -122,157 +122,105 @@ int compile_player(const char* path, int stack_size, int size_limit, directive_i
     }
 }
 
-void load_settings_struct(game_rules* gr, value settings) {
-    {
-        value fireball_settings = Field(settings, 0);
-        gr->settings.fireball.range = Int_val(Field(fireball_settings, 0));
-        gr->settings.fireball.cost = Int_val(Field(fireball_settings, 1));
-    }
+int streq(const char* a, const char* b) {
+    return strcmp(a,b) == 0;
+}
 
-    {
-        value shoot_settings = Field(settings, 1);
-        gr->settings.shoot.range = Int_val(Field(shoot_settings, 0));
-    }
+void ignore(int value, char* setting) {
+    _log(WARN, "'%i' does not make sense for setting '%s', ignoring it", value, setting);
+}
 
-    {
-        value bomb_settings = Field(settings, 2);
-        gr->settings.bomb.range = Int_val(Field(bomb_settings, 0));
-    }
+void load_settings_struct(game_rules* gr, int settings_count, value settings) {
+    
+    // defaults
+    gr->program_size_limit = 0;
+    gr->stack_size = 1000;
+    gr->settings = (game_settings) {
+        .fireball = { .range = 5, .cost = 10, },
+        .shoot  = { .range = 6 },
+        .bomb = { .range = 4 },
+        .meditate = { .amount = 20 },
+        .dispel = { .cost = 5 },
+        .mana_drain = { .cost = 20 },
+        .wall = { .cost = 10 },
+        .plant_tree = { .delay = 3 },
+        .bridge = { .cost = 20 },
+        .chop = { .sapling_chance = 30, .wood_gain = 10, },
+        .fortify = { .cost = 5, .range = 1, },
+        .projection = { .cost = 50, .upkeep = 10 },
+        .freeze = { .cost = 25, .duration = 2, .range = 5, .refreeze = 0, },
+        .look = { .range = -1, },
+        .scan = { .range = -1, },
+        .boat = { .cost = 30, .capacity = 4, .wood_cap = 50, .clay_cap = 50, .ammo_cap = 100, .sapling_cap = 20, .beartrap_cap = 20, .explosive_cap = 10, .metal_cap = 10 },
+        .throw_clay = { .range = 3, .cost = 1, },
+        .clay_pit = { .spread_limit = 1, .contain_limit = 100, .collect_max = 5, },
+        .clay_golem = { .cost = 5, },
+        .mine_shaft = { .cost = 10, },
+        .craft = { .ammo_per_metal = 3, .beartraps_per_metal = 1, },
+        .trench = { .range = 1, },
+        .collect = { .range = 1, },
+        .obliviate = { .cost = 20, .range = 2, },
+        .blink = { .cost = 10, .duration = 2, },
+    };
 
-    {
-        value meditate_settings = Field(settings, 3);
-        gr->settings.meditate.amount = Int_val(Field(meditate_settings, 0));
-    }
+    for(int i = 0; i < settings_count; i++) {
+        //value setting = Field(settings, i);
+        const char* key = String_val(Field(Field(settings, i), 0));
+        int val = Int_val(Field(Field(settings, i), 1));
 
-    {
-        value dispel_settings = Field(settings, 4);
-        gr->settings.dispel.cost = Int_val(Field(dispel_settings, 0));
-    }
+        if (streq(key, "fireball.range")) gr->settings.fireball.range = val;
+        else if (streq(key, "fireball.cost")) gr->settings.fireball.cost = val;
+        else if (streq(key, "shoot.range")) gr->settings.shoot.range = val;
+        else if (streq(key, "bomb.range")) gr->settings.bomb.range = val;
+        else if (streq(key, "meditate.amount")) gr->settings.meditate.amount = val;
+        else if (streq(key, "dispel.cost")) gr->settings.dispel.cost = val;
+        else if (streq(key, "mana_drain.cost")) gr->settings.mana_drain.cost = val;
+        else if (streq(key, "wall.cost")) gr->settings.wall.cost = val;
+        else if (streq(key, "plant_tree.delay")) gr->settings.plant_tree.delay = val;
+        else if (streq(key, "bridge.cost")) gr->settings.bridge.cost = val;
+        else if (streq(key, "chop.sapling_chance")) gr->settings.chop.sapling_chance = val;
+        else if (streq(key, "chop.wood_gain")) gr->settings.chop.wood_gain = val;
+        else if (streq(key, "fortify.cost")) gr->settings.fortify.cost = val;
+        else if (streq(key, "fortify.range")) gr->settings.fortify.range = val;
+        else if (streq(key, "projection.cost")) gr->settings.projection.cost = val;
+        else if (streq(key, "projection.upkeep")) gr->settings.projection.upkeep = val;
+        else if (streq(key, "freeze.cost")) gr->settings.freeze.cost = val;
+        else if (streq(key, "freeze.duration")) gr->settings.freeze.duration = val;
+        else if (streq(key, "freeze.range")) gr->settings.freeze.range = val;
+        else if (streq(key, "freeze.refreeze")) gr->settings.freeze.refreeze = val;
+        else if (streq(key, "look.range")) gr->settings.look.range = val;
+        else if (streq(key, "scan.range")) gr->settings.scan.range = val;
+        else if (streq(key, "boat.cost")) gr->settings.boat.cost = val;
+        else if (streq(key, "boat.capacity")) gr->settings.boat.capacity = val;
+        else if (streq(key, "boat.wood_cap")) gr->settings.boat.wood_cap = val;
+        else if (streq(key, "boat.clay_cap")) gr->settings.boat.clay_cap = val;
+        else if (streq(key, "boat.ammo_cap")) gr->settings.boat.ammo_cap = val;
+        else if (streq(key, "boat.sapling_cap")) gr->settings.boat.sapling_cap = val;
+        else if (streq(key, "boat.beartrap_cap")) gr->settings.boat.beartrap_cap = val;
+        else if (streq(key, "boat.explosive_cap")) gr->settings.boat.explosive_cap = val;
+        else if (streq(key, "boat.metal_cap")) gr->settings.boat.metal_cap = val;
+        else if (streq(key, "program.stack_size")) {
+            if (val > 0) ignore(val, "program.stack_size");
+            else gr->stack_size = val;
+        }
+        else if (streq(key, "program.size_limit")) gr->program_size_limit = val;
+        else if (streq(key, "throw_clay.range")) gr->settings.throw_clay.range = val;
+        else if (streq(key, "throw_clay.cost")) gr->settings.throw_clay.cost = val;
+        else if (streq(key, "clay.spread_limit")) gr->settings.clay_pit.spread_limit = val;
+        else if (streq(key, "clay.contain_limit")) gr->settings.clay_pit.contain_limit = val;
+        else if (streq(key, "clay.collect_max")) gr->settings.clay_pit.collect_max = val;
+        else if (streq(key, "clay_golem.cost")) gr->settings.clay_golem.cost = val;
+        else if (streq(key, "mine_shaft.cost")) gr->settings.mine_shaft.cost = val;
+        else if (streq(key, "craft.ammo_per_metal")) gr->settings.craft.ammo_per_metal = val;
+        else if (streq(key, "craft.beartraps_per_metal")) gr->settings.craft.beartraps_per_metal = val;
+        else if (streq(key, "trench.range")) gr->settings.trench.range = val;
+        else if (streq(key, "collect.range")) gr->settings.collect.range = val;
+        else if (streq(key, "obliviate.cost")) gr->settings.obliviate.cost = val;
+        else if (streq(key, "obliviate.range")) gr->settings.obliviate.range = val;
+        else if (streq(key, "blink.cost")) gr->settings.blink.cost = val;
+        else if (streq(key, "blink.duration")) gr->settings.blink.duration = val;
 
-    {
-        value mana_drain_settings = Field(settings, 5);
-        gr->settings.mana_drain.cost = Int_val(Field(mana_drain_settings, 0));
-    }
-
-    {
-        value wall_settings = Field(settings, 6);
-        gr->settings.wall.cost = Int_val(Field(wall_settings, 0));
-    }
-
-    {
-        value plant_tree_settings = Field(settings, 7);
-        gr->settings.plant_tree.delay = Int_val(Field(plant_tree_settings, 0));
-    }
-
-    {
-        value bridge_settings = Field(settings, 8);
-        gr->settings.bridge.cost = Int_val(Field(bridge_settings, 0));
-    }
-
-    {
-        value chop_settings = Field(settings, 9);
-        gr->settings.chop.wood_gain = Int_val(Field(chop_settings, 0));
-        gr->settings.chop.sapling_chance = Int_val(Field(chop_settings, 1));
-    }
-
-    {
-        value fortify_settings = Field(settings, 10);
-        gr->settings.fortify.range = Int_val(Field(fortify_settings, 0));
-        gr->settings.fortify.cost = Int_val(Field(fortify_settings, 1));
-    }
-
-    {
-        value projection_settings = Field(settings, 11);
-        gr->settings.projection.cost = Int_val(Field(projection_settings, 0));
-        gr->settings.projection.upkeep = Int_val(Field(projection_settings, 1));
-    }
-
-    {
-        value freeze_settings = Field(settings, 12);
-        gr->settings.freeze.cost = Int_val(Field(freeze_settings, 0));
-        gr->settings.freeze.duration = Int_val(Field(freeze_settings, 1));
-        gr->settings.freeze.range = Int_val(Field(freeze_settings, 2));
-        gr->settings.freeze.refreeze = Int_val(Field(freeze_settings, 3));
-    }
-
-    {
-        value look_settings = Field(settings, 13);
-        gr->settings.look.range = Int_val(Field(look_settings, 0));
-    }
-
-    {
-        value scan_settings = Field(settings, 14);
-        gr->settings.scan.range = Int_val(Field(scan_settings, 0));
-    }
-
-    {
-        value boat_settings = Field(settings, 15);
-        gr->settings.boat.capacity = Int_val(Field(boat_settings, 0));
-        gr->settings.boat.cost = Int_val(Field(boat_settings, 1));
-        gr->settings.boat.wood_cap = Int_val(Field(boat_settings, 2));
-        gr->settings.boat.clay_cap = Int_val(Field(boat_settings, 3));
-        gr->settings.boat.ammo_cap = Int_val(Field(boat_settings, 4));
-        gr->settings.boat.sapling_cap = Int_val(Field(boat_settings, 5));
-        gr->settings.boat.beartrap_cap = Int_val(Field(boat_settings, 6));
-        gr->settings.boat.explosive_cap = Int_val(Field(boat_settings, 7));
-        gr->settings.boat.metal_cap = Int_val(Field(boat_settings, 8));
-    }
-
-    {
-        value program_settings = Field(settings, 16);
-        gr->stack_size = Int_val(Field(program_settings, 0));
-        gr->program_size_limit = Int_val(Field(program_settings, 1));
-    }
-
-    {
-        value throw_clay_settings = Field(settings, 17);
-        gr->settings.throw_clay.range = Int_val(Field(throw_clay_settings, 0));
-        gr->settings.throw_clay.cost = Int_val(Field(throw_clay_settings, 1));
-    }
-
-    {
-        value clay_pit_settings = Field(settings, 18);
-        gr->settings.clay_pit.spread_limit = Int_val(Field(clay_pit_settings, 0));
-        gr->settings.clay_pit.contain_limit = Int_val(Field(clay_pit_settings, 1));
-        gr->settings.clay_pit.collect_max = Int_val(Field(clay_pit_settings, 2));
-    }
-
-    {
-        value clay_golem_settings = Field(settings, 19);
-        gr->settings.clay_golem.cost = Int_val(Field(clay_golem_settings, 0));
-    }
-
-    {
-        value mine_shaft_settings = Field(settings, 20);
-        gr->settings.mine_shaft.cost = Int_val(Field(mine_shaft_settings, 0));
-    }
-
-    {
-        value craft_settings = Field(settings, 21);
-        gr->settings.craft.ammo_per_metal = Int_val(Field(craft_settings, 0));
-        gr->settings.craft.beartraps_per_metal = Int_val(Field(craft_settings, 1));
-    }
-
-    {
-        value trench_settings = Field(settings, 22);
-        gr->settings.trench.range = Int_val(Field(trench_settings, 0));
-    }
-
-    {
-        value collect_settings = Field(settings, 23);
-        gr->settings.collect.range = Int_val(Field(collect_settings, 0));
-    }
-
-    {
-        value obliviate_settings = Field(settings, 24);
-        gr->settings.obliviate.range = Int_val(Field(obliviate_settings, 0));
-        gr->settings.obliviate.cost = Int_val(Field(obliviate_settings, 1));
-    }
-
-    {
-        value blink_settings = Field(settings, 25);
-        gr->settings.blink.cost = Int_val(Field(blink_settings, 0));
-        gr->settings.blink.duration = Int_val(Field(blink_settings, 1));
+        else _log(WARN, "Unknown setting: %s", key);
     }
 }
 
@@ -318,18 +266,18 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 .seed = seed,
                 .time_scale = (float)Double_val(Field(unwrapped_result, 12)),
                 .stack_size = 1000,
-                .debug = Bool_val(Field(unwrapped_result, 14)),
+                .debug = Bool_val(Field(unwrapped_result, 15)),
                 .viewport = {
                     .x = 0,
                     .y = 0,
-                    .width = Int_val(Field(Field(unwrapped_result, 15), 0)),
-                    .height = Int_val(Field(Field(unwrapped_result, 15), 1)),
+                    .width = Int_val(Field(Field(unwrapped_result, 16), 0)),
+                    .height = Int_val(Field(Field(unwrapped_result, 16), 1)),
                     .automatic = 0,
                 },
-                .started = Bool_val(Field(unwrapped_result, 16)),
+                .started = Bool_val(Field(unwrapped_result, 17)),
             };
 
-            load_settings_struct(gr, Field(unwrapped_result, 13));
+            load_settings_struct(gr, Int_val(Field(unwrapped_result, 13)), Field(unwrapped_result, 14));
 
             value _map = Field(unwrapped_result, 4);
             field_state* map = NULL;

@@ -24,6 +24,7 @@
                         "return", RETURN;
                         "null", NULL;
                         "any", ANY;
+                        "const", CONST;
                       ] 
   
   let char_of_string s lexbuf = match s with

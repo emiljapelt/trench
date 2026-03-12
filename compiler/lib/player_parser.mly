@@ -23,7 +23,7 @@
 %token LOGIC_AND LOGIC_OR FSLASH PCT EXCLAIM
 %token COMMA SEMI COLON EOF
 %token QMARK PLUSPLUS MINUSMINUS
-%token IF ELSE IS REPEAT WHILE CONTINUE BREAK LET
+%token IF ELSE IS REPEAT WHILE CONTINUE BREAK LET CONST
 %token GOTO RARROW ANY
 %token NORTH EAST SOUTH WEST
 %token INT DIR FIELD RESOURCE L_SHIFT R_SHIFT
@@ -48,7 +48,7 @@
 /*High precedence*/
 
 %start main
-%type <int Absyn.file> main
+%type <Absyn.file> main
 %%
 
 %public seperated_or_empty(S,C):
@@ -67,16 +67,16 @@ main:
 ;
 
 simple_typ:
-  | INT { T_Int }
-  | DIR { T_Dir }
-  | FIELD { T_Field }
-  | RESOURCE { T_Resource }
+  | INT { TE_Int }
+  | DIR { TE_Dir }
+  | FIELD { TE_Field }
+  | RESOURCE { TE_Resource }
   | LPAR typ RPAR { $2 }
-  | typ LPAR seperated_or_empty(COMMA, typ) RPAR { T_Func($1, $3) }
+  | typ LPAR seperated_or_empty(COMMA, typ) RPAR { TE_Func($1, $3) }
 ;
 
 typ:
-  | typ LBRAKE CSTINT RBRAKE { T_Array($1,$3) }
+  | typ LBRAKE expression RBRAKE { TE_Array($1,$3) }
   | simple_typ { $1 }
 ;
 
@@ -104,7 +104,7 @@ simple_expr:
   | const_expr                              { $1 }
   | QMARK                                   { features ["random"] ; Random }
   | QMARK LBRAKE simple_expression+ RBRAKE  { features ["random"] ; RandomSet $3 }
-  | NAME                                    { features ["memory"] ; VarAccess $1 }
+  | NAME                                    { features ["memory"] ; IdentifierAccess $1 }
   | LBRAKE seperated_or_empty(COMMA, expression) RBRAKE { ArrayLiteral $2 }
   | LPAR expr RPAR                          { $2 }
 ;
@@ -116,13 +116,13 @@ expression:
 expr:
   | simple_expr                             { $1 }
   | expression LBRAKE expression RBRAKE     { features ["memory"] ; ArrayAccess($1,$3) }
-  | MINUS expression                        { Binary_op ("-", Expr(Int 0, $symbolstartpos.pos_lnum), $2) }  %prec UNARY
-  | EXCLAIM expression                      { Unary_op ("!", $2) } %prec UNARY
+  | MINUS expression                        { Binary_op (Minus, Expr(Int 0, $symbolstartpos.pos_lnum), $2) }  %prec UNARY
+  | EXCLAIM expression                      { Unary_op (Negate, $2) } %prec UNARY
   | expression binop expression                  { Binary_op ($2, $1, $3) }
   | typ COLON LPAR seperated_or_empty(COMMA,func_arg) RPAR block          { features ["func"] ; Func($1, $4, Stmt($6,$symbolstartpos.pos_lnum)) }
-  | COLON LPAR seperated_or_empty(COMMA,func_arg) RPAR block              { features ["func";"sugar"] ; Func(T_Int, $3, Stmt($5,$symbolstartpos.pos_lnum)) }
+  | COLON LPAR seperated_or_empty(COMMA,func_arg) RPAR block              { features ["func";"sugar"] ; Func(TE_Int, $3, Stmt($5,$symbolstartpos.pos_lnum)) }
   | typ COLON LPAR seperated_or_empty(COMMA,func_arg) RPAR RARROW expression   { features ["func";"sugar"] ; Func($1, $4, Stmt(Return $7,$symbolstartpos.pos_lnum)) }
-  | COLON LPAR seperated_or_empty(COMMA,func_arg) RPAR RARROW expression       { features ["func";"sugar"] ; Func(T_Int, $3, Stmt(Return $6,$symbolstartpos.pos_lnum)) }
+  | COLON LPAR seperated_or_empty(COMMA,func_arg) RPAR RARROW expression       { features ["func";"sugar"] ; Func(TE_Int, $3, Stmt(Return $6,$symbolstartpos.pos_lnum)) }
   | expression QMARK expression COLON expression      { features ["control";"sugar"] ; Ternary($1,$3,$5) }
   | PLUSPLUS expression                    { features ["sugar"] ; Increment($2, true)} 
   | expression PLUSPLUS                    { features ["sugar"] ; Increment($1, false)}
@@ -136,23 +136,23 @@ func_arg:
 ;
 
 %inline binop:
-  | LOGIC_AND   { "&"  }
-  | LOGIC_OR    { "|"  }
-  | EQEQ        { "="  }
-  | NEQ         { "!=" }
-  | LTEQ        { "<=" }
-  | LT          { "<"  }
-  | GTEQ        { ">=" }
-  | GT          { ">"  }
-  | PLUS        { "+"  }
-  | TIMES       { "*"  }
-  | MINUS       { "-"  }
-  | FSLASH      { "/"  }
-  | PCT         { "%"  }
-  | L_SHIFT     { "<<" }
-  | R_SHIFT     { ">>" }
-  | IS          { "is" }
-  | ANY         { "any" }
+  | LOGIC_AND   { And }
+  | LOGIC_OR    { Or  }
+  | EQEQ        { Equal  }
+  | NEQ         { NotEqual }
+  | LTEQ        { LessOrEqual }
+  | LT          { Less  }
+  | GTEQ        { Greater }
+  | GT          { GreaterOrEqual }
+  | PLUS        { Plus }
+  | TIMES       { Times }
+  | MINUS       { Minus }
+  | FSLASH      { Divide }
+  | PCT         { Remainder }
+  | L_SHIFT     { LeftShift }
+  | R_SHIFT     { RightShift }
+  | IS          { IsCompare }
+  | ANY         { AnyCompare }
 ;
 
 stmt:
@@ -197,14 +197,15 @@ alt:
 
 non_control_flow_stmt:
   | expression EQ expression          { features ["memory"] ; Assign ($1, $3) }
-  | expression PLUS_EQ expression     { features ["memory"; "sugar"] ; Assign ($1, Expr(Binary_op("+", $1, $3), $symbolstartpos.pos_lnum)) }
-  | expression MINUS_EQ expression    { features ["memory"; "sugar"] ; Assign ($1, Expr(Binary_op("-", $1, $3), $symbolstartpos.pos_lnum)) }
-  | expression TIMES_EQ expression    { features ["memory"; "sugar"] ; Assign ($1, Expr(Binary_op("*", $1, $3), $symbolstartpos.pos_lnum)) }
-  | expression L_SHIFT_EQ expression  { features ["memory"; "sugar"] ; Assign ($1, Expr(Binary_op("<<", $1, $3), $symbolstartpos.pos_lnum)) }
-  | expression R_SHIFT_EQ expression  { features ["memory"; "sugar"] ; Assign ($1, Expr(Binary_op(">>", $1, $3), $symbolstartpos.pos_lnum)) }
+  | expression PLUS_EQ expression     { features ["memory"; "sugar"] ; Assign ($1, Expr(Binary_op(Plus, $1, $3), $symbolstartpos.pos_lnum)) }
+  | expression MINUS_EQ expression    { features ["memory"; "sugar"] ; Assign ($1, Expr(Binary_op(Minus, $1, $3), $symbolstartpos.pos_lnum)) }
+  | expression TIMES_EQ expression    { features ["memory"; "sugar"] ; Assign ($1, Expr(Binary_op(Times, $1, $3), $symbolstartpos.pos_lnum)) }
+  | expression L_SHIFT_EQ expression  { features ["memory"; "sugar"] ; Assign ($1, Expr(Binary_op(LeftShift, $1, $3), $symbolstartpos.pos_lnum)) }
+  | expression R_SHIFT_EQ expression  { features ["memory"; "sugar"] ; Assign ($1, Expr(Binary_op(RightShift, $1, $3), $symbolstartpos.pos_lnum)) }
   | typ NAME                      { features ["memory"] ; Declare($1,$2) }
   | typ NAME EQ expression        { features ["memory"] ; DeclareAssign(Some $1, $2, $4) }
   | LET NAME EQ expression        { features ["memory"; "sugar"] ; DeclareAssign(None, $2, $4) }
+  | CONST NAME EQ expression      { DeclareConst($2, $4) }
 ;
 
 direction:

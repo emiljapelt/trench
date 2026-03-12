@@ -1,4 +1,4 @@
-open Absyn
+(*open Absyn
 open ProgramRep
 open Exceptions
 open Builtins
@@ -48,44 +48,44 @@ let rec type_expr (e : int expr) state : ((int * typ) expr * typ) = match e with
     let left = type_expression left state in
     let right = type_expression right state in
     let result_type = match op, get_type left, get_type right with
-    | "+", T_Int, T_Int 
-    | "-", T_Int, T_Int 
-    | "*", T_Int, T_Int 
-    | "&", T_Int, T_Int
-    | "|", T_Int, T_Int 
-    | "=", T_Int, T_Int
-    | "=", T_Dir, T_Dir
-    | "=", T_Resource, T_Resource
-    | "=", T_Field, T_Field
-    | "=", T_Func _, T_Null
-    | "=", T_Null, T_Func _
-    | "!=", T_Int, T_Int
-    | "!=", T_Dir, T_Dir
-    | "!=", T_Resource, T_Resource
-    | "!=", T_Field, T_Field
-    | "!=", T_Func _, T_Null
-    | "!=", T_Null, T_Func _
-    | "<", T_Int, T_Int 
-    | ">", T_Int, T_Int 
-    | "<=", T_Int, T_Int
-    | ">=", T_Int, T_Int 
-    | "/", T_Int, T_Int
-    | "%", T_Int, T_Int
-    | "any", T_Field, T_Field
-    | "is", T_Field, T_Field -> T_Int
-    | "<<", T_Dir, T_Int 
-    | ">>", T_Dir, T_Int -> T_Dir
-    | "+", T_Field, T_Field -> T_Field
-    | "-", T_Field, T_Field -> T_Field
-    | _,t0,t1 -> raise_failure ("Unknown binary operation: "^type_string t0^" "^op^" "^type_string t1)
+    | Plus, T_Int, T_Int 
+    | Minus, T_Int, T_Int 
+    | Times, T_Int, T_Int 
+    | And, T_Int, T_Int
+    | Or, T_Int, T_Int 
+    | Equal, T_Int, T_Int
+    | Equal, T_Dir, T_Dir
+    | Equal, T_Resource, T_Resource
+    | Equal, T_Field, T_Field
+    | Equal, T_Func _, T_Null
+    | Equal, T_Null, T_Func _
+    | NotEqual, T_Int, T_Int
+    | NotEqual, T_Dir, T_Dir
+    | NotEqual, T_Resource, T_Resource
+    | NotEqual, T_Field, T_Field
+    | NotEqual, T_Func _, T_Null
+    | NotEqual, T_Null, T_Func _
+    | Less, T_Int, T_Int 
+    | Greater, T_Int, T_Int 
+    | LessOrEqual, T_Int, T_Int
+    | GreaterOrEqual, T_Int, T_Int 
+    | Divide, T_Int, T_Int
+    | Remainder, T_Int, T_Int
+    | AnyCompare, T_Field, T_Field
+    | IsCompare, T_Field, T_Field -> T_Int
+    | LeftShift, T_Dir, T_Int 
+    | RightShift, T_Dir, T_Int -> T_Dir
+    | Plus, T_Field, T_Field -> T_Field
+    | Minus, T_Field, T_Field -> T_Field
+    | _,_,_ -> raise_failure ("Unknown binary operation")
     in
     (Binary_op(op,left,right),result_type)
   | Unary_op(op, e) -> 
     let e = type_expression e state in
     let result_type = match op, get_type e with
-    | "!", T_Int -> T_Int
-    | "!", T_Field -> T_Field
-    | _, t -> raise_failure ("Unknown unary operation: " ^ op ^ type_string t)
+    | Negate, T_Int -> T_Int
+    | Negate, T_Field -> T_Field
+    | _, _ -> raise_failure ("Unknown unary operation")
     in
     (Unary_op(op, e), result_type)
   | Random -> (Random, T_Int)
@@ -275,4 +275,4 @@ and type_statements stmts state  =
 
 let type_program (File(prog,i)) =
   let (prog',_) = type_statements prog {scopes = { local = []; global = None}; labels = available_labels (Stmt(Block prog,i)); break = None; continue = None; ret_type = None;} 
-  in File(prog', (i,T_Null))
+  in File(prog', (i,T_Null))*)

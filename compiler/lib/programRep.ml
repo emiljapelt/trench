@@ -121,12 +121,15 @@ let available_labels stmt =
   in
     aux stmt StringSet.empty
 
+let identifier_name id = match id with
+  | Var(_,n) 
+  | Const(_,n,_) -> n
 
-let is_var name scopes =
-  match List.find_opt (fun (Var(_,n)) -> n = name) scopes.local with
+let is_bound name scopes =
+  match List.find_opt (fun id -> identifier_name id = name) scopes.local with
   | Some _ -> true
   | None -> (
-    match Option.map (fun scope -> List.find_opt (fun (Var(_,n)) -> n = name) scope) scopes.global |> Option.join with
+    match Option.map (fun scope -> List.find_opt (fun id -> identifier_name id = name) scope) scopes.global |> Option.join with
     | Some _ -> true
     | _ -> false
   )

@@ -69,7 +69,6 @@ rule lex = parse
     |   '-'           { MINUS }
     |   ';'           { SEMI }
     |   '('           { LPAR }
-    |   '.'           { DOT }
     |   ')'           { RPAR }
     |   '*'           { STAR }
     |   '{'           { LBRACE }

@@ -1,8 +1,8 @@
-open Absyn
+(*open Absyn
 open Exceptions
 
-let rec optimize_expr expr =
-  match expr with
+let rec optimize_expr expr = expr
+  (*match expr with
   | Binary_op (op, e1, e2) -> ( 
     let Expr(opte1,info1) = optimize_expression e1 in
     let Expr(opte2,info2) = optimize_expression e2 in
@@ -77,6 +77,7 @@ let rec optimize_expr expr =
     | Int i when i > 0 -> a_opt
     | Int _ -> b_opt
     | _ -> Ternary(Expr(c_opt, c_info), Expr(a_opt, a_info), Expr(b_opt, b_info))
+*)
 
 and optimize_expression e : int expression = match e with
     | Expr(e,i) -> Expr(optimize_expr e, i)
@@ -111,4 +112,4 @@ let optimize_program (File(prog,i)) =
   File(optimize_stmts prog, i)
 
 
-let optimize_instruction_list instrs = instrs
+let optimize_instruction_list instrs = instrs*)

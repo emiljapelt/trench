@@ -100,16 +100,6 @@ type settings = {
   blink: blink_setting;
 }
 
-type meme = {
-  lol: {
-    l1: int,
-    l2: int,
-  },
-  loo: {
-
-  }
-}
-
 type ('a, 'b) overwrite = (string * ('a -> 'b -> 'a)) list
 
 let rec overwritter (def : ('a, 'b) overwrite) (setting : 'a) (overwrites : (string * 'b) list) = match overwrites with

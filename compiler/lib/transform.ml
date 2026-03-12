@@ -1,4 +1,4 @@
-open Absyn
+(*open Absyn
 open Builtins
 open Helpers
 
@@ -22,7 +22,7 @@ let rec count_declarations stmt : int = match stmt with
   | _ -> 0
 
 
-let rec extract_declarations stmt : variable list = match stmt with
+let rec extract_declarations stmt : identifier list = match stmt with
   | Stmt(Block stmts,_) -> (
     let regs = 
       List.map  extract_declarations stmts in
@@ -125,3 +125,4 @@ let rename_variables_of_file (File(stmts, i)) =
   match rename_variables_of_stmt builtin_rename_map (Stmt(Block stmts,i)) with
   | (_,Stmt(Block stmts,_)) -> File(stmts, i)
   | _ -> failwith "Renaming failed"
+*)

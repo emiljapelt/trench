@@ -117,16 +117,12 @@ game_setup_part:
   | SEED COLON CSTINT SEMI? { Seed (Some $3) }
   | TIME_SCALE COLON CSTFLOAT SEMI? { TimeScale $3 }
   | TIME_SCALE COLON CSTINT SEMI? { TimeScale(float_of_int $3) }
-  | SETTINGS COLON LBRACE setting_group* RBRACE SEMI? { SettingOverwrites $4 }
+  | SETTINGS COLON LBRACE setting* RBRACE SEMI? { SettingOverwrites $4 }
   | DEBUG COLON TRUE SEMI? { Debug true }
   | DEBUG COLON FALSE SEMI? { Debug false }
   | VIEWPORT COLON CSTINT COMMA CSTINT SEMI? { Viewport($3,$5) }
   | AUTO_START COLON TRUE SEMI? { AutoStart true }
   | AUTO_START COLON FALSE SEMI? { AutoStart false }
-;
-
-setting_group:
-  | WORD COLON LBRACE setting* RBRACE SEMI? { ($1,$4) }
 ;
 
 setting:

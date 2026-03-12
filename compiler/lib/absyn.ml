@@ -39,58 +39,92 @@ and typ =
     | T_Field
     | T_Resource
     | T_Array of typ * int
+    | T_Tuple of (typ * string option) list
     | T_Func of typ * typ list
     | T_Null
 
-and 'a statement =
-    | Stmt of 'a stmt * 'a
+and typ_expr =
+    | TE_Int
+    | TE_Dir
+    | TE_Field
+    | TE_Resource
+    | TE_Array of typ_expr * expression
+    | TE_Tuple of (typ_expr * string option) list
+    | TE_Func of typ_expr * typ_expr list
 
-and 'a stmt =
-    | If of 'a expression * 'a statement * 'a statement
-    | IfIs of 'a expression * ('a expression * 'a statement) list * 'a statement option
-    | Block of 'a statement list
-    | While of 'a expression * 'a statement * 'a statement option
+and  statement =
+    | Stmt of stmt * int
+
+and stmt =
+    | If of  expression *  statement *  statement
+    | IfIs of  expression * ( expression *  statement) list *  statement option
+    | Block of  statement list
+    | While of  expression *  statement *  statement option
     | Continue
     | Break
-    | Assign of 'a expression * 'a expression
+    | Assign of  expression *  expression
     | Label of string
     | GoTo of string
-    | Declare of typ * string
-    | DeclareAssign of typ option * string * 'a expression
-    | Return of 'a expression
-    | ExprStmt of 'a expression
+    | Declare of typ_expr * string
+    | DeclareAssign of typ_expr option * string * expression
+    | DeclareConst of string * expression
+    | Return of  expression
+    | ExprStmt of  expression
 
-and 'a expression =
-    | Expr of 'a expr * 'a
+and expression =
+    | Expr of expr * int
 
-and 'a expr =
-    | VarAccess of string
-    | ArrayAccess of 'a expression * 'a expression
+and expr =
+    | IdentifierAccess of string
+    | ArrayAccess of  expression *  expression
     | Resource of resource
-    | Increment of 'a expression * bool
-    | Decrement of 'a expression * bool
-    | Binary_op of string * 'a expression * 'a expression
-    | Unary_op of string * 'a expression
+    | Increment of  expression * bool
+    | Decrement of  expression * bool
+    | Binary_op of binop *  expression *  expression
+    | Unary_op of unop *  expression
     | Int of int
     | Prop of field_prop
     | Direction of direction
     | Random
-    | RandomSet of 'a expression list
-    | Func of typ * (typ * string) list * 'a statement
-    | Call of 'a expression * 'a expression list
-    | Ternary of 'a expression * 'a expression * 'a expression
+    | RandomSet of  expression list
+    | Func of typ_expr * (typ_expr * string) list *  statement
+    | Call of  expression *  expression list
+    | Ternary of  expression *  expression *  expression
     | Null
-    | ArrayLiteral of 'a expression list
+    | ArrayLiteral of  expression list
 
-and variable =
+and binop =
+    | Plus
+    | Minus
+    | Times
+    | And
+    | Or
+    | Equal
+    | NotEqual
+    | Less
+    | LessOrEqual
+    | Greater
+    | GreaterOrEqual
+    | Divide
+    | Remainder
+    | RightShift
+    | LeftShift
+    | IsCompare
+    | AnyCompare
+
+and unop =
+    | Negate
+
+and identifier =
     | Var of typ * string
+    | Const of typ * string * expression
 
-and 'a file = 
-    | File of 'a statement list * 'a
+and  file = 
+    | File of statement list * int
 
 type scopes = {
-    local: variable list;
-    global: variable list option;
+    local: identifier list;
+    global: identifier list option;
 }
 
 type compile_state = {
@@ -99,6 +133,7 @@ type compile_state = {
     break: string option;
     continue: string option;
     ret_type: typ option;
+    size: int
 }
 
 let string_of_dir d = match d with
@@ -113,6 +148,16 @@ let int_of_dir d = match d with
     | South -> 2
     | West -> 3
 
+let rec type_string t = match t with
+  | T_Int -> "int"
+  | T_Dir -> "dir"
+  | T_Field -> "field"
+  | T_Resource -> "resource"
+  | T_Array(t,i) -> (type_string t) ^ "[" ^ string_of_int i ^"]"
+  | T_Tuple(ts) -> "[" ^ (ts |> List.map (fun (t,_) -> type_string t) |> String.concat ",")  ^ "]"
+  | T_Func(r,args) -> (type_string r) ^ "(" ^ (args |> List.map type_string |> String.concat ",")  ^ ")"
+  | T_Null -> "null"
+
 let rec type_size t = match t with
     | T_Int 
     | T_Dir 
@@ -121,15 +166,7 @@ let rec type_size t = match t with
     | T_Null
     | T_Field -> 1
     | T_Array(t,s) -> s * (type_size t)
-
-let rec type_string t = match t with
-  | T_Int -> "int"
-  | T_Dir -> "dir"
-  | T_Field -> "field"
-  | T_Resource -> "resource"
-  | T_Array(t,_) -> (type_string t) ^ "[]"
-  | T_Func(r,args) -> (type_string r) ^ "(" ^ (args |> List.map type_string |> String.concat ",")  ^ ")"
-  | T_Null -> "null"
+    | T_Tuple(ts) -> List.fold_left (fun acc (t, _) -> acc + type_size t) 0 ts
 
 let rec type_eq t1 t2 = match t1,t2 with
   | T_Int, T_Int
@@ -137,6 +174,7 @@ let rec type_eq t1 t2 = match t1,t2 with
   | T_Resource, T_Resource
   | T_Field, T_Field -> true
   | T_Array(st1,_), T_Array(st2,_) -> type_eq st1 st2
+  | T_Tuple(ts1), T_Tuple(ts2) -> List.length ts1 = List.length ts2 && List.combine ts1 ts2 |> List.for_all (fun ((t1,_),(t2,_)) -> type_eq t1 t2)
   | T_Func(ret, params), T_Func(ret', params') -> 
     List.length params = List.length params' 
     && List.combine params params' |> List.for_all (fun (p,p') -> type_eq p p')
@@ -167,7 +205,7 @@ type map =
     | EmptyMap of int * int
     | FileMap of string * (int * int)
 
-type setting_overwrites = string * (string * int) list
+type setting = (string * int)
 
 type string_set_part =
     | Add of string
@@ -187,7 +225,7 @@ type game_setup_part =
     | Seed of int option
     | TimeScale of float
     | Map of map
-    | SettingOverwrites of setting_overwrites list
+    | SettingOverwrites of setting list
     | Debug of bool
     | Viewport of int * int
     | AutoStart of bool
@@ -205,7 +243,7 @@ type game_setup = GS of {
     seed: int option;
     time_scale: float;
     map: map;
-    setting_overwrites: setting_overwrites list;
+    setting_overwrites: setting list;
     debug: bool;
     viewport: int * int;
     auto_start: bool

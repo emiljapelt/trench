@@ -1,11 +1,10 @@
-open Optimize
-open Typing
+(*open Optimize
+open Typing*)
 open Exceptions
 open ToProgramRep
 open ProgramRep
 open Absyn
-open Transform
-open Settings
+(*open Transform*)
 open Resources
 open Bigarray
 open Helpers
@@ -201,7 +200,8 @@ type compiled_game_file = {
   resources: (int * int * int) array;
   seed: int option;
   time_scale: float;
-  settings: settings;
+  settings_count: int;
+  settings: setting array;
   debug: bool;
   viewport: int * int;
   auto_start: bool;
@@ -210,9 +210,9 @@ type compiled_game_file = {
 let compile_player_file path size_limit = try (
   check_path path [".tr"] ;
   compile Player_parser.main Player_lexer.start path 
-  |> rename_variables_of_file 
+  (*|> rename_variables_of_file 
   |> optimize_program
-  |> type_program
+  |> type_program*)
   |> compile_player
   |> (player_to_program size_limit)
   |> Result.ok
@@ -296,7 +296,8 @@ let format_game_setup (GS gs) =
     seed = gs.seed;
     time_scale = gs.time_scale;
     map = gs.map;
-    settings = overwrite_settings default_settings gs.setting_overwrites;
+    settings_count = List.length gs.setting_overwrites;
+    settings = Array.of_list gs.setting_overwrites;
     debug = gs.debug;
     viewport = gs.viewport;
     auto_start = gs.auto_start;
