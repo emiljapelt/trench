@@ -1,9 +1,7 @@
 open Absyn
 open ProgramRep
 open Exceptions
-(*open Typing*)
 open Field_props
-(*open Transform*)
 open Builtins
 open Resources
 open Helpers
@@ -28,41 +26,60 @@ type location =
     store: instruction;
   }
 
-(*let size_of_vars (vars : identifier list) = 
-  let rec aux vars acc = match vars with
-    | [] -> acc
-    | Var(typ,_)::t -> aux t (acc + type_size typ)
-    | Const(_)::t -> aux t acc 
-  in
-  aux vars 0*)
+let label_name name = 
+  string_of_int(label_context ()) ^ "_" ^ name
+
+let label name = Label(label_name name)
+
+let label_ref name = LabelRef(label_name name)
+
+
 
 let get_expr (Expr(expr,_)) = expr
 
-let can_assign target_type value_type = match target_type, value_type with
-      | T_Func _, T_Null
-      | T_Null, T_Func _ -> true
-      | t1, t2 -> type_eq t1 t2
+let rec can_assign target_type value_type = match target_type, value_type with
+  | T_Func _, T_Null
+  | T_Null, T_Func _ -> true
+  | T_Array(st1,_), T_Array(st2,_) -> can_assign st1 st2
+  | T_Tuple(ts1), T_Tuple(ts2) -> 
+    if List.length ts1 != List.length ts2 then false
+    else List.combine ts1 ts2 |> List.for_all (fun ((st1,_),(st2,_)) -> can_assign st1 st2)
+  | T_Func(ret1,params1), T_Func(ret2,params2) -> 
+    if List.length params1 != List.length params2 then false
+    else can_assign ret1 ret2 && List.combine params1 params2 |> List.for_all (uncurry can_assign)
+  | t1, t2 -> type_eq t1 t2
+
+let rec can_declare typ = match typ with
+  | T_Null -> false
+  | T_Array(st,_) -> can_declare st
+  | T_Tuple(ts) -> ts |> List.map fst |> List.for_all can_declare
+  | T_Func(ret,params) -> can_declare ret && List.for_all can_declare params
+  | _ -> true
 
 let find_variable_location name scopes =
-  let rec aux vars load store i : location option = match vars with
+  let scope_size ids = List.fold_left (fun acc id -> match id with
+    | Const _ -> acc
+    | Var(t,_) -> acc + type_size t
+  ) 0 ids
+  in
+  let rec aux vars load store : location option = match vars with
     | [] -> None
     | Var(ty,n)::t ->
       if n = name 
-      then Some(StorageStack {typ = ty; address = [Instr_Place ; I(i)]; load = Instr_LoadLocal; store = Instr_StoreLocal }) 
-      else aux t load store (i+type_size ty)
+      then Some(StorageStack {typ = ty; address = [Instr_Place ; I(scope_size t)]; load = Instr_LoadLocal; store = Instr_StoreLocal }) 
+      else aux t load store
     | Const(ty,n,expr)::t -> 
       if n = name 
       then Some(ComputeStack {typ = ty; expr = expr}) 
-      else aux t load store i
+      else aux t load store
   in
-  match aux scopes.local Instr_LoadLocal Instr_StoreLocal 0 with
+  match aux scopes.local Instr_LoadLocal Instr_StoreLocal with
   | Some loc -> loc
   | None -> (
-    match scopes.global |> Option.map (fun scope -> aux scope Instr_LoadGlobal Instr_StoreGlobal 0) |> Option.join with
+    match scopes.global |> Option.map (fun scope -> aux scope Instr_LoadGlobal Instr_StoreGlobal) |> Option.join with
     | Some loc -> loc
     | None -> raise_failure ("No such variable: "^name)
   )
-
 
 let is_constant state (Expr(expr, _)) = match expr with
   | Int _
@@ -75,6 +92,8 @@ let is_constant state (Expr(expr, _)) = match expr with
   )
   | _ -> false
 
+let is_true i = i > 0
+
 let rec reduce_expression state (Expr(expr, ln)) = Expr(reduce_expr state expr, ln)
 
 and reduce_expr state expr = match expr with
@@ -83,10 +102,29 @@ and reduce_expr state expr = match expr with
   | Prop p -> Prop p
   | Resource r -> Resource r
   | Binary_op(op, e1, e2) -> (match op, reduce_expression state e1 |> get_expr, reduce_expression state e2 |> get_expr with
-    | Plus, Int i1, Int i2 -> Int (i1 + i2)
-    | Minus, Int i1, Int i2 -> Int (i1 - i2)
-    | Times, Int i1, Int i2 -> Int (i1 * i2)
-    | Divide, Int i1, Int i2 -> Int (i1 / i2)
+    | Plus, Int a, Int b -> Int (a + b)
+    | Minus, Int a, Int b -> Int (a - b)
+    | Times, Int a, Int b -> Int (a * b)
+    | And, Int a, Int b -> Int (if is_true a && is_true b then 1 else 0)
+    | Or, Int a, Int b -> Int (if is_true a || is_true b then 1 else 0)
+    | Equal, Int a, Int b -> Int (if a = b then 1 else 0)
+    | Equal, Direction a, Direction b -> Int (if a = b then 1 else 0)
+    | Equal, Resource a, Resource b -> Int (if a = b then 1 else 0) 
+    | Equal, Prop a, Prop b -> Int (if a = b then 1 else 0) 
+    | NotEqual, Int a, Int b -> Int (if a != b then 1 else 0)
+    | NotEqual, Direction a, Direction b -> Int (if a != b then 1 else 0)
+    | NotEqual, Resource a, Resource b -> Int (if a != b then 1 else 0) 
+    | NotEqual, Prop a, Prop b -> Int (if a != b then 1 else 0)
+    | Less, Int a, Int b -> Int (if a < b then 1 else 0)
+    | LessOrEqual, Int a, Int b -> Int (if a <= b then 1 else 0)
+    | Greater, Int a, Int b -> Int (if a > b then 1 else 0)
+    | GreaterOrEqual, Int a, Int b -> Int (if a >= b then 1 else 0)
+    | Divide, Int a, Int b -> Int (a / b)
+    | Remainder, Int a, Int b -> Int (((a mod b) + b) mod b)
+    | _ -> expr
+  )
+  | Unary_op(op, e) -> (match op, reduce_expression state e |> get_expr with 
+    | Negate, Int i -> Int (if is_true i then 0 else 1)
     | _ -> expr
   )
   | IdentifierAccess name -> (match find_variable_location name state.scopes with
@@ -150,7 +188,6 @@ let rec compile_expr (state:compile_state) (Expr(expr, ln) as e) : (typ * instru
       then (h, List.flatten instrs @ [Instr_RandomSet ; I(List.length types)])
       else raise_failure "Random set of differing types"
   )
-    (*List.fold_left (fun acc v -> compile_expr v state acc) (Instr_RandomSet :: I(List.length vals) :: acc) vals*)
   | Direction d -> (T_Dir, [Instr_Place ; I(int_of_dir d)])
   | Binary_op (op, e1, e2) -> (
     let (typ1, instrs1) = compile_expr state e1 in
@@ -165,12 +202,14 @@ let rec compile_expr (state:compile_state) (Expr(expr, ln) as e) : (typ * instru
     | Equal, T_Dir, T_Dir 
     | Equal, T_Resource, T_Resource
     | Equal, T_Field, T_Field
+    | Equal, T_Func _, T_Func _
     | Equal, T_Null, T_Func _
     | Equal, T_Func _, T_Null -> (T_Int, instrs1 @ instrs2 @ [Instr_Eq])
     | NotEqual, T_Int, T_Int 
     | NotEqual, T_Dir, T_Dir 
     | NotEqual, T_Resource, T_Resource 
     | NotEqual, T_Field, T_Field
+    | NotEqual, T_Func _, T_Func _
     | NotEqual, T_Null, T_Func _
     | NotEqual, T_Func _, T_Null -> (T_Int, instrs1 @ instrs2 @ [Instr_Eq ; Instr_Not])
     | Less, T_Int, T_Int -> (T_Int, instrs2 @ instrs1 @ [Instr_Lt])
@@ -212,8 +251,7 @@ let rec compile_expr (state:compile_state) (Expr(expr, ln) as e) : (typ * instru
     | ComputeStack _ -> raise_failure "Could not decrement"
   )
   | Func(ret,args,body) -> (
-    let func_label = Helpers.new_label "func" in
-    let end_label = Helpers.new_label "func_end" in
+    new_label_context () ;
     let ret = eval_type_expr state ret in
     let args = List.map (fun (t,n) -> (eval_type_expr state t, n)) args in
     let func_scope = {  (* Could "this" be a constant ??? *)
@@ -228,9 +266,8 @@ let rec compile_expr (state:compile_state) (Expr(expr, ln) as e) : (typ * instru
       ret_type = Some ret;
       size = 0;
     } in
-    (*let vars = extract_declarations body |> List.rev in*)
     let (state', body) = compile_stmt body {new_state with scopes = ({ local = new_state.scopes.local; global = new_state.scopes.global })} in
-    (T_Func(ret, List.map fst args), [Instr_GoTo ; LabelRef(end_label) ; Label(func_label) ; Instr_Declare ; I(state'.size)] @ body @ [Instr_Declare ; I(type_size ret) ; Instr_Return ; Label(end_label) ; Instr_Place ; LabelRef(func_label)])
+    (T_Func(ret, List.map fst args), [Instr_GoTo ; label_ref "func_end" ; label "func" ; Instr_Declare ; I(state'.size)] @ body @ [Instr_Declare ; I(type_size ret) ; Instr_Return ; label "func_end" ; Instr_Place ; label_ref "func"])
   )
   | Call(Expr(IdentifierAccess name,_), args) when not(is_bound name state.scopes) -> (
     let (arg_types, arg_instrs) = args |> List.map (compile_expr state) |> List.split in
@@ -255,25 +292,27 @@ let rec compile_expr (state:compile_state) (Expr(expr, ln) as e) : (typ * instru
     | T_Func(ret, params) ->
       (*type check?*)
       let total_params_size = params |> List.map type_size |> List.fold_left (+) 0 in
+      if List.length params != List.length args then raise_failure "Incorrect amount of arguments" else
       let comped_args = args 
         |> List.combine params 
         |> List.map (fun (param, arg) -> 
           let (arg_typ, arg_instrs) = compile_expr state arg in
-          arg_instrs @ fix_size param arg_typ) 
+          if can_assign param arg_typ then arg_instrs @ fix_size param arg_typ
+          else raise_failure "Incorrect argument type"
+        ) 
         |> List.flatten 
       in
       (ret, comped_args @ (f_instrs @ [Instr_Place ; I(total_params_size) ; Instr_Call]))
     | _ -> raise_failure "Calling non-function"
   )
   | Ternary(c,a,b) -> (
-    let label_true = Helpers.new_label "ternary_true" in
-    let label_stop = Helpers.new_label "ternary_stop" in
+    new_label_context ();
     let (c_typ, c_instrs) = compile_expr state c in
     let (a_typ, a_instrs) = compile_expr state a in
     let (b_typ, b_instrs) = compile_expr state b in
     if c_typ != T_Int then raise_failure ("Condition must be of type 'int', but was: " ^ type_string c_typ) else
     if not(type_eq a_typ b_typ) then raise_failure "Ternary type mismatch" else
-    (a_typ, c_instrs @ [Instr_GoToIf ; LabelRef(label_true)] @ b_instrs @ [Instr_GoTo ; LabelRef(label_stop) ; Label(label_true)] @ a_instrs @ [Label(label_stop)])
+    (a_typ, c_instrs @ [Instr_GoToIf ; label_ref "ternary_true"] @ b_instrs @ [Instr_GoTo ; label_ref "ternary_stop" ; label "ternary_true"] @ a_instrs @ [label "ternary_stop"])
   )
   | Null -> (T_Null, [Instr_Place ; I(0)])
   | ArrayLiteral exprs -> 
@@ -294,9 +333,6 @@ and fix_size target_typ expr_typ : instruction list =
   | 0 -> []
   | x when x < 0 -> [Instr_MoveSP ; I(x)] (*arg is too large*)
   | x -> [Instr_Declare ; I(x)] (*arg is too small*)
-
-(*and find_expr_location e state = match e with
-  | Expr(e,_) -> find_expression_location e state*)
 
 and find_expr_location (Expr(e,_) as expr) state = match e with
   | IdentifierAccess name -> find_variable_location name state.scopes
@@ -323,13 +359,12 @@ and compile_stmts state stmts =
 and compile_stmt (Stmt(stmt,ln)) state : (compile_state * instruction list)  =
   try match stmt with
   | If (c, a, b) -> (
-    let label_true = Helpers.new_label "if_true" in
-    let label_stop = Helpers.new_label "if_stop" in
+    new_label_context () ;
     let (c_typ, c_instrs) = compile_expr state c in
     let (_, a_instrs) = compile_stmt a state in
     let (_, b_instrs) = compile_stmt b state in
     match c_typ with
-    | T_Int -> (state, c_instrs @ [Instr_GoToIf ; LabelRef(label_true)] @ b_instrs @ [Instr_GoTo ; LabelRef(label_stop) ; Label(label_true)] @ a_instrs @ [Label(label_stop)])
+    | T_Int -> (state, c_instrs @ [Instr_GoToIf ; label_ref "if_true"] @ b_instrs @ [Instr_GoTo ; label_ref "if_stop" ; label "if_true"] @ a_instrs @ [label "if_stop"])
     | _ -> raise_failure "Condition must be of type 'int'"
   )
   | IfIs(_) -> raise_failure "IfIs not implemented"(*
@@ -349,23 +384,18 @@ and compile_stmt (Stmt(stmt,ln)) state : (compile_state * instruction list)  =
     ({state with size = state.size + state'.size}, instrs)
   )
   | While(c,s,None) -> 
+    new_label_context () ;
     let (c_typ, c_instrs) = compile_expr state c in
     if c_typ != T_Int then raise_failure "Conditon must be of type 'int'" else
-    let label_cond = Helpers.new_label "while_cond" in
-    let label_start = Helpers.new_label "while_start" in
-    let label_stop = Helpers.new_label "while_stop" in
-    let (_, s_instrs) = compile_stmt s {state with break = Some label_stop; continue = Some label_cond } in
-    (state, [Instr_GoTo ; LabelRef(label_cond) ; Label(label_start)] @ s_instrs @ [Label(label_cond)] @ c_instrs @ [Instr_GoToIf ; LabelRef(label_start) ; Label(label_stop)])
-  | While(c,s,Some si) -> 
+    let (_, s_instrs) = compile_stmt s {state with break = Some(label_name "while_stop"); continue = Some(label_name "while_cond") } in
+    (state, [Instr_GoTo ; label_ref "while_cond" ; label "while_start"] @ s_instrs @ [label "while_cond"] @ c_instrs @ [Instr_GoToIf ; label_ref "while_start" ; label "while_stop"])
+  | While(c,s,Some si) ->
+    new_label_context () ; 
     let (c_typ, c_instrs) = compile_expr state c in
     if c_typ != T_Int then raise_failure "Conditon must be of type 'int'" else
-    let label_cond = Helpers.new_label "while_iter_cond" in
-    let label_start = Helpers.new_label "while_iter_start" in
-    let label_stop = Helpers.new_label "while_iter_stop" in
-    let label_iter = Helpers.new_label "while_iter_iter" in
     let (_, si_instrs) = compile_stmt si state in
-    let (_, s_instrs) = compile_stmt s {state with break = Some label_stop; continue = Some label_iter } in
-    (state, [Instr_GoTo ; LabelRef(label_cond) ; Label(label_start)] @ s_instrs @ [Label(label_iter)] @ si_instrs @ [Label(label_cond)] @ c_instrs @ [Instr_GoToIf ; LabelRef(label_start) ; Label(label_stop)])
+    let (_, s_instrs) = compile_stmt s {state with break = Some(label_name "while_stop"); continue = Some(label_name "while_iter") } in
+    (state, [Instr_GoTo ; label_ref "while_cond" ; label "while_start"] @ s_instrs @ [label "while_iter"] @ si_instrs @ [label "while_cond"] @ c_instrs @ [Instr_GoToIf ; label_ref "while_start" ; label "while_stop"])
   | Continue -> (match state.continue with
     | Some label -> (state, [Instr_GoTo ; LabelRef(label)])
     | None -> raise_failure "Nothing to continue"
@@ -374,12 +404,15 @@ and compile_stmt (Stmt(stmt,ln)) state : (compile_state * instruction list)  =
     | Some label -> (state, [Instr_GoTo ; LabelRef(label)])
     | None -> raise_failure "Nothing to break out of"
   )
-  | Assign (target, expr) -> ( (*type check*)
+  | Assign (target, expr) -> (
     match find_expr_location target state with
-    | ComputeStack _ -> raise_failure "Could not assign"
+    | ComputeStack _ -> raise_failure "Not an assignable target"
     | StorageStack loc -> 
       let (expr_typ, expr_instrs) = compile_expr state expr in
-      (state, expr_instrs @ fix_size loc.typ expr_typ @ loc.address @ [loc.store ; I(type_size loc.typ)])
+      if can_assign loc.typ expr_typ then
+        (state, expr_instrs @ fix_size loc.typ expr_typ @ loc.address @ [loc.store ; I(type_size loc.typ)])
+      else 
+        raise_failure ("Cannot assign a value of type '"^type_string expr_typ^"' to a target of type '"^type_string loc.typ^"'")
   )
   | Declare(typ,name) -> 
     let typ = eval_type_expr state typ in
@@ -412,11 +445,13 @@ and compile_stmt (Stmt(stmt,ln)) state : (compile_state * instruction list)  =
     if StringSet.mem n state.labels
     then (state, [Instr_GoTo ; LabelRef n])
     else raise_failure ("Unavailable label: "^n)
-  | Return expr -> (match state.ret_type with  (*type check*)
-    | Some t -> 
-      let (expr_typ, expr_instrs) = compile_expr state expr in
-      (state, expr_instrs @ fix_size t expr_typ  @ [Instr_Return ; I(type_size t)])
-    | None -> raise_failure ""
+  | Return expr -> (
+    let (expr_typ, expr_instrs) = compile_expr state expr in
+    match state.ret_type with
+    | Some typ when can_assign typ expr_typ -> 
+      (state, expr_instrs @ fix_size typ expr_typ  @ [Instr_Return ; I(type_size typ)])
+    | Some typ -> raise_failure ("Cannot return a value of type '"^type_string expr_typ^"' from a function returning '"^type_string typ^"'")
+    | None -> raise_failure "Not in a function"
   )
   | ExprStmt e -> 
     let (typ, instrs) = compile_expr state e in
@@ -425,12 +460,8 @@ and compile_stmt (Stmt(stmt,ln)) state : (compile_state * instruction list)  =
   | Failure(p,None,msg) -> raise (Failure(p,Some ln, msg))
   | a -> raise a
 
-(* TODO: Maybe global scope could just be empty ??? *)
-
 let compile_player (File(program,i)) =
   let program = Stmt(Block program, i) in
-  (* let vars = extract_declarations program |> List.rev in *)
-  (* Does the returned state hold this information ??? *)
   let labels = available_labels program in
   let state = {scopes = { local = [] ; global = None }; size = 0; labels = labels; break = None; continue = None; ret_type = None;} in
   let (state, instrs) = compile_stmt program state in

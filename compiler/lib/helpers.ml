@@ -10,6 +10,9 @@ type int_generator = { mutable next : int }
 (* Names *)
 let ng = ( {next = 0}) 
 
+let curry f a b = f (a,b)
+let uncurry f (a,b) = f a b
+
 let rename n =
   let number = ng.next in
   let () = ng.next <- ng.next+1 in
@@ -21,10 +24,11 @@ let reset_rename_generator () =
 (* Labels *)
 let lg = ( {next = 0;} )
 
-let new_label name =
-  let number = lg.next in
-  let () = lg.next <- lg.next+1 in
-  name ^ Int.to_string number
+let label_context () = lg.next
+
+let new_label_context () =
+  lg.next <- lg.next+1
+
 
 (* Lookup *)
 let rec lookup f l =
