@@ -71,8 +71,9 @@ simple_typ:
   | DIR { TE_Dir }
   | FIELD { TE_Field }
   | RESOURCE { TE_Resource }
-  | LPAR typ RPAR { $2 }
   | typ LPAR seperated_or_empty(COMMA, typ) RPAR { TE_Func($1, $3) }
+  (*| LBRAKE seperated_or_empty(COMMA, typ) RBRAKE { TE_Tuple($2 |> List.map (fun t -> (t, None))) }*)
+  | LPAR typ RPAR { $2 }
 ;
 
 typ:
@@ -105,7 +106,7 @@ simple_expr:
   | QMARK                                   { features ["random"] ; Random }
   | QMARK LBRAKE simple_expression+ RBRAKE  { features ["random"] ; RandomSet $3 }
   | NAME                                    { features ["memory"] ; IdentifierAccess $1 }
-  | LBRAKE seperated_or_empty(COMMA, expression) RBRAKE { ArrayLiteral $2 }
+  | LBRAKE seperated_or_empty(COMMA, expression) RBRAKE { StructureLiteral $2 }
   | LPAR expr RPAR                          { $2 }
 ;
 

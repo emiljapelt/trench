@@ -91,7 +91,7 @@ and expr =
     | Call of  expression *  expression list
     | Ternary of  expression *  expression *  expression
     | Null
-    | ArrayLiteral of  expression list
+    | StructureLiteral of  expression list
 
 and binop =
     | Plus

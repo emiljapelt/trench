@@ -127,10 +127,13 @@ and reduce_expr state expr = match expr with
     | Negate, Int i -> Int (if is_true i then 0 else 1)
     | _ -> expr
   )
+  | IdentifierAccess name when not(is_bound name state.scopes) -> expr
   | IdentifierAccess name -> (match find_variable_location name state.scopes with
     | ComputeStack loc -> get_expr loc.expr
     | _ -> expr
-    )
+  )
+  | ArrayAccess(target, index) -> ArrayAccess(reduce_expression state target, reduce_expression state index) (* Can likely be a little better on constants *)
+  | Call(f,args) -> Call(reduce_expression state f, List.map (reduce_expression state) args) (* Can likely be a little better on constants *)
   | _ -> expr
 
 let rec eval_type_expr state te = match te with
@@ -172,6 +175,15 @@ let rec compile_expr (state:compile_state) (Expr(expr, ln) as e) : (typ * instru
     )
     | StorageStack loc -> (match loc.typ with
       | T_Array(elem_t, size) -> (elem_t, loc.address @ (index_instrs @ (Instr_Index :: I(size) :: I(type_size elem_t) :: loc.load :: I(type_size elem_t) :: [])))
+      | T_Tuple(entries) -> (match index with
+        | Expr(Int i,_) when i >= 0 && i < List.length entries-> (match List.nth_opt entries i with
+          | Some(elem_t,_) -> 
+            let size = List.fold_left (fun acc (t,_) -> acc + type_size t) 0 entries in
+            (elem_t, loc.address @ (index_instrs @ (Instr_Index :: I(size) :: I(type_size elem_t) :: loc.load :: I(type_size elem_t) :: [])))
+          | None -> raise_failure "Invalid tuple access"
+          )
+        | _ -> raise_failure "Invalid tuple access"
+      )
       | _ -> raise_failure "Dont know how to access array"
     )
   )
@@ -315,14 +327,15 @@ let rec compile_expr (state:compile_state) (Expr(expr, ln) as e) : (typ * instru
     (a_typ, c_instrs @ [Instr_GoToIf ; label_ref "ternary_true"] @ b_instrs @ [Instr_GoTo ; label_ref "ternary_stop" ; label "ternary_true"] @ a_instrs @ [label "ternary_stop"])
   )
   | Null -> (T_Null, [Instr_Place ; I(0)])
-  | ArrayLiteral exprs -> 
+  | StructureLiteral exprs -> 
     let (typs, instrs) = exprs |> List.map (compile_expr state) |> List.split in
-    match typs with
-    | [] -> raise_failure "Empty structure literal"
-    | h::t -> 
-      if List.for_all (type_eq h) t 
-      then (T_Array(h,List.length typs), List.flatten instrs)
-      else raise_failure "TODO: Tuples!"
+    match List.find_opt can_declare typs with
+    | None -> raise_failure "Could not infere structure type"
+    | Some typ -> (
+      if List.for_all (can_assign typ) typs then (T_Array(typ,List.length typs), List.flatten instrs)
+      else if List.for_all can_declare typs then (T_Tuple(typs |> List.map (fun t -> (t, None))), List.flatten instrs)
+      else raise_failure "Could not infere structure type"
+    )
   with
   | Failure(p,None,msg) -> raise (Failure(p,Some ln, msg))
   | a -> raise a
@@ -334,15 +347,26 @@ and fix_size target_typ expr_typ : instruction list =
   | x when x < 0 -> [Instr_MoveSP ; I(x)] (*arg is too large*)
   | x -> [Instr_Declare ; I(x)] (*arg is too small*)
 
+(* This function is crazy, please fix *)
 and find_expr_location (Expr(e,_) as expr) state = match e with
   | IdentifierAccess name -> find_variable_location name state.scopes
   | ArrayAccess (target, index) -> (match compile_expr state target, find_expr_location target state with
     | _, ComputeStack info -> ComputeStack info
     | (T_Array(elem_t, array_size), _), StorageStack loc -> 
       let (index_typ, index_instrs) = compile_expr state index in
-      if (index_typ != T_Int) then raise_failure "Index must be od type 'int'" else
-      StorageStack { loc with address = loc.address @ index_instrs @ [Instr_Index ; I(array_size) ; I(type_size elem_t)] }
-    | _ -> raise_failure ""
+      if (index_typ != T_Int) then raise_failure "Index must be of type 'int'" else
+      StorageStack { loc with typ = elem_t; address = loc.address @ index_instrs @ [Instr_Index ; I(array_size) ; I(type_size elem_t)] }
+    | (T_Tuple(entries), _), StorageStack loc -> (match index with
+      | Expr(Int i,_) when i >= 0 && i < List.length entries -> (match List.nth_opt entries i with
+        | Some (t,_) ->
+          let tuple_size = List.fold_left (fun acc (t,_) -> acc + type_size t) 0 entries in
+          StorageStack { loc with typ = t; address = loc.address @ [Instr_Place ; I(i); Instr_Index ; I(tuple_size) ; I(type_size t)] }
+        | None -> raise_failure ":("
+      )
+      | _ -> raise_failure ":("
+    )
+      
+    | _ -> raise_failure "?"
   )
   | _ -> ComputeStack { typ = T_Null (* NOPE, is this even needed? *) ; expr = expr }
 
@@ -360,7 +384,7 @@ and compile_stmt (Stmt(stmt,ln)) state : (compile_state * instruction list)  =
   try match stmt with
   | If (c, a, b) -> (
     new_label_context () ;
-    let (c_typ, c_instrs) = compile_expr state c in
+    let (c_typ, c_instrs) = c |> reduce_expression state |> compile_expr state in
     let (_, a_instrs) = compile_stmt a state in
     let (_, b_instrs) = compile_stmt b state in
     match c_typ with
@@ -385,13 +409,13 @@ and compile_stmt (Stmt(stmt,ln)) state : (compile_state * instruction list)  =
   )
   | While(c,s,None) -> 
     new_label_context () ;
-    let (c_typ, c_instrs) = compile_expr state c in
+    let (c_typ, c_instrs) = c |> reduce_expression state |> compile_expr state in
     if c_typ != T_Int then raise_failure "Conditon must be of type 'int'" else
     let (_, s_instrs) = compile_stmt s {state with break = Some(label_name "while_stop"); continue = Some(label_name "while_cond") } in
     (state, [Instr_GoTo ; label_ref "while_cond" ; label "while_start"] @ s_instrs @ [label "while_cond"] @ c_instrs @ [Instr_GoToIf ; label_ref "while_start" ; label "while_stop"])
   | While(c,s,Some si) ->
     new_label_context () ; 
-    let (c_typ, c_instrs) = compile_expr state c in
+    let (c_typ, c_instrs) = c |> reduce_expression state |> compile_expr state in
     if c_typ != T_Int then raise_failure "Conditon must be of type 'int'" else
     let (_, si_instrs) = compile_stmt si state in
     let (_, s_instrs) = compile_stmt s {state with break = Some(label_name "while_stop"); continue = Some(label_name "while_iter") } in
@@ -408,7 +432,7 @@ and compile_stmt (Stmt(stmt,ln)) state : (compile_state * instruction list)  =
     match find_expr_location target state with
     | ComputeStack _ -> raise_failure "Not an assignable target"
     | StorageStack loc -> 
-      let (expr_typ, expr_instrs) = compile_expr state expr in
+      let (expr_typ, expr_instrs) = expr |> reduce_expression state |> compile_expr state in
       if can_assign loc.typ expr_typ then
         (state, expr_instrs @ fix_size loc.typ expr_typ @ loc.address @ [loc.store ; I(type_size loc.typ)])
       else 
@@ -419,16 +443,16 @@ and compile_stmt (Stmt(stmt,ln)) state : (compile_state * instruction list)  =
     ({state with scopes = { local = Var(typ,name)::state.scopes.local; global = state.scopes.global }; size = state.size + type_size typ }, [])
   | DeclareAssign (typ_opt, name, expr) -> ( match typ_opt with
     | None -> (
-      let (typ, expr_instrs) = compile_expr state expr in
-      if typ == T_Null then raise_failure "Cannot infere a type from null" else
-      let state' = {state with scopes = { local = Var(typ,name)::state.scopes.local; global = state.scopes.global }; size = state.size + type_size typ} in 
+      let (typ, expr_instrs) = expr |> reduce_expression state |> compile_expr state in
+      if not(can_declare typ) then  raise_failure ("Cannot declare a variable of type '"^type_string typ^"'")
+      else let state' = {state with scopes = { local = Var(typ,name)::state.scopes.local; global = state.scopes.global }; size = state.size + type_size typ} in 
       match find_variable_location name state'.scopes with
       | ComputeStack _ -> raise_failure "Could not assign"
       | StorageStack loc -> (state', expr_instrs @ loc.address @ [loc.store ; I(type_size loc.typ)])
     )
     | Some typ -> (
       let typ = eval_type_expr state typ in
-      let (expr_typ, expr_instrs) = compile_expr state expr in
+      let (expr_typ, expr_instrs) = expr |> reduce_expression state |> compile_expr state in
       if not(can_assign typ expr_typ) then raise_failure ("Cannot assign a value of type '" ^type_string expr_typ^ "' to a variable of type '" ^type_string typ^ "'") else
       let state' = {state with scopes = { local = Var(typ,name)::state.scopes.local; global = state.scopes.global }; size = state.size + type_size typ} in 
       match find_variable_location name state'.scopes with
@@ -446,15 +470,15 @@ and compile_stmt (Stmt(stmt,ln)) state : (compile_state * instruction list)  =
     then (state, [Instr_GoTo ; LabelRef n])
     else raise_failure ("Unavailable label: "^n)
   | Return expr -> (
-    let (expr_typ, expr_instrs) = compile_expr state expr in
+    let (expr_typ, expr_instrs) = expr |> reduce_expression state |> compile_expr state in
     match state.ret_type with
     | Some typ when can_assign typ expr_typ -> 
       (state, expr_instrs @ fix_size typ expr_typ  @ [Instr_Return ; I(type_size typ)])
     | Some typ -> raise_failure ("Cannot return a value of type '"^type_string expr_typ^"' from a function returning '"^type_string typ^"'")
     | None -> raise_failure "Not in a function"
   )
-  | ExprStmt e -> 
-    let (typ, instrs) = compile_expr state e in
+  | ExprStmt expr -> 
+    let (typ, instrs) = expr |> reduce_expression state |> compile_expr state in
     (state, instrs @ [Instr_MoveSP ; I(-(type_size typ))])
   with 
   | Failure(p,None,msg) -> raise (Failure(p,Some ln, msg))
