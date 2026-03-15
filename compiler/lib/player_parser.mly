@@ -72,7 +72,7 @@ simple_typ:
   | FIELD { TE_Field }
   | RESOURCE { TE_Resource }
   | typ LPAR seperated_or_empty(COMMA, typ) RPAR { TE_Func($1, $3) }
-  (*| LBRAKE seperated_or_empty(COMMA, typ) RBRAKE { TE_Tuple($2 |> List.map (fun t -> (t, None))) }*)
+  (* | LPAR seperated(COMMA, typ) RPAR { TE_Tuple($2 |> List.map (fun t -> (t, None))) } *)
   | LPAR typ RPAR { $2 }
 ;
 

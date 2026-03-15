@@ -167,11 +167,12 @@ let rec compile_expr (state:compile_state) (Expr(expr, ln) as e) : (typ * instru
     let (index_typ, index_instrs) = compile_expr state index in
     if not(type_eq T_Int index_typ) then raise_failure "Index must be of type 'int'" else
     match find_expr_location target state with
+    (* Not working! *)
     | ComputeStack loc -> (match loc.typ with
       | T_Array(elem_t, size) -> 
         let (_,target_instrs) = compile_expr state target in 
         (elem_t, target_instrs @ index_instrs @ [Instr_Extract ; I(size * type_size elem_t) ; I(type_size elem_t)])
-      | _ -> raise_failure "Dont know how to access array"
+      | _ -> raise_failure "Dont know how to access array" 
     )
     | StorageStack loc -> (match loc.typ with
       | T_Array(elem_t, size) -> (elem_t, loc.address @ (index_instrs @ (Instr_Index :: I(size) :: I(type_size elem_t) :: loc.load :: I(type_size elem_t) :: [])))
@@ -265,9 +266,9 @@ let rec compile_expr (state:compile_state) (Expr(expr, ln) as e) : (typ * instru
   | Func(ret,args,body) -> (
     new_label_context () ;
     let ret = eval_type_expr state ret in
-    let args = List.map (fun (t,n) -> (eval_type_expr state t, n)) args in
+    let args = args |> List.rev |> List.map (fun (t,n) -> (eval_type_expr state t, n)) in
     let func_scope = {  (* Could "this" be a constant ??? *)
-      local = (Var(T_Func(ret, List.map fst args), "this") :: List.map (fun (t,n) -> Var(t,n)) args) ; 
+      local = List.map (fun (t,n) -> Var(t,n)) args @ [Var(T_Func(ret, List.map fst args), "this")] ; 
       global =  if state.scopes.global = None then Some(state.scopes.local) else state.scopes.global ;
     } in
     let new_state = {
@@ -350,23 +351,24 @@ and fix_size target_typ expr_typ : instruction list =
 (* This function is crazy, please fix *)
 and find_expr_location (Expr(e,_) as expr) state = match e with
   | IdentifierAccess name -> find_variable_location name state.scopes
-  | ArrayAccess (target, index) -> (match compile_expr state target, find_expr_location target state with
-    | _, ComputeStack info -> ComputeStack info
-    | (T_Array(elem_t, array_size), _), StorageStack loc -> 
-      let (index_typ, index_instrs) = compile_expr state index in
-      if (index_typ != T_Int) then raise_failure "Index must be of type 'int'" else
-      StorageStack { loc with typ = elem_t; address = loc.address @ index_instrs @ [Instr_Index ; I(array_size) ; I(type_size elem_t)] }
-    | (T_Tuple(entries), _), StorageStack loc -> (match index with
-      | Expr(Int i,_) when i >= 0 && i < List.length entries -> (match List.nth_opt entries i with
-        | Some (t,_) ->
-          let tuple_size = List.fold_left (fun acc (t,_) -> acc + type_size t) 0 entries in
-          StorageStack { loc with typ = t; address = loc.address @ [Instr_Place ; I(i); Instr_Index ; I(tuple_size) ; I(type_size t)] }
-        | None -> raise_failure ":("
+  | ArrayAccess (target, index) -> (match find_expr_location target state with
+    | ComputeStack info -> ComputeStack info
+    | StorageStack loc -> (match loc.typ with
+      | T_Array(elem_t, array_size) ->
+        let (index_typ, index_instrs) = compile_expr state index in
+        if (index_typ != T_Int) then raise_failure "Index must be of type 'int'" else
+        StorageStack { loc with typ = elem_t; address = loc.address @ index_instrs @ [Instr_Index ; I(array_size) ; I(type_size elem_t)] }
+      | T_Tuple(entries) -> (match index with
+        | Expr(Int i,_) when i >= 0 && i < List.length entries -> (match List.nth_opt entries i with
+          | Some (t,_) ->
+            let tuple_size = List.fold_left (fun acc (t,_) -> acc + type_size t) 0 entries in
+            StorageStack { loc with typ = t; address = loc.address @ [Instr_Place ; I(i); Instr_Index ; I(tuple_size) ; I(type_size t)] }
+          | None -> raise_failure ":("
+        )
+        | _ -> raise_failure ":("
       )
       | _ -> raise_failure ":("
     )
-      
-    | _ -> raise_failure "?"
   )
   | _ -> ComputeStack { typ = T_Null (* NOPE, is this even needed? *) ; expr = expr }
 
