@@ -14,14 +14,14 @@ open Helpers
 - More helper functions, especially for using 'find_expression_location'
 *)
 
-type location =
+type location = 
   | ComputeStack of {
     typ: typ;
-    expr: expression;
+    instrs: instruction list;
   }
   | StorageStack of { 
     typ: typ;
-    address: instruction list;
+    instrs: instruction list;
     load: instruction;
     store: instruction;
   }
@@ -56,40 +56,38 @@ let rec can_declare typ = match typ with
   | T_Func(ret,params) -> can_declare ret && List.for_all can_declare params
   | _ -> true
 
-let find_variable_location name scopes =
-  let scope_size ids = List.fold_left (fun acc id -> match id with
+let identifier_name id =  match id with
+  | Var(_,n)
+  | Const(_,n,_) -> n
+
+let scope_size ids = List.fold_left (fun acc id -> match id with
     | Const _ -> acc
     | Var(t,_) -> acc + type_size t
   ) 0 ids
-  in
-  let rec aux vars load store : location option = match vars with
+
+let lookup_identifier name scopes =
+  let rec aux vars = match vars with
     | [] -> None
-    | Var(ty,n)::t ->
-      if n = name 
-      then Some(StorageStack {typ = ty; address = [Instr_Place ; I(scope_size t)]; load = Instr_LoadLocal; store = Instr_StoreLocal }) 
-      else aux t load store
-    | Const(ty,n,expr)::t -> 
-      if n = name 
-      then Some(ComputeStack {typ = ty; expr = expr}) 
-      else aux t load store
+    | h::t -> if identifier_name h = name then Some(h, scope_size t) else aux t 
   in
-  match aux scopes.local Instr_LoadLocal Instr_StoreLocal with
-  | Some loc -> loc
+  match aux scopes.local with
+  | Some id -> Some(LocalScope, id)
   | None -> (
-    match scopes.global |> Option.map (fun scope -> aux scope Instr_LoadGlobal Instr_StoreGlobal) |> Option.join with
-    | Some loc -> loc
-    | None -> raise_failure ("No such variable: "^name)
+    match scopes.global |> Option.map (fun scope -> aux scope) |> Option.join with
+    | Some id -> Some(GlobalScope, id)
+    | None -> None
   )
 
-let is_constant state (Expr(expr, _)) = match expr with
+let rec is_constant state (Expr(expr, _)) = match expr with
   | Int _
   | Direction _
   | Prop _
   | Resource _ -> true
-  | IdentifierAccess name -> (match find_variable_location name state.scopes with
-    | ComputeStack _ -> true
+  | IdentifierAccess name -> (match lookup_identifier name state.scopes with
+    | Some(_, (Const(_,_,_), _)) -> true
     | _ -> false
   )
+  | StructureLiteral exprs -> List.for_all (is_constant state) exprs
   | _ -> false
 
 let is_true i = i > 0
@@ -128,8 +126,8 @@ and reduce_expr state expr = match expr with
     | _ -> expr
   )
   | IdentifierAccess name when not(is_bound name state.scopes) -> expr
-  | IdentifierAccess name -> (match find_variable_location name state.scopes with
-    | ComputeStack loc -> get_expr loc.expr
+  | IdentifierAccess name -> (match lookup_identifier name state.scopes with
+    | Some(_, (Const(_,_, Expr(expr,_)), _)) -> expr
     | _ -> expr
   )
   | ArrayAccess(target, index) -> ArrayAccess(reduce_expression state target, reduce_expression state index) (* Can likely be a little better on constants *)
@@ -149,7 +147,7 @@ let rec eval_type_expr state te = match te with
   | TE_Tuple _ -> raise_failure "Not implemented"
   | TE_Func(ret, params) -> T_Func(eval_type_expr state ret, List.map (eval_type_expr state) params)
 
-let rec compile_expr (state:compile_state) (Expr(expr, ln) as e) : (typ * instruction list) =
+let rec compile_expr (state:compile_state) (Expr(expr, ln)) : (typ * instruction list) =
   try match expr with
   | IdentifierAccess name when not(is_bound name state.scopes) -> (
     match lookup_builtin_info name with
@@ -159,28 +157,36 @@ let rec compile_expr (state:compile_state) (Expr(expr, ln) as e) : (typ * instru
     )
     | _ -> raise_failure ("Unknown variable: "^name)
   )
-  | IdentifierAccess _ -> ( match find_expr_location e state with
-    | StorageStack loc -> (loc.typ, loc.address @ [loc.load ; I(type_size loc.typ)])
-    | ComputeStack loc -> compile_expr state loc.expr
+  | IdentifierAccess name -> (match lookup_identifier name state.scopes with
+    | Some(GlobalScope, (Var(typ,_), addr)) -> (typ, [Instr_Place ; I(addr) ; Instr_LoadGlobal ; I(type_size typ)])
+    | Some(LocalScope, (Var(typ,_), addr)) -> (typ, [Instr_Place ; I(addr) ; Instr_LoadLocal ; I(type_size typ)])
+    | Some(_, (Const(_,_,expr), _)) -> compile_expr state expr
+    | None -> raise_failure ("Unknown identifier: "^name)
   ) 
   | ArrayAccess(target, index) -> (
     let (index_typ, index_instrs) = compile_expr state index in
     if not(type_eq T_Int index_typ) then raise_failure "Index must be of type 'int'" else
-    match find_expr_location target state with
-    (* Not working! *)
+    match find_expr_location target state with    (* Not working? *)
     | ComputeStack loc -> (match loc.typ with
-      | T_Array(elem_t, size) -> 
-        let (_,target_instrs) = compile_expr state target in 
-        (elem_t, target_instrs @ index_instrs @ [Instr_Extract ; I(size * type_size elem_t) ; I(type_size elem_t)])
+      | T_Array(elem_t, size) -> (loc.typ, loc.instrs @ index_instrs @ [Instr_Extract ; I(size * type_size elem_t) ; I(type_size elem_t)])
+      | T_Tuple(entries) -> (match index with
+        | Expr(Int i,_) when i >= 0 && i < List.length entries-> (match List.nth_opt entries i with
+          | Some(elem_t,_) -> (* One off somehow... *)
+            let size = List.fold_left (fun acc (t,_) -> acc + type_size t) 0 entries in
+            (elem_t, loc.instrs @ index_instrs @ [Instr_Extract ; I(size) ; I(type_size elem_t)])
+          | None -> raise_failure "Invalid tuple access"
+          )
+        | _ -> raise_failure "Invalid tuple access"
+      )
       | _ -> raise_failure "Dont know how to access array" 
     )
     | StorageStack loc -> (match loc.typ with
-      | T_Array(elem_t, size) -> (elem_t, loc.address @ (index_instrs @ (Instr_Index :: I(size) :: I(type_size elem_t) :: loc.load :: I(type_size elem_t) :: [])))
+      | T_Array(elem_t, size) -> (elem_t, loc.instrs @ index_instrs @ [Instr_Index ; I(size) ; I(type_size elem_t) ; loc.load ; I(type_size elem_t)])
       | T_Tuple(entries) -> (match index with
         | Expr(Int i,_) when i >= 0 && i < List.length entries-> (match List.nth_opt entries i with
           | Some(elem_t,_) -> 
             let size = List.fold_left (fun acc (t,_) -> acc + type_size t) 0 entries in
-            (elem_t, loc.address @ (index_instrs @ (Instr_Index :: I(size) :: I(type_size elem_t) :: loc.load :: I(type_size elem_t) :: [])))
+            (elem_t, loc.instrs @ index_instrs @ [Instr_Index ; I(size) ; I(type_size elem_t) ; loc.load ; I(type_size elem_t)])
           | None -> raise_failure "Invalid tuple access"
           )
         | _ -> raise_failure "Invalid tuple access"
@@ -248,19 +254,19 @@ let rec compile_expr (state:compile_state) (Expr(expr, ln) as e) : (typ * instru
   )
   (* true = pre *)
   | Increment(target, true) -> (match find_expr_location target state with
-  | StorageStack loc -> (loc.typ, loc.address @ [Instr_Copy ; Instr_Copy ; loc.load ; I(type_size loc.typ) ; Instr_Place ; I(1) ; Instr_Add ; Instr_Swap ; loc.store ; I(type_size loc.typ) ; loc.load ; I(type_size loc.typ)])
+  | StorageStack loc -> (loc.typ, loc.instrs @ [Instr_Copy ; Instr_Copy ; loc.load ; I(type_size loc.typ) ; Instr_Place ; I(1) ; Instr_Add ; Instr_Swap ; loc.store ; I(type_size loc.typ) ; loc.load ; I(type_size loc.typ)])
     | ComputeStack _ -> raise_failure "Could not increment"
   )
   | Decrement(target, true)  -> (match find_expr_location target state with
-    | StorageStack loc -> (loc.typ, loc.address @ [Instr_Copy ; Instr_Copy ; loc.load ; I(type_size loc.typ) ; Instr_Place ; I(1) ; Instr_Sub ; Instr_Swap ; loc.store ; I(type_size loc.typ) ; loc.load ; I(type_size loc.typ)])
+    | StorageStack loc -> (loc.typ, loc.instrs @ [Instr_Copy ; Instr_Copy ; loc.load ; I(type_size loc.typ) ; Instr_Place ; I(1) ; Instr_Sub ; Instr_Swap ; loc.store ; I(type_size loc.typ) ; loc.load ; I(type_size loc.typ)])
     | ComputeStack _ -> raise_failure "Could not decrement"
   )
   | Increment(target, false) -> (match find_expr_location target state with
-    | StorageStack loc -> (loc.typ, loc.address @ [Instr_Copy ; loc.load ; I(type_size loc.typ) ; Instr_Swap ; Instr_Copy ; loc.load ; I(type_size loc.typ) ; Instr_Place ; I(1) ; Instr_Add ; Instr_Swap ; loc.store ; I(type_size loc.typ)]) 
+    | StorageStack loc -> (loc.typ, loc.instrs @ [Instr_Copy ; loc.load ; I(type_size loc.typ) ; Instr_Swap ; Instr_Copy ; loc.load ; I(type_size loc.typ) ; Instr_Place ; I(1) ; Instr_Add ; Instr_Swap ; loc.store ; I(type_size loc.typ)]) 
     | ComputeStack _ -> raise_failure "Could not increment"
   )
   | Decrement(target, false) -> (match find_expr_location target state with
-    | StorageStack loc -> (loc.typ, loc.address @ [Instr_Copy ; loc.load ; I(type_size loc.typ) ; Instr_Swap ; Instr_Copy ; loc.load ; I(type_size loc.typ) ; Instr_Place ; I(1) ; Instr_Sub ; Instr_Swap ; loc.store ; I(type_size loc.typ)])
+    | StorageStack loc -> (loc.typ, loc.instrs @ [Instr_Copy ; loc.load ; I(type_size loc.typ) ; Instr_Swap ; Instr_Copy ; loc.load ; I(type_size loc.typ) ; Instr_Place ; I(1) ; Instr_Sub ; Instr_Swap ; loc.store ; I(type_size loc.typ)])
     | ComputeStack _ -> raise_failure "Could not decrement"
   )
   | Func(ret,args,body) -> (
@@ -348,21 +354,48 @@ and fix_size target_typ expr_typ : instruction list =
   | x when x < 0 -> [Instr_MoveSP ; I(x)] (*arg is too large*)
   | x -> [Instr_Declare ; I(x)] (*arg is too small*)
 
+and find_variable_location name state =
+  match lookup_identifier name state.scopes with
+  | Some(GlobalScope, (Var(typ,_), addr)) -> Some(StorageStack { typ = typ; instrs = [Instr_Place ; I(addr)]; load = Instr_LoadGlobal; store = Instr_StoreGlobal })
+  | Some(LocalScope, (Var(typ,_), addr)) -> Some(StorageStack { typ = typ; instrs = [Instr_Place ; I(addr)]; load = Instr_LoadLocal; store = Instr_StoreLocal })
+  | Some(_, (Const(_,_,expr), _)) -> 
+    let (expr_type, expr_instrs) = compile_expr state expr in
+    Some(ComputeStack { typ = expr_type; instrs = expr_instrs})
+  | None -> raise_failure ""
+
 (* This function is crazy, please fix *)
 and find_expr_location (Expr(e,_) as expr) state = match e with
-  | IdentifierAccess name -> find_variable_location name state.scopes
+  | IdentifierAccess name -> (match find_variable_location name state with
+    | Some loc -> loc
+    | None -> raise_failure ""
+  )
   | ArrayAccess (target, index) -> (match find_expr_location target state with
-    | ComputeStack info -> ComputeStack info
-    | StorageStack loc -> (match loc.typ with
+    | ComputeStack loc -> (match loc.typ with
       | T_Array(elem_t, array_size) ->
         let (index_typ, index_instrs) = compile_expr state index in
         if (index_typ != T_Int) then raise_failure "Index must be of type 'int'" else
-        StorageStack { loc with typ = elem_t; address = loc.address @ index_instrs @ [Instr_Index ; I(array_size) ; I(type_size elem_t)] }
+        ComputeStack { typ = elem_t; instrs = loc.instrs @ index_instrs @ [Instr_Extract ; I(array_size) ; I(type_size elem_t)] }
       | T_Tuple(entries) -> (match index with
         | Expr(Int i,_) when i >= 0 && i < List.length entries -> (match List.nth_opt entries i with
           | Some (t,_) ->
             let tuple_size = List.fold_left (fun acc (t,_) -> acc + type_size t) 0 entries in
-            StorageStack { loc with typ = t; address = loc.address @ [Instr_Place ; I(i); Instr_Index ; I(tuple_size) ; I(type_size t)] }
+            ComputeStack { typ = t; instrs = loc.instrs @ [Instr_Place ; I(i); Instr_Extract ; I(tuple_size) ; I(type_size t)] }
+          | None -> raise_failure ":("
+        )
+        | _ -> raise_failure ":("
+      )
+      | _ -> raise_failure ":("
+    )
+    | StorageStack loc -> (match loc.typ with
+      | T_Array(elem_t, array_size) ->
+        let (index_typ, index_instrs) = compile_expr state index in
+        if (index_typ != T_Int) then raise_failure "Index must be of type 'int'" else
+        StorageStack { loc with typ = elem_t; instrs = loc.instrs @ index_instrs @ [Instr_Index ; I(array_size) ; I(type_size elem_t)] }
+      | T_Tuple(entries) -> (match index with
+        | Expr(Int i,_) when i >= 0 && i < List.length entries -> (match List.nth_opt entries i with
+          | Some (t,_) ->
+            let tuple_size = List.fold_left (fun acc (t,_) -> acc + type_size t) 0 entries in
+            StorageStack { loc with typ = t; instrs = loc.instrs @ [Instr_Place ; I(i); Instr_Index ; I(tuple_size) ; I(type_size t)] }
           | None -> raise_failure ":("
         )
         | _ -> raise_failure ":("
@@ -370,7 +403,9 @@ and find_expr_location (Expr(e,_) as expr) state = match e with
       | _ -> raise_failure ":("
     )
   )
-  | _ -> ComputeStack { typ = T_Null (* NOPE, is this even needed? *) ; expr = expr }
+  | _ -> 
+    let (expr_type, expr_instrs) = compile_expr state expr in
+    ComputeStack { typ = expr_type ; instrs = expr_instrs }
 
 
 and compile_stmts state stmts =
@@ -436,7 +471,7 @@ and compile_stmt (Stmt(stmt,ln)) state : (compile_state * instruction list)  =
     | StorageStack loc -> 
       let (expr_typ, expr_instrs) = expr |> reduce_expression state |> compile_expr state in
       if can_assign loc.typ expr_typ then
-        (state, expr_instrs @ fix_size loc.typ expr_typ @ loc.address @ [loc.store ; I(type_size loc.typ)])
+        (state, expr_instrs @ fix_size loc.typ expr_typ @ loc.instrs @ [loc.store ; I(type_size loc.typ)])
       else 
         raise_failure ("Cannot assign a value of type '"^type_string expr_typ^"' to a target of type '"^type_string loc.typ^"'")
   )
@@ -448,18 +483,18 @@ and compile_stmt (Stmt(stmt,ln)) state : (compile_state * instruction list)  =
       let (typ, expr_instrs) = expr |> reduce_expression state |> compile_expr state in
       if not(can_declare typ) then  raise_failure ("Cannot declare a variable of type '"^type_string typ^"'")
       else let state' = {state with scopes = { local = Var(typ,name)::state.scopes.local; global = state.scopes.global }; size = state.size + type_size typ} in 
-      match find_variable_location name state'.scopes with
-      | ComputeStack _ -> raise_failure "Could not assign"
-      | StorageStack loc -> (state', expr_instrs @ loc.address @ [loc.store ; I(type_size loc.typ)])
+      match find_variable_location name state' with
+      | Some StorageStack loc -> (state', expr_instrs @ loc.instrs @ [loc.store ; I(type_size loc.typ)])
+      | _ -> raise_failure "Could not assign"
     )
     | Some typ -> (
       let typ = eval_type_expr state typ in
       let (expr_typ, expr_instrs) = expr |> reduce_expression state |> compile_expr state in
       if not(can_assign typ expr_typ) then raise_failure ("Cannot assign a value of type '" ^type_string expr_typ^ "' to a variable of type '" ^type_string typ^ "'") else
       let state' = {state with scopes = { local = Var(typ,name)::state.scopes.local; global = state.scopes.global }; size = state.size + type_size typ} in 
-      match find_variable_location name state'.scopes with
-      | ComputeStack _ -> raise_failure "Could not assign"
-      | StorageStack loc -> (state', expr_instrs @ fix_size typ expr_typ @ loc.address @ [loc.store ; I(type_size loc.typ)])
+      match find_variable_location name state' with
+      | Some StorageStack loc -> (state', expr_instrs @ fix_size typ expr_typ @ loc.instrs @ [loc.store ; I(type_size loc.typ)])
+      | _ -> raise_failure "Could not assign"
     )
   )
   | DeclareConst(name,expr) -> 
