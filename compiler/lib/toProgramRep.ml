@@ -364,6 +364,8 @@ and find_variable_location name state =
   | None -> raise_failure ""
 
 (* This function is crazy, please fix *)
+(* Need to take another look at extract and index, to see if they are used correctly *)
+(* - Index instruction is using element size, this will not work for tuples in general *)
 and find_expr_location (Expr(e,_) as expr) state = match e with
   | IdentifierAccess name -> (match find_variable_location name state with
     | Some loc -> loc
@@ -374,12 +376,14 @@ and find_expr_location (Expr(e,_) as expr) state = match e with
       | T_Array(elem_t, array_size) ->
         let (index_typ, index_instrs) = compile_expr state index in
         if (index_typ != T_Int) then raise_failure "Index must be of type 'int'" else
-        ComputeStack { typ = elem_t; instrs = loc.instrs @ index_instrs @ [Instr_Extract ; I(array_size) ; I(type_size elem_t)] }
+        let elem_size = type_size elem_t in
+        ComputeStack { typ = elem_t; instrs = loc.instrs @ index_instrs @ [ Instr_Place ; I(elem_size) ; Instr_Mul ; Instr_Extract ; I(array_size * elem_size) ; I(elem_size)] }
       | T_Tuple(entries) -> (match index with
         | Expr(Int i,_) when i >= 0 && i < List.length entries -> (match List.nth_opt entries i with
           | Some (t,_) ->
+            let i = entries |> List.mapi (fun idx (typ,_) -> if idx > i then type_size typ else 0) |> List.fold_left (+) 0 in
             let tuple_size = List.fold_left (fun acc (t,_) -> acc + type_size t) 0 entries in
-            ComputeStack { typ = t; instrs = loc.instrs @ [Instr_Place ; I(i); Instr_Extract ; I(tuple_size) ; I(type_size t)] }
+            ComputeStack { typ = t; instrs = loc.instrs @ [Instr_Place ; I(i) ; Instr_Extract ; I(tuple_size) ; I(type_size t)] }
           | None -> raise_failure ":("
         )
         | _ -> raise_failure ":("
@@ -390,10 +394,12 @@ and find_expr_location (Expr(e,_) as expr) state = match e with
       | T_Array(elem_t, array_size) ->
         let (index_typ, index_instrs) = compile_expr state index in
         if (index_typ != T_Int) then raise_failure "Index must be of type 'int'" else
-        StorageStack { loc with typ = elem_t; instrs = loc.instrs @ index_instrs @ [Instr_Index ; I(array_size) ; I(type_size elem_t)] }
+        let elem_size = type_size elem_t in
+        StorageStack { loc with typ = elem_t; instrs = loc.instrs @ index_instrs @ [Instr_Place ; I(elem_size) ; Instr_Mul ; Instr_Index ; I(array_size * elem_size) ; I(elem_size)] }
       | T_Tuple(entries) -> (match index with
         | Expr(Int i,_) when i >= 0 && i < List.length entries -> (match List.nth_opt entries i with
           | Some (t,_) ->
+            let i = entries |> List.mapi (fun idx (typ,_) -> if idx > i then type_size typ else 0) |> List.fold_left (+) 0 in
             let tuple_size = List.fold_left (fun acc (t,_) -> acc + type_size t) 0 entries in
             StorageStack { loc with typ = t; instrs = loc.instrs @ [Instr_Place ; I(i); Instr_Index ; I(tuple_size) ; I(type_size t)] }
           | None -> raise_failure ":("
@@ -526,4 +532,4 @@ let compile_player (File(program,i)) =
   let labels = available_labels program in
   let state = {scopes = { local = [] ; global = None }; size = 0; labels = labels; break = None; continue = None; ret_type = None;} in
   let (state, instrs) = compile_stmt program state in
-  Instr_Declare :: I(state.size) :: instrs
+  Instr_Declare :: I(state.size) :: instrs |> Optimize.optimize_instruction_list

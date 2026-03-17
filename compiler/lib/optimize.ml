@@ -110,6 +110,18 @@ and optimize_stmts stmts =
 
 let optimize_program (File(prog,i)) =
   File(optimize_stmts prog, i)
+*)
+open ProgramRep
 
-
-let optimize_instruction_list instrs = instrs*)
+let optimize_instruction_list instrs =
+  let rec aux instrs acc = match instrs with
+    | [] -> acc |> List.rev |> List.flatten
+    | Instr_Place::I(a)::Instr_Place::I(b)::op::t -> (match op with
+      | Instr_Mul -> aux t ([Instr_Place ; I(a * b)] :: acc)
+      | Instr_Add -> aux t ([Instr_Place ; I(a + b)] :: acc)
+      | Instr_Sub -> aux t ([Instr_Place ; I(a - b)] :: acc)
+      | _ -> aux t ([Instr_Place;I(a);Instr_Place;I(b);op]::acc)
+    )
+    | h::t -> aux t ([h]::acc)
+  in
+  aux instrs [] 
