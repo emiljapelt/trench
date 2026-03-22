@@ -55,7 +55,7 @@ let rec extract_declarations stmt : identifier list = match stmt with
   
 and rename_variables_of_expression map (Expr(e,ln)) = match e with
   | VarAccess name -> Expr(VarAccess(StringMap.find name map),ln)
-  | ArrayAccess(target,index) -> Expr(ArrayAccess(rename_variables_of_expression map target, rename_variables_of_expression map index),ln)
+  | IndexAccess(target,index) -> Expr(IndexAccess(rename_variables_of_expression map target, rename_variables_of_expression map index),ln)
   | Binary_op(op,v0,v1) -> Expr(Binary_op(op,rename_variables_of_expression map v0, rename_variables_of_expression map v1),ln)
   | Unary_op(op,v) -> Expr(Unary_op(op, rename_variables_of_expression map v),ln)
   | RandomSet vs -> Expr(RandomSet(List.map (rename_variables_of_expression map) vs),ln)

@@ -68,30 +68,31 @@ and stmt =
     | Declare of typ_expr * string
     | DeclareAssign of typ_expr option * string * expression
     | DeclareConst of string * expression
-    | Return of  expression
-    | ExprStmt of  expression
+    | Return of expression
+    | ExprStmt of expression
 
 and expression =
     | Expr of expr * int
 
 and expr =
     | IdentifierAccess of string
-    | ArrayAccess of  expression *  expression
+    | IndexAccess of expression * expression
+    | TupleAccess of expression * string
     | Resource of resource
-    | Increment of  expression * bool
-    | Decrement of  expression * bool
-    | Binary_op of binop *  expression *  expression
-    | Unary_op of unop *  expression
+    | Increment of expression * bool
+    | Decrement of expression * bool
+    | Binary_op of binop * expression * expression
+    | Unary_op of unop * expression
     | Int of int
     | Prop of field_prop
     | Direction of direction
     | Random
-    | RandomSet of  expression list
-    | Func of typ_expr * (typ_expr * string) list *  statement
-    | Call of  expression *  expression list
-    | Ternary of  expression *  expression *  expression
+    | RandomSet of expression list
+    | Func of typ_expr * (typ_expr * string) list * statement
+    | Call of expression *  expression list
+    | Ternary of expression * expression * expression
     | Null
-    | StructureLiteral of  expression list
+    | StructureLiteral of (string option * expression) list
 
 and binop =
     | Plus
@@ -148,15 +149,21 @@ let int_of_dir d = match d with
     | South -> 2
     | West -> 3
 
-let rec type_string t = match t with
-  | T_Int -> "int"
-  | T_Dir -> "dir"
-  | T_Field -> "field"
-  | T_Resource -> "resource"
-  | T_Array(t,i) -> (type_string t) ^ "[" ^ string_of_int i ^"]"
-  | T_Tuple(ts) -> "[" ^ (ts |> List.map (fun (t,_) -> type_string t) |> String.concat ",")  ^ "]"
-  | T_Func(r,args) -> (type_string r) ^ "(" ^ (args |> List.map type_string |> String.concat ",")  ^ ")"
-  | T_Null -> "null"
+
+let rec type_string t = 
+    let entry_string typ name = type_string typ ^ match name with
+    | None -> ""
+    | Some n -> " "^n
+    in    
+    match t with
+    | T_Int -> "int"
+    | T_Dir -> "dir"
+    | T_Field -> "field"
+    | T_Resource -> "resource"
+    | T_Array(t,i) -> (type_string t) ^ "[" ^ string_of_int i ^"]"
+    | T_Tuple(ts) -> "[" ^ (ts |> List.map (uncurry entry_string) |> String.concat ", ")  ^ "]"
+    | T_Func(r,args) -> (type_string r) ^ "(" ^ (args |> List.map type_string |> String.concat ", ")  ^ ")"
+    | T_Null -> "null"
 
 let rec type_size t = match t with
     | T_Int 
@@ -173,7 +180,7 @@ let rec type_eq t1 t2 = match t1,t2 with
   | T_Dir, T_Dir
   | T_Resource, T_Resource
   | T_Field, T_Field -> true
-  | T_Array(st1,_), T_Array(st2,_) -> type_eq st1 st2
+  | T_Array(st1,size1), T_Array(st2,size2) -> size1 = size2 && type_eq st1 st2
   | T_Tuple(ts1), T_Tuple(ts2) -> List.length ts1 = List.length ts2 && List.combine ts1 ts2 |> List.for_all (fun ((t1,_),(t2,_)) -> type_eq t1 t2)
   | T_Func(ret, params), T_Func(ret', params') -> 
     List.length params = List.length params' 

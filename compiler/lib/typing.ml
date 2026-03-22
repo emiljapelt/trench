@@ -19,7 +19,7 @@ let var_type scopes name =
 
 let assignable (Expr(expr,_)) = match expr with
   | VarAccess _ 
-  | ArrayAccess _ -> true
+  | IndexAccess _ -> true
   | _ -> false
 
 let get_type (Expr(_, (_,t))) = t
@@ -34,13 +34,13 @@ let rec type_expr (e : int expr) state : ((int * typ) expr * typ) = match e with
   | VarAccess name -> 
     let typ = var_type state.scopes name in
     (VarAccess name, typ)
-  | ArrayAccess(target, index) -> (
+  | IndexAccess(target, index) -> (
     let index = type_expression index state in
     let index_type = get_type index in
     let target = type_expression target state in
     let target_type = get_type target in
     match target_type, index_type with
-    | T_Array(t,_), T_Int -> (ArrayAccess(target, index), t)
+    | T_Array(t,_), T_Int -> (IndexAccess(target, index), t)
     | T_Array(_,_), _ -> raise_failure "Indexing expression must be of type 'int'"
     | _, _ -> raise_failure "Indexing must be done on an array"
   )

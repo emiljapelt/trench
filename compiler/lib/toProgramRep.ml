@@ -40,7 +40,7 @@ let get_expr (Expr(expr,_)) = expr
 let rec can_assign target_type value_type = match target_type, value_type with
   | T_Func _, T_Null
   | T_Null, T_Func _ -> true
-  | T_Array(st1,_), T_Array(st2,_) -> can_assign st1 st2
+  | T_Array(st1,size1), T_Array(st2,size2) -> size1 = size2 && can_assign st1 st2
   | T_Tuple(ts1), T_Tuple(ts2) -> 
     if List.length ts1 != List.length ts2 then false
     else List.combine ts1 ts2 |> List.for_all (fun ((st1,_),(st2,_)) -> can_assign st1 st2)
@@ -87,7 +87,7 @@ let rec is_constant state (Expr(expr, _)) = match expr with
     | Some(_, (Const(_,_,_), _)) -> true
     | _ -> false
   )
-  | StructureLiteral exprs -> List.for_all (is_constant state) exprs
+  | StructureLiteral exprs -> exprs |> List.map snd |> List.for_all (is_constant state) 
   | _ -> false
 
 let is_true i = i > 0
@@ -130,7 +130,7 @@ and reduce_expr state expr = match expr with
     | Some(_, (Const(_,_, Expr(expr,_)), _)) -> expr
     | _ -> expr
   )
-  | ArrayAccess(target, index) -> ArrayAccess(reduce_expression state target, reduce_expression state index) (* Can likely be a little better on constants *)
+  | IndexAccess(target, index) -> IndexAccess(reduce_expression state target, reduce_expression state index) (* Can likely be a little better on constants *)
   | Call(f,args) -> Call(reduce_expression state f, List.map (reduce_expression state) args) (* Can likely be a little better on constants *)
   | _ -> expr
 
@@ -144,7 +144,7 @@ let rec eval_type_expr state te = match te with
     | Expr(Int _,_) -> raise_failure "Array size must be positive"
     | _ -> raise_failure "Array size must be of type 'int'"
   )
-  | TE_Tuple _ -> raise_failure "Not implemented"
+  | TE_Tuple entries -> T_Tuple(List.map (fun (t,n) -> (eval_type_expr state t, n)) entries)
   | TE_Func(ret, params) -> T_Func(eval_type_expr state ret, List.map (eval_type_expr state) params)
 
 let rec compile_expr (state:compile_state) (Expr(expr, ln)) : (typ * instruction list) =
@@ -163,33 +163,58 @@ let rec compile_expr (state:compile_state) (Expr(expr, ln)) : (typ * instruction
     | Some(_, (Const(_,_,expr), _)) -> compile_expr state expr
     | None -> raise_failure ("Unknown identifier: "^name)
   ) 
-  | ArrayAccess(target, index) -> (
+  | IndexAccess(target, index) -> (
     let (index_typ, index_instrs) = compile_expr state index in
     if not(type_eq T_Int index_typ) then raise_failure "Index must be of type 'int'" else
-    match find_expr_location target state with    (* Not working? *)
+    match find_expr_location target state with
     | ComputeStack loc -> (match loc.typ with
       | T_Array(elem_t, size) -> (loc.typ, loc.instrs @ index_instrs @ [Instr_Extract ; I(size * type_size elem_t) ; I(type_size elem_t)])
       | T_Tuple(entries) -> (match index with
-        | Expr(Int i,_) when i >= 0 && i < List.length entries-> (match List.nth_opt entries i with
-          | Some(elem_t,_) -> (* One off somehow... *)
-            let size = List.fold_left (fun acc (t,_) -> acc + type_size t) 0 entries in
-            (elem_t, loc.instrs @ index_instrs @ [Instr_Extract ; I(size) ; I(type_size elem_t)])
-          | None -> raise_failure "Invalid tuple access"
-          )
+        | Expr(Int i,_) when i >= 0 && i < List.length entries ->
+          let (elem_t,_) = List.nth entries i in
+          let size = List.fold_left (fun acc (t,_) -> acc + type_size t) 0 entries in
+          (elem_t, loc.instrs @ index_instrs @ [Instr_Extract ; I(size) ; I(type_size elem_t)])
         | _ -> raise_failure "Invalid tuple access"
       )
-      | _ -> raise_failure "Dont know how to access array" 
+      | _ -> raise_failure "Cannot index type" 
     )
     | StorageStack loc -> (match loc.typ with
       | T_Array(elem_t, size) -> (elem_t, loc.instrs @ index_instrs @ [Instr_Index ; I(size) ; I(type_size elem_t) ; loc.load ; I(type_size elem_t)])
       | T_Tuple(entries) -> (match index with
-        | Expr(Int i,_) when i >= 0 && i < List.length entries-> (match List.nth_opt entries i with
-          | Some(elem_t,_) -> 
-            let size = List.fold_left (fun acc (t,_) -> acc + type_size t) 0 entries in
-            (elem_t, loc.instrs @ index_instrs @ [Instr_Index ; I(size) ; I(type_size elem_t) ; loc.load ; I(type_size elem_t)])
-          | None -> raise_failure "Invalid tuple access"
-          )
+        | Expr(Int i,_) when i >= 0 && i < List.length entries -> 
+          let (elem_t,_) = List.nth entries i in
+          let size = List.fold_left (fun acc (t,_) -> acc + type_size t) 0 entries in
+          (elem_t, loc.instrs @ index_instrs @ [Instr_Index ; I(size) ; I(type_size elem_t) ; loc.load ; I(type_size elem_t)])
         | _ -> raise_failure "Invalid tuple access"
+      )
+      | _ -> raise_failure "Cannot index type"
+    )
+  )
+  | TupleAccess(target, name) -> (
+    match find_expr_location target state with
+    | ComputeStack loc -> (match loc.typ with
+      | T_Tuple(entries) -> (
+        match List.find_index (fun (_,n) -> n |> Option.map ((=) name) |> Option.value ~default:false) entries with
+        | None -> raise_failure ("No such tuple entry: "^name)
+        | Some index -> 
+          let (elem_t,_) = List.nth entries index in
+          let sizes = entries |> List.map (fun (t,_) -> type_size t) in
+          let i = sizes |> List.take index |> List.fold_left (+) 0 in
+          let size = sizes |> List.fold_left (+) 0 in
+          (elem_t, loc.instrs @ [Instr_Place ; I(i) ; Instr_Extract ; I(size) ; I(type_size elem_t)])
+        )
+      | _ -> raise_failure "Not a tuple"
+    )
+    | StorageStack loc -> (match loc.typ with
+      | T_Tuple(entries) -> (
+        match List.find_index (fun (_,n) -> n |> Option.map ((=) name) |> Option.value ~default:false) entries with
+        | None -> raise_failure ("No such tuple entry: "^name)
+        | Some index -> 
+          let (elem_t,_) = List.nth entries index in
+          let sizes = entries |> List.map (fun (t,_) -> type_size t) in
+          let i = sizes |> List.take index |> List.fold_left (+) 0 in
+          let size = sizes |> List.fold_left (+) 0 in
+          (elem_t, loc.instrs @ [Instr_Place ; I(i) ; Instr_Index ; I(size) ; I(type_size elem_t) ; loc.load ; I(type_size elem_t)])
       )
       | _ -> raise_failure "Dont know how to access array"
     )
@@ -335,12 +360,15 @@ let rec compile_expr (state:compile_state) (Expr(expr, ln)) : (typ * instruction
   )
   | Null -> (T_Null, [Instr_Place ; I(0)])
   | StructureLiteral exprs -> 
-    let (typs, instrs) = exprs |> List.map (compile_expr state) |> List.split in
+    let info = List.map (fun (name, expr) -> (name, compile_expr state expr)) exprs in
+    let names = List.map (fun (name,(_,_)) -> name) info in 
+    let typs = List.map (fun (_,(typ,_)) -> typ) info in
+    let instrs = List.map (fun (_,(_,instr)) -> instr) info in
     match List.find_opt can_declare typs with
     | None -> raise_failure "Could not infere structure type"
     | Some typ -> (
-      if List.for_all (can_assign typ) typs then (T_Array(typ,List.length typs), List.flatten instrs)
-      else if List.for_all can_declare typs then (T_Tuple(typs |> List.map (fun t -> (t, None))), List.flatten instrs)
+      if List.for_all (can_assign typ) typs && List.for_all Option.is_none names then (T_Array(typ,List.length typs), List.flatten instrs)
+      else if List.for_all can_declare typs then (T_Tuple(List.combine typs names), List.flatten instrs)
       else raise_failure "Could not infere structure type"
     )
   with
@@ -371,7 +399,7 @@ and find_expr_location (Expr(e,_) as expr) state = match e with
     | Some loc -> loc
     | None -> raise_failure ""
   )
-  | ArrayAccess (target, index) -> (match find_expr_location target state with
+  | IndexAccess (target, index) -> (match find_expr_location target state with
     | ComputeStack loc -> (match loc.typ with
       | T_Array(elem_t, array_size) ->
         let (index_typ, index_instrs) = compile_expr state index in
@@ -379,16 +407,16 @@ and find_expr_location (Expr(e,_) as expr) state = match e with
         let elem_size = type_size elem_t in
         ComputeStack { typ = elem_t; instrs = loc.instrs @ index_instrs @ [ Instr_Place ; I(elem_size) ; Instr_Mul ; Instr_Extract ; I(array_size * elem_size) ; I(elem_size)] }
       | T_Tuple(entries) -> (match index with
-        | Expr(Int i,_) when i >= 0 && i < List.length entries -> (match List.nth_opt entries i with
-          | Some (t,_) ->
-            let i = entries |> List.mapi (fun idx (typ,_) -> if idx > i then type_size typ else 0) |> List.fold_left (+) 0 in
-            let tuple_size = List.fold_left (fun acc (t,_) -> acc + type_size t) 0 entries in
-            ComputeStack { typ = t; instrs = loc.instrs @ [Instr_Place ; I(i) ; Instr_Extract ; I(tuple_size) ; I(type_size t)] }
-          | None -> raise_failure ":("
+        | Expr(Int i,_) when i >= 0 && i < List.length entries -> (
+          let (t,_) = List.nth entries i in
+          let sizes = entries |> List.map (fun (t,_) -> type_size t) in
+          let i = sizes |> List.take i |> List.fold_left (+) 0 in
+          let tuple_size = sizes |> List.fold_left (+) 0 in
+          ComputeStack { typ = t; instrs = loc.instrs @ [Instr_Place ; I(i) ; Instr_Extract ; I(tuple_size) ; I(type_size t)] }
         )
-        | _ -> raise_failure ":("
+        | _ -> raise_failure "Not a valid index"
       )
-      | _ -> raise_failure ":("
+      | _ -> raise_failure "Cannot index type"
     )
     | StorageStack loc -> (match loc.typ with
       | T_Array(elem_t, array_size) ->
@@ -397,16 +425,44 @@ and find_expr_location (Expr(e,_) as expr) state = match e with
         let elem_size = type_size elem_t in
         StorageStack { loc with typ = elem_t; instrs = loc.instrs @ index_instrs @ [Instr_Place ; I(elem_size) ; Instr_Mul ; Instr_Index ; I(array_size * elem_size) ; I(elem_size)] }
       | T_Tuple(entries) -> (match index with
-        | Expr(Int i,_) when i >= 0 && i < List.length entries -> (match List.nth_opt entries i with
-          | Some (t,_) ->
-            let i = entries |> List.mapi (fun idx (typ,_) -> if idx > i then type_size typ else 0) |> List.fold_left (+) 0 in
-            let tuple_size = List.fold_left (fun acc (t,_) -> acc + type_size t) 0 entries in
-            StorageStack { loc with typ = t; instrs = loc.instrs @ [Instr_Place ; I(i); Instr_Index ; I(tuple_size) ; I(type_size t)] }
-          | None -> raise_failure ":("
+        | Expr(Int i,_) when i >= 0 && i < List.length entries -> (
+          let (t,_) = List.nth entries i in
+          let sizes = entries |> List.map (fun (t,_) -> type_size t) in
+          let i = sizes |> List.take i |> List.fold_left (+) 0 in
+          let tuple_size = sizes |> List.fold_left (+) 0 in
+          StorageStack { loc with typ = t; instrs = loc.instrs @ [Instr_Place ; I(i); Instr_Index ; I(tuple_size) ; I(type_size t)] }
         )
-        | _ -> raise_failure ":("
+        | _ -> raise_failure "Not a valid index"
       )
+      | _ -> raise_failure "Cannot index type"
+    )
+  )
+  | TupleAccess (target, name) -> (match find_expr_location target state with
+    | ComputeStack loc -> (match loc.typ with
+      | T_Tuple(entries) -> (
+        match List.find_index (fun (_,n) -> n |> Option.map ((=) name) |> Option.value ~default:false) entries with
+        | None -> raise_failure ("No such tuple entry: "^name)
+        | Some index -> 
+          let (t,_) = List.nth entries index in
+          let sizes = entries |> List.map (fun (t,_) -> type_size t) in
+          let i = sizes |> List.take index |> List.fold_left (+) 0 in
+          let tuple_size = sizes |> List.fold_left (+) 0 in
+          ComputeStack {typ = t; instrs = loc.instrs @ [Instr_Place ; I(i) ; Instr_Extract ; I(tuple_size) ; I(type_size t)]}
+        )
       | _ -> raise_failure ":("
+    )
+    | StorageStack loc -> (match loc.typ with
+      | T_Tuple(entries) -> (
+        match List.find_index (fun (_,n) -> n |> Option.map ((=) name) |> Option.value ~default:false) entries with
+        | None -> raise_failure ("No such tuple entry: "^name)
+        | Some index -> 
+          let (t,_) = List.nth entries index in
+          let sizes = entries |> List.map (fun (t,_) -> type_size t) in
+          let i = sizes |> List.take index |> List.fold_left (+) 0 in
+          let tuple_size = sizes |> List.fold_left (+) 0 in
+          StorageStack { loc with typ = t; instrs = loc.instrs @ [Instr_Place ; I(i); Instr_Index ; I(tuple_size) ; I(type_size t)] }
+      )
+    | _ -> raise_failure ":("
     )
   )
   | _ -> 

@@ -69,7 +69,10 @@ rule lex = parse
     |   "--"          { MINUSMINUS }
     |   '-'           { MINUS }
     |   '*'           { TIMES }
+    |   '\\'          { BSLASH }
     |   '/'           { FSLASH }
+    |   '.'           { DOT }
+    |   ".."          { DOTDOT }
     |   '%'           { PCT }
     |   '='           { EQ }
     |   "=="          { EQEQ }

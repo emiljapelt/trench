@@ -64,7 +64,7 @@ let rec optimize_expr expr = expr
   | Decrement _ 
   | Increment _
   | VarAccess _
-  | ArrayAccess(_,_) -> expr
+  | IndexAccess(_,_) -> expr
   | RandomSet exprs -> RandomSet(List.map optimize_expression exprs)
   | StructureLiteral exprs -> StructureLiteral(List.map optimize_expression exprs)
   | Func(ret,args,body) -> Func(ret,args,optimize_stmt body)

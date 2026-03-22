@@ -20,7 +20,7 @@
 %token <string> FIELD_PROP
 %token LPAR RPAR LBRACE RBRACE LBRAKE RBRAKE
 %token PLUS MINUS TIMES EQ NEQ LT GT LTEQ GTEQ EQEQ
-%token LOGIC_AND LOGIC_OR FSLASH PCT EXCLAIM
+%token LOGIC_AND LOGIC_OR FSLASH BSLASH PCT EXCLAIM
 %token COMMA SEMI COLON EOF
 %token QMARK PLUSPLUS MINUSMINUS
 %token IF ELSE IS REPEAT WHILE CONTINUE BREAK LET CONST
@@ -29,6 +29,7 @@
 %token INT DIR FIELD RESOURCE L_SHIFT R_SHIFT
 %token RETURN NULL
 %token TIMES_EQ MINUS_EQ PLUS_EQ L_SHIFT_EQ R_SHIFT_EQ
+%token DOT DOTDOT
 
 // Precedence and assosiativity inspired by https://en.cppreference.com/w/c/language/operator_precedence.html
 
@@ -43,8 +44,8 @@
 %left PLUS MINUS 
 %left TIMES FSLASH PCT
 %right UNARY
-%left LPAR 
-%left PLUSPLUS MINUSMINUS LBRAKE
+%left LPAR
+%left PLUSPLUS MINUSMINUS LBRAKE DOT
 /*High precedence*/
 
 %start main
@@ -72,8 +73,13 @@ simple_typ:
   | FIELD { TE_Field }
   | RESOURCE { TE_Resource }
   | typ LPAR seperated_or_empty(COMMA, typ) RPAR { TE_Func($1, $3) }
-  (* | LPAR seperated(COMMA, typ) RPAR { TE_Tuple($2 |> List.map (fun t -> (t, None))) } *)
+  | LBRAKE seperated(COMMA, tuple_type_element) RBRAKE { TE_Tuple $2 }
   | LPAR typ RPAR { $2 }
+;
+
+tuple_type_element:
+  | typ       { ($1, None) }
+  | typ NAME  { ($1, Some $2) }
 ;
 
 typ:
@@ -106,8 +112,13 @@ simple_expr:
   | QMARK                                   { features ["random"] ; Random }
   | QMARK LBRAKE simple_expression+ RBRAKE  { features ["random"] ; RandomSet $3 }
   | NAME                                    { features ["memory"] ; IdentifierAccess $1 }
-  | LBRAKE seperated_or_empty(COMMA, expression) RBRAKE { StructureLiteral $2 }
+  | LBRAKE seperated_or_empty(COMMA, struct_element) RBRAKE { StructureLiteral $2 }
   | LPAR expr RPAR                          { $2 }
+;
+
+struct_element: 
+  | expression              { (None, $1) }
+  | NAME COLON expression   { (Some $1, $3) }
 ;
 
 expression:
@@ -116,14 +127,15 @@ expression:
 
 expr:
   | simple_expr                             { $1 }
-  | expression LBRAKE expression RBRAKE     { features ["memory"] ; ArrayAccess($1,$3) }
+  | expression LBRAKE expression RBRAKE     { features ["memory"] ; IndexAccess($1,$3) }
+  | expression DOT NAME                     { features ["memory"] ; TupleAccess($1,$3) }
   | MINUS expression                        { Binary_op (Minus, Expr(Int 0, $symbolstartpos.pos_lnum), $2) }  %prec UNARY
   | EXCLAIM expression                      { Unary_op (Negate, $2) } %prec UNARY
   | expression binop expression                  { Binary_op ($2, $1, $3) }
-  | typ COLON LPAR seperated_or_empty(COMMA,func_arg) RPAR block          { features ["func"] ; Func($1, $4, Stmt($6,$symbolstartpos.pos_lnum)) }
-  | COLON LPAR seperated_or_empty(COMMA,func_arg) RPAR block              { features ["func";"sugar"] ; Func(TE_Int, $3, Stmt($5,$symbolstartpos.pos_lnum)) }
-  | typ COLON LPAR seperated_or_empty(COMMA,func_arg) RPAR RARROW expression   { features ["func";"sugar"] ; Func($1, $4, Stmt(Return $7,$symbolstartpos.pos_lnum)) }
-  | COLON LPAR seperated_or_empty(COMMA,func_arg) RPAR RARROW expression       { features ["func";"sugar"] ; Func(TE_Int, $3, Stmt(Return $6,$symbolstartpos.pos_lnum)) }
+  | BSLASH typ COLON LPAR seperated_or_empty(COMMA,func_arg) RPAR block          { features ["func"] ; Func($2, $5, Stmt($7,$symbolstartpos.pos_lnum)) }
+  | BSLASH LPAR seperated_or_empty(COMMA,func_arg) RPAR block              { features ["func";"sugar"] ; Func(TE_Int, $3, Stmt($5,$symbolstartpos.pos_lnum)) }
+  | BSLASH typ COLON LPAR seperated_or_empty(COMMA,func_arg) RPAR RARROW expression   { features ["func";"sugar"] ; Func($2, $5, Stmt(Return $8,$symbolstartpos.pos_lnum)) }
+  | BSLASH LPAR seperated_or_empty(COMMA,func_arg) RPAR RARROW expression       { features ["func";"sugar"] ; Func(TE_Int, $3, Stmt(Return $6,$symbolstartpos.pos_lnum)) }
   | expression QMARK expression COLON expression      { features ["control";"sugar"] ; Ternary($1,$3,$5) }
   | PLUSPLUS expression                    { features ["sugar"] ; Increment($2, true)} 
   | expression PLUSPLUS                    { features ["sugar"] ; Increment($1, false)}
