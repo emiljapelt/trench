@@ -127,7 +127,7 @@ expression:
 
 expr:
   | simple_expr                             { $1 }
-  | expression LBRAKE expression RBRAKE     { features ["memory"] ; IndexAccess($1,$3) }
+  | expression LBRAKE range RBRAKE     { features ["memory"] ; IndexAccess($1,$3) }
   | expression DOT NAME                     { features ["memory"] ; TupleAccess($1,$3) }
   | MINUS expression                        { Binary_op (Minus, Expr(Int 0, $symbolstartpos.pos_lnum), $2) }  %prec UNARY
   | EXCLAIM expression                      { Unary_op (Negate, $2) } %prec UNARY
@@ -142,6 +142,14 @@ expr:
   | MINUSMINUS expression                  { features ["sugar"] ; Decrement($2, true)} 
   | expression MINUSMINUS                  { features ["sugar"] ; Decrement($1, false)}
   | expression LPAR seperated_or_empty(COMMA, expression) RPAR { Call($1, $3) }
+;
+
+range:
+  | expression                    { Index $1 }
+  | DOTDOT                        { Range(None, None) }
+  | DOTDOT expression             { Range(None, Some $2) }
+  | expression DOTDOT             { Range(Some $1, None) }
+  | expression DOTDOT expression  { Range(Some $1, Some $3) }
 ;
 
 func_arg:

@@ -76,7 +76,7 @@ and expression =
 
 and expr =
     | IdentifierAccess of string
-    | IndexAccess of expression * expression
+    | IndexAccess of expression * range
     | TupleAccess of expression * string
     | Resource of resource
     | Increment of expression * bool
@@ -93,6 +93,10 @@ and expr =
     | Ternary of expression * expression * expression
     | Null
     | StructureLiteral of (string option * expression) list
+
+and range =
+    | Index of expression
+    | Range of expression option * expression option
 
 and binop =
     | Plus
