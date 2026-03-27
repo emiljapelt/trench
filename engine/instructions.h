@@ -299,11 +299,11 @@ int instr_index(player_state* ps) {
     int index = ps->stack[--ps->sp];
     int target = ps->stack[--ps->sp];
     int size = ps->directive[ps->dp++];
-    int elem_size = ps->directive[ps->dp++]; // Not needed anymore??
+    int take = ps->directive[ps->dp++]; // Not needed anymore??
 
-    _log(DEBUG, "INDEX:: index: %i, target: %i, array_size: %i, elem_size: %i", index, target, size, elem_size);
+    _log(DEBUG, "INDEX:: index: %i, target: %i, array_size: %i, take: %i", index, target, size, take);
 
-    if (index < 0 || index >= size) {
+    if (index < 0 || index >= size || index + take > size) {
         kill_player(ps, out_of_bounds_msg);
         return 0;
     }
