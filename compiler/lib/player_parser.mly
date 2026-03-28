@@ -132,10 +132,10 @@ expr:
   | MINUS expression                        { Binary_op (Minus, Expr(Int 0, $symbolstartpos.pos_lnum), $2) }  %prec UNARY
   | EXCLAIM expression                      { Unary_op (Negate, $2) } %prec UNARY
   | expression binop expression                  { Binary_op ($2, $1, $3) }
-  | BSLASH typ COLON LPAR seperated_or_empty(COMMA,func_arg) RPAR block          { features ["func"] ; Func($2, $5, Stmt($7,$symbolstartpos.pos_lnum)) }
-  | BSLASH LPAR seperated_or_empty(COMMA,func_arg) RPAR block              { features ["func";"sugar"] ; Func(TE_Int, $3, Stmt($5,$symbolstartpos.pos_lnum)) }
-  | BSLASH typ COLON LPAR seperated_or_empty(COMMA,func_arg) RPAR RARROW expression   { features ["func";"sugar"] ; Func($2, $5, Stmt(Return $8,$symbolstartpos.pos_lnum)) }
-  | BSLASH LPAR seperated_or_empty(COMMA,func_arg) RPAR RARROW expression       { features ["func";"sugar"] ; Func(TE_Int, $3, Stmt(Return $6,$symbolstartpos.pos_lnum)) }
+  | BSLASH typ COLON LPAR seperated_or_empty(COMMA,func_arg) RPAR block          { features ["func"] ; Func{ data = ($2, $5, Stmt($7,$symbolstartpos.pos_lnum)); cache = None} }
+  | BSLASH LPAR seperated_or_empty(COMMA,func_arg) RPAR block              { features ["func";"sugar"] ; Func{ data = (TE_Int, $3, Stmt($5,$symbolstartpos.pos_lnum)); cache = None} }
+  | BSLASH typ COLON LPAR seperated_or_empty(COMMA,func_arg) RPAR RARROW expression   { features ["func";"sugar"] ; Func{ data = ($2, $5, Stmt(Return $8,$symbolstartpos.pos_lnum)); cache = None} }
+  | BSLASH LPAR seperated_or_empty(COMMA,func_arg) RPAR RARROW expression       { features ["func";"sugar"] ; Func{ data = (TE_Int, $3, Stmt(Return $6,$symbolstartpos.pos_lnum)); cache = None} }
   | expression QMARK expression COLON expression      { features ["control";"sugar"] ; Ternary($1,$3,$5) }
   | PLUSPLUS expression                    { features ["sugar"] ; Increment($2, true)} 
   | expression PLUSPLUS                    { features ["sugar"] ; Increment($1, false)}

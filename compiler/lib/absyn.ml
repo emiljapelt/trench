@@ -88,11 +88,16 @@ and expr =
     | Direction of direction
     | Random
     | RandomSet of expression list
-    | Func of typ_expr * (typ_expr * string) list * statement
+    | Func of func
     | Call of expression *  expression list
     | Ternary of expression * expression * expression
     | Null
     | StructureLiteral of (string option * expression) list
+
+and func = {
+    data : typ_expr * (typ_expr * string) list * statement;
+    mutable cache : (typ*string) option;
+}
 
 and range =
     | Index of expression

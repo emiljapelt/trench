@@ -87,6 +87,7 @@ let rec is_constant state (Expr(expr, _)) = match expr with
     | _ -> false
   )
   | StructureLiteral exprs -> exprs |> List.map snd |> List.for_all (is_constant state) 
+  | Func _ -> true
   | _ -> false
 
 let is_true i = i > 0
@@ -98,7 +99,10 @@ and reduce_expr state expr = match expr with
   | Direction d -> Direction d
   | Prop p -> Prop p
   | Resource r -> Resource r
-  | Binary_op(op, e1, e2) -> (match op, reduce_expression state e1 |> get_expr, reduce_expression state e2 |> get_expr with
+  | Binary_op(op, e1, e2) -> (
+    let e1 = reduce_expression state e1 in
+    let e2 = reduce_expression state e2 in
+    match op, get_expr e1, get_expr e2 with
     | Plus, Int a, Int b -> Int (a + b)
     | Minus, Int a, Int b -> Int (a - b)
     | Times, Int a, Int b -> Int (a * b)
@@ -118,11 +122,16 @@ and reduce_expr state expr = match expr with
     | GreaterOrEqual, Int a, Int b -> Int (if a >= b then 1 else 0)
     | Divide, Int a, Int b -> Int (a / b)
     | Remainder, Int a, Int b -> Int (((a mod b) + b) mod b)
-    | _ -> expr
+    | Plus, StructureLiteral entries1, StructureLiteral entries2 -> StructureLiteral(entries1 @ entries2)
+    | Times, StructureLiteral entries, Int i
+    | Times, Int i, StructureLiteral entries -> StructureLiteral(List.init i (fun _ -> entries) |> List.flatten)
+    | _ -> Binary_op(op, e1, e2)
   )
-  | Unary_op(op, e) -> (match op, reduce_expression state e |> get_expr with 
+  | Unary_op(op, e) -> (
+    let e = reduce_expression state e in  
+    match op, get_expr e with 
     | Negate, Int i -> Int (if is_true i then 0 else 1)
-    | _ -> expr
+    | _ -> get_expr e
   )
   | IdentifierAccess name when not(is_bound name state.scopes) -> expr
   | IdentifierAccess name -> (match lookup_identifier name state.scopes with
@@ -325,7 +334,9 @@ let rec compile_expr (state:compile_state) (Expr(expr, ln)) : (typ * instruction
     | Minus, T_Field, T_Field -> (T_Field, instrs1 @ instrs2 @ [Instr_BinNot ; Instr_BinAnd]) 
     | IsCompare, T_Field, T_Field -> (T_Int, instrs2 @ [Instr_Copy] @ instrs1 @ [Instr_BinAnd ; Instr_Eq])
     | AnyCompare, T_Field, T_Field -> (T_Int, instrs1 @ instrs2 @ [Instr_BinAnd])
-    | _ -> raise_failure "Unknown binary operation"
+    | Plus, T_Array(t1,s1), T_Array(t2,s2) when type_eq t1 t2 -> (T_Array(t1, s1+s2), instrs1 @ instrs2)
+    | Plus, T_Tuple(entries1), T_Tuple(entries2) -> (T_Tuple(entries1 @ entries2), instrs1 @ instrs2)
+    | _ -> raise_failure ("Unknown binary operation between '" ^type_string typ1^ "' and '" ^type_string typ2^ "'")
   )
   | Unary_op (op, e) -> ( 
     let (t, instrs) = compile_expr state e in 
@@ -351,24 +362,30 @@ let rec compile_expr (state:compile_state) (Expr(expr, ln)) : (typ * instruction
     | StorageStack loc -> (loc.typ, loc.instrs @ [Instr_Copy ; loc.load ; I(type_size loc.typ) ; Instr_Swap ; Instr_Copy ; loc.load ; I(type_size loc.typ) ; Instr_Place ; I(1) ; Instr_Sub ; Instr_Swap ; loc.store ; I(type_size loc.typ)])
     | ComputeStack _ -> raise_failure "Could not decrement"
   )
-  | Func(ret,args,body) -> (
-    new_label_context () ;
-    let ret = eval_type_expr state ret in
-    let args = args |> List.rev |> List.map (fun (t,n) -> (eval_type_expr state t, n)) in
-    let func_scope = {  (* Could "this" be a constant ??? *)
-      local = List.map (fun (t,n) -> Var(t,n)) args @ [Var(T_Func(ret, List.map fst args), "this")] ; 
-      global =  if state.scopes.global = None then Some(state.scopes.local) else state.scopes.global ;
-    } in
-    let new_state = {
-      scopes = func_scope;  
-      labels = available_labels body; 
-      break = None; 
-      continue = None; 
-      ret_type = Some ret;
-      size = 0;
-    } in
-    let (state', body) = compile_stmt body {new_state with scopes = ({ local = new_state.scopes.local; global = new_state.scopes.global })} in
-    (T_Func(ret, List.map fst args), [Instr_GoTo ; label_ref "func_end" ; label "func" ; Instr_Declare ; I(state'.size)] @ body @ [Instr_Declare ; I(type_size ret) ; Instr_Return ; label "func_end" ; Instr_Place ; label_ref "func"])
+  | Func f -> (match f.cache with
+    | Some(typ,label) -> (typ, [Instr_Place ; LabelRef label])
+    | None ->
+      let (ret,args,body) = f.data in
+      new_label_context () ;
+      let start_label = label_name "func" in
+      let ret = eval_type_expr state ret in
+      let args = args |> List.rev |> List.map (fun (t,n) -> (eval_type_expr state t, n)) in
+      let func_scope = {
+        local = List.map (fun (t,n) -> Var(t,n)) args @ [Var(T_Func(ret, List.map fst args), "this")] ; 
+        global =  if state.scopes.global = None then Some(state.scopes.local) else state.scopes.global ;
+      } in
+      let new_state = {
+        scopes = func_scope;  
+        labels = available_labels body; 
+        break = None; 
+        continue = None; 
+        ret_type = Some ret;
+        size = 0;
+      } in
+      let typ = T_Func(ret, List.map fst args) in
+      let (state', body) = compile_stmt body {new_state with scopes = ({ local = new_state.scopes.local; global = new_state.scopes.global })} in
+      f.cache <- Some(typ,start_label) ;
+      (typ, [Instr_GoTo ; label_ref "func_end" ; Label start_label ; Instr_Declare ; I(state'.size)] @ body @ [Instr_Declare ; I(type_size ret) ; Instr_Return ; label "func_end" ; Instr_Place ; LabelRef start_label])
   )
   | Call(Expr(IdentifierAccess name,_), args) when not(is_bound name state.scopes) -> (
     let (arg_types, arg_instrs) = args |> List.map (compile_expr state) |> List.split in
