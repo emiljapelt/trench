@@ -3,6 +3,10 @@ open Exceptions
 module StringSet = Set.Make(String)
 module StringMap = Map.Make(String)
 
+let identity a = a
+
+let return a _ = a
+
 type environment = string list
 
 type int_generator = { mutable next : int }

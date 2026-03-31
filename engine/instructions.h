@@ -262,9 +262,9 @@ int instr_call(player_state* ps) {
     ps->stack[ps->sp++] = old_bp;
     ps->stack[ps->sp++] = old_dp;
     ps->bp = ps->sp;
-    ps->stack[ps->sp] = func_addr;
-    memcpy(&ps->stack[ps->sp + 1], args, sizeof(int) * arg_count);
-    ps->sp += arg_count + 1;
+    
+    memcpy(&ps->stack[ps->sp], args, sizeof(int) * arg_count);
+    ps->sp += arg_count;
     ps->dp = func_addr;
     _log(DEBUG, "f_addr: %i, args: %i", func_addr, arg_count);
 }

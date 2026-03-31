@@ -131,7 +131,7 @@ and reduce_expr state expr = match expr with
     let e = reduce_expression state e in  
     match op, get_expr e with 
     | Negate, Int i -> Int (if is_true i then 0 else 1)
-    | _ -> get_expr e
+    | _ -> Unary_op(op, e)
   )
   | IdentifierAccess name when not(is_bound name state.scopes) -> expr
   | IdentifierAccess name -> (match lookup_identifier name state.scopes with
@@ -150,7 +150,7 @@ and reduce_expr state expr = match expr with
     | Expr(Int i, _) -> reduce_expression state (if is_true i then a else b ) |> get_expr
     | c -> Ternary(c, reduce_expression state a, reduce_expression state b)
   )
-  | StructureLiteral entry -> StructureLiteral(List.map (fun (name, expr) -> (name, reduce_expression state expr)) entry)
+  | StructureLiteral entries -> StructureLiteral(List.map (fun (name, expr) -> (name, reduce_expression state expr)) entries)
   | _ -> expr
   
 
@@ -167,7 +167,7 @@ let rec eval_type_expr state te = match te with
   | TE_Tuple entries -> T_Tuple(List.map (fun (t,n) -> (eval_type_expr state t, n)) entries)
   | TE_Func(ret, params) -> T_Func(eval_type_expr state ret, List.map (eval_type_expr state) params)
 
-let rec compile_expr (state:compile_state) (Expr(expr, ln)) : (typ * instruction list) =
+let rec compile_expr (state:compile_state) (Expr(expr, ln) as expression) : (typ * instruction list) =
   try match expr with
   | IdentifierAccess name when not(is_bound name state.scopes) -> (
     match lookup_builtin_info name with
@@ -336,6 +336,22 @@ let rec compile_expr (state:compile_state) (Expr(expr, ln)) : (typ * instruction
     | AnyCompare, T_Field, T_Field -> (T_Int, instrs1 @ instrs2 @ [Instr_BinAnd])
     | Plus, T_Array(t1,s1), T_Array(t2,s2) when type_eq t1 t2 -> (T_Array(t1, s1+s2), instrs1 @ instrs2)
     | Plus, T_Tuple(entries1), T_Tuple(entries2) -> (T_Tuple(entries1 @ entries2), instrs1 @ instrs2)
+    | Times, T_Int, T_Array(t,s) -> (match e1 with
+      | Expr(Int i, _) -> (T_Array(t, s*i), List.init i (return instrs2) |> List.flatten)
+      | _ -> raise_failure "Array multiplication requires a constant factor"
+    ) 
+    | Times, T_Array(t,s), T_Int -> (match e2 with
+      | Expr(Int i, _) -> (T_Array(t, s*i), List.init i (return instrs1) |> List.flatten)
+      | _ -> raise_failure "Array multiplication requires a constant factor"
+    )
+    | Times, T_Int, T_Tuple(entries) -> (match e1 with
+      | Expr(Int i, _) -> (T_Tuple(List.init i (return entries) |> List.flatten), List.init i (return instrs2) |> List.flatten)
+      | _ -> raise_failure "Tuple multiplication requires a constant factor"
+    ) 
+    | Times, T_Tuple(entries), T_Int -> (match e2 with
+      | Expr(Int i, _) -> (T_Tuple(List.init i (return entries) |> List.flatten), List.init i (return instrs1) |> List.flatten)
+      | _ -> raise_failure "Tuple multiplication requires a constant factor"
+    ) 
     | _ -> raise_failure ("Unknown binary operation between '" ^type_string typ1^ "' and '" ^type_string typ2^ "'")
   )
   | Unary_op (op, e) -> ( 
@@ -368,24 +384,25 @@ let rec compile_expr (state:compile_state) (Expr(expr, ln)) : (typ * instruction
       let (ret,args,body) = f.data in
       new_label_context () ;
       let start_label = label_name "func" in
+      let end_label = label_name "func_end" in
       let ret = eval_type_expr state ret in
-      let args = args |> List.rev |> List.map (fun (t,n) -> (eval_type_expr state t, n)) in
+      let args = List.map (fun (t,n) -> (eval_type_expr state t, n)) args  in
+      let typ = T_Func(ret, List.map fst args) in
+      f.cache <- Some(typ, start_label) ;
       let func_scope = {
-        local = List.map (fun (t,n) -> Var(t,n)) args @ [Var(T_Func(ret, List.map fst args), "this")] ; 
+        local = List.fold_left (fun acc (t,n) -> Var(t,n)::acc) [Const(typ, "this", expression)] args ; 
         global =  if state.scopes.global = None then Some(state.scopes.local) else state.scopes.global ;
       } in
       let new_state = {
         scopes = func_scope;  
-        labels = available_labels body; 
+        labels = available_labels body;
         break = None; 
         continue = None; 
         ret_type = Some ret;
         size = 0;
       } in
-      let typ = T_Func(ret, List.map fst args) in
       let (state', body) = compile_stmt body {new_state with scopes = ({ local = new_state.scopes.local; global = new_state.scopes.global })} in
-      f.cache <- Some(typ,start_label) ;
-      (typ, [Instr_GoTo ; label_ref "func_end" ; Label start_label ; Instr_Declare ; I(state'.size)] @ body @ [Instr_Declare ; I(type_size ret) ; Instr_Return ; label "func_end" ; Instr_Place ; LabelRef start_label])
+      (typ, [Instr_GoTo ; LabelRef end_label ; Label start_label ; Instr_Declare ; I(state'.size)] @ body @ [Instr_Declare ; I(type_size ret) ; Instr_Return ; I(type_size ret) ; Label end_label ; Instr_Place ; LabelRef start_label])
   )
   | Call(Expr(IdentifierAccess name,_), args) when not(is_bound name state.scopes) -> (
     let (arg_types, arg_instrs) = args |> List.map (compile_expr state) |> List.split in
@@ -415,8 +432,8 @@ let rec compile_expr (state:compile_state) (Expr(expr, ln)) : (typ * instruction
         |> List.combine params 
         |> List.map (fun (param, arg) -> 
           let (arg_typ, arg_instrs) = compile_expr state arg in
-          if can_assign param arg_typ then arg_instrs @ fix_size param arg_typ
-          else raise_failure "Incorrect argument type"
+          if can_assign param arg_typ then arg_instrs
+          else raise_failure ("Incorrect argument for function of type: '"^type_string f_typ ^"'")
         ) 
         |> List.flatten 
       in
@@ -448,13 +465,6 @@ let rec compile_expr (state:compile_state) (Expr(expr, ln)) : (typ * instruction
   with
   | Failure(p,None,msg) -> raise (Failure(p,Some ln, msg))
   | a -> raise a
-
-and fix_size target_typ expr_typ : instruction list = 
-  let size_diff = type_size target_typ - type_size expr_typ in
-  match size_diff with
-  | 0 -> []
-  | x when x < 0 -> [Instr_MoveSP ; I(x)] (*arg is too large*)
-  | x -> [Instr_Declare ; I(x)] (*arg is too small*)
 
 and find_variable_location name state =
   match lookup_identifier name state.scopes with
@@ -647,7 +657,7 @@ and compile_stmt (Stmt(stmt,ln)) state : (compile_state * instruction list)  =
     | StorageStack loc -> 
       let (expr_typ, expr_instrs) = expr |> reduce_expression state |> compile_expr state in
       if can_assign loc.typ expr_typ then
-        (state, expr_instrs @ fix_size loc.typ expr_typ @ loc.instrs @ [loc.store ; I(type_size loc.typ)])
+        (state, expr_instrs @ loc.instrs @ [loc.store ; I(type_size loc.typ)])
       else 
         raise_failure ("Cannot assign a value of type '"^type_string expr_typ^"' to a target of type '"^type_string loc.typ^"'")
   )
@@ -669,7 +679,7 @@ and compile_stmt (Stmt(stmt,ln)) state : (compile_state * instruction list)  =
       if not(can_assign typ expr_typ) then raise_failure ("Cannot assign a value of type '" ^type_string expr_typ^ "' to a variable of type '" ^type_string typ^ "'") else
       let state' = {state with scopes = { local = Var(typ,name)::state.scopes.local; global = state.scopes.global }; size = state.size + type_size typ} in 
       match find_variable_location name state' with
-      | Some StorageStack loc -> (state', expr_instrs @ fix_size typ expr_typ @ loc.instrs @ [loc.store ; I(type_size loc.typ)])
+      | Some StorageStack loc -> (state', expr_instrs @ loc.instrs @ [loc.store ; I(type_size loc.typ)])
       | _ -> raise_failure "Could not assign"
     )
   )
@@ -686,7 +696,7 @@ and compile_stmt (Stmt(stmt,ln)) state : (compile_state * instruction list)  =
     let (expr_typ, expr_instrs) = expr |> reduce_expression state |> compile_expr state in
     match state.ret_type with
     | Some typ when can_assign typ expr_typ -> 
-      (state, expr_instrs @ fix_size typ expr_typ  @ [Instr_Return ; I(type_size typ)])
+      (state, expr_instrs @ [Instr_Return ; I(type_size typ)])
     | Some typ -> raise_failure ("Cannot return a value of type '"^type_string expr_typ^"' from a function returning '"^type_string typ^"'")
     | None -> raise_failure "Not in a function"
   )
