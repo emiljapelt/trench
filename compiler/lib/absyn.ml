@@ -93,6 +93,7 @@ and expr =
     | Ternary of expression * expression * expression
     | Null
     | StructureLiteral of (string option * expression) list
+    | SizeOf of expression
 
 and func = {
     data : typ_expr * (typ_expr * string) list * statement;

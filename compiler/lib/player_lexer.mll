@@ -85,9 +85,8 @@ rule lex = parse
     |   ">"           { GT }
     |   "=>"          { RARROW }
     |   "&&"          { LOGIC_AND }
-    |   "&"           { LOGIC_AND }
     |   "||"          { LOGIC_OR }
-    |   "|"           { LOGIC_OR }
+    |   "|"           { PIPE }
     |   '?'           { QMARK }
     |   '!'           { EXCLAIM }
     |   '('           { LPAR }

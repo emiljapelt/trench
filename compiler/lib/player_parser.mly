@@ -29,7 +29,7 @@
 %token INT DIR FIELD RESOURCE L_SHIFT R_SHIFT
 %token RETURN NULL
 %token TIMES_EQ MINUS_EQ PLUS_EQ L_SHIFT_EQ R_SHIFT_EQ
-%token DOT DOTDOT
+%token DOT DOTDOT PIPE
 
 // Precedence and assosiativity inspired by https://en.cppreference.com/w/c/language/operator_precedence.html
 
@@ -113,6 +113,7 @@ simple_expr:
   | QMARK LBRAKE simple_expression+ RBRAKE  { features ["random"] ; RandomSet $3 }
   | NAME                                    { features ["memory"] ; IdentifierAccess $1 }
   | LBRAKE seperated_or_empty(COMMA, struct_element) RBRAKE { StructureLiteral $2 }
+  | PIPE expression PIPE                    { SizeOf $2 }
   | LPAR expr RPAR                          { $2 }
 ;
 

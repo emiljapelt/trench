@@ -96,6 +96,7 @@ let rec reduce_expression state (Expr(expr, ln)) = Expr(reduce_expr state expr, 
 
 and reduce_expr state expr = match expr with
   | Int i -> Int i
+  | Null -> Null
   | Direction d -> Direction d
   | Prop p -> Prop p
   | Resource r -> Resource r
@@ -151,6 +152,20 @@ and reduce_expr state expr = match expr with
     | c -> Ternary(c, reduce_expression state a, reduce_expression state b)
   )
   | StructureLiteral entries -> StructureLiteral(List.map (fun (name, expr) -> (name, reduce_expression state expr)) entries)
+  | TupleAccess(target, name) -> TupleAccess(reduce_expression state target, name)
+  | SizeOf expr -> (
+    let e = reduce_expression state expr in
+    match get_expr e with
+    | StructureLiteral entries -> Int(List.length entries)
+    | IdentifierAccess name -> (match lookup_identifier name state.scopes with
+      | Some(_, ((Const(T_Array(_,s),_,_)), _)) -> Int(s)
+      | Some(_, ((Const(T_Tuple(entries),_,_)), _)) -> Int(List.length entries)
+      | Some(_, ((Var(T_Array(_,s),_)), _)) -> Int(s)
+      | Some(_, ((Var(T_Tuple(entries),_)), _)) -> Int(List.length entries)
+      | _ -> get_expr e
+    )
+    | e -> e
+  )
   | _ -> expr
   
 
@@ -450,7 +465,7 @@ let rec compile_expr (state:compile_state) (Expr(expr, ln) as expression) : (typ
     (a_typ, c_instrs @ [Instr_GoToIf ; label_ref "ternary_true"] @ b_instrs @ [Instr_GoTo ; label_ref "ternary_stop" ; label "ternary_true"] @ a_instrs @ [label "ternary_stop"])
   )
   | Null -> (T_Null, [Instr_Place ; I(0)])
-  | StructureLiteral exprs -> 
+  | StructureLiteral exprs -> (
     let info = List.map (fun (name, expr) -> (name, compile_expr state expr)) exprs in
     let names = List.map (fun (name,(_,_)) -> name) info in 
     let typs = List.map (fun (_,(typ,_)) -> typ) info in
@@ -462,6 +477,12 @@ let rec compile_expr (state:compile_state) (Expr(expr, ln) as expression) : (typ
       else if List.for_all can_declare typs then (T_Tuple(List.combine typs names), List.flatten instrs)
       else raise_failure "Could not infere structure type"
     )
+  )
+  | SizeOf expr -> (match compile_expr state expr with
+    | (T_Array(_,s), _) -> (T_Int, [Instr_Place ; I(s)])
+    | (T_Tuple(entries), _) -> (T_Int, [Instr_Place ; I(List.length entries)])
+    | (t, _) -> raise_failure ("Cannot get size of type: " ^ type_string t)
+  )
   with
   | Failure(p,None,msg) -> raise (Failure(p,Some ln, msg))
   | a -> raise a
