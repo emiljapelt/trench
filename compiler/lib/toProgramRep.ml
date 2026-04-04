@@ -192,111 +192,11 @@ let rec compile_expr (state:compile_state) (Expr(expr, ln) as expression) : (typ
     )
     | _ -> raise_failure ("Unknown variable: "^name)
   )
-  | IdentifierAccess name -> (match lookup_identifier name state.scopes with
-    | Some(GlobalScope, (Var(typ,_), addr)) -> (typ, [Instr_Place ; I(addr) ; Instr_LoadGlobal ; I(type_size typ)])
-    | Some(LocalScope, (Var(typ,_), addr)) -> (typ, [Instr_Place ; I(addr) ; Instr_LoadLocal ; I(type_size typ)])
-    | Some(_, (Const(_,_,expr), _)) -> compile_expr state expr
-    | None -> raise_failure ("Unknown identifier: "^name)
-  ) 
-  | IndexAccess(target, range) -> (
-    match find_expr_location target state with
-    | ComputeStack loc -> (match loc.typ with
-      | T_Array(elem_t, size) -> (
-        let elem_size = type_size elem_t in
-        match range with
-        | Index index ->
-          let (index_typ, index_instrs) = compile_expr state index in
-          if not(type_eq T_Int index_typ) then raise_failure "Index must be of type 'int'" else
-          (elem_t, loc.instrs @ index_instrs @ [Instr_Extract ; I(size * type_size elem_t) ; I(type_size elem_t)])
-        | Range(Some index, Some Expr(Int len,_)) -> 
-          if abs len > size then raise_failure "Length of the range is greater than the length of the array" else
-          let (index_typ, index_instrs) = compile_expr state index in
-          if not(type_eq T_Int index_typ) then raise_failure "Index must be of type 'int'" else
-          let offset = if len < 0 then [Instr_Place ; I(len + 1) ; Instr_Add] else [] in
-          (T_Array(elem_t, abs len), loc.instrs @ index_instrs @ offset @ [Instr_Place ; I(elem_size) ; Instr_Mul ; Instr_Extract ; I(size * elem_size) ; I(abs len * elem_size)])
-        | Range(None, Some Expr(Int index,_)) -> (* a[..2] *)
-          if (index < 0 || index >= size) then raise_failure "Out of bounds" else
-          let len = index + 1 in
-          (T_Array(elem_t, len), loc.instrs @ [Instr_Place ; I(0) ; Instr_Extract ; I(size * type_size elem_t) ; I(len * type_size elem_t)])
-        | Range(Some Expr(Int index,_), None) -> (* a[1..] *)
-          if (index < 0 || index >= size) then raise_failure "Out of bounds" else
-          let len = size - index in
-          (T_Array(elem_t, len), loc.instrs @ [Instr_Place ; I(index * elem_size) ; Instr_Add ; Instr_Extract ; I(size * type_size elem_t) ; I(len * type_size elem_t)])
-        | _ -> raise_failure "Not implemented: 0"
-      )
-      | T_Tuple(entries) -> (match range with
-        | Index Expr(Int i,_) when i >= 0 && i < List.length entries ->
-          let (elem_t,_) = List.nth entries i in
-          let size = List.fold_left (fun acc (t,_) -> acc + type_size t) 0 entries in
-          (elem_t, loc.instrs @ [Instr_Place ; I(i) ; Instr_Extract ; I(size) ; I(type_size elem_t)])
-        | _ -> raise_failure "Invalid tuple access" (* Tuple range support? *)
-      )
-      | _ -> raise_failure "Cannot index type" 
-    )
-    | StorageStack loc -> (match loc.typ with
-      | T_Array(elem_t, size) -> (
-        let elem_size = type_size elem_t in
-        match range with
-        | Index index -> 
-          let (index_typ, index_instrs) = compile_expr state index in
-          if not(type_eq T_Int index_typ) then raise_failure "Index must be of type 'int'" else
-          (elem_t, loc.instrs @ index_instrs @ [Instr_Index ; I(size * elem_size); I(elem_size) ; loc.load ; I(elem_size)])
-        | Range(Some index, Some Expr(Int len,_)) ->
-          if abs len > size then raise_failure "Length of the range is greater than the length of the array" else
-          let (index_typ, index_instrs) = compile_expr state index in
-          if not(type_eq T_Int index_typ) then raise_failure "Index must be of type 'int'" else
-          let offset = if len < 0 then [Instr_Place ; I(len + 1) ; Instr_Add] else [] in
-          (T_Array(elem_t, abs len), loc.instrs @ index_instrs @ offset @ [Instr_Place ; I(elem_size) ; Instr_Mul ; Instr_Index ; I(size * elem_size) ; I(abs len * elem_size) ; loc.load ; I(abs len * elem_size)])
-        | Range(None, Some Expr(Int index,_)) -> (* a[..2] *)
-          if (index < 0 || index >= size) then raise_failure "Out of bounds" else
-          let len = index + 1 in
-          (T_Array(elem_t, len), loc.instrs @ [Instr_Place ; I(0) ; Instr_Index ; I(size * elem_size) ; I(len * elem_size) ; loc.load ; I(len * elem_size)])
-        | Range(Some Expr(Int index,_), None) -> (* a[1..] *)
-          if (index < 0 || index >= size) then raise_failure "Out of bounds" else
-          let len = size - index in
-          (T_Array(elem_t, len), loc.instrs @ [Instr_Place ; I(index * elem_size) ; Instr_Add ; Instr_Index ; I(size * elem_size) ; I(len * elem_size) ; loc.load ; I(len * elem_size)])
-        | _ -> raise_failure "Not implemented: 1"
-      )
-      | T_Tuple(entries) -> (match range with
-        | Index Expr(Int i,_) when i >= 0 && i < List.length entries -> 
-          let (elem_t,_) = List.nth entries i in
-          let size = List.fold_left (fun acc (t,_) -> acc + type_size t) 0 entries in
-          let elem_size = type_size elem_t in
-          (elem_t, loc.instrs @ [Instr_Place ; I(i) ; Instr_Index ; I(size) ; I(elem_size) ; loc.load ; I(elem_size)])
-        | _ -> raise_failure "Invalid tuple access"
-      )
-      | _ -> raise_failure "Cannot index type"
-    )
-  )
-  | TupleAccess(target, name) -> (
-    match find_expr_location target state with
-    | ComputeStack loc -> (match loc.typ with
-      | T_Tuple(entries) -> (
-        match List.find_index (fun (_,n) -> n |> Option.map ((=) name) |> Option.value ~default:false) entries with
-        | None -> raise_failure ("No such tuple entry: "^name)
-        | Some index -> 
-          let (elem_t,_) = List.nth entries index in
-          let sizes = entries |> List.map (fun (t,_) -> type_size t) in
-          let i = sizes |> List.take index |> List.fold_left (+) 0 in
-          let size = sizes |> List.fold_left (+) 0 in
-          (elem_t, loc.instrs @ [Instr_Place ; I(i) ; Instr_Extract ; I(size) ; I(type_size elem_t)])
-        )
-      | _ -> raise_failure "Not a tuple"
-    )
-    | StorageStack loc -> (match loc.typ with
-      | T_Tuple(entries) -> (
-        match List.find_index (fun (_,n) -> n |> Option.map ((=) name) |> Option.value ~default:false) entries with
-        | None -> raise_failure ("No such tuple entry: "^name)
-        | Some index -> 
-          let (elem_t,_) = List.nth entries index in
-          let sizes = entries |> List.map (fun (t,_) -> type_size t) in
-          let i = sizes |> List.take index |> List.fold_left (+) 0 in
-          let size = sizes |> List.fold_left (+) 0 in
-          let elem_size = type_size elem_t in
-          (elem_t, loc.instrs @ [Instr_Place ; I(i) ; Instr_Index ; I(size) ; I(elem_size) ; loc.load ; I(elem_size)])
-      )
-      | _ -> raise_failure "Dont know how to access array"
-    )
+  | IdentifierAccess _ 
+  | IndexAccess _ 
+  | TupleAccess _ -> (match find_expr_location expression state with
+    | StorageStack loc -> (loc.typ, loc.instrs @ [loc.load ; I(type_size loc.typ)])
+    | ComputeStack loc -> (loc.typ, loc.instrs)
   )
   | Int i -> (T_Int, [Instr_Place ; I(i)])
   | Prop fp -> (T_Field, [Instr_Place ; I(prop_index fp)])
@@ -485,50 +385,36 @@ let rec compile_expr (state:compile_state) (Expr(expr, ln) as expression) : (typ
   | Failure(p,None,msg) -> raise (Failure(p,Some ln, msg))
   | a -> raise a
 
-and find_variable_location name state =
+and find_identifier_location name state =
   match lookup_identifier name state.scopes with
   | Some(GlobalScope, (Var(typ,_), addr)) -> Some(StorageStack { typ = typ; instrs = [Instr_Place ; I(addr)]; load = Instr_LoadGlobal; store = Instr_StoreGlobal })
   | Some(LocalScope, (Var(typ,_), addr)) -> Some(StorageStack { typ = typ; instrs = [Instr_Place ; I(addr)]; load = Instr_LoadLocal; store = Instr_StoreLocal })
   | Some(_, (Const(_,_,expr), _)) -> 
     let (expr_type, expr_instrs) = compile_expr state expr in
     Some(ComputeStack { typ = expr_type; instrs = expr_instrs})
-  | None -> raise_failure ""
+  | None -> None
 
-(* This function is crazy, please fix *)
-(* Need to take another look at extract and index, to see if they are used correctly *)
-(* - Index instruction is using element size, this will not work for tuples in general *)
+(* New function name ??? *)
 and find_expr_location (Expr(e,_) as expr) state = match e with
-  | IdentifierAccess name -> (match find_variable_location name state with
+  | IdentifierAccess name -> (match find_identifier_location name state with
     | Some loc -> loc
-    | None -> raise_failure ""
+    | None -> raise_failure ("Unknown identifier: " ^ name)
   )
   | IndexAccess (target, range) -> (match find_expr_location target state with
     | ComputeStack loc -> (match loc.typ with
-      | T_Array(elem_t, array_size) -> 
+      | T_Array(elem_t, array_size) -> (
         let elem_size = type_size elem_t in
-        (match range with 
+        match range with 
         | Index index ->
           let (index_typ, index_instrs) = compile_expr state index in
           if (index_typ != T_Int) then raise_failure "Index must be of type 'int'" else
           ComputeStack { typ = elem_t; instrs = loc.instrs @ index_instrs @ [ Instr_Place ; I(elem_size) ; Instr_Mul ; Instr_Extract ; I(array_size * elem_size) ; I(elem_size)] }
-
         | Range(Some index, Some Expr(Int len,_)) -> 
           if abs len > array_size then raise_failure "Length of the range is greater than the length of the array" else
           let (index_typ, index_instrs) = compile_expr state index in
           if not(type_eq T_Int index_typ) then raise_failure "Index must be of type 'int'" else
           let offset = if len < 0 then [Instr_Place ; I(len + 1) ; Instr_Add] else [] in
           ComputeStack { typ = T_Array(elem_t, abs len) ; instrs = loc.instrs @ index_instrs @ offset @ [Instr_Place ; I(elem_size) ; Instr_Mul ; Instr_Extract ; I(array_size * elem_size) ; I(abs len * elem_size)] }
-        
-        (*| Range(Some index, Some Expr(Int len,_)) when len >= 0 ->
-          let (index_typ, index_instrs) = compile_expr state index in
-          if not(type_eq T_Int index_typ) then raise_failure "Index must be of type 'int'" else
-          ComputeStack { typ = T_Array(elem_t, len); instrs = loc.instrs @ index_instrs @ [Instr_Place ; I(elem_size) ; Instr_Mul ; Instr_Extract ; I(array_size * elem_size) ; I(len * elem_size)] }
-        | Range(Some index, Some Expr(Int len,_)) ->
-          let (index_typ, index_instrs) = compile_expr state index in
-          if not(type_eq T_Int index_typ) then raise_failure "Index must be of type 'int'" else
-          ComputeStack { typ = T_Array(elem_t, -len); instrs = loc.instrs @ index_instrs @ [Instr_Place ; I(len) ; Instr_Add ;  Instr_Place ; I(elem_size) ; Instr_Mul ; Instr_Extract ; I(array_size * elem_size) ; I(-len * elem_size)] }
-          *)
-
         | Range(None, Some Expr(Int index,_)) -> (* a[..2] *)
           if (index < 0 || index >= array_size) then raise_failure "Out of bounds" else
           let len = index + 1 in
@@ -552,31 +438,19 @@ and find_expr_location (Expr(e,_) as expr) state = match e with
       | _ -> raise_failure "Cannot index type"
     )
     | StorageStack loc -> (match loc.typ with
-      | T_Array(elem_t, array_size) -> 
+      | T_Array(elem_t, array_size) -> (
         let elem_size = type_size elem_t in
-        (match range with
+        match range with
         | Index index ->
           let (index_typ, index_instrs) = compile_expr state index in
           if (index_typ != T_Int) then raise_failure "Index must be of type 'int'" else
           StorageStack { loc with typ = elem_t; instrs = loc.instrs @ index_instrs @ [Instr_Place ; I(elem_size) ; Instr_Mul ; Instr_Index ; I(array_size * elem_size) ; I(elem_size)] }
-
         | Range(Some index, Some Expr(Int len,_)) ->
           if abs len > array_size then raise_failure "Length of the range is greater than the length of the array" else
           let (index_typ, index_instrs) = compile_expr state index in
           if not(type_eq T_Int index_typ) then raise_failure "Index must be of type 'int'" else
           let offset = if len < 0 then [Instr_Place ; I(len + 1) ; Instr_Add] else [] in
           StorageStack { loc with typ = T_Array(elem_t, abs len) ; instrs = loc.instrs @ index_instrs @ offset @ [Instr_Place ; I(elem_size) ; Instr_Mul ; Instr_Index ; I(array_size * elem_size) ; I(abs len * elem_size)] }
-
-        (*| Range(Some index, Some Expr(Int len,_)) when len >= 0 ->
-          let (index_typ, index_instrs) = compile_expr state index in
-          if not(type_eq T_Int index_typ) then raise_failure "Index must be of type 'int'" else
-          StorageStack { loc with typ = T_Array(elem_t, len); instrs = loc.instrs @ index_instrs @ [Instr_Place ; I(elem_size) ; Instr_Mul ; Instr_Index ; I(array_size * elem_size) ; I(len * elem_size)] }
-        | Range(Some index, Some Expr(Int len,_)) ->
-          let (index_typ, index_instrs) = compile_expr state index in
-          if not(type_eq T_Int index_typ) then raise_failure "Index must be of type 'int'" else
-          StorageStack { loc with typ = T_Array(elem_t, -len); instrs = loc.instrs @ index_instrs @ [Instr_Place ; I(len + 1) ; Instr_Add ; Instr_Place ; I(elem_size) ; Instr_Mul ; Instr_Index ; I(array_size * elem_size) ; I(-len * elem_size)] }
-          *)
-
         | Range(None, Some Expr(Int index,_)) -> (* a[..2] *)
           if (index < 0 || index >= array_size) then raise_failure "Out of bounds" else
           let len = index + 1 in
@@ -604,7 +478,7 @@ and find_expr_location (Expr(e,_) as expr) state = match e with
     | ComputeStack loc -> (match loc.typ with
       | T_Tuple(entries) -> (
         match List.find_index (fun (_,n) -> n |> Option.map ((=) name) |> Option.value ~default:false) entries with
-        | None -> raise_failure ("No such tuple entry: "^name)
+        | None -> raise_failure ("No such entry: "^name)
         | Some index -> 
           let (t,_) = List.nth entries index in
           let sizes = entries |> List.map (fun (t,_) -> type_size t) in
@@ -612,12 +486,12 @@ and find_expr_location (Expr(e,_) as expr) state = match e with
           let tuple_size = sizes |> List.fold_left (+) 0 in
           ComputeStack {typ = t; instrs = loc.instrs @ [Instr_Place ; I(i) ; Instr_Extract ; I(tuple_size) ; I(type_size t)]}
         )
-      | _ -> raise_failure ":("
+      | _ -> raise_failure ("No such entry: '" ^name^ "' in a value of type: " ^type_string loc.typ^ "'")
     )
     | StorageStack loc -> (match loc.typ with
       | T_Tuple(entries) -> (
         match List.find_index (fun (_,n) -> n |> Option.map ((=) name) |> Option.value ~default:false) entries with
-        | None -> raise_failure ("No such tuple entry: "^name)
+        | None -> raise_failure ("No such entry: "^name)
         | Some index -> 
           let (elem_t,_) = List.nth entries index in
           let sizes = entries |> List.map (fun (t,_) -> type_size t) in
@@ -625,7 +499,7 @@ and find_expr_location (Expr(e,_) as expr) state = match e with
           let tuple_size = sizes |> List.fold_left (+) 0 in
           StorageStack { loc with typ = elem_t; instrs = loc.instrs @ [Instr_Place ; I(i); Instr_Index ; I(tuple_size) ; I(type_size elem_t)] }
       )
-    | _ -> raise_failure ":("
+    | _ -> raise_failure ("No such entry: '" ^name^ "' in a value of type: " ^type_string loc.typ^ "'")
     )
   )
   | _ -> 
@@ -708,7 +582,7 @@ and compile_stmt (Stmt(stmt,ln)) state : (compile_state * instruction list)  =
       let (typ, expr_instrs) = expr |> reduce_expression state |> compile_expr state in
       if not(can_declare typ) then  raise_failure ("Cannot declare a variable of type '"^type_string typ^"'")
       else let state' = {state with scopes = { local = Var(typ,name)::state.scopes.local; global = state.scopes.global }; size = state.size + type_size typ} in 
-      match find_variable_location name state' with
+      match find_identifier_location name state' with
       | Some StorageStack loc -> (state', expr_instrs @ loc.instrs @ [loc.store ; I(type_size loc.typ)])
       | _ -> raise_failure "Could not assign"
     )
@@ -717,7 +591,7 @@ and compile_stmt (Stmt(stmt,ln)) state : (compile_state * instruction list)  =
       let (expr_typ, expr_instrs) = expr |> reduce_expression state |> compile_expr state in
       if not(can_assign typ expr_typ) then raise_failure ("Cannot assign a value of type '" ^type_string expr_typ^ "' to a variable of type '" ^type_string typ^ "'") else
       let state' = {state with scopes = { local = Var(typ,name)::state.scopes.local; global = state.scopes.global }; size = state.size + type_size typ} in 
-      match find_variable_location name state' with
+      match find_identifier_location name state' with
       | Some StorageStack loc -> (state', expr_instrs @ loc.instrs @ [loc.store ; I(type_size loc.typ)])
       | _ -> raise_failure "Could not assign"
     )
