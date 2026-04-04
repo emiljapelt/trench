@@ -5,15 +5,15 @@ let cont_optimize_instruction_list instrs =
   let rec aux instrs c = match instrs with
     | [] -> c []
     | Instr_Add::t -> aux t (fun acc -> match acc with
-      | I(a)::Instr_Place::I(b)::Instr_Place::acc -> c(Instr_Place::I(a+b)::acc)
+      | I(a)::Instr_Place::I(b)::Instr_Place::acc -> c(I(a+b)::Instr_Place::acc)
       | _ -> c(Instr_Add::acc)
     )
     | Instr_Mul::t -> aux t (fun acc -> match acc with
-      | I(a)::Instr_Place::I(b)::Instr_Place::acc -> c(Instr_Place::I(a*b)::acc)
+      | I(a)::Instr_Place::I(b)::Instr_Place::acc -> c(I(a*b)::Instr_Place::acc)
       | _ -> c(Instr_Mul::acc)
     )
     | Instr_Sub::t -> aux t (fun acc -> match acc with
-      | I(a)::Instr_Place::I(b)::Instr_Place::acc -> c(Instr_Place::I(b-a)::acc)
+      | I(a)::Instr_Place::I(b)::Instr_Place::acc -> c(I(b-a)::Instr_Place::acc)
       | _ -> c(Instr_Sub::acc)
     )
     (*| I(_)::Instr_Return::I(_)::Instr_Declare::I(s)::Instr_Return::t ->

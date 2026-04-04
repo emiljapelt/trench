@@ -201,19 +201,19 @@ let rec compile_expr (state:compile_state) (Expr(expr, ln) as expression) : (typ
   | IndexAccess(target, range) -> (
     match find_expr_location target state with
     | ComputeStack loc -> (match loc.typ with
-      | T_Array(elem_t, size) -> (match range with
+      | T_Array(elem_t, size) -> (
+        let elem_size = type_size elem_t in
+        match range with
         | Index index ->
           let (index_typ, index_instrs) = compile_expr state index in
           if not(type_eq T_Int index_typ) then raise_failure "Index must be of type 'int'" else
           (elem_t, loc.instrs @ index_instrs @ [Instr_Extract ; I(size * type_size elem_t) ; I(type_size elem_t)])
-        | Range(Some index, Some Expr(Int len,_)) when len >= 0 ->
+        | Range(Some index, Some Expr(Int len,_)) -> 
+          if abs len > size then raise_failure "Length of the range is greater than the length of the array" else
           let (index_typ, index_instrs) = compile_expr state index in
           if not(type_eq T_Int index_typ) then raise_failure "Index must be of type 'int'" else
-          (T_Array(elem_t, len), loc.instrs @ index_instrs @ [Instr_Extract ; I(size * type_size elem_t) ; I(len * type_size elem_t)])
-        | Range(Some index, Some Expr(Int len,_)) ->
-          let (index_typ, index_instrs) = compile_expr state index in
-          if not(type_eq T_Int index_typ) then raise_failure "Index must be of type 'int'" else
-          (T_Array(elem_t, -len), loc.instrs @ index_instrs @ [Instr_Place ; I(len) ; Instr_Add ; Instr_Extract ; I(size * type_size elem_t) ; I(-len * type_size elem_t)])
+          let offset = if len < 0 then [Instr_Place ; I(len + 1) ; Instr_Add] else [] in
+          (T_Array(elem_t, abs len), loc.instrs @ index_instrs @ offset @ [Instr_Place ; I(elem_size) ; Instr_Mul ; Instr_Extract ; I(size * elem_size) ; I(abs len * elem_size)])
         | Range(None, Some Expr(Int index,_)) -> (* a[..2] *)
           if (index < 0 || index >= size) then raise_failure "Out of bounds" else
           let len = index + 1 in
@@ -221,7 +221,7 @@ let rec compile_expr (state:compile_state) (Expr(expr, ln) as expression) : (typ
         | Range(Some Expr(Int index,_), None) -> (* a[1..] *)
           if (index < 0 || index >= size) then raise_failure "Out of bounds" else
           let len = size - index in
-          (T_Array(elem_t, len), loc.instrs @ [Instr_Place ; I(index) ; Instr_Add ; Instr_Extract ; I(size * type_size elem_t) ; I(len * type_size elem_t)])
+          (T_Array(elem_t, len), loc.instrs @ [Instr_Place ; I(index * elem_size) ; Instr_Add ; Instr_Extract ; I(size * type_size elem_t) ; I(len * type_size elem_t)])
         | _ -> raise_failure "Not implemented: 0"
       )
       | T_Tuple(entries) -> (match range with
@@ -234,21 +234,19 @@ let rec compile_expr (state:compile_state) (Expr(expr, ln) as expression) : (typ
       | _ -> raise_failure "Cannot index type" 
     )
     | StorageStack loc -> (match loc.typ with
-      | T_Array(elem_t, size) -> 
+      | T_Array(elem_t, size) -> (
         let elem_size = type_size elem_t in
-        (match range with
+        match range with
         | Index index -> 
           let (index_typ, index_instrs) = compile_expr state index in
           if not(type_eq T_Int index_typ) then raise_failure "Index must be of type 'int'" else
           (elem_t, loc.instrs @ index_instrs @ [Instr_Index ; I(size * elem_size); I(elem_size) ; loc.load ; I(elem_size)])
-        | Range(Some index, Some Expr(Int len,_)) when len >= 0 -> (* More precise check on the [a..+-b] case *)
-          let (index_typ, index_instrs) = compile_expr state index in
-          if not(type_eq T_Int index_typ) then raise_failure "Index must be of type 'int'" else
-          (T_Array(elem_t, len), loc.instrs @ index_instrs @ [Instr_Index ; I(size * elem_size) ; I(len * elem_size) ; loc.load ; I(len * elem_size)])
         | Range(Some index, Some Expr(Int len,_)) ->
+          if abs len > size then raise_failure "Length of the range is greater than the length of the array" else
           let (index_typ, index_instrs) = compile_expr state index in
           if not(type_eq T_Int index_typ) then raise_failure "Index must be of type 'int'" else
-          (T_Array(elem_t, len), loc.instrs @ index_instrs @ [Instr_Place ; I(len) ; Instr_Add ; Instr_Index ; I(size * elem_size) ; I(-len * elem_size) ; loc.load ; I(-len * elem_size)])
+          let offset = if len < 0 then [Instr_Place ; I(len + 1) ; Instr_Add] else [] in
+          (T_Array(elem_t, abs len), loc.instrs @ index_instrs @ offset @ [Instr_Place ; I(elem_size) ; Instr_Mul ; Instr_Index ; I(size * elem_size) ; I(abs len * elem_size) ; loc.load ; I(abs len * elem_size)])
         | Range(None, Some Expr(Int index,_)) -> (* a[..2] *)
           if (index < 0 || index >= size) then raise_failure "Out of bounds" else
           let len = index + 1 in
@@ -513,14 +511,24 @@ and find_expr_location (Expr(e,_) as expr) state = match e with
           let (index_typ, index_instrs) = compile_expr state index in
           if (index_typ != T_Int) then raise_failure "Index must be of type 'int'" else
           ComputeStack { typ = elem_t; instrs = loc.instrs @ index_instrs @ [ Instr_Place ; I(elem_size) ; Instr_Mul ; Instr_Extract ; I(array_size * elem_size) ; I(elem_size)] }
-        | Range(Some index, Some Expr(Int len,_)) when len >= 0 ->
+
+        | Range(Some index, Some Expr(Int len,_)) -> 
+          if abs len > array_size then raise_failure "Length of the range is greater than the length of the array" else
           let (index_typ, index_instrs) = compile_expr state index in
           if not(type_eq T_Int index_typ) then raise_failure "Index must be of type 'int'" else
-          ComputeStack { typ = T_Array(elem_t, len); instrs = loc.instrs @ index_instrs @ [ Instr_Place ; I(elem_size) ; Instr_Mul ; Instr_Extract ; I(array_size * elem_size) ; I(len * elem_size)] }
+          let offset = if len < 0 then [Instr_Place ; I(len + 1) ; Instr_Add] else [] in
+          ComputeStack { typ = T_Array(elem_t, abs len) ; instrs = loc.instrs @ index_instrs @ offset @ [Instr_Place ; I(elem_size) ; Instr_Mul ; Instr_Extract ; I(array_size * elem_size) ; I(abs len * elem_size)] }
+        
+        (*| Range(Some index, Some Expr(Int len,_)) when len >= 0 ->
+          let (index_typ, index_instrs) = compile_expr state index in
+          if not(type_eq T_Int index_typ) then raise_failure "Index must be of type 'int'" else
+          ComputeStack { typ = T_Array(elem_t, len); instrs = loc.instrs @ index_instrs @ [Instr_Place ; I(elem_size) ; Instr_Mul ; Instr_Extract ; I(array_size * elem_size) ; I(len * elem_size)] }
         | Range(Some index, Some Expr(Int len,_)) ->
           let (index_typ, index_instrs) = compile_expr state index in
           if not(type_eq T_Int index_typ) then raise_failure "Index must be of type 'int'" else
           ComputeStack { typ = T_Array(elem_t, -len); instrs = loc.instrs @ index_instrs @ [Instr_Place ; I(len) ; Instr_Add ;  Instr_Place ; I(elem_size) ; Instr_Mul ; Instr_Extract ; I(array_size * elem_size) ; I(-len * elem_size)] }
+          *)
+
         | Range(None, Some Expr(Int index,_)) -> (* a[..2] *)
           if (index < 0 || index >= array_size) then raise_failure "Out of bounds" else
           let len = index + 1 in
@@ -551,14 +559,24 @@ and find_expr_location (Expr(e,_) as expr) state = match e with
           let (index_typ, index_instrs) = compile_expr state index in
           if (index_typ != T_Int) then raise_failure "Index must be of type 'int'" else
           StorageStack { loc with typ = elem_t; instrs = loc.instrs @ index_instrs @ [Instr_Place ; I(elem_size) ; Instr_Mul ; Instr_Index ; I(array_size * elem_size) ; I(elem_size)] }
-        | Range(Some index, Some Expr(Int len,_)) when len >= 0 ->
+
+        | Range(Some index, Some Expr(Int len,_)) ->
+          if abs len > array_size then raise_failure "Length of the range is greater than the length of the array" else
+          let (index_typ, index_instrs) = compile_expr state index in
+          if not(type_eq T_Int index_typ) then raise_failure "Index must be of type 'int'" else
+          let offset = if len < 0 then [Instr_Place ; I(len + 1) ; Instr_Add] else [] in
+          StorageStack { loc with typ = T_Array(elem_t, abs len) ; instrs = loc.instrs @ index_instrs @ offset @ [Instr_Place ; I(elem_size) ; Instr_Mul ; Instr_Index ; I(array_size * elem_size) ; I(abs len * elem_size)] }
+
+        (*| Range(Some index, Some Expr(Int len,_)) when len >= 0 ->
           let (index_typ, index_instrs) = compile_expr state index in
           if not(type_eq T_Int index_typ) then raise_failure "Index must be of type 'int'" else
           StorageStack { loc with typ = T_Array(elem_t, len); instrs = loc.instrs @ index_instrs @ [Instr_Place ; I(elem_size) ; Instr_Mul ; Instr_Index ; I(array_size * elem_size) ; I(len * elem_size)] }
         | Range(Some index, Some Expr(Int len,_)) ->
           let (index_typ, index_instrs) = compile_expr state index in
           if not(type_eq T_Int index_typ) then raise_failure "Index must be of type 'int'" else
-          StorageStack { loc with typ = T_Array(elem_t, -len); instrs = loc.instrs @ index_instrs @ [Instr_Place ; I(len) ; Instr_Add ; Instr_Place ; I(elem_size) ; Instr_Mul ; Instr_Index ; I(array_size * elem_size) ; I(len * elem_size)] }
+          StorageStack { loc with typ = T_Array(elem_t, -len); instrs = loc.instrs @ index_instrs @ [Instr_Place ; I(len + 1) ; Instr_Add ; Instr_Place ; I(elem_size) ; Instr_Mul ; Instr_Index ; I(array_size * elem_size) ; I(-len * elem_size)] }
+          *)
+
         | Range(None, Some Expr(Int index,_)) -> (* a[..2] *)
           if (index < 0 || index >= array_size) then raise_failure "Out of bounds" else
           let len = index + 1 in
