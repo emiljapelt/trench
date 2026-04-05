@@ -146,7 +146,7 @@ and reduce_expr state expr = match expr with
   )
   | IndexAccess(target, Range(fst, snd)) -> IndexAccess(reduce_expression state target, Range(Option.map (reduce_expression state) fst,  Option.map (reduce_expression state) snd))
   | Call(f,args) -> Call(reduce_expression state f, List.map (reduce_expression state) args) (* Can likely be a little better on constants *)
-  | RandomSet exprs -> RandomSet(List.map (reduce_expression state) exprs)
+  | RandomAccess expr -> RandomAccess(reduce_expression state expr)
   | Ternary(c,a,b) -> (match reduce_expression state c with
     | Expr(Int i, _) -> reduce_expression state (if is_true i then a else b ) |> get_expr
     | c -> Ternary(c, reduce_expression state a, reduce_expression state b)
@@ -202,14 +202,11 @@ let rec compile_expr (state:compile_state) (Expr(expr, ln) as expression) : (typ
   | Prop fp -> (T_Field, [Instr_Place ; I(prop_index fp)])
   | Resource r -> (T_Resource, [Instr_Place ; I(resource_value r)])
   | Random -> (T_Int, [Instr_Random])
-  | RandomSet exprs -> (
-    let (types, instrs) = exprs |> List.map (compile_expr state) |> List.split in
-    match types with
-    | [] -> raise_failure "Empty random set"
-    | h::t -> 
-      if List.for_all (type_eq h) t 
-      then (h, List.flatten instrs @ [Instr_RandomSet ; I(List.length types)])
-      else raise_failure "Random set of differing types"
+  | RandomAccess expr -> (match compile_expr state expr with
+    | (T_Array(typ, size), instrs) -> 
+      let elem_size = type_size typ in
+      (typ, instrs @ [Instr_Place ; I(size) ; Instr_Random ; Instr_Mod ; Instr_Place; I(elem_size) ; Instr_Mul ; Instr_Extract ; I(size * elem_size) ; I(elem_size) ])
+    | (typ,_) -> raise_failure ("Cannot do random access on value type: "^type_string typ)
   )
   | Direction d -> (T_Dir, [Instr_Place ; I(int_of_dir d)])
   | Binary_op (op, e1, e2) -> (
@@ -577,7 +574,7 @@ and compile_stmt (Stmt(stmt,ln)) state : (compile_state * instruction list)  =
   | Declare(typ,name) -> 
     let typ = eval_type_expr state typ in
     ({state with scopes = { local = Var(typ,name)::state.scopes.local; global = state.scopes.global }; size = state.size + type_size typ }, [])
-  | DeclareAssign (typ_opt, name, expr) -> ( match typ_opt with
+  | DeclareAssign (typ_opt, name, expr) -> (match typ_opt with
     | None -> (
       let (typ, expr_instrs) = expr |> reduce_expression state |> compile_expr state in
       if not(can_declare typ) then  raise_failure ("Cannot declare a variable of type '"^type_string typ^"'")

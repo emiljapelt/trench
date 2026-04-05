@@ -46,6 +46,7 @@
 %right UNARY
 %left LPAR
 %left PLUSPLUS MINUSMINUS LBRAKE DOT
+%right RND
 /*High precedence*/
 
 %start main
@@ -110,10 +111,8 @@ simple_expression:
 simple_expr:
   | const_expr                              { $1 }
   | QMARK                                   { features ["random"] ; Random }
-  | QMARK LBRAKE simple_expression+ RBRAKE  { features ["random"] ; RandomSet $3 }
   | NAME                                    { features ["memory"] ; IdentifierAccess $1 }
   | LBRAKE seperated_or_empty(COMMA, struct_element) RBRAKE { StructureLiteral $2 }
-  | PIPE expression PIPE                    { SizeOf $2 }
   | LPAR expr RPAR                          { $2 }
 ;
 
@@ -128,11 +127,11 @@ expression:
 
 expr:
   | simple_expr                             { $1 }
-  | expression LBRAKE range RBRAKE     { features ["memory"] ; IndexAccess($1,$3) }
+  | expression LBRAKE range RBRAKE          { features ["memory"] ; IndexAccess($1,$3) }
   | expression DOT NAME                     { features ["memory"] ; TupleAccess($1,$3) }
   | MINUS expression                        { Binary_op (Minus, Expr(Int 0, $symbolstartpos.pos_lnum), $2) }  %prec UNARY
   | EXCLAIM expression                      { Unary_op (Negate, $2) } %prec UNARY
-  | expression binop expression                  { Binary_op ($2, $1, $3) }
+  | expression binop expression             { Binary_op ($2, $1, $3) }
   | BSLASH typ COLON LPAR seperated_or_empty(COMMA,func_arg) RPAR block          { features ["func"] ; Func{ data = ($2, $5, Stmt($7,$symbolstartpos.pos_lnum)); cache = None} }
   | BSLASH LPAR seperated_or_empty(COMMA,func_arg) RPAR block              { features ["func";"sugar"] ; Func{ data = (TE_Int, $3, Stmt($5,$symbolstartpos.pos_lnum)); cache = None} }
   | BSLASH typ COLON LPAR seperated_or_empty(COMMA,func_arg) RPAR RARROW expression   { features ["func";"sugar"] ; Func{ data = ($2, $5, Stmt(Return $8,$symbolstartpos.pos_lnum)); cache = None} }
@@ -143,6 +142,8 @@ expr:
   | MINUSMINUS expression                  { features ["sugar"] ; Decrement($2, true)} 
   | expression MINUSMINUS                  { features ["sugar"] ; Decrement($1, false)}
   | expression LPAR seperated_or_empty(COMMA, expression) RPAR { Call($1, $3) }
+  | PIPE simple_expression PIPE            { SizeOf $2 }
+  | QMARK expression                       { features ["random"] ; RandomAccess $2 } %prec RND
 ;
 
 range:

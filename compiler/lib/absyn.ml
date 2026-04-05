@@ -87,7 +87,7 @@ and expr =
     | Prop of field_prop
     | Direction of direction
     | Random
-    | RandomSet of expression list
+    | RandomAccess of expression
     | Func of func
     | Call of expression *  expression list
     | Ternary of expression * expression * expression
