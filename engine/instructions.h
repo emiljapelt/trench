@@ -37,7 +37,6 @@ typedef enum {
   Instr_BinNot =        11,
   Instr_BinAnd =        12,
   Instr_Random =        13,
-  Instr_RandomSet =     14,
   Instr_GoToIf =        15,
   Instr_GoTo =          16,
   Instr_Wait =          17,
@@ -90,15 +89,6 @@ int instr_random_int(player_state* ps) {
     }
 
     ps->stack[ps->sp++] = rand();
-    return 0;
-}
-
-int instr_random_range(player_state* ps) {
-    int num = ps->directive[ps->dp];
-    int pick = ps->stack[ps->sp - ((rand() % num)+1)];
-    ps->sp -= num;
-    ps->stack[ps->sp++] = pick;
-    ps->dp++;
     return 0;
 }
 

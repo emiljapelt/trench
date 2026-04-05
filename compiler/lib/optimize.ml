@@ -1,6 +1,5 @@
 open ProgramRep
 
-
 let cont_optimize_instruction_list instrs =
   let rec aux instrs c = match instrs with
     | [] -> c []
@@ -8,6 +7,7 @@ let cont_optimize_instruction_list instrs =
       | I(a)::Instr_Place::I(b)::Instr_Place::acc -> c(I(a+b)::Instr_Place::acc)
       | _ -> c(Instr_Add::acc)
     )
+    | Instr_Mul::I(1)::Instr_Place::t -> aux t (fun acc -> c acc)
     | Instr_Mul::t -> aux t (fun acc -> match acc with
       | I(a)::Instr_Place::I(b)::Instr_Place::acc -> c(I(a*b)::Instr_Place::acc)
       | _ -> c(Instr_Mul::acc)
@@ -21,8 +21,6 @@ let cont_optimize_instruction_list instrs =
     | h::t -> aux t (fun acc -> c(h::acc))
   in
   aux (List.rev instrs) (List.rev)
-
-
 
 
 let naive_optimize_instruction_list instrs =

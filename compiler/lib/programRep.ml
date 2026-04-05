@@ -19,7 +19,6 @@ type instruction =
   | Instr_BinNot
   | Instr_BinAnd
   | Instr_Random
-  | Instr_RandomSet
   | Instr_GoToIf
   | Instr_GoTo
   | Instr_Wait
@@ -58,7 +57,6 @@ let instruction_to_int label_map instr = match instr with
     | Instr_BinNot ->       Some 11
     | Instr_BinAnd ->       Some 12
     | Instr_Random ->       Some 13
-    | Instr_RandomSet ->    Some 14
     | Instr_GoToIf ->       Some 15
     | Instr_GoTo ->         Some 16
     | Instr_Wait ->         Some 17

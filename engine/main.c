@@ -137,7 +137,6 @@ void player_turn_default(player_state* ps) {
                 break;
             }
             case Instr_Random: instr_random_int(ps); break; 
-            case Instr_RandomSet: instr_random_range(ps); break;
             case Instr_Place: instr_place(ps); break;
             case Instr_GoTo: change = instr_goto(ps); break;
             case Instr_GoToIf: change = instr_goto_if(ps); break;
