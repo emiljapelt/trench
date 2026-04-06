@@ -801,7 +801,7 @@ int builtin_collect(player_state* ps) {
 int builtin_say(player_state* ps) {
     int v = ps->stack[--ps->sp];
     char msg[100 + 1];
-    snprintf(msg, 100, "%s#%i: %i\n", ps->name, ps->entity->id, v);
+    snprintf(msg, 100, "%s#%i: %i", ps->name, ps->entity->id, v);
     print_to_feed(msg);
     _log(INFO, msg);
     ps->stack[ps->sp++] = INSTR_SUCCESS;

@@ -28,8 +28,8 @@ typedef struct game_state {
     int id_counter;
     entity_list_t* entities;
     field_state* map;
-    int feed_point;
-    char* feed_buffer;
+    char* feed;
+    unsigned int feed_change : 1;
     int team_count;
     event_list_t* events;
     team_state* team_states;

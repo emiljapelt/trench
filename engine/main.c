@@ -170,13 +170,16 @@ void player_turn_default(player_state* ps) {
             default: return;
         }
 
-        if (change || _gs->feed_point) { 
+        if (change) { 
             auto_viewport_player(ps);
             print_board(); 
             wait(1); 
         }
+        else if (_gs->feed_change) {
+            print_board(); 
+            wait(0.5); 
+        }
 
-        if (_gs->feed_point) { print_board(); wait(1); }
         if (!ps->entity->active) return;
     }
 }
@@ -375,7 +378,7 @@ void play_round_default() {
         entity_t* entity = get_entity(_gs->entities, i);
         int finished_events = update_events(entity, _gs->events, (situation){ .type = NO_SITUATION});
         
-        if (finished_events || _gs->feed_point) { print_board(); wait(1); }
+        if (finished_events || _gs->feed_change) { print_board(); wait(1); }
 
         switch (entity->type) {
             case ENTITY_PLAYER:

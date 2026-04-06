@@ -236,18 +236,8 @@ void print_board() {
         }
         reset_print();
         buffer(" %s ", symbol_lookup[NS]);
-        char fi = 0;
-        while(fi <= FEED_WIDTH && feed_index < _gs->feed_point) {
-            if (_gs->feed_buffer[feed_index] == '\n') {
-                feed_index++; break;
-            }
-            buffer("%c", _gs->feed_buffer[feed_index]);
-            feed_index++;
-            fi++;
-        }
-        while (fi <= FEED_WIDTH) {
-            buffer(" ");
-            fi++;
+        for(int i = 0; i < FEED_WIDTH; i++) {
+            buffer("%c", _gs->feed[y * FEED_WIDTH + i]);
         }
     }
     buffer("%s", symbol_lookup[NE]);
@@ -256,5 +246,5 @@ void print_board() {
 
     puts(view_buf);
 
-    clear_feed();
+    _gs->feed_change = 0;
 }

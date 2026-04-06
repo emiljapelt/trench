@@ -40,12 +40,32 @@ void set_overlay(field_state* field, symbol symbol) {
 
 void print_to_feed(const char* msg) {
     int msg_len = strlen(msg);
-    memcpy(_gs->feed_buffer+_gs->feed_point, msg, msg_len);
-    _gs->feed_point += msg_len;
+    char buffer[msg_len]; 
+    int feed_len = msg_len + (FEED_WIDTH - (msg_len % FEED_WIDTH));
+    int feed_lines = feed_len / FEED_WIDTH;
+    
+    for(int i = 0; i < msg_len; i++) {
+        switch(msg[i]) {
+            case '\n':
+            case '\r':
+            case '\t':
+                buffer[i] = ' ';
+                break;   
+            default:
+                buffer[i] = msg[i];
+        }
+    }
+
+
+    memmove(_gs->feed + feed_len, _gs->feed, _gr->viewport.height * FEED_WIDTH - feed_len);
+    memset(_gs->feed, ' ', feed_len);
+    memcpy(_gs->feed, buffer, msg_len);
+
+    _gs->feed_change = 1;
 }
 
 void clear_feed() {
-    _gs->feed_point = 0;
+    memset(_gs->feed, ' ', _gr->viewport.height * FEED_WIDTH);
 }
 
 void set_player_steps_and_actions(player_state* ps) {
@@ -79,7 +99,7 @@ void kill_player(player_state* ps, const char* reason) {
     move_entity_to_location(ps->entity, VOID);
 
     char msg[100];
-    sprintf(msg, "%s (#%i) died: %s\n", ps->name, ps->entity->id, reason ? reason : "Unknown reason");
+    sprintf(msg, "%s (#%i) died: %s", ps->name, ps->entity->id, reason ? reason : "Unknown reason");
     print_to_feed(msg);
     _log(INFO, msg);
     if (ps->team)

@@ -302,7 +302,6 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
 
             int player_count = Int_val(Field(unwrapped_result, 5));
             int team_count = Int_val(Field(unwrapped_result, 7));
-            int feed_size = 2000;
 
             *gs = (game_state) {
                 .round = 1,
@@ -311,12 +310,13 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 .id_counter = 0,
                 .entities = array_list.create(player_count + 1),
                 .map = map,
-                .feed_point = 0,
-                .feed_buffer = malloc(feed_size+1),
+                .feed = malloc(FEED_WIDTH * gr->viewport.height),
                 .team_count = team_count,
                 .team_states = malloc(sizeof(team_state) * team_count),
                 .events = array_list.create(10),
             };
+
+            memset(gs->feed, ' ', FEED_WIDTH * gr->viewport.height);
 
             // Center board in viewport;
             gr->viewport.x = -(gr->viewport.width / 2) + (map_width / 2);
@@ -364,7 +364,6 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 add_entity(gs->entities, e);
                 move_entity_to_location(e, field_location_from_coords(player_x, player_y));
             }
-            memset(gs->feed_buffer, 0, feed_size+1);
 
             // Load player directives after loading all information from the compiled game file.
             // This seems to prevent the OCaml GC from wrecking the data
