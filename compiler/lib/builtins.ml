@@ -52,8 +52,9 @@ let builtin_infos : builtin StringMap.t = StringMap.of_list [
   builtin_var "y" [] [] T_Int [Instr_Meta; I(1)];
   builtin_var "id" [] [] T_Int  [Instr_Meta; I(2)];
   builtin_var "map_width" [] [] T_Int [Instr_Meta; I(3)];
-  builtin_var "map_height" [] [] T_Int [Instr_Meta; I(4) ];
+  builtin_var "map_height" [] [] T_Int [Instr_Meta; I(4)];
   builtin_var "round" [] [] T_Int [Instr_Meta; I(5)];
+  builtin_var "actions" [] [] T_Int [Instr_Meta; I(6)];
 
   builtin_var "true" [] [] T_Int [Instr_Place; I(1)];
   builtin_var "false" [] [] T_Int [Instr_Place; I(0)];

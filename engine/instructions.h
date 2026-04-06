@@ -400,6 +400,7 @@ typedef enum {
     META_BOARD_WIDTH =  3,
     META_BOARD_HEIGHT = 4,
     META_ROUND =        5,
+    META_ACTIONS =      6,
 } meta_value;
 
 int instr_meta(player_state* ps) {
@@ -438,6 +439,9 @@ int instr_meta(player_state* ps) {
             break;
         case META_ROUND:
             ps->stack[ps->sp++] = _gs->round;
+            break;
+        case META_ACTIONS:
+            ps->stack[ps->sp++] = ps->remaining_actions;
             break;
         default:
             ps->stack[ps->sp++] = 0;
