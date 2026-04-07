@@ -144,8 +144,13 @@ and reduce_expr state expr = match expr with
       List.nth entries i |> snd |> get_expr
     | target, index  -> IndexAccess(target, Index index)
   )
-  | IndexAccess(target, Range(fst, snd)) -> IndexAccess(reduce_expression state target, Range(Option.map (reduce_expression state) fst,  Option.map (reduce_expression state) snd))
-  | Call(f,args) -> Call(reduce_expression state f, List.map (reduce_expression state) args) (* Can likely be a little better on constants *)
+  | IndexAccess(target, Range(fst, snd)) -> (match reduce_expression state target, Option.map (reduce_expression state) fst,  Option.map (reduce_expression state) snd with
+    | Expr(StructureLiteral entries, _), None, Some(Expr(Int until,_)) -> StructureLiteral(List.take (until+1) entries)
+    | Expr(StructureLiteral entries, _), Some(Expr(Int from,_)), None -> StructureLiteral(List.drop from entries)
+    | Expr(StructureLiteral entries, _), Some(Expr(Int from,_)), Some(Expr(Int len,_)) -> StructureLiteral(entries |> List.drop from |> List.take len)
+    | target, fst, snd -> IndexAccess(target, Range(fst, snd))
+  )
+  | Call(f,args) -> Call(reduce_expression state f, List.map (reduce_expression state) args)
   | RandomAccess expr -> RandomAccess(reduce_expression state expr)
   | Ternary(c,a,b) -> (match reduce_expression state c with
     | Expr(Int i, _) -> reduce_expression state (if is_true i then a else b ) |> get_expr
@@ -451,11 +456,11 @@ and find_expr_location (Expr(e,_) as expr) state = match e with
         | Range(None, Some Expr(Int index,_)) -> (* a[..2] *)
           if (index < 0 || index >= array_size) then raise_failure "Out of bounds" else
           let len = index + 1 in
-          StorageStack { loc with typ = T_Array(elem_t, len); instrs = loc.instrs @ [Instr_Place ; I(0) ; Instr_Index ; I(array_size * elem_size) ; I(len * elem_size)] }
+          StorageStack { loc with typ = T_Array(elem_t, len); instrs = loc.instrs }
         | Range(Some Expr(Int index,_), None) -> (* a[1..] *)
           if (index < 0 || index >= array_size) then raise_failure "Out of bounds" else
           let len = array_size - index in
-          StorageStack { loc with typ = T_Array(elem_t, len); instrs = loc.instrs @ [Instr_Place ; I(index * elem_size) ; Instr_Index ; I(array_size * elem_size) ; I(len * elem_size)]}
+          StorageStack { loc with typ = T_Array(elem_t, len); instrs = loc.instrs @ [Instr_Place ; I(index * elem_size) ; Instr_Add]}
         | _ -> raise_failure "Not implemented: 3"
       )
       | T_Tuple(entries) -> (match range with
@@ -463,8 +468,7 @@ and find_expr_location (Expr(e,_) as expr) state = match e with
           let (elem_t,_) = List.nth entries i in
           let sizes = entries |> List.map (fun (t,_) -> type_size t) in
           let i = sizes |> List.take i |> List.fold_left (+) 0 in
-          let tuple_size = sizes |> List.fold_left (+) 0 in
-          StorageStack { loc with typ = elem_t; instrs = loc.instrs @ [Instr_Place ; I(i); Instr_Index ; I(tuple_size) ; I(type_size elem_t)] }
+          StorageStack { loc with typ = elem_t; instrs = loc.instrs @ [Instr_Place ; I(i); Instr_Add] }
         )
         | _ -> raise_failure "Not a valid index"
       )
@@ -493,8 +497,7 @@ and find_expr_location (Expr(e,_) as expr) state = match e with
           let (elem_t,_) = List.nth entries index in
           let sizes = entries |> List.map (fun (t,_) -> type_size t) in
           let i = sizes |> List.take index |> List.fold_left (+) 0 in
-          let tuple_size = sizes |> List.fold_left (+) 0 in
-          StorageStack { loc with typ = elem_t; instrs = loc.instrs @ [Instr_Place ; I(i); Instr_Index ; I(tuple_size) ; I(type_size elem_t)] }
+          StorageStack { loc with typ = elem_t; instrs = loc.instrs @ [Instr_Place ; I(i); Instr_Add] }
       )
     | _ -> raise_failure ("No such entry: '" ^name^ "' in a value of type: " ^type_string loc.typ^ "'")
     )
