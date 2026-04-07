@@ -1311,6 +1311,27 @@ int builtin_blink(player_state* ps) {
     return 1;
 }
 
+int builtin_search(player_state* ps) {
+    int resource = ps->stack[--ps->sp];
+
+    location loc = ps->entity->location;
+    int resource_count = 0;
+
+    switch (loc.type) {
+        case FIELD_LOCATION: {
+            resource_count = peek_resource(&loc.field->resources, resource);
+            break;
+        }
+        case VEHICLE_LOCATION: {
+            resource_count = peek_resource(&loc.vehicle->resources, resource);
+            break;
+        }
+    }
+
+    ps->stack[ps->sp++] = resource_count;
+    return 0;
+}
+
 #pragma endregion
 
 
@@ -1357,6 +1378,7 @@ int handle_builtin_function(player_state* ps, builtin_func func_addr) {
         case BUILTIN_WAIT: return builtin_wait(ps);
         case BUILTIN_OBLIVIATE: return builtin_obliviate(ps);
         case BUILTIN_BLINK: return builtin_blink(ps);
+        case BUILTIN_SEARCH: return builtin_search(ps);
     }
 }
 

@@ -120,7 +120,9 @@ let builtin_infos : builtin StringMap.t = StringMap.of_list [
   builtin_func "wait" [] [] (-39) T_Int[] [];
 
   builtin_func "obliviate" ["wizardry"] [] (-40) T_Int[T_Dir] [];
-  builtin_func "blink" ["wizardry"] [] (-41) T_Int[] []
+  builtin_func "blink" ["wizardry"] [] (-41) T_Int[] [];
+
+  builtin_func "search" [] [] (-42) T_Int[T_Resource] [];
 ]
 
 

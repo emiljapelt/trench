@@ -140,21 +140,33 @@ test_case(4, \() {
 
 // Drop resources on death
 test_case(5, \() {
+    assert(search(#wood) == 0);
     drop(1, #wood);
+    assert(search(#wood) == 1);
 
     clone(\() {
+        assert(search(#wood) == 1);
+        let prev = count(#wood);
         take(1, #wood);
+        assert(count(#wood) == prev + 1);
+        assert(search(#wood) == 0);
         move(E);
         end_test();
     });
 
     repeat 2 pass();
+
     let prev = count(#wood);
+    assert(search(#wood) == 0);
     take(1, #wood);
+    assert(search(#wood) == 0);
     assert(count(#wood) == prev);
 
     move(E);
+    let prev_search = search(#wood);
+    assert(prev_search != 0);
     take(1, #wood);
+    assert(search(#wood) == prev_search - 1);
     assert(count(#wood) == prev + 1);
 });
 

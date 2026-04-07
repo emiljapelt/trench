@@ -75,8 +75,11 @@ void set_player_steps_and_actions(player_state* ps) {
 
 void kill_player(player_state* ps, const char* reason) {
     ps->entity->active = 0;
+
     update_events(ps->entity, ps->pre_death_events, (situation){ .type = NO_SITUATION});
+
     if (ps->entity->active) return;
+
     update_events(ps->entity, ps->post_death_events, (situation){ .type = NO_SITUATION});
 
     field_state* field = location_field(ps->entity->location);
@@ -84,7 +87,7 @@ void kill_player(player_state* ps, const char* reason) {
         field->symbol = COFFIN;
         field->foreground_color = WHITE;
         
-        // drop resources
+        // drop resources (maybe on location instead?)
         add_resource(&field->resources, R_Wood, ps->resources.resource[R_Wood].amount);
         add_resource(&field->resources, R_Clay, ps->resources.resource[R_Clay].amount);
         add_resource(&field->resources, R_Ammo, ps->resources.resource[R_Ammo].amount);
