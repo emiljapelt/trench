@@ -330,4 +330,54 @@ test_case(12, \() {
     assert(a == 0);
 });
 
+// simple stored array
+test_case(13, \() {
+    int[4] array;
+
+    assert(|array| == 4);
+
+    assert(array[0] == 0);
+    assert(array[1] == 0);
+    assert(array[2] == 0);
+    assert(array[3] == 0);
+
+    array = [0,1,2,3];
+
+    assert(array[0] == 0);
+    assert(array[1] == 1);
+    assert(array[2] == 2);
+    assert(array[3] == 3);
+
+    array[..1] = [5,5];
+
+    assert(array[0] == 5);
+    assert(array[1] == 5);
+    assert(array[2] == 2);
+    assert(array[3] == 3);
+
+    array[2..] = [6,6];
+
+    assert(array[0] == 5);
+    assert(array[1] == 5);
+    assert(array[2] == 6);
+    assert(array[3] == 6);
+});
+
+// simple const array
+test_case(14, \() {
+    const array = [0,1,2,3];
+
+    assert(|array| == 4);
+
+    assert(array[0] == 0);
+    assert(array[1] == 1);
+    assert(array[2] == 2);
+    assert(array[3] == 3);
+
+    assert(|(array[0..2])| == 2);
+
+    assert(array[0..2][0] == 0); 
+    assert(array[0..2][1] == 1);
+});
+
 end_test();

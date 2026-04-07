@@ -162,9 +162,9 @@ and reduce_expr state expr = match expr with
       | Some(_, ((Const(T_Tuple(entries),_,_)), _)) -> Int(List.length entries)
       | Some(_, ((Var(T_Array(_,s),_)), _)) -> Int(s)
       | Some(_, ((Var(T_Tuple(entries),_)), _)) -> Int(List.length entries)
-      | _ -> get_expr e
+      | _ -> SizeOf(e)
     )
-    | e -> e
+    | _ -> SizeOf(e)
   )
   | _ -> expr
   
@@ -419,7 +419,7 @@ and find_expr_location (Expr(e,_) as expr) state = match e with
         | Range(Some Expr(Int index,_), None) -> (* a[1..] *)
           if (index < 0 || index >= array_size) then raise_failure "Out of bounds" else
           let len = array_size - index in
-          ComputeStack { typ = T_Array(elem_t, len); instrs = loc.instrs @ [Instr_Place ; I(index * elem_size) ; Instr_Add ; Instr_Extract ; I(array_size * elem_size) ; I(len * elem_size)] }
+          ComputeStack { typ = T_Array(elem_t, len); instrs = loc.instrs @ [Instr_Place ; I(index * elem_size) ; Instr_Extract ; I(array_size * elem_size) ; I(len * elem_size)] }
         | _ -> raise_failure "Not implemented: 2"
       )
       | T_Tuple(entries) -> (match range with
@@ -455,7 +455,7 @@ and find_expr_location (Expr(e,_) as expr) state = match e with
         | Range(Some Expr(Int index,_), None) -> (* a[1..] *)
           if (index < 0 || index >= array_size) then raise_failure "Out of bounds" else
           let len = array_size - index in
-          StorageStack { loc with typ = T_Array(elem_t, len); instrs = loc.instrs @ [Instr_Place ; I(index * elem_size) ; Instr_Add ; Instr_Index ; I(array_size * elem_size) ; I(len * elem_size)]}
+          StorageStack { loc with typ = T_Array(elem_t, len); instrs = loc.instrs @ [Instr_Place ; I(index * elem_size) ; Instr_Index ; I(array_size * elem_size) ; I(len * elem_size)]}
         | _ -> raise_failure "Not implemented: 3"
       )
       | T_Tuple(entries) -> (match range with
