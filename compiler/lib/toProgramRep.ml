@@ -144,11 +144,18 @@ and reduce_expr state expr = match expr with
       List.nth entries i |> snd |> get_expr
     | target, index  -> IndexAccess(target, Index index)
   )
-  | IndexAccess(target, Range(fst, snd)) -> (match reduce_expression state target, Option.map (reduce_expression state) fst,  Option.map (reduce_expression state) snd with
+  | IndexAccess(target, Range(fst, snd)) -> (match reduce_expression state target, Option.map (reduce_expression state) fst, Option.map (reduce_expression state) snd with
     | Expr(StructureLiteral entries, _), None, Some(Expr(Int until,_)) -> StructureLiteral(List.take (until+1) entries)
     | Expr(StructureLiteral entries, _), Some(Expr(Int from,_)), None -> StructureLiteral(List.drop from entries)
     | Expr(StructureLiteral entries, _), Some(Expr(Int from,_)), Some(Expr(Int len,_)) -> StructureLiteral(entries |> List.drop from |> List.take len)
     | target, fst, snd -> IndexAccess(target, Range(fst, snd))
+  )
+  | TupleAccess(target, name) -> (match reduce_expression state target with
+    | Expr(StructureLiteral entries,_) as e -> (match List.find_index (fst >> Option.fold ~none:false ~some:((=) name)) entries with
+      | Some i -> List.nth entries i |> snd |> get_expr
+      | None -> TupleAccess(e, name)
+    )
+    | e -> TupleAccess(e, name)
   )
   | Call(f,args) -> Call(reduce_expression state f, List.map (reduce_expression state) args)
   | RandomAccess expr -> RandomAccess(reduce_expression state expr)
@@ -157,7 +164,6 @@ and reduce_expr state expr = match expr with
     | c -> Ternary(c, reduce_expression state a, reduce_expression state b)
   )
   | StructureLiteral entries -> StructureLiteral(List.map (fun (name, expr) -> (name, reduce_expression state expr)) entries)
-  | TupleAccess(target, name) -> TupleAccess(reduce_expression state target, name)
   | SizeOf expr -> (
     let e = reduce_expression state expr in
     match get_expr e with
@@ -172,7 +178,6 @@ and reduce_expr state expr = match expr with
     | _ -> SizeOf(e)
   )
   | _ -> expr
-  
 
 let rec eval_type_expr state te = match te with
   | TE_Int -> T_Int
@@ -252,19 +257,19 @@ let rec compile_expr (state:compile_state) (Expr(expr, ln) as expression) : (typ
     | Plus, T_Array(t1,s1), T_Array(t2,s2) when type_eq t1 t2 -> (T_Array(t1, s1+s2), instrs1 @ instrs2)
     | Plus, T_Tuple(entries1), T_Tuple(entries2) -> (T_Tuple(entries1 @ entries2), instrs1 @ instrs2)
     | Times, T_Int, T_Array(t,s) -> (match e1 with
-      | Expr(Int i, _) -> (T_Array(t, s*i), List.init i (return instrs2) |> List.flatten)
+      | Expr(Int i, _) -> (T_Array(t, s*i), instrs2 |> return |> List.init i |> List.flatten)
       | _ -> raise_failure "Array multiplication requires a constant factor"
     ) 
     | Times, T_Array(t,s), T_Int -> (match e2 with
-      | Expr(Int i, _) -> (T_Array(t, s*i), List.init i (return instrs1) |> List.flatten)
+      | Expr(Int i, _) -> (T_Array(t, s*i), instrs1 |> return |> List.init i |> List.flatten)
       | _ -> raise_failure "Array multiplication requires a constant factor"
     )
     | Times, T_Int, T_Tuple(entries) -> (match e1 with
-      | Expr(Int i, _) -> (T_Tuple(List.init i (return entries) |> List.flatten), List.init i (return instrs2) |> List.flatten)
+      | Expr(Int i, _) -> (T_Tuple(entries |> return |> List.init i |> List.flatten), instrs2 |> return |> List.init i |> List.flatten)
       | _ -> raise_failure "Tuple multiplication requires a constant factor"
     ) 
     | Times, T_Tuple(entries), T_Int -> (match e2 with
-      | Expr(Int i, _) -> (T_Tuple(List.init i (return entries) |> List.flatten), List.init i (return instrs1) |> List.flatten)
+      | Expr(Int i, _) -> (T_Tuple(entries |> return |> List.init i |> List.flatten), instrs1 |> return |> List.init i |> List.flatten)
       | _ -> raise_failure "Tuple multiplication requires a constant factor"
     ) 
     | _ -> raise_failure ("Unknown binary operation between '" ^type_string typ1^ "' and '" ^type_string typ2^ "'")
@@ -328,7 +333,7 @@ let rec compile_expr (state:compile_state) (Expr(expr, ln) as expression) : (typ
         if (type_list_eq arg_types bf.canonical)
         then 
           (bf.ret, List.flatten arg_instrs @ [Instr_Place ; I(bf.addr) ; Instr_Place ; I(List.length args) ; Instr_Call])
-        else match List.find_opt (fun (params, _) -> type_list_eq arg_types params) bf.short_hands with
+        else match List.find_opt (fst >> type_list_eq arg_types) bf.short_hands with
         | Some(_, comp) -> 
           (bf.ret, arg_instrs |> List.flatten |> comp)
         | None -> raise_failure ("Unknown function: "^name)
@@ -367,9 +372,9 @@ let rec compile_expr (state:compile_state) (Expr(expr, ln) as expression) : (typ
   | Null -> (T_Null, [Instr_Place ; I(0)])
   | StructureLiteral exprs -> (
     let info = List.map (fun (name, expr) -> (name, compile_expr state expr)) exprs in
-    let names = List.map (fun (name,(_,_)) -> name) info in 
-    let typs = List.map (fun (_,(typ,_)) -> typ) info in
-    let instrs = List.map (fun (_,(_,instr)) -> instr) info in
+    let names = List.map fst info in 
+    let typs = List.map (snd >> fst) info in
+    let instrs = List.map (snd >> snd) info in
     match List.find_opt can_declare typs with
     | None -> raise_failure "Could not infere structure type"
     | Some typ -> (
@@ -430,7 +435,7 @@ and find_expr_location (Expr(e,_) as expr) state = match e with
       | T_Tuple(entries) -> (match range with
         | Index Expr(Int i,_) when i >= 0 && i < List.length entries -> (
           let (t,_) = List.nth entries i in
-          let sizes = entries |> List.map (fun (t,_) -> type_size t) in
+          let sizes = List.map (fst >> type_size) entries in
           let i = sizes |> List.take i |> List.fold_left (+) 0 in
           let tuple_size = sizes |> List.fold_left (+) 0 in
           ComputeStack { typ = t; instrs = loc.instrs @ [Instr_Place ; I(i) ; Instr_Extract ; I(tuple_size) ; I(type_size t)] }
@@ -466,7 +471,7 @@ and find_expr_location (Expr(e,_) as expr) state = match e with
       | T_Tuple(entries) -> (match range with
         | Index Expr(Int i,_) when i >= 0 && i < List.length entries -> (
           let (elem_t,_) = List.nth entries i in
-          let sizes = entries |> List.map (fun (t,_) -> type_size t) in
+          let sizes = List.map (fst >> type_size) entries in
           let i = sizes |> List.take i |> List.fold_left (+) 0 in
           StorageStack { loc with typ = elem_t; instrs = loc.instrs @ [Instr_Place ; I(i); Instr_Add] }
         )
@@ -478,11 +483,11 @@ and find_expr_location (Expr(e,_) as expr) state = match e with
   | TupleAccess (target, name) -> (match find_expr_location target state with
     | ComputeStack loc -> (match loc.typ with
       | T_Tuple(entries) -> (
-        match List.find_index (fun (_,n) -> n |> Option.map ((=) name) |> Option.value ~default:false) entries with
+        match List.find_index (snd >> Option.fold ~none:false ~some:((=) name)) entries with
         | None -> raise_failure ("No such entry: "^name)
         | Some index -> 
           let (t,_) = List.nth entries index in
-          let sizes = entries |> List.map (fun (t,_) -> type_size t) in
+          let sizes = List.map (fst >> type_size) entries in
           let i = sizes |> List.take index |> List.fold_left (+) 0 in
           let tuple_size = sizes |> List.fold_left (+) 0 in
           ComputeStack {typ = t; instrs = loc.instrs @ [Instr_Place ; I(i) ; Instr_Extract ; I(tuple_size) ; I(type_size t)]}
@@ -491,11 +496,11 @@ and find_expr_location (Expr(e,_) as expr) state = match e with
     )
     | StorageStack loc -> (match loc.typ with
       | T_Tuple(entries) -> (
-        match List.find_index (fun (_,n) -> n |> Option.map ((=) name) |> Option.value ~default:false) entries with
+        match List.find_index (snd >> Option.fold ~none:false ~some:((=) name)) entries with
         | None -> raise_failure ("No such entry: "^name)
         | Some index -> 
           let (elem_t,_) = List.nth entries index in
-          let sizes = entries |> List.map (fun (t,_) -> type_size t) in
+          let sizes = List.map (fst >> type_size) entries in
           let i = sizes |> List.take index |> List.fold_left (+) 0 in
           StorageStack { loc with typ = elem_t; instrs = loc.instrs @ [Instr_Place ; I(i); Instr_Add] }
       )

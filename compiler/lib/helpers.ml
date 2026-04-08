@@ -17,6 +17,9 @@ let ng = ( {next = 0})
 let curry f a b = f (a,b)
 let uncurry f (a,b) = f a b
 
+let (<<) f g x = f(g(x))
+let (>>) g f x = f(g(x))
+
 let rename n =
   let number = ng.next in
   let () = ng.next <- ng.next+1 in
