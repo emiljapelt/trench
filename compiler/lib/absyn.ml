@@ -70,6 +70,7 @@ and stmt =
     | DeclareConst of string * expression
     | Return of expression
     | ExprStmt of expression
+    | Repeat of expression option * statement
 
 and expression =
     | Expr of expr * int

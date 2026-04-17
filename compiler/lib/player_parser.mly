@@ -209,8 +209,9 @@ stmt1_inner:
   | CONTINUE SEMI                             { features ["loops"] ; Continue }
   | GOTO NAME SEMI                            { GoTo $2 }
   | NAME COLON                                { Label $1 }
-  | REPEAT CSTINT stmt1                       { features ["loops"] ; Block(List.init $2 (fun _ -> $3)) }
-  | REPEAT LPAR CSTINT RPAR stmt1             { features ["loops"] ; Block(List.init $3 (fun _ -> $5)) }
+  // Could this be more flexible?
+  | REPEAT simple_expression stmt1            { features ["loops"] ; Repeat(Some $2, $3) }
+  | REPEAT block                              { features ["loops"] ; Repeat(None, Stmt($2, $symbolstartpos.pos_lnum)) }
   | RETURN expression SEMI                    { features ["func"] ; Return $2 }
 ;
 

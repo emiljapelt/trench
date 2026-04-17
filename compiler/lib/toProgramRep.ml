@@ -618,6 +618,26 @@ and compile_stmt (Stmt(stmt,ln)) state : (compile_state * instruction list)  =
     | Some typ -> raise_failure ("Cannot return a value of type '"^type_string expr_typ^"' from a function returning '"^type_string typ^"'")
     | None -> raise_failure "Not in a function"
   )
+  | Repeat(times, stmt) -> (
+    new_label_context () ;
+    let times = Option.map (reduce_expression state) times in
+    match times with
+    | None -> 
+      let start = label_name "repeat_start" in
+      let stop = label_name "repeat_stop" in 
+      let state' = {state with break = Some stop; continue = Some start } in
+      let (_, instrs) = compile_stmt stmt state' in
+      (state, Label start :: instrs @ [Instr_GoTo ; LabelRef start ; Label stop])
+    | Some Expr(Int i, _) -> 
+      let stop = label_name "repeat_stop" in
+      let continues = List.init i (fun i -> label_name ("repeat_"^string_of_int i)) in
+      let instrs = List.map (fun cont -> 
+        let (_,instrs) = compile_stmt stmt {state with break = Some stop; continue = Some cont} in
+        instrs @ [Label cont]
+      ) continues in
+      (state, List.flatten instrs @ [Label stop])
+    | _ -> raise_failure "Not supported"
+  )
   | ExprStmt expr -> 
     let (typ, instrs) = expr |> reduce_expression state |> compile_expr state in
     (state, instrs @ [Instr_MoveSP ; I(-(type_size typ))])
