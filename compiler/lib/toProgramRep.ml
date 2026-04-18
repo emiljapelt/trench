@@ -80,7 +80,7 @@ let lookup_identifier name scopes =
 let rec is_constant state (Expr(expr, _)) = match expr with
   | Int _
   | Direction _
-  | Prop _
+  | Field _
   | Resource _ -> true
   | IdentifierAccess name -> (match lookup_identifier name state.scopes with
     | Some(_, (Const(_,_,_), _)) -> true
@@ -98,7 +98,7 @@ and reduce_expr state expr = match expr with
   | Int i -> Int i
   | Null -> Null
   | Direction d -> Direction d
-  | Prop p -> Prop p
+  | Field p -> Field p
   | Resource r -> Resource r
   | Binary_op(op, e1, e2) -> (
     let e1 = reduce_expression state e1 in
@@ -112,11 +112,11 @@ and reduce_expr state expr = match expr with
     | Equal, Int a, Int b -> Int (if a = b then 1 else 0)
     | Equal, Direction a, Direction b -> Int (if a = b then 1 else 0)
     | Equal, Resource a, Resource b -> Int (if a = b then 1 else 0) 
-    | Equal, Prop a, Prop b -> Int (if a = b then 1 else 0) 
+    | Equal, Field a, Field b -> Int (if a = b then 1 else 0) 
     | NotEqual, Int a, Int b -> Int (if a != b then 1 else 0)
     | NotEqual, Direction a, Direction b -> Int (if a != b then 1 else 0)
     | NotEqual, Resource a, Resource b -> Int (if a != b then 1 else 0) 
-    | NotEqual, Prop a, Prop b -> Int (if a != b then 1 else 0)
+    | NotEqual, Field a, Field b -> Int (if a != b then 1 else 0)
     | Less, Int a, Int b -> Int (if a < b then 1 else 0)
     | LessOrEqual, Int a, Int b -> Int (if a <= b then 1 else 0)
     | Greater, Int a, Int b -> Int (if a > b then 1 else 0)
@@ -126,6 +126,10 @@ and reduce_expr state expr = match expr with
     | Plus, StructureLiteral entries1, StructureLiteral entries2 -> StructureLiteral(entries1 @ entries2)
     | Times, StructureLiteral entries, Int i
     | Times, Int i, StructureLiteral entries -> StructureLiteral(List.init i (fun _ -> entries) |> List.flatten)
+    | Plus, Field a, Field b -> Field(FieldPropSet.union a b)
+    | Minus, Field a, Field b -> Field(FieldPropSet.diff a b)
+    | IsCompare, Field a, Field b -> Int(if FieldPropSet.subset b a then 1 else 0)
+    | AnyCompare, Field a, Field b -> Int(if not(FieldPropSet.disjoint a b) then 1 else 0)
     | _ -> Binary_op(op, e1, e2)
   )
   | Unary_op(op, e) -> (
@@ -209,7 +213,7 @@ let rec compile_expr (state:compile_state) (Expr(expr, ln) as expression) : (typ
     | ComputeStack loc -> (loc.typ, loc.instrs)
   )
   | Int i -> (T_Int, [Instr_Place ; I(i)])
-  | Prop fp -> (T_Field, [Instr_Place ; I(prop_index fp)])
+  | Field f -> (T_Field, [Instr_Place ; I(field_value f)])
   | Resource r -> (T_Resource, [Instr_Place ; I(resource_value r)])
   | Random -> (T_Int, [Instr_Random])
   | RandomAccess expr -> (match compile_expr state expr with
@@ -278,7 +282,7 @@ let rec compile_expr (state:compile_state) (Expr(expr, ln) as expression) : (typ
     let (t, instrs) = compile_expr state e in 
     match op, t with 
       | Negate, T_Int -> (T_Int, instrs @ [Instr_Not])
-      | Negate, T_Field -> (T_Field, [Instr_Place ; I(prop_index All_Prop)] @ instrs @ [Instr_BinNot ; Instr_BinAnd])
+      | Negate, T_Field -> (T_Field, [Instr_Place ; I(field_value all_field)] @ instrs @ [Instr_BinNot ; Instr_BinAnd])
       | _ -> raise_failure "Unknown unary operation"
   )
   (* true = pre *)

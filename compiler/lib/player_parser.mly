@@ -92,15 +92,11 @@ block:
   LBRACE stmt* RBRACE    { Block $2 }
 ;
 
-//const_expression:
-//  | const_expr { Expr($1, $symbolstartpos.pos_lnum) }
-//;
-
 const_expr:
   | CSTINT        { Int $1 }
   | NULL          { Null }
   | direction     { Direction $1 }
-  | FIELD_PROP    { Prop(string_to_prop $1) }
+  | FIELD_PROP    { Field(string_to_field $1) }
   | RESOURCE_NAME { Resource(string_to_resource $1) }
 ;
 

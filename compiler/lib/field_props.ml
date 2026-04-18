@@ -1,50 +1,51 @@
 open Absyn
 open Exceptions
 
-let string_to_prop s = match s with
-  | "obstruction" -> Obstruction_Prop
-  | "player" -> Player_Prop
-  | "trapped" -> Trapped_Prop
-  | "flammable" -> Flammable_Prop
-  | "cover" -> Cover_Prop
-  | "shelter" -> Shelter_Prop
-  | "empty" -> IsEmpty_Prop
-  | "trench" -> IsTrench_Prop
-  | "ice_block" -> IsIceBlock_Prop
-  | "tree" -> IsTree_Prop
-  | "ocean" -> IsOcean_Prop
-  | "wall" -> IsWall_Prop
-  | "bridge" -> IsBridge_Prop
-  | "clay" -> IsClay_Prop
-  | "mine_shaft" -> IsMineShaft_Prop
-  | "mountain" -> IsMountain_Prop
-  | "enemy" -> IsEnemy_Prop
-  | "ally" -> IsAlly_Prop
-  | "vehicle" -> IsVehicle_Prop
-  | "all" -> All_Prop
-  | _ -> raise_failure ("Unknown field property: "^s)
+let all_field = FieldPropSet.of_list [
+  Obstruction_Prop;
+  Player_Prop;
+  Trapped_Prop;
+  Flammable_Prop;
+  Cover_Prop;
+  Shelter_Prop;
+  Meltable_Prop;
+  IsEmpty_Prop;
+  IsTrench_Prop;
+  IsIceBlock_Prop;
+  IsTree_Prop;
+  IsOcean_Prop;
+  IsWall_Prop;
+  IsBridge_Prop;
+  IsClay_Prop;
+  IsMineShaft_Prop;
+  IsMountain_Prop;
+  Enemy_Prop;
+  Ally_Prop;
+  Vehicle_Prop;
+]
 
 
-let prop_index p = match p with
-  | Obstruction_Prop ->     0b00000000000000000000000000000001
-  | Player_Prop ->          0b00000000000000000000000000000010
-  | Trapped_Prop ->         0b00000000000000000000000000000100
-  | Flammable_Prop ->       0b00000000000000000000000000001000
-  | Cover_Prop ->           0b00000000000000000000000000010000
-  | Shelter_Prop ->         0b00000000000000000000000000100000
-  (* Meltable 0b00000000000000000000000001000000 *)
-  | IsEmpty_Prop ->         0b00000000000000000000000010000000
-  | IsTrench_Prop ->        0b00000000000000000000000100000000
-  | IsIceBlock_Prop ->      0b00000000000000000000001000000000
-  | IsTree_Prop ->          0b00000000000000000000010000000000
-  | IsOcean_Prop ->         0b00000000000000000000100000000000
-  | IsWall_Prop ->          0b00000000000000000001000000000000
-  | IsBridge_Prop ->        0b00000000000000000010000000000000
-  | IsClay_Prop ->          0b00000000000000000100000000000000
-  | IsMineShaft_Prop ->     0b00000000000000001000000000000000
-  | IsMountain_Prop ->      0b00000000000000010000000000000000
-  | IsEnemy_Prop ->         0b00000000000000100000000000000000
-  | IsAlly_Prop ->          0b00000000000001000000000000000000
-  | IsVehicle_Prop ->       0b00000000000010000000000000000000
-  (* Compound fields *)
-  | All_Prop ->             0b00000000000011111111111111111111
+let string_to_field s = match s with
+  | "obstruction" -> FieldPropSet.singleton Obstruction_Prop
+  | "player" -> FieldPropSet.singleton Player_Prop
+  | "trapped" -> FieldPropSet.singleton Trapped_Prop
+  | "flammable" -> FieldPropSet.singleton Flammable_Prop
+  | "cover" -> FieldPropSet.singleton Cover_Prop
+  | "shelter" -> FieldPropSet.singleton Shelter_Prop
+  | "meltable" -> FieldPropSet.singleton Meltable_Prop
+  | "empty" -> FieldPropSet.singleton IsEmpty_Prop
+  | "trench" -> FieldPropSet.singleton IsTrench_Prop
+  | "ice_block" -> FieldPropSet.singleton IsIceBlock_Prop
+  | "tree" -> FieldPropSet.singleton IsTree_Prop
+  | "ocean" -> FieldPropSet.singleton IsOcean_Prop
+  | "wall" -> FieldPropSet.singleton IsWall_Prop
+  | "bridge" -> FieldPropSet.singleton IsBridge_Prop
+  | "clay" -> FieldPropSet.singleton IsClay_Prop
+  | "mine_shaft" -> FieldPropSet.singleton IsMineShaft_Prop
+  | "mountain" -> FieldPropSet.singleton IsMountain_Prop
+  | "enemy" -> FieldPropSet.singleton Enemy_Prop
+  | "ally" -> FieldPropSet.singleton Ally_Prop
+  | "vehicle" -> FieldPropSet.singleton Vehicle_Prop
+  | "all" -> all_field
+  | "entity" -> FieldPropSet.of_list [Player_Prop;Vehicle_Prop]
+  | _ -> raise_failure ("Unknown FieldPropSet property: "^s)

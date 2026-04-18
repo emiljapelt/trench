@@ -18,6 +18,7 @@ type field_prop =
     | Flammable_Prop
     | Cover_Prop
     | Shelter_Prop
+    | Meltable_Prop
     | IsEmpty_Prop
     | IsTrench_Prop
     | IsIceBlock_Prop
@@ -28,12 +29,43 @@ type field_prop =
     | IsClay_Prop
     | IsMineShaft_Prop
     | IsMountain_Prop
-    | IsEnemy_Prop
-    | IsAlly_Prop
-    | IsVehicle_Prop
-    | All_Prop
+    | Enemy_Prop
+    | Ally_Prop
+    | Vehicle_Prop
 
-and typ =
+let prop_index p = match p with
+  | Obstruction_Prop ->     0b00000000000000000000000000000001
+  | Player_Prop ->          0b00000000000000000000000000000010
+  | Trapped_Prop ->         0b00000000000000000000000000000100
+  | Flammable_Prop ->       0b00000000000000000000000000001000
+  | Cover_Prop ->           0b00000000000000000000000000010000
+  | Shelter_Prop ->         0b00000000000000000000000000100000
+  | Meltable_Prop ->        0b00000000000000000000000001000000
+  | IsEmpty_Prop ->         0b00000000000000000000000010000000
+  | IsTrench_Prop ->        0b00000000000000000000000100000000
+  | IsIceBlock_Prop ->      0b00000000000000000000001000000000
+  | IsTree_Prop ->          0b00000000000000000000010000000000
+  | IsOcean_Prop ->         0b00000000000000000000100000000000
+  | IsWall_Prop ->          0b00000000000000000001000000000000
+  | IsBridge_Prop ->        0b00000000000000000010000000000000
+  | IsClay_Prop ->          0b00000000000000000100000000000000
+  | IsMineShaft_Prop ->     0b00000000000000001000000000000000
+  | IsMountain_Prop ->      0b00000000000000010000000000000000
+  | Enemy_Prop ->           0b00000000000000100000000000000000
+  | Ally_Prop ->            0b00000000000001000000000000000000
+  | Vehicle_Prop ->         0b00000000000010000000000000000000
+
+module FieldProp = struct
+  type t = field_prop
+  let compare = fun a b -> Int.compare (prop_index a) (prop_index b)
+end
+module FieldPropSet = Set.Make(FieldProp)
+
+type field = FieldPropSet.t
+
+let field_value = FieldPropSet.to_list >> List.map prop_index >> List.fold_left (+) 0
+
+type typ =
     | T_Int
     | T_Dir
     | T_Field
@@ -85,7 +117,7 @@ and expr =
     | Binary_op of binop * expression * expression
     | Unary_op of unop * expression
     | Int of int
-    | Prop of field_prop
+    | Field of field
     | Direction of direction
     | Random
     | RandomAccess of expression
