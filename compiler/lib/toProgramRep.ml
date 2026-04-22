@@ -86,7 +86,10 @@ let rec is_constant state (Expr(expr, _)) = match expr with
     | Some(_, (Const(_,_,_), _)) -> true
     | _ -> false
   )
-  | StructureLiteral exprs -> exprs |> List.map snd |> List.for_all (is_constant state) 
+  | StructureLiteral elems -> elems |> List.for_all (fun elem -> match elem with
+    | StructureElement(_, expr) -> is_constant state expr
+    | SpreadElement _ -> false
+  )
   | Func _ -> true
   | _ -> false
 
@@ -144,8 +147,11 @@ and reduce_expr state expr = match expr with
     | _ -> expr
   )
   | IndexAccess(target, Index index) -> (match reduce_expression state target, reduce_expression state index with
-    | Expr(StructureLiteral entries, _) as target, Expr(Int i,_) when is_constant state target && i >= 0 && i < List.length entries -> 
-      List.nth entries i |> snd |> get_expr
+    | Expr(StructureLiteral entries, _) as target, Expr(Int i,_) when is_constant state target && i >= 0 && i < List.length entries -> (
+      match List.nth entries i with
+      | StructureElement(_, expr) -> get_expr expr
+      | _ -> IndexAccess(target, Index index)
+    )
     | target, index  -> IndexAccess(target, Index index)
   )
   | IndexAccess(target, Range(fst, snd)) -> (match reduce_expression state target, Option.map (reduce_expression state) fst, Option.map (reduce_expression state) snd with
@@ -154,9 +160,17 @@ and reduce_expr state expr = match expr with
     | Expr(StructureLiteral entries, _), Some(Expr(Int from,_)), Some(Expr(Int len,_)) -> StructureLiteral(entries |> List.drop from |> List.take len)
     | target, fst, snd -> IndexAccess(target, Range(fst, snd))
   )
-  | TupleAccess(target, name) -> (match reduce_expression state target with
-    | Expr(StructureLiteral entries,_) as e -> (match List.find_index (fst >> Option.fold ~none:false ~some:((=) name)) entries with
-      | Some i -> List.nth entries i |> snd |> get_expr
+  | TupleAccess(target, name) -> (
+    let element_name_match elem = match elem with
+      | StructureElement(Some n,_) -> n = name
+      | _ -> false
+    in
+    match reduce_expression state target with
+    | Expr(StructureLiteral entries,_) as e -> (match List.find_index element_name_match entries with
+      | Some i -> (match List.nth entries i with
+        | StructureElement(_, expr) -> get_expr expr
+        | _ -> TupleAccess(e, name)
+      )
       | None -> TupleAccess(e, name)
     )
     | e -> TupleAccess(e, name)
@@ -167,7 +181,13 @@ and reduce_expr state expr = match expr with
     | Expr(Int i, _) -> reduce_expression state (if is_true i then a else b ) |> get_expr
     | c -> Ternary(c, reduce_expression state a, reduce_expression state b)
   )
-  | StructureLiteral entries -> StructureLiteral(List.map (fun (name, expr) -> (name, reduce_expression state expr)) entries)
+  | StructureLiteral entries -> StructureLiteral(entries |> List.map (fun elem -> match elem with
+    | StructureElement(name, expr) -> [StructureElement(name, reduce_expression state expr)]
+    | SpreadElement expr -> (match reduce_expression state expr with
+      | Expr(StructureLiteral elems,_) -> elems
+      | expr -> [SpreadElement expr]
+    )
+  ) |> List.flatten)
   | SizeOf expr -> (
     let e = reduce_expression state expr in
     match get_expr e with
@@ -374,16 +394,15 @@ let rec compile_expr (state:compile_state) (Expr(expr, ln) as expression) : (typ
     (a_typ, c_instrs @ [Instr_GoToIf ; label_ref "ternary_true"] @ b_instrs @ [Instr_GoTo ; label_ref "ternary_stop" ; label "ternary_true"] @ a_instrs @ [label "ternary_stop"])
   )
   | Null -> (T_Null, [Instr_Place ; I(0)])
-  | StructureLiteral exprs -> (
-    let info = List.map (fun (name, expr) -> (name, compile_expr state expr)) exprs in
-    let names = List.map fst info in 
-    let typs = List.map (snd >> fst) info in
-    let instrs = List.map (snd >> snd) info in
+  | StructureLiteral elems -> (
+    let (elem_info, instrs) = compile_structure_elems state elems in
+    let names = List.map snd elem_info in 
+    let typs = List.map fst elem_info in
     match List.find_opt can_declare typs with
     | None -> raise_failure "Could not infere structure type"
     | Some typ -> (
-      if List.for_all (can_assign typ) typs && List.for_all Option.is_none names then (T_Array(typ,List.length typs), List.flatten instrs)
-      else if List.for_all can_declare typs then (T_Tuple(List.combine typs names), List.flatten instrs)
+      if List.for_all (can_assign typ) typs && List.for_all Option.is_none names then (T_Array(typ,List.length typs), instrs)
+      else if List.for_all can_declare typs then (T_Tuple(List.combine typs names), instrs)
       else raise_failure "Could not infere structure type"
     )
   )
@@ -395,6 +414,22 @@ let rec compile_expr (state:compile_state) (Expr(expr, ln) as expression) : (typ
   with
   | Failure(p,None,msg) -> raise (Failure(p,Some ln, msg))
   | a -> raise a
+
+and compile_structure_elems state elems =
+  let rec aux elems ((typ_acc,instrs_acc) as acc) = match elems with
+  | [] -> acc
+  | StructureElement(name, expr)::t -> 
+    let (typ,instrs) = compile_expr state expr in
+    aux t ([typ, name]::typ_acc, instrs::instrs_acc)
+  | SpreadElement(expr)::t ->
+    let (typ,instrs) = compile_expr state expr in
+    match typ with
+    | T_Array(sub,size) -> aux t (List.init size (return (sub, None)) :: typ_acc, instrs::instrs_acc)
+    | T_Tuple entries -> aux t (entries :: typ_acc, instrs::instrs_acc)
+    | _ -> raise_failure ("Cannot spread a value of type: " ^ type_string typ)
+  in
+  let (elem_typ, instrs) = aux elems ([],[]) in 
+  (elem_typ |> List.rev |> List.flatten, instrs |> List.rev |> List.flatten)
 
 and find_identifier_location name state =
   match lookup_identifier name state.scopes with

@@ -46,7 +46,7 @@
 %right UNARY
 %left LPAR
 %left PLUSPLUS MINUSMINUS LBRAKE DOT
-%right RND
+//%right RND
 /*High precedence*/
 
 %start main
@@ -113,8 +113,9 @@ simple_expr:
 ;
 
 struct_element: 
-  | expression              { (None, $1) }
-  | NAME COLON expression   { (Some $1, $3) }
+  | expression              { StructureElement(None, $1) }
+  | NAME COLON expression   { StructureElement(Some $1, $3) }
+  | DOTDOT expression       { SpreadElement $2 }
 ;
 
 expression:
@@ -138,8 +139,8 @@ expr:
   | MINUSMINUS expression                  { features ["sugar"] ; Decrement($2, true)} 
   | expression MINUSMINUS                  { features ["sugar"] ; Decrement($1, false)}
   | expression LPAR seperated_or_empty(COMMA, expression) RPAR { Call($1, $3) }
-  | PIPE simple_expression PIPE            { SizeOf $2 }
-  | QMARK expression                       { features ["random"] ; RandomAccess $2 } %prec RND
+  | PIPE expression PIPE            { SizeOf $2 }
+  //| QMARK expression                       { features ["random"] ; RandomAccess $2 } %prec RND
 ;
 
 range:

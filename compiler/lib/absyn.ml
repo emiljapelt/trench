@@ -125,8 +125,12 @@ and expr =
     | Call of expression *  expression list
     | Ternary of expression * expression * expression
     | Null
-    | StructureLiteral of (string option * expression) list
+    | StructureLiteral of structure_element list
     | SizeOf of expression
+
+and structure_element =
+    | StructureElement of string option * expression
+    | SpreadElement of expression
 
 and func = {
     data : typ_expr * (typ_expr * string) list * statement;
