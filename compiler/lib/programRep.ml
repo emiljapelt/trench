@@ -1,4 +1,3 @@
-open Absyn
 open Helpers
 
 type instruction =
@@ -106,28 +105,3 @@ let program_to_int_list instrs =
   let label_map = extract_label_indecies instrs in
   instrs
   |> List.filter_map (instruction_to_int label_map)
-
-let available_labels stmt =
-  let rec aux (Stmt(stmt,_)) set = match stmt with 
-    | Label n -> StringSet.union set (StringSet.singleton n)
-    | If(_,t,f) -> StringSet.union (aux t set) (aux f set)
-    | IfIs(_,alts,Some el) -> List.fold_left (fun acc (_,s) -> aux s acc) (aux el set) alts 
-    | IfIs(_,alts,None) -> List.fold_left (fun acc (_,s) -> aux s acc) set alts 
-    | Block(stmts) -> List.fold_left (fun acc s -> aux s acc) set stmts
-    | While(_,stmt,_) -> aux stmt set
-    | _ -> set
-  in
-    aux stmt StringSet.empty
-
-let identifier_name id = match id with
-  | Var(_,n) 
-  | Const(_,n,_) -> n
-
-let is_bound name scopes =
-  match List.find_opt (fun id -> identifier_name id = name) scopes.local with
-  | Some _ -> true
-  | None -> (
-    match Option.map (fun scope -> List.find_opt (fun id -> identifier_name id = name) scope) scopes.global |> Option.join with
-    | Some _ -> true
-    | _ -> false
-  )

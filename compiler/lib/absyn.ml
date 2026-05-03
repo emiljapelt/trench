@@ -1,5 +1,6 @@
 open Helpers
 open Resources
+open ProgramRep
 
 type direction =
     | North
@@ -127,6 +128,7 @@ and expr =
     | Null
     | StructureLiteral of structure_element list
     | SizeOf of expression
+    | ASM of typ * instruction list
 
 and structure_element =
     | StructureElement of string option * expression
@@ -311,3 +313,28 @@ let resolve_string_set all parts =
         | All :: t -> aux t (StringSet.union all acc)
     in
     aux parts StringSet.empty
+
+let available_labels stmt =
+  let rec aux (Stmt(stmt,_)) set = match stmt with 
+    | Label n -> StringSet.union set (StringSet.singleton n)
+    | If(_,t,f) -> StringSet.union (aux t set) (aux f set)
+    | IfIs(_,alts,Some el) -> List.fold_left (fun acc (_,s) -> aux s acc) (aux el set) alts 
+    | IfIs(_,alts,None) -> List.fold_left (fun acc (_,s) -> aux s acc) set alts 
+    | Block(stmts) -> List.fold_left (fun acc s -> aux s acc) set stmts
+    | While(_,stmt,_) -> aux stmt set
+    | _ -> set
+  in
+  aux stmt StringSet.empty
+
+let identifier_name id = match id with
+  | Var(_,n) 
+  | Const(_,n,_) -> n
+
+let is_bound name scopes =
+  match List.find_opt (fun id -> identifier_name id = name) scopes.local with
+  | Some _ -> true
+  | None -> (
+    match Option.map (fun scope -> List.find_opt (fun id -> identifier_name id = name) scope) scopes.global |> Option.join with
+    | Some _ -> true
+    | _ -> false
+  )
