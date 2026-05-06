@@ -3,15 +3,26 @@
   open Lexing
   open Field_props
   open Resources
-  open Builtins
+  open Flags
+  open Exceptions
+  open Helpers
 
+(*type var_name_generator = { mutable next : int }
+let vg = ( {next = 0;} )
+let new_var () =
+  let number = vg.next in
+  let () = vg.next <- vg.next+1 in
+  Int.to_string number*)
 
-  (*type var_name_generator = { mutable next : int }
-  let vg = ( {next = 0;} )
-  let new_var () =
-    let number = vg.next in
-    let () = vg.next <- vg.next+1 in
-    Int.to_string number*)
+(*let themes ts =
+  if List.is_empty ts || List.exists (fun t -> StringSet.mem t compile_flags.themes) ts 
+  then ()
+  else raise_failure ("Attempt to access a feature of an inactive theme: " ^ (String.concat ", " ts))*)
+
+let features fs = 
+  if List.for_all (fun f -> StringSet.mem f compile_flags.features) fs
+  then ()
+  else raise_failure ("Attempt to access an inactive feature: " ^ (String.concat ", " fs))
 
 %}
 %token <int> CSTINT

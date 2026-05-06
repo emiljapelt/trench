@@ -141,8 +141,6 @@ and reduce_expr state expr = match expr with
     | Negate, Int i -> Int (if is_true i then 0 else 1)
     | _ -> Unary_op(op, e)
   )
-  (* TODO: Remove *)
-  (*| IdentifierAccess name when not(is_bound name state.scopes) -> expr  *)
   | IdentifierAccess name -> (match lookup_identifier name state.scopes with
     | Some(_, (Const(_,_, Expr(expr,_)), _)) -> expr
     | _ -> expr
@@ -219,15 +217,6 @@ let rec eval_type_expr state te = match te with
 
 let rec compile_expr (state:compile_state) (Expr(expr, ln) as expression) : (typ * instruction list) =
   try match expr with
-  (* TODO: Remove *)
-  (*| IdentifierAccess name when not(is_bound name state.scopes) -> (
-    match lookup_builtin_info name with
-    | Some builtin -> (match builtin.info with
-      | BuiltinVar bv -> (bv.typ, bv.comp)
-      | BuiltinFunc bf -> (T_Func(bf.ret, bf.canonical), [Instr_Place ; I(bf.addr)])
-    )
-    | _ -> raise_failure ("Unknown variable: "^name)
-  )*)
   | IdentifierAccess _ 
   | IndexAccess _ 
   | TupleAccess _ -> (match find_expr_location expression state with
@@ -350,24 +339,6 @@ let rec compile_expr (state:compile_state) (Expr(expr, ln) as expression) : (typ
       let (state', body) = compile_stmt body {new_state with scopes = ({ local = new_state.scopes.local; global = new_state.scopes.global })} in
       (typ, [Instr_GoTo ; LabelRef end_label ; Label start_label ; Instr_Declare ; I(state'.size)] @ body @ [Instr_Declare ; I(type_size ret) ; Instr_Return ; I(type_size ret) ; Label end_label ; Instr_Place ; LabelRef start_label])
   )
-  (* TODO: Remove *)
-  (*| Call(Expr(IdentifierAccess name,_), args) when not(is_bound name state.scopes) -> (
-    let (arg_types, arg_instrs) = args |> List.map (compile_expr state) |> List.split in
-    match lookup_builtin_info name with
-    | Some builtin -> (match builtin.info with
-      | BuiltinVar _ -> raise_failure ("Unknown function: "^name)
-      | BuiltinFunc bf -> (
-        if (type_list_eq arg_types bf.canonical)
-        then 
-          (bf.ret, List.flatten arg_instrs @ [Instr_Place ; I(bf.addr) ; Instr_Place ; I(List.length args) ; Instr_Call])
-        else match List.find_opt (fst >> type_list_eq arg_types) bf.short_hands with
-        | Some(_, comp) -> 
-          (bf.ret, arg_instrs |> List.flatten |> comp)
-        | None -> raise_failure ("Unknown function: "^name)
-      )
-    )
-    | _ -> raise_failure ("Unknown function: "^name)
-  )*)
   | Call(f,args) -> (
     (* TODO: Support shorthands directly... somehow... maybe *)
     let (f_typ, f_instrs) = compile_expr state f in
