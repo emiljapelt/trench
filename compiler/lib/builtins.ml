@@ -55,7 +55,7 @@ let generate_initial_scope () : identifier list =
     func_const "bomb" T_Int [T_Dir;T_Int] (-9) ["military"] [];
     func_const "write" T_Int [T_Int] (-10) [] [];
     func_const "read" T_Int [] (-11) [] [];
-    func_const "projection" T_Int[] (-12) ["wizardry"] ["form"];
+    func_const "projection" T_Int[] (-12) ["wizardry"] ["fork"];
     func_const "freeze" T_Int[T_Dir;T_Int] (-13) ["wizardry"] [];
     func_const "fireball" T_Int[T_Dir] (-14) ["wizardry"] [];
     func_const "meditate" T_Int[] (-15) ["wizardry"] [];
@@ -63,8 +63,8 @@ let generate_initial_scope () : identifier list =
     func_const "disarm" T_Int[T_Dir] (-17) ["military";"forestry"] [];
     func_const "mana_drain" T_Int[T_Dir] (-18) ["wizardry"] [];
     func_const "pager_set" T_Int[T_Int] (-19) [] ["ipc"];
-    func_const "pager_read" T_Int[] (-20) ["ipc"] [];
-    func_const "pager_write" T_Int[T_Int] (-21) ["ipc"] [];
+    func_const "pager_read" T_Int[] (-20) [] ["ipc"];
+    func_const "pager_write" T_Int[T_Int] (-21) [] ["ipc"];
     func_const "wall" T_Int[T_Dir] (-22) [] [];
     func_const "plant_tree" T_Int[T_Dir] (-23) ["forestry"] [];
     func_const "bridge" T_Int[T_Dir] (-24) [] [];
@@ -83,6 +83,9 @@ let generate_initial_scope () : identifier list =
     func_const "count" T_Int[T_Resource] (-37) [] [];
     func_const "pass" T_Int[] (-38) [] [];
     func_const "wait" T_Int[] (-39) [] [];
+    func_const "obliviate" T_Int[T_Dir] (-40) ["wizardry"] [];
+    func_const "blink" T_Int[] (-41) ["wizardry"] [];
+    func_const "search" T_Int[T_Resource] (-42) [] [];
   ]
   in
   entries 

@@ -167,7 +167,7 @@ and unop =
 
 and identifier =
     | Var of typ * string
-    | Const of typ * string * expression
+    | Const of typ * string * expression (* typ needed ??? *)
 
 and  file = 
     | File of statement list * int
