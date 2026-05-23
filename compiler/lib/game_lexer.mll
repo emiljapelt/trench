@@ -31,6 +31,7 @@
                         "debug", DEBUG;
                         "viewport", VIEWPORT;
                         "auto_start", AUTO_START;
+                        "auto_resize", AUTO_RESIZE;
                       ]
   
   let char_of_string s lexbuf = match s with

@@ -285,6 +285,7 @@ type game_setup_part =
     | Debug of bool
     | Viewport of int * int
     | AutoStart of bool
+    | AutoResize of bool
 
 type game_setup = GS of {
     teams: team_info list;
@@ -302,7 +303,7 @@ type game_setup = GS of {
     setting_overwrites: setting list;
     debug: bool;
     viewport: int * int;
-    auto_start: bool
+    auto_start: bool;
 }
 
 let resolve_string_set all parts =

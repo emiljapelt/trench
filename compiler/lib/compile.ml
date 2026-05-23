@@ -115,6 +115,15 @@ let fix_map_path game_file_dir map = match map with
 let fix_team_paths game_file_dir (TI team_info) = 
   (TI ({team_info with players = List.map (fun (PI player) -> (PI {player with files = List.map (fix_path game_file_dir) player.files})) team_info.players}))
 
+let set_themes ts =
+  Flags.compile_flags.themes <- ts ; ()
+
+let set_features fs =
+  Flags.compile_flags.features <- fs ; ()
+
+let set_auto_resize v =
+  Flags.compile_flags.auto_resize <- v ; ()
+
 let to_game_setup game_file_dir gsps =
   let rec aux gs (GS acc) = match gs with
     | [] -> (GS acc)
@@ -135,6 +144,7 @@ let to_game_setup game_file_dir gsps =
       | Debug b -> (GS ({acc with debug = b}))
       | Viewport(w,h) -> if w > 0 || h > 0  then (GS ({acc with viewport = (w,h)})) else raise_failure "Viewport must be two non-zero ints"
       | AutoStart b -> (GS ({acc with auto_start = b}))
+      | AutoResize v -> set_auto_resize v ; GS acc
     )
   in
   aux gsps default_game_setup
@@ -155,21 +165,6 @@ let compile parser lexer path =
   | Failure(None,ln,msg) -> raise (Failure(Some path,ln,msg))
   | Failure _ as f -> raise f
   (*| _ -> raise (Failure(Some path, None, "Parser error"))*)
-  
-
-(*
-let check_no_negative_arrays (File(regs,_)) =
-  let rec check_type t = match t with
-  | T_Array(t,i) -> if i < 0 then false else check_type t
-  | _ -> true
-  in
-  let rec aux regs = match regs with
-  | [] -> ()
-  | Var(ty,n)::t -> 
-    if check_type ty then aux t
-    else raise_failure (n ^ " contains a negative sized array")
-  in
-  aux regs*)
 
 let player_to_program size_limit program = 
   let program = program_to_int_list program in
@@ -233,12 +228,6 @@ let game_setup_player (PI player) =
     extra_files = List.tl player.files |> List.rev |> Array.of_list;
   }
 
-let set_themes ts =
-  Flags.compile_flags.themes <- ts ; ()
-
-let set_features fs =
-  Flags.compile_flags.features <- fs ; ()
-
 let add_team_info board_size (teams : team_info list) : team_info list =
   let compute_origin (PI player) (TI team) = 
     let result = (fst player.origin + fst team.origin, snd player.origin + snd team.origin) in
@@ -279,13 +268,15 @@ let format_game_setup (GS gs) =
   let checked_teams = gs.teams |> check_team_colors |> add_team_info (get_map_size gs.map) in
   let teams = checked_teams |> team_list |> Array.of_list in
   let players = player_list checked_teams in
+  set_features gs.features ; 
+  set_themes gs.themes ; (* why here? *)
   {
     actions = gs.actions;
     steps = gs.steps;
     mode = gs.mode;
     nuke = gs.nuke;
     player_count = List.length players;
-    player_info = (set_features gs.features ; set_themes gs.themes ; Array.of_list (List.map game_setup_player players));
+    player_info = Array.of_list (List.map game_setup_player players);
     team_count = Array.length teams;
     teams = teams;
     exec_mode = gs.exec_mode;

@@ -34,14 +34,13 @@ let label name = Label(label_name name)
 
 let label_ref name = LabelRef(label_name name)
 
-
 let get_expr (Expr(expr,_)) = expr
 
 let rec can_assign target_type value_type = match target_type, value_type with
   | T_Func _, T_Null
   | T_Null, T_Func _ -> true
   | T_Array(st1,size1), T_Array(st2,size2) -> 
-    if not(compile_flags.auto_resize_array) 
+    if not(compile_flags.auto_resize) 
     then size1 = size2 && type_eq st1 st2
     else type_eq st1 st2
   | T_Tuple(ts1), T_Tuple(ts2) -> 
@@ -222,7 +221,7 @@ let rec eval_type_expr state te = match te with
 
 let adjust_value target_type value_type = match target_type, value_type with
   | T_Array(st1, size1), T_Array(_, size2) -> (
-    if not(compile_flags.auto_resize_array) then [] else
+    if not(compile_flags.auto_resize) then [] else
     let diff = size1 - size2 in
     let abs = abs(diff) * type_size st1 in
     if (diff < 0) then [Instr_MoveSP;I(-abs)]
