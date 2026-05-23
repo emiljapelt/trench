@@ -210,9 +210,6 @@ type compiled_game_file = {
 let compile_player_file path size_limit = try (
   check_path path [".tr"] ;
   compile Player_parser.main Player_lexer.start path 
-  (*|> rename_variables_of_file 
-  |> optimize_program
-  |> type_program*)
   |> compile_player
   |> (player_to_program size_limit)
   |> Result.ok

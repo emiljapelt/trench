@@ -5,6 +5,7 @@ open Field_props
 open Builtins
 open Resources
 open Helpers
+open Flags
 
 (*** Compiling functions ***)
 
@@ -39,7 +40,10 @@ let get_expr (Expr(expr,_)) = expr
 let rec can_assign target_type value_type = match target_type, value_type with
   | T_Func _, T_Null
   | T_Null, T_Func _ -> true
-  | T_Array(st1,size1), T_Array(st2,size2) -> size1 = size2 && can_assign st1 st2
+  | T_Array(st1,size1), T_Array(st2,size2) -> 
+    if not(compile_flags.auto_resize_array) 
+    then size1 = size2 && type_eq st1 st2
+    else type_eq st1 st2
   | T_Tuple(ts1), T_Tuple(ts2) -> 
     if List.length ts1 != List.length ts2 then false
     else List.combine ts1 ts2 |> List.for_all (fun ((st1,_),(st2,_)) -> can_assign st1 st2)
@@ -215,6 +219,18 @@ let rec eval_type_expr state te = match te with
   | TE_Tuple entries -> T_Tuple(List.map (fun (t,n) -> (eval_type_expr state t, n)) entries)
   | TE_Func(ret, params) -> T_Func(eval_type_expr state ret, List.map (eval_type_expr state) params)
 
+
+let adjust_value target_type value_type = match target_type, value_type with
+  | T_Array(st1, size1), T_Array(_, size2) -> (
+    if not(compile_flags.auto_resize_array) then [] else
+    let diff = size1 - size2 in
+    let abs = abs(diff) * type_size st1 in
+    if (diff < 0) then [Instr_MoveSP;I(-abs)]
+    else if (diff > 0) then [Instr_Declare;I(abs)]
+    else []
+  )
+  | _,_ -> [] 
+
 let rec compile_expr (state:compile_state) (Expr(expr, ln) as expression) : (typ * instruction list) =
   try match expr with
   | IdentifierAccess _ 
@@ -351,7 +367,7 @@ let rec compile_expr (state:compile_state) (Expr(expr, ln) as expression) : (typ
         |> List.combine params 
         |> List.map (fun (param, arg) -> 
           let (arg_typ, arg_instrs) = compile_expr state arg in
-          if can_assign param arg_typ then arg_instrs
+          if can_assign param arg_typ then arg_instrs @ adjust_value param arg_typ
           else raise_failure ("Incorrect argument for function of type: '"^type_string f_typ ^"'")
         ) 
         |> List.flatten 
@@ -590,7 +606,7 @@ and compile_stmt (Stmt(stmt,ln)) state : (compile_state * instruction list)  =
     | StorageStack loc -> 
       let (expr_typ, expr_instrs) = expr |> reduce_expression state |> compile_expr state in
       if can_assign loc.typ expr_typ then
-        (state, expr_instrs @ loc.instrs @ [loc.store ; I(type_size loc.typ)])
+        (state, expr_instrs @ adjust_value loc.typ expr_typ @ loc.instrs @ [loc.store ; I(type_size loc.typ)])
       else 
         raise_failure ("Cannot assign a value of type '"^type_string expr_typ^"' to a target of type '"^type_string loc.typ^"'")
   )
@@ -612,7 +628,7 @@ and compile_stmt (Stmt(stmt,ln)) state : (compile_state * instruction list)  =
       if not(can_assign typ expr_typ) then raise_failure ("Cannot assign a value of type '" ^type_string expr_typ^ "' to a variable of type '" ^type_string typ^ "'") else
       let state' = {state with scopes = { local = Var(typ,name)::state.scopes.local; global = state.scopes.global }; size = state.size + type_size typ} in 
       match find_identifier_location name state' with
-      | Some StorageStack loc -> (state', expr_instrs @ loc.instrs @ [loc.store ; I(type_size loc.typ)])
+      | Some StorageStack loc -> (state', expr_instrs @ adjust_value typ expr_typ @ loc.instrs @ [loc.store ; I(type_size loc.typ)])
       | _ -> raise_failure "Could not assign"
     )
   )
@@ -629,7 +645,7 @@ and compile_stmt (Stmt(stmt,ln)) state : (compile_state * instruction list)  =
     let (expr_typ, expr_instrs) = expr |> reduce_expression state |> compile_expr state in
     match state.ret_type with
     | Some typ when can_assign typ expr_typ -> 
-      (state, expr_instrs @ [Instr_Return ; I(type_size typ)])
+      (state, expr_instrs @ adjust_value typ expr_typ @ [Instr_Return ; I(type_size typ)])
     | Some typ -> raise_failure ("Cannot return a value of type '"^type_string expr_typ^"' from a function returning '"^type_string typ^"'")
     | None -> raise_failure "Not in a function"
   )
