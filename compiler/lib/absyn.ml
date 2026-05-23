@@ -290,8 +290,6 @@ type game_setup_part =
 type game_setup = GS of {
     teams: team_info list;
     resources: (int*int) ResourceMap.t;
-    themes: StringSet.t;
-    features: StringSet.t;
     actions: int;
     steps: int;
     mode: int;

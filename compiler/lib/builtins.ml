@@ -27,8 +27,10 @@ let generate_initial_scope () : identifier list =
     asm_const "x" T_Int [Instr_Meta; I(0)] [] [];
     asm_const "y" T_Int [Instr_Meta; I(1)] [] [];
     asm_const "id" T_Int [Instr_Meta; I(2)] [] [];
-    asm_const "map_width" T_Int [Instr_Meta; I(3)] [] [];
-    asm_const "map_height" T_Int [Instr_Meta; I(4)] [] [];
+    (*asm_const "map_width" T_Int [Instr_Meta; I(3)] [] [];
+    asm_const "map_height" T_Int [Instr_Meta; I(4)] [] [];*)
+    expr_const "map_width" T_Int (Int Flags.compile_flags.map_width) [] [];
+    expr_const "map_height" T_Int (Int Flags.compile_flags.map_height) [] [];
     asm_const "round" T_Int [Instr_Meta; I(5)] [] [];
     asm_const "actions" T_Int [Instr_Meta; I(6)] [] [];
 

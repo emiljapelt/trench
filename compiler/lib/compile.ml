@@ -1,13 +1,9 @@
-(*open Optimize
-open Typing*)
 open Exceptions
 open ToProgramRep
 open ProgramRep
 open Absyn
-(*open Transform*)
 open Resources
 open Bigarray
-open Helpers
 
 let check_path path extensions =
   try (
@@ -66,8 +62,6 @@ let complete_path base path = compress_path (if path.[0] = '.' then (String.sub 
 
 let default_game_setup = GS {
   teams = [];
-  themes = StringSet.empty;
-  features = StringSet.empty;
   resources = default_resources;
   actions = 1;
   steps = 100;
@@ -115,14 +109,6 @@ let fix_map_path game_file_dir map = match map with
 let fix_team_paths game_file_dir (TI team_info) = 
   (TI ({team_info with players = List.map (fun (PI player) -> (PI {player with files = List.map (fix_path game_file_dir) player.files})) team_info.players}))
 
-let set_themes ts =
-  Flags.compile_flags.themes <- ts ; ()
-
-let set_features fs =
-  Flags.compile_flags.features <- fs ; ()
-
-let set_auto_resize v =
-  Flags.compile_flags.auto_resize <- v ; ()
 
 let to_game_setup game_file_dir gsps =
   let rec aux gs (GS acc) = match gs with
@@ -130,12 +116,13 @@ let to_game_setup game_file_dir gsps =
     | h::t -> aux t (match h with
       | Team t -> (GS ({acc with teams = (fix_team_paths game_file_dir t) :: acc.teams}))
       | Resources rs -> (GS ({acc with resources = List.fold_left (fun acc (name, value) -> ResourceMap.add (string_to_resource name) value acc) acc.resources rs}))
-      | Themes ts -> (GS ({acc with themes = ts}))
-      | Features fs -> (GS ({acc with features = fs}))
       | Actions i -> if i > 0 then (GS ({acc with actions = i})) else raise_failure "Must have some actions per turn"
       | Steps i -> if i > 0 then (GS ({acc with steps = i})) else raise_failure "Must have some steps per turn"
       | Mode i -> (GS ({acc with mode = i}))
-      | Map m -> (GS ({acc with map = m |> fix_map_path game_file_dir |> check_map}))
+      | Map m -> 
+        let m = m |> fix_map_path game_file_dir |> check_map in
+        Flags.set_map_size (get_map_size m) ;
+        (GS ({acc with map = m}))
       | Nuke i -> if i >= 0 then (GS ({acc with nuke = i})) else raise_failure "Nuke option size cannot be negative"
       | ExecMode em -> GS ({acc with exec_mode = em})
       | Seed s -> GS ({acc with seed = s})
@@ -144,7 +131,9 @@ let to_game_setup game_file_dir gsps =
       | Debug b -> (GS ({acc with debug = b}))
       | Viewport(w,h) -> if w > 0 || h > 0  then (GS ({acc with viewport = (w,h)})) else raise_failure "Viewport must be two non-zero ints"
       | AutoStart b -> (GS ({acc with auto_start = b}))
-      | AutoResize v -> set_auto_resize v ; GS acc
+      | Features fs -> Flags.set_features fs ; GS acc
+      | Themes ts -> Flags.set_themes ts ; GS acc
+      | AutoResize v -> Flags.set_auto_resize v ; GS acc
     )
   in
   aux gsps default_game_setup
@@ -268,8 +257,6 @@ let format_game_setup (GS gs) =
   let checked_teams = gs.teams |> check_team_colors |> add_team_info (get_map_size gs.map) in
   let teams = checked_teams |> team_list |> Array.of_list in
   let players = player_list checked_teams in
-  set_features gs.features ; 
-  set_themes gs.themes ; (* why here? *)
   {
     actions = gs.actions;
     steps = gs.steps;
