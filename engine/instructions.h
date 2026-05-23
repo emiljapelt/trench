@@ -431,10 +431,10 @@ int instr_meta(player_state* ps) {
         case META_PLAYER_ID:
             ps->stack[ps->sp++] = ps->entity->id;
             break;
-        case META_BOARD_WIDTH:
+        case META_BOARD_WIDTH: // Unused
             ps->stack[ps->sp++] = _gs->map_width;
             break;
-        case META_BOARD_HEIGHT:
+        case META_BOARD_HEIGHT: // Unused
             ps->stack[ps->sp++] = _gs->map_height;
             break;
         case META_ROUND:
