@@ -7,6 +7,7 @@ type flag_record = {
   mutable auto_resize : bool;
   mutable map_width : int;
   mutable map_height : int;
+  mutable settings : int StringMap.t;
 }
 
 let compile_flags : flag_record = {
@@ -15,6 +16,7 @@ let compile_flags : flag_record = {
   auto_resize = true;
   map_width = -1;
   map_height = -1;
+  settings = StringMap.empty;
 } 
 
 let set_themes ts = compile_flags.themes <- ts ; ()
@@ -27,3 +29,5 @@ let set_map_size (w, h) =
   compile_flags.map_width <- w ;
   compile_flags.map_height <- h ;
   ()
+
+let set_settings s = compile_flags.settings <- s ; ()

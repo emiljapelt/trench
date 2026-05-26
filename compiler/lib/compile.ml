@@ -4,6 +4,7 @@ open ProgramRep
 open Absyn
 open Resources
 open Bigarray
+open Helpers
 
 let check_path path extensions =
   try (
@@ -109,7 +110,7 @@ let fix_map_path game_file_dir map = match map with
 let fix_team_paths game_file_dir (TI team_info) = 
   (TI ({team_info with players = List.map (fun (PI player) -> (PI {player with files = List.map (fix_path game_file_dir) player.files})) team_info.players}))
 
-
+  
 let to_game_setup game_file_dir gsps =
   let rec aux gs (GS acc) = match gs with
     | [] -> (GS acc)
@@ -127,7 +128,10 @@ let to_game_setup game_file_dir gsps =
       | ExecMode em -> GS ({acc with exec_mode = em})
       | Seed s -> GS ({acc with seed = s})
       | TimeScale f -> if (f >= 0.0) then GS ({acc with time_scale = f}) else raise_failure "Time scale option cannot be negative"
-      | SettingOverwrites so -> (GS ({acc with setting_overwrites = so}))
+      | SettingOverwrites so -> 
+        let map = StringMap.of_list so in
+        Flags.set_settings map ;
+        (GS ({acc with setting_overwrites = StringMap.to_list map}))
       | Debug b -> (GS ({acc with debug = b}))
       | Viewport(w,h) -> if w > 0 || h > 0  then (GS ({acc with viewport = (w,h)})) else raise_failure "Viewport must be two non-zero ints"
       | AutoStart b -> (GS ({acc with auto_start = b}))

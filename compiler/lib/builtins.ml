@@ -3,6 +3,116 @@ open ProgramRep
 open Flags
 open Helpers
 
+let meta_struct map = 
+  let value n d : expr = Int (map |> StringMap.find_opt n |> Option.value ~default:d) in
+  let expr e = Expr(e, 0) in
+  let elem n e = StructureElement (Some n, expr e) in
+  let info = [
+    "fireball", [
+      "range", 5;
+      "cost", 10;
+    ];
+    "shoot", [
+      "range", 6;
+    ];
+    "bomb", [
+      "range", 4;
+    ];
+    "meditate", [
+      "amount", 20;
+    ];
+    "dispel", [
+      "cost", 5;
+    ];
+    "mana_drain", [
+      "cost", 20;
+    ];
+    "wall", [
+      "cost", 10;
+    ];
+    "plant_tree", [
+      "delay", 3;
+    ];
+    "bridge", [
+      "cost", 20;
+    ];
+    "chop", [
+      "sapling_chance", 30;
+      "wood_gain", 10;
+    ];
+    "fortify", [
+      "cost", 5;
+      "range", 1;
+    ];
+    "projection", [
+      "cost", 50;
+      "upkeep", 10;
+    ];
+    "freeze", [
+      "cost", 25;
+      "duration", 2;
+      "range", 5;
+    ];
+    "look", [
+      "range", -1;
+    ];
+    "scan", [
+      "range", -1;
+    ];
+    "boat", [
+      "cost", 30;
+      "capacity", 4;
+      "wood_cap", 50;
+      "clay_cap", 50;
+      "ammo_cap", 100;
+      "sapling_cap", 20;
+      "beartrap_cap", 20;
+      "explosive_cap", 10;
+      "metal_cap", 10;
+    ];
+    "throw_clay", [
+      "cost", 1;
+      "range", 3;
+    ];
+    "clay_pit", [
+      "spread_limit", 1;
+      "contain_limit", 100;
+      "collect_max", 5;
+    ];
+    "clay_golem", [
+      "cost", 5;
+    ];
+    "mine_shaft", [
+      "cost", 10;
+    ];
+    "craft", [
+      "ammo_per_metal", 3;
+      "beartraps_per_metal", 1;
+    ];
+    "trench", [
+      "range", 1;
+    ];
+    "collect", [
+      "range", 1;
+    ];
+    "obliviate", [
+      "cost", 20;
+      "range", 2;
+    ];
+    "blink", [
+      "cost", 10;
+      "duration", 2;
+    ];
+  ] 
+  in
+  let data = List.map (fun (name, props) -> 
+    elem name (StructureLiteral(List.map (fun (prop, default) -> 
+      elem prop (value (name^"."^prop) default)
+    ) props))
+  ) info
+  in
+  StructureLiteral (data)
+
 let themes ts =
   List.is_empty ts || List.exists (fun t -> StringSet.mem t compile_flags.themes) ts
 
@@ -27,12 +137,11 @@ let generate_initial_scope () : identifier list =
     asm_const "x" T_Int [Instr_Meta; I(0)] [] [];
     asm_const "y" T_Int [Instr_Meta; I(1)] [] [];
     asm_const "id" T_Int [Instr_Meta; I(2)] [] [];
-    (*asm_const "map_width" T_Int [Instr_Meta; I(3)] [] [];
-    asm_const "map_height" T_Int [Instr_Meta; I(4)] [] [];*)
     expr_const "map_width" T_Int (Int Flags.compile_flags.map_width) [] [];
     expr_const "map_height" T_Int (Int Flags.compile_flags.map_height) [] [];
     asm_const "round" T_Int [Instr_Meta; I(5)] [] [];
     asm_const "actions" T_Int [Instr_Meta; I(6)] [] [];
+    expr_const "meta" T_Null (meta_struct Flags.compile_flags.settings) [] ["meta"];
 
     expr_const "true" T_Int (Int 1) [] [];
     expr_const "false" T_Int (Int 0) [] [];
