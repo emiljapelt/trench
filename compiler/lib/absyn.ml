@@ -167,7 +167,7 @@ and unop =
 
 and identifier =
     | Var of typ * string
-    | Const of typ * string * expression (* typ needed ??? *)
+    | Const of  string * expression (* typ needed ??? *)
 
 and  file = 
     | File of statement list * int
@@ -327,7 +327,7 @@ let available_labels stmt =
 
 let identifier_name id = match id with
   | Var(_,n) 
-  | Const(_,n,_) -> n
+  | Const(n,_) -> n
 
 let is_bound name scopes =
   match List.find_opt (fun id -> identifier_name id = name) scopes.local with

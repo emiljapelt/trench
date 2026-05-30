@@ -58,10 +58,6 @@ let rec can_declare typ = match typ with
   | T_Func(ret,params) -> can_declare ret && List.for_all can_declare params
   | _ -> true
 
-let identifier_name id =  match id with
-  | Var(_,n)
-  | Const(_,n,_) -> n
-
 let scope_size ids = List.fold_left (fun acc id -> match id with
     | Const _ -> acc
     | Var(t,_) -> acc + type_size t
@@ -86,7 +82,7 @@ let rec is_constant state (Expr(expr, _)) = match expr with
   | Field _
   | Resource _ -> true
   | IdentifierAccess name -> (match lookup_identifier name state.scopes with
-    | Some(_, (Const(_,_,_), _)) -> true
+    | Some(_, (Const(_,_), _)) -> true
     | _ -> false
   )
   | StructureLiteral elems -> elems |> List.for_all (fun elem -> match elem with
@@ -145,7 +141,7 @@ and reduce_expr state expr = match expr with
     | _ -> Unary_op(op, e)
   )
   | IdentifierAccess name -> (match lookup_identifier name state.scopes with
-    | Some(_, (Const(_,_, Expr(expr,_)), _)) -> expr
+    | Some(_, (Const(_, Expr(expr,_)), _)) -> expr
     | _ -> expr
   )
   | IndexAccess(target, Index index) -> (match reduce_expression state target, reduce_expression state index with
@@ -195,8 +191,7 @@ and reduce_expr state expr = match expr with
     match get_expr e with
     | StructureLiteral entries -> Int(List.length entries)
     | IdentifierAccess name -> (match lookup_identifier name state.scopes with
-      | Some(_, ((Const(T_Array(_,s),_,_)), _)) -> Int(s)
-      | Some(_, ((Const(T_Tuple(entries),_,_)), _)) -> Int(List.length entries)
+      | Some(_, (Const(_, Expr(StructureLiteral entries,_)), _)) -> Int(List.length entries)
       | Some(_, ((Var(T_Array(_,s),_)), _)) -> Int(s)
       | Some(_, ((Var(T_Tuple(entries),_)), _)) -> Int(List.length entries)
       | _ -> SizeOf(e)
@@ -340,7 +335,7 @@ let rec compile_expr (state:compile_state) (Expr(expr, ln) as expression) : (typ
       let typ = T_Func(ret, List.map fst args) in
       f.cache <- Some(typ, start_label) ;
       let func_scope = {
-        local = List.fold_left (fun acc (t,n) -> Var(t,n)::acc) [Const(typ, "this", expression)] args ; 
+        local = List.fold_left (fun acc (t,n) -> Var(t,n)::acc) [Const("this", expression)] args ; 
         global =  if state.scopes.global = None then Some(state.scopes.local) else state.scopes.global ;
       } in
       let new_state = {
@@ -426,7 +421,7 @@ and find_identifier_location name state =
   match lookup_identifier name state.scopes with
   | Some(GlobalScope, (Var(typ,_), addr)) -> Some(StorageStack { typ = typ; instrs = [Instr_Place ; I(addr)]; load = Instr_LoadGlobal; store = Instr_StoreGlobal })
   | Some(LocalScope, (Var(typ,_), addr)) -> Some(StorageStack { typ = typ; instrs = [Instr_Place ; I(addr)]; load = Instr_LoadLocal; store = Instr_StoreLocal })
-  | Some(_, (Const(_,_,expr), _)) -> 
+  | Some(_, (Const(_,expr), _)) -> 
     let (expr_type, expr_instrs) = compile_expr state expr in
     Some(ComputeStack { typ = expr_type; instrs = expr_instrs})
   | None -> None
@@ -634,7 +629,7 @@ and compile_stmt (Stmt(stmt,ln)) state : (compile_state * instruction list)  =
   | DeclareConst(name,expr) -> 
     let expr = reduce_expression state expr in
     if not(is_constant state expr) then raise_failure "Could not reduce to a constant" else
-    ({state with scopes = { local = Const(T_Null,name,expr)::state.scopes.local; global = state.scopes.global } }, [])
+    ({state with scopes = { local = Const(name,expr)::state.scopes.local; global = state.scopes.global } }, [])
   | Label name -> (state, [Label name])
   | GoTo n -> 
     if StringSet.mem n state.labels

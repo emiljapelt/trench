@@ -3,202 +3,433 @@ open ProgramRep
 open Flags
 open Helpers
 
-let meta_struct map = 
-  let value n d : expr = Int (map |> StringMap.find_opt n |> Option.value ~default:d) in
-  let expr e = Expr(e, 0) in
-  let elem n e = StructureElement (Some n, expr e) in
-  let info = [
-    "fireball", [
-      "range", 5;
-      "cost", 10;
-    ];
-    "shoot", [
-      "range", 6;
-    ];
-    "bomb", [
-      "range", 4;
-    ];
-    "meditate", [
-      "amount", 20;
-    ];
-    "dispel", [
-      "cost", 5;
-    ];
-    "mana_drain", [
-      "cost", 20;
-    ];
-    "wall", [
-      "cost", 10;
-    ];
-    "plant_tree", [
-      "delay", 3;
-    ];
-    "bridge", [
-      "cost", 20;
-    ];
-    "chop", [
-      "sapling_chance", 30;
-      "wood_gain", 10;
-    ];
-    "fortify", [
-      "cost", 5;
-      "range", 1;
-    ];
-    "projection", [
-      "cost", 50;
-      "upkeep", 10;
-    ];
-    "freeze", [
-      "cost", 25;
-      "duration", 2;
-      "range", 5;
-    ];
-    "look", [
-      "range", -1;
-    ];
-    "scan", [
-      "range", -1;
-    ];
-    "boat", [
-      "cost", 30;
-      "capacity", 4;
-      "wood_cap", 50;
-      "clay_cap", 50;
-      "ammo_cap", 100;
-      "sapling_cap", 20;
-      "beartrap_cap", 20;
-      "explosive_cap", 10;
-      "metal_cap", 10;
-    ];
-    "throw_clay", [
-      "cost", 1;
-      "range", 3;
-    ];
-    "clay_pit", [
-      "spread_limit", 1;
-      "contain_limit", 100;
-      "collect_max", 5;
-    ];
-    "clay_golem", [
-      "cost", 5;
-    ];
-    "mine_shaft", [
-      "cost", 10;
-    ];
-    "craft", [
-      "ammo_per_metal", 3;
-      "beartraps_per_metal", 1;
-    ];
-    "trench", [
-      "range", 1;
-    ];
-    "collect", [
-      "range", 1;
-    ];
-    "obliviate", [
-      "cost", 20;
-      "range", 2;
-    ];
-    "blink", [
-      "cost", 10;
-      "duration", 2;
-    ];
-  ] 
-  in
-  let data = List.map (fun (name, props) -> 
-    elem name (StructureLiteral(List.map (fun (prop, default) -> 
-      elem prop (value (name^"."^prop) default)
-    ) props))
-  ) info
-  in
-  StructureLiteral (data)
-
 let themes ts =
   List.is_empty ts || List.exists (fun t -> StringSet.mem t compile_flags.themes) ts
 
 let features fs = 
   List.for_all (fun f -> StringSet.mem f compile_flags.features) fs
 
-let expr_const name typ expr ts fs =
-  if features fs && themes ts
-  then Some(Const(typ, name, Expr(expr,0)))
-  else None
+let builtin_func ret args addr =
+  ASM(T_Func(ret,args), [Instr_Place; I(addr)])
 
-let asm_const name typ asm themes features =
-  expr_const name typ (ASM(typ, asm)) themes features
+type builtin = {
+  name: string;
+  expr: expr;
+  themes: string list;
+  features: string list;
+  meta: (string * expr) list;
+}
 
-let func_const name ret args addr themes features =
-  let typ = (T_Func(ret, args)) in
-  expr_const name typ (ASM(typ, [Instr_Place; I addr])) themes features
+let builtins () : builtin list = [
+  {
+    name = "x";
+    expr = ASM(T_Int, [Instr_Meta; I(0)]);
+    themes = []; features = ["meta"];
+    meta = [];
+  };{
+    name = "y";
+    expr = ASM(T_Int, [Instr_Meta; I(1)]);
+    themes = []; features = ["meta"];
+    meta = [];
+  };
+  {
+    name = "id";
+    expr = ASM(T_Int, [Instr_Meta; I(2)]);
+    themes = []; features = ["meta"];
+    meta = [];
+  };{
+    name = "map_width";
+    expr = Int Flags.compile_flags.map_width;
+    themes = []; features = ["meta"];
+    meta = [];
+  };
+  {
+    name = "map_height";
+    expr = Int Flags.compile_flags.map_height;
+    themes = []; features = ["meta"];
+    meta = [];
+  };
+  {
+    name = "round";
+    expr = ASM(T_Int, [Instr_Meta; I(5)]);
+    themes = []; features = ["meta"];
+    meta = [];
+  };{
+    name = "actions";
+    expr = ASM(T_Int, [Instr_Meta; I(6)]);
+    themes = []; features = ["meta"];
+    meta = []
+  };{
+    name = "map";
+    expr = StructureLiteral[
+      StructureElement(Some "width", Expr(Int Flags.compile_flags.map_width, 0));
+      StructureElement(Some "height", Expr(Int Flags.compile_flags.map_height, 0));
+    ];
+    themes = []; features = ["meta"];
+    meta = []
+  };{
+    name = "player";
+    expr = StructureLiteral[
+      StructureElement(Some "x", Expr(ASM(T_Int,[Instr_Meta; I(0)]), 0));
+      StructureElement(Some "y", Expr(ASM(T_Int,[Instr_Meta; I(1)]), 0));
+      StructureElement(Some "id", Expr(ASM(T_Int,[Instr_Meta; I(2)]), 0));
+      StructureElement(Some "actions", Expr(ASM(T_Int,[Instr_Meta; I(6)]), 0));
+    ];
+    themes = []; features = ["meta"];
+    meta = []
+  };{
+    name = "true";
+    expr = Int 1;
+    themes = []; features = [];
+    meta = []
+  };{
+    name = "false";
+    expr = Int 0;
+    themes = []; features = [];
+    meta = []
+  };{
+    name = "_SUCCESS";
+    expr = Int 1;
+    themes = []; features = [];
+    meta = []
+  };{
+    name = "_ERROR";
+    expr = Int 0;
+    themes = []; features = [];
+    meta = []
+  };{
+    name = "_MISSING_RESOURCE";
+    expr = Int (-1);
+    themes = []; features = [];
+    meta = []
+  };{
+    name = "_OUT_OF_BOUNDS";
+    expr = Int (-2);
+    themes = []; features = [];
+    meta = []
+  };{
+    name = "_INVALID_TARGET";
+    expr = Int (-3);
+    themes = []; features = [];
+    meta = []
+  };{
+    name = "_OUT_OF_RANGE";
+    expr = Int (-4);
+    themes = []; features = [];
+    meta = []
+  };{
+    name = "_OBSTRUCTED";
+    expr = Int (-5);
+    themes = []; features = [];
+    meta = []
+  };{
+    name = "_MISSING_SPACE";
+    expr = Int (-6);
+    themes = []; features = [];
+    meta = []
+  };{
+    name = "shoot";
+    expr = builtin_func T_Int [T_Dir] (-1);
+    themes = ["military";"forestry"]; features = [];
+    meta = [
+      "range", Int 6
+    ]
+  };{
+    name = "look";
+    expr = builtin_func T_Int [T_Dir;T_Field] (-2);
+    themes = []; features = [];
+    meta = [
+      "range", Int (-1);
+    ]
+  };{
+    name = "scan";
+    expr = builtin_func T_Field [T_Dir;T_Int] (-3);
+    themes = []; features = [];
+    meta = [
+      "range", Int (-1);
+    ]
+  };{
+    name = "mine";
+    expr = builtin_func T_Int [T_Dir] (-4);
+    themes = ["military"];
+    features = []; meta = []
+  };{
+    name = "move";
+    expr = builtin_func T_Int [T_Dir] (-5);
+    themes = []; features = [];
+    meta = []
+  };{
+    name = "chop";
+    expr = builtin_func T_Int [T_Dir] (-6);
+    themes = []; features = [];
+    meta = []
+  };{
+    name = "trench";
+    expr = builtin_func T_Int [T_Dir;T_Int] (-7);
+    themes = []; features = [];
+    meta = [
+      "range", Int 1;
+    ]
+  };{
+    name = "fortify";
+    expr = builtin_func T_Int [T_Dir;T_Int] (-8);
+    themes = []; features = [];
+    meta = [
+      "cost", Int 5;
+      "range", Int 1;
+    ]
+  };{
+    name = "bomb";
+    expr = builtin_func T_Int [T_Dir;T_Int] (-9);
+    themes = ["military"]; features = [];
+    meta = [
+      "range", Int 4;
+    ]
+  };{
+    name = "write";
+    expr = builtin_func T_Int [T_Int] (-10);
+    themes = []; features = [];
+    meta = []
+  };{
+    name = "read";
+    expr = builtin_func T_Int [] (-11);
+    themes = []; features = [];
+    meta = []
+  };{
+    name = "projection";
+    expr = builtin_func T_Int [] (-12);
+    themes = ["wizardry"]; features = ["fork"];
+    meta = [
+      "cost", Int 50;
+      "upkeep", Int 10;
+    ]
+  };{
+    name = "freeze";
+    expr = builtin_func T_Int [T_Dir;T_Int] (-13);
+    themes = ["wizardry"]; features = [];
+    meta = [
+      "cost", Int 25;
+      "duration", Int 2;
+      "range", Int 5;
+    ]
+  };{
+    name = "fireball";
+    expr = builtin_func T_Int [T_Dir] (-14);
+    themes = ["wizardry"]; features = [];
+    meta = [
+      "range", Int 5;
+      "cost", Int 10;
+    ]
+  };{
+    name = "meditate";
+    expr = builtin_func T_Int [] (-15);
+    themes = ["wizardry"]; features = [];
+    meta = [
+      "amount", Int 20;
+    ]
+  };{
+    name = "dispel";
+    expr = builtin_func T_Int [T_Dir] (-16);
+    themes = ["wizardry"]; features = [];
+    meta = [
+      "cost", Int 5;
+      "cost_type", Resource R_Mana;
+    ]
+  };{
+    name = "disarm";
+    expr = builtin_func T_Int [T_Dir] (-17);
+    themes = ["military";"forestry"]; features = [];
+    meta = []
+  };{
+    name = "mana_drain";
+    expr = builtin_func T_Int [T_Dir] (-18);
+    themes = ["wizardry"]; features = [];
+    meta = [
+      "cost", Int 20;
+    ]
+  };{
+    name = "pager_set";
+    expr = builtin_func T_Int [T_Int] (-19);
+    themes = []; features = ["ipc"];
+    meta = []
+  };{
+    name = "pager_read";
+    expr = builtin_func T_Int [] (-20);
+    themes = []; features = ["ipc"];
+    meta = []
+  };{
+    name = "pager_write";
+    expr = builtin_func T_Int [T_Int] (-21);
+    themes = []; features = ["ipc"];
+    meta = []
+  };{
+    name = "wall";
+    expr = builtin_func T_Int [T_Dir] (-22);
+    themes = []; features = [];
+    meta = [
+      "cost", Int 10;
+    ]
+  };{
+    name = "plant_tree";
+    expr = builtin_func T_Int [T_Dir] (-23);
+    themes = ["forestry"]; features = [];
+    meta = [
+      "delay", Int 3;
+    ]
+  };{
+    name = "bridge";
+    expr = builtin_func T_Int [T_Dir] (-24);
+    themes = []; features = [];
+    meta = [
+      "cost", Int 20;
+      "cost_type", Resource R_Wood;
+    ]
+  };{
+    name = "collect";
+    expr = builtin_func T_Int [T_Dir;T_Int] (-25);
+    themes = []; features = [];
+    meta = [
+      "range", Int 1;
+    ]
+  };{
+    name = "say";
+    expr = builtin_func T_Int [T_Int] (-26);
+    themes = []; features = ["debug"];
+    meta = []
+  };{
+    name = "mount";
+    expr = builtin_func T_Int [T_Dir] (-27);
+    themes = []; features = [];
+    meta = []
+  };{
+    name = "dismount";
+    expr = builtin_func T_Int [T_Dir] (-28);
+    themes = []; features = [];
+    meta = []
+  };{
+    name = "boat";
+    expr = builtin_func T_Int [T_Dir] (-29);
+    themes = []; features = [];
+    meta = [
+      "cost", Int 30;
+      "capacity", Int 4;
+      "wood_cap", Int 50;
+      "clay_cap", Int 50;
+      "ammo_cap", Int 100;
+      "sapling_cap", Int 20;
+      "beartrap_cap", Int 20;
+      "explosive_cap", Int 10;
+      "metal_cap", Int 10;
+    ]
+  };{
+    name = "bear_trap";
+    expr = builtin_func T_Int [T_Dir] ( -30);
+    themes = ["forestry"]; features = [];
+    meta = []
+  };{
+    name = "throw_clay";
+    expr = builtin_func T_Int [T_Dir;T_Int] (-31);
+    themes = ["pottery"]; features = [];
+    meta = [
+      "cost", Int 1;
+      "range", Int 3;
+    ]
+  };{
+    name = "clay_golem";
+    expr = builtin_func T_Int [] (-32);
+    themes = ["pottery"]; features = ["fork"];
+    meta = [
+      "cost", Int 5
+    ]
+  };{
+    name = "drop";
+    expr = builtin_func T_Int [T_Int;T_Resource] (-33);
+    themes = []; features = [];
+    meta = []
+  };{
+    name = "take";
+    expr = builtin_func T_Int [T_Int;T_Resource] (-34);
+    themes = []; features = [];
+    meta = []
+  };{
+    name = "mine_shaft";
+    expr = builtin_func T_Int [T_Dir] (-35);
+    themes = []; features = [];
+    meta = [
+      "cost", Int 10;
+    ]
+  };{
+    name = "craft";
+    expr = builtin_func T_Int [T_Resource] (-36);
+    themes = []; features = [];
+    meta = [
+      "ammo_per_metal", Int 3;
+      "beartraps_per_metal", Int 1;
+    ]
+  };{
+    name = "count";
+    expr = builtin_func T_Int [T_Resource] (-37);
+    themes = []; features = [];
+    meta = []
+  };{
+    name = "pass";
+    expr = builtin_func T_Int [] (-38);
+    themes = []; features = [];
+    meta = []
+  };{
+    name = "wait";
+    expr = builtin_func T_Int [] (-39);
+    themes = []; features = [];
+    meta = []
+  };{
+    name = "obliviate";
+    expr = builtin_func T_Int [T_Dir] (-40);
+    themes = ["wizardry"]; features = [];
+    meta = [
+      "cost", Int 20;
+      "range", Int 2;
+    ]
+  };{
+    name = "blink";
+    expr = builtin_func T_Int [] (-41);
+    themes = []; features = [];
+    meta = [
+      "cost", Int 10;
+      "duration", Int 2;
+    ]
+  };{
+    name = "search";
+    expr = builtin_func T_Int [T_Resource] (-42);
+    themes = []; features = [];
+    meta = []
+  };
+]
 
-
-let generate_initial_scope () : identifier list =
-  let entries = [
-    asm_const "x" T_Int [Instr_Meta; I(0)] [] [];
-    asm_const "y" T_Int [Instr_Meta; I(1)] [] [];
-    asm_const "id" T_Int [Instr_Meta; I(2)] [] [];
-    expr_const "map_width" T_Int (Int Flags.compile_flags.map_width) [] [];
-    expr_const "map_height" T_Int (Int Flags.compile_flags.map_height) [] [];
-    asm_const "round" T_Int [Instr_Meta; I(5)] [] [];
-    asm_const "actions" T_Int [Instr_Meta; I(6)] [] [];
-    expr_const "meta" T_Null (meta_struct Flags.compile_flags.settings) [] ["meta"];
-
-    expr_const "true" T_Int (Int 1) [] [];
-    expr_const "false" T_Int (Int 0) [] [];
-
-    expr_const "_SUCCESS" T_Int (Int 1) [] [];
-    expr_const "_ERROR" T_Int (Int 0) [] [];
-    expr_const "_MISSING_RESOURCE" T_Int (Int (-1)) [] [];
-    expr_const "_OUT_OF_BOUNDS" T_Int (Int (-2)) [] [];
-    expr_const "_INVALID_TARGET" T_Int (Int (-3)) [] [];
-    expr_const "_OUT_OF_RANGE" T_Int (Int (-4)) [] [];
-    expr_const "_OBSTRUCTED" T_Int (Int (-5)) [] [];
-    expr_const "_MISSING_SPACE" T_Int (Int (-6)) [] [];
-
-    func_const "shoot" T_Int [T_Dir] (-1) ["military";"forestry"] [];
-    func_const "look" T_Int [T_Dir;T_Field] (-2) [] [];
-    func_const "scan" T_Field [T_Dir;T_Int] (-3) [] [];
-    func_const "mine" T_Int [T_Dir] (-4) ["military"] [];
-    func_const "move" T_Int [T_Dir] (-5) [] [];
-    func_const "chop" T_Int[T_Dir] (-6) ["forestry"] [];
-    func_const "trench" T_Int[T_Dir;T_Int] (-7) [] []; (*shorthand?*)
-    func_const "fortify" T_Int[T_Dir;T_Int] (-8) [] []; (*shorthand?*)
-    func_const "bomb" T_Int [T_Dir;T_Int] (-9) ["military"] [];
-    func_const "write" T_Int [T_Int] (-10) [] [];
-    func_const "read" T_Int [] (-11) [] [];
-    func_const "projection" T_Int[] (-12) ["wizardry"] ["fork"];
-    func_const "freeze" T_Int[T_Dir;T_Int] (-13) ["wizardry"] [];
-    func_const "fireball" T_Int[T_Dir] (-14) ["wizardry"] [];
-    func_const "meditate" T_Int[] (-15) ["wizardry"] [];
-    func_const "dispel" T_Int[T_Dir] (-16) ["wizardry"] [];
-    func_const "disarm" T_Int[T_Dir] (-17) ["military";"forestry"] [];
-    func_const "mana_drain" T_Int[T_Dir] (-18) ["wizardry"] [];
-    func_const "pager_set" T_Int[T_Int] (-19) [] ["ipc"];
-    func_const "pager_read" T_Int[] (-20) [] ["ipc"];
-    func_const "pager_write" T_Int[T_Int] (-21) [] ["ipc"];
-    func_const "wall" T_Int[T_Dir] (-22) [] [];
-    func_const "plant_tree" T_Int[T_Dir] (-23) ["forestry"] [];
-    func_const "bridge" T_Int[T_Dir] (-24) [] [];
-    func_const "collect" T_Int[T_Dir;T_Int] (-25) [] []; (*shorthand?*)
-    func_const "say" T_Int[T_Int] (-26) [] ["debug"];
-    func_const "mount" T_Int[T_Dir] (-27) [] []; (*shorthand?*)
-    func_const "dismount" T_Int[T_Dir] (-28) [] []; (*shorthand?*)
-    func_const "boat" T_Int[T_Dir] (-29) [] [];
-    func_const "bear_trap" T_Int[T_Dir] (-30) ["forestry"] [];
-    func_const "throw_clay" T_Int[T_Dir;T_Int] (-31) ["pottery"] [];
-    func_const "clay_golem" T_Int[] (-32) ["pottery"] ["fork"];
-    func_const "drop" T_Int[T_Int;T_Resource] (-33) [] [];
-    func_const "take" T_Int[T_Int;T_Resource] (-34) [] [];
-    func_const "mine_shaft" T_Int[T_Dir] (-35) [] [];
-    func_const "craft" T_Int[T_Resource] (-36) [] [];
-    func_const "count" T_Int[T_Resource] (-37) [] [];
-    func_const "pass" T_Int[] (-38) [] [];
-    func_const "wait" T_Int[] (-39) [] [];
-    func_const "obliviate" T_Int[T_Dir] (-40) ["wizardry"] [];
-    func_const "blink" T_Int[] (-41) ["wizardry"] [];
-    func_const "search" T_Int[T_Resource] (-42) [] [];
-  ]
+let generate_meta_builtin map bs : builtin =
+  let entries = List.filter_map (fun b -> if List.is_empty b.meta then None else Some(b.name, b.meta)) bs in
+  let value n d : expr = Int (map |> StringMap.find_opt n |> Option.value ~default:d) in
+  let elem n e = StructureElement (Some n, Expr(e, 0)) in
+  let expr = StructureLiteral(List.map (fun (name, props) -> 
+    (
+      elem name (StructureLiteral(List.map (fun (prop, default) -> match default with
+        | Int i -> elem prop (value (name^"."^prop) i)
+        | _ -> elem prop default
+      ) props)) 
+    )
+  ) entries)
   in
-  entries 
-  |> List.filter Option.is_some
-  |> List.map Option.get
+  {
+    name = "meta";
+    expr = expr;
+    features = ["meta"];
+    themes = [];
+    meta = [];
+  }
+  
+let generate_initial_scope () : identifier list =
+  let builtins = builtins () in
+  let meta = generate_meta_builtin Flags.compile_flags.settings builtins in
+  let builtins = (meta :: builtins) 
+    |> List.filter (fun b -> themes b.themes && features b.features) in
+  List.map (fun b -> Const(b.name, Expr(b.expr,0))) builtins
+  
