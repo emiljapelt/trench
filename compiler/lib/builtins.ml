@@ -298,7 +298,7 @@ let builtins () : builtin list = [
     themes = []; features = [];
     meta = [
       "cost", Int 20;
-      "cost_type", Resource R_Wood;
+      "uses", Resource R_Wood;
     ]
   };{
     name = "collect";

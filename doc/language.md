@@ -112,7 +112,7 @@ The available properties are:
 
 ### array
 
-Arrays are fixed sized lists of values belonging to a single type. The size is given at declaration, and values can be indexed, starting at 0. Arrays cannot be given as argument to a function, nor can they be the return type.
+Arrays are fixed sized lists of values belonging to a single type. The size is given at declaration, and values can be indexed, starting at 0.
 
 ```
 // Declare
@@ -120,9 +120,38 @@ int[2] my_array;
 
 // Assign
 my_array[0] = 57;
+my_array = [1,2];
 
 // Access
 say(my_array[0]);
+```
+
+If the setting `auto_resize` is set to `true`, the compiler will automatically resize arrays, altough not recursivly. The the array is to small it will be padded with default values, and if it is to long the end will be cut of. 
+
+To manually resize, range access can be utilized.
+
+| Syntax | Description |
+| --- | --- |
+| a[n..] | `n` must be a constant. Take from `n` to the end of the array |
+| a[..n] | `n` must be a constant. Take from the start of the array, until `n` |
+| a[m..n] | `n` must be a constant. Take `m` elements, starting from `n` |
+
+### tuple
+
+Tuples are structures of values, which may have names. It uses a similar syntax to arrays.
+
+```
+// Declare
+[int, dir d] my_tuple;
+
+// Assign
+my_tuple[0] = 41;
+my_tuple.d = S;
+my_tuple = [23, E];
+
+// Access
+say(my_tuple[0]);
+move(my_tuple.d);
 ```
 
 ### function
@@ -159,7 +188,7 @@ let random_move = int:() {
 
 Notice that even though all function have a return type, not all of these examples have a return statement. This is because all functions have an implicit return statement at the end, returning the default value of their return type.
 
-Inside of a function only the parameters, locally declared and global variables are available. Additionally the local variable `this` is implicitly declared in all functions, and refer to the function itself, enabling recursion.
+Inside of a function only the parameters, locally declared and global variables are available. Additionally the local constant `this` is implicitly declared in all functions, and refer to the function itself, enabling recursion.
 
 ```
 let a = 0;
@@ -208,11 +237,11 @@ let opposite = dir:(dir d) => d << 2;
 
 ## Expressions
 
-### Variables
+### Identifiers
 
 **features:** memory
 
-Variables are name for data, they start with a letter which is followed by an amount of letters, numbers and underscores. 
+Identifiers are name for data, they start with a letter which is followed by an amount of letters, numbers and underscores. They may refer to variables or constants;
 
 Examples:
 
@@ -222,7 +251,7 @@ my_variable
 MyVariable
 field2_1
 ```
-Variables do not have to be unique. When referenced the nearest variable in scope will be used.
+Identifiers do not have to be unique. When referenced the nearest variable in scope will be used.
 
 ```
 int x = 1;
@@ -341,11 +370,11 @@ Continues execution of the program at the *name* label.
 ---
 
 ### Declaration
-**syntax:** *type* *name* `;` | *type* *name* `=` *expr* `;` | *let* *name* `=` *expr* `;`
+**syntax:** *type* *name* `;` | *type* *name* `=` *expr* `;` | `let` *name* `=` *expr* `;` | *const* *name* `=` *expr* `;`
 
 **features:** memory
 
-Declares a variable of the given type and name, assigning the resulting value of evaluating the expression, if one is given.
+Declares a variable or constant of the given type and name, assigning the resulting value of evaluating the expression, if one is given.
 
 ---
 

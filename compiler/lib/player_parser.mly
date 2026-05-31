@@ -237,7 +237,7 @@ non_control_flow_stmt:
   | typ NAME                      { features ["memory"] ; Declare($1,$2) }
   | typ NAME EQ expression        { features ["memory"] ; DeclareAssign(Some $1, $2, $4) }
   | LET NAME EQ expression        { features ["memory"; "sugar"] ; DeclareAssign(None, $2, $4) }
-  | CONST NAME EQ expression      { DeclareConst($2, $4) }
+  | CONST NAME EQ expression      { features ["memory"] ; DeclareConst($2, $4) }
 ;
 
 direction:
