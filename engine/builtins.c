@@ -113,7 +113,7 @@ int builtin_scan(player_state* ps) {
 int builtin_mine(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
 
-    if(!spend_resource(&ps->resources, R_Explosive, 1)) {
+    if(!spend_resource(&ps->resources, R_Explosive, _gr->settings.mine.cost)) {
         ps->stack[ps->sp++] = INSTR_MISSING_RESOURCE;
         return 0;
     }
@@ -238,6 +238,11 @@ int builtin_trench(player_state* ps) {
     int p = ps->stack[--ps->sp];
     direction d = (direction)ps->stack[--ps->sp];
 
+    if(!spend_resource(&ps->resources, R_Wood, _gr->settings.trench.cost)) {
+        ps->stack[ps->sp++] = INSTR_MISSING_RESOURCE;
+        return 0;
+    }
+
     int x, y;
     if(!location_coords(ps->entity->location, &x, &y)) {
         ps->stack[ps->sp++] = INSTR_ERROR;
@@ -297,7 +302,7 @@ int builtin_bomb(player_state* ps) {
     int p = ps->stack[--ps->sp];
     direction d = (direction)ps->stack[--ps->sp];
 
-    if(!spend_resource(&ps->resources, R_Explosive, 1)) {
+    if(!spend_resource(&ps->resources, R_Explosive, _gr->settings.bomb.cost)) {
         ps->stack[ps->sp++] = INSTR_MISSING_RESOURCE;
         return 0;
     }

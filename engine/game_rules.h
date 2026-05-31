@@ -14,6 +14,7 @@ typedef struct {
 
     struct {
         int range;
+        int cost;
     } bomb;
     
     struct {
@@ -107,6 +108,7 @@ typedef struct {
     } craft;
 
     struct {
+        int cost;
         int range;
     } trench;
 
@@ -123,6 +125,10 @@ typedef struct {
         int cost;
         int duration;
     } blink;
+
+    struct {
+        int cost;
+    } mine;
 } game_settings;
 
 

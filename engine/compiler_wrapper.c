@@ -157,10 +157,11 @@ void load_settings_struct(game_rules* gr, int settings_count, value settings) {
         .clay_golem = { .cost = 5, },
         .mine_shaft = { .cost = 10, },
         .craft = { .ammo_per_metal = 3, .beartraps_per_metal = 1, },
-        .trench = { .range = 1, },
+        .trench = { .cost = 0, .range = 1, },
         .collect = { .range = 1, },
         .obliviate = { .cost = 20, .range = 2, },
         .blink = { .cost = 10, .duration = 2, },
+        .mine = { .cost = 1, },
     };
 
     for(int i = 0; i < settings_count; i++) {
@@ -172,6 +173,7 @@ void load_settings_struct(game_rules* gr, int settings_count, value settings) {
         else if (streq(key, "fireball.cost")) gr->settings.fireball.cost = val;
         else if (streq(key, "shoot.range")) gr->settings.shoot.range = val;
         else if (streq(key, "bomb.range")) gr->settings.bomb.range = val;
+        else if (streq(key, "bomb.cost")) gr->settings.bomb.cost = val;
         else if (streq(key, "meditate.amount")) gr->settings.meditate.amount = val;
         else if (streq(key, "dispel.cost")) gr->settings.dispel.cost = val;
         else if (streq(key, "mana_drain.cost")) gr->settings.mana_drain.cost = val;
@@ -214,11 +216,13 @@ void load_settings_struct(game_rules* gr, int settings_count, value settings) {
         else if (streq(key, "craft.ammo_per_metal")) gr->settings.craft.ammo_per_metal = val;
         else if (streq(key, "craft.beartraps_per_metal")) gr->settings.craft.beartraps_per_metal = val;
         else if (streq(key, "trench.range")) gr->settings.trench.range = val;
+        else if (streq(key, "trench.cost")) gr->settings.trench.cost = val;
         else if (streq(key, "collect.range")) gr->settings.collect.range = val;
         else if (streq(key, "obliviate.cost")) gr->settings.obliviate.cost = val;
         else if (streq(key, "obliviate.range")) gr->settings.obliviate.range = val;
         else if (streq(key, "blink.cost")) gr->settings.blink.cost = val;
         else if (streq(key, "blink.duration")) gr->settings.blink.duration = val;
+        else if (streq(key, "mine.cost")) gr->settings.mine.cost = val;
 
         else _log(WARN, "Unknown setting: %s", key);
     }
