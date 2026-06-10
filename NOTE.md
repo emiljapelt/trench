@@ -18,24 +18,6 @@ Assign a priority (render layer) to field_visual. Such that players can hide in 
 Each level includes the prior.
 Is defined in .trg files.
 
-
-# Docker
-Create a docker file for distribution. Shouldn't be to diffucult?
-
-# Notes from game
-- prop @Ally, require player state on field analysis
-- prop @Enemy, require player state on field analysis
-- Chop should hit players not on @empty
-- prop @empty
-- feature tage for 'say'
-- better feature/theme notation
-- allow: || and &&
-- consider '==' and 'is' 
-- 'pass' and 'wait' should be functions.
-
-
-
-
 ToDo
 - [X] Boats should be able to sail under bridges, i think
 - [X] Make players drop their items on death, and also remove and free them
