@@ -331,12 +331,15 @@ let rec compile_expr (state:compile_state) (Expr(expr, ln) as expression) : (typ
       let start_label = label_name "func" in
       let end_label = label_name "func_end" in
       let ret = eval_type_expr state ret in
-      let args = List.map (fun (t,n) -> (eval_type_expr state t, n)) args  in
+      let args = List.map (fun (t,n) -> (eval_type_expr state t, n)) args in
       let typ = T_Func(ret, List.map fst args) in
       f.cache <- Some(typ, start_label) ;
       let func_scope = {
         local = List.fold_left (fun acc (t,n) -> Var(t,n)::acc) [Const("this", expression)] args ; 
-        global =  if state.scopes.global = None then Some(state.scopes.local) else state.scopes.global ;
+        global = Some(state.scopes.global |> Option.fold
+          ~none:state.scopes.local
+          ~some:(fun gs -> gs @ List.filter (function Const _ -> true | _ -> false) state.scopes.local)
+        )
       } in
       let new_state = {
         scopes = func_scope;  
