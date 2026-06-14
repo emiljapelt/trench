@@ -49,6 +49,7 @@ rule lex = parse
         [' ' '\t']               { lex lexbuf }
     |   ('\r''\n' | '\n')        { incr_linenum lexbuf ; lex lexbuf }
     |   "//" [^ '\n' '\r']* ('\r''\n' | '\n' | eof)       { incr_linenum lexbuf ; lex lexbuf }
+    |   "/*"  { comment lexbuf ; lex lexbuf }
     |   ['0'-'9']+ as lxm { CSTINT (int_of_string lxm) }
     |   '#' ['A'-'Z' 'a'-'z' ''' '_'] ['A'-'Z' 'a'-'z' '0'-'9' '_'] * as id { RESOURCE_NAME (String.sub id 1 (String.length id - 1)) }
     |   '@' ['A'-'Z' 'a'-'z' ''' '_'] ['A'-'Z' 'a'-'z' '0'-'9' '_'] * as id { FIELD_PROP (String.sub id 1 (String.length id - 1)) }
@@ -100,3 +101,10 @@ rule lex = parse
 
 and start filename = parse
        "" { set_filename filename lexbuf ; lex lexbuf }
+
+and comment = parse
+  | "/*"    { comment lexbuf; comment lexbuf }
+  | "*/"    { () }
+  |   ('\r''\n' | '\n')        { incr_linenum lexbuf ; comment lexbuf }
+  | (eof | '\026')   { raise (Failure(Some((Lexing.lexeme_start_p lexbuf).pos_fname), Some((Lexing.lexeme_start_p lexbuf).pos_lnum), ("Unterminated comment"))) }
+  | _ { comment lexbuf }
