@@ -16,7 +16,7 @@ Examples:
 ```
 // This entire line is a comment
 
-int x = 2;  // There can be actual code before a comment
+let x : int = 2;  // There can be actual code before a comment
 ```
 
 ## Types
@@ -116,7 +116,7 @@ Arrays are fixed sized lists of values belonging to a single type. The size is g
 
 ```
 // Declare
-int[2] my_array;
+let my_array : int[2];
 
 // Assign
 my_array[0] = 57;
@@ -142,7 +142,7 @@ Tuples are structures of values, which may have names. It uses a similar syntax 
 
 ```
 // Declare
-[int, dir d] my_tuple;
+let my_tuple: [int, d: dir];
 
 // Assign
 my_tuple[0] = 41;
@@ -164,23 +164,23 @@ The type of a function is written as such:
 
 and a function is specified as such:
 
-```type:(type name, ...) { ... }```
+```\type:(name: type , ...) { ... }```
 
 The first type is the return type, all functions must have one. Inside the parentheses are the function parameters, which there may be zero or more of, and finally the function body.
 
 Examples:
 
 ```
-int(int,int) add = int:(int a, int b) {
+let add : int(int,int) = \int:(a: int, b: int) {
     return a + b;
 };
 
-let move = int:(dir d) {
+let move = \int:(d: dir) {
     if (!look(d, @trapped) = 1) move(d);
 };
 
-let random_move = int:() {
-    move(?[N S E W]);
+let random_move = \int:() {
+    move([N,S,E,W][? % 4]);
 };
 
 
@@ -193,11 +193,11 @@ Inside of a function only the parameters, locally declared and global variables 
 ```
 let a = 0;
 
-let f1 = int:(int b) {
+let f1 = \int:(b: int) {
 
     let c = 0;
 
-    let f2 = int:(int d) {
+    let f2 = \int:(d: int) {
         let e = 0;
         // can reach: a, d, e
     };
@@ -224,14 +224,14 @@ Functions have a few pieces of syntactic sugar.
 - If the function should just return the result of an expression the `=>` synax can be used:
 
 ```
-let sqr = :(int a) => a * a;
+let sqr = \(a: int) => a * a;
 
-let negate = :(int a) {
+let negate = \(a: int) {
     if (a < 0) return a;
     else return -a;
 };
 
-let opposite = dir:(dir d) => d << 2;
+let opposite = \dir:(d: dir) => d << 2;
 ```
 
 
@@ -254,11 +254,11 @@ field2_1
 Identifiers do not have to be unique. When referenced the nearest variable in scope will be used.
 
 ```
-int x = 1;
-int x = 2;
+let x = 1;
+let x = 2;
 {
     say x;     // -> 2
-    int x = 3
+    let x = 3
     say x;     // -> 3
 }
 say x;         // -> 2
@@ -370,11 +370,19 @@ Continues execution of the program at the *name* label.
 ---
 
 ### Declaration
-**syntax:** *type* *name* `;` | *type* *name* `=` *expr* `;` | `let` *name* `=` *expr* `;` | *const* *name* `=` *expr* `;`
+**syntax:** `let` *name* `:` *type* `;` | `let` *name* `:` *type* `=` *expr* `;` | `let` *name* `=` *expr* `;` | `const` *name* `=` *expr* `;`
 
 **features:** memory
 
 Declares a variable or constant of the given type and name, assigning the resulting value of evaluating the expression, if one is given.
+
+---
+
+### Type Declaration
+
+**syntax:** `type` *name* `=` *type* `;`
+
+Declares a type alias;
 
 ---
 

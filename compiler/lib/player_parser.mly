@@ -34,10 +34,10 @@ let features fs =
 %token LOGIC_AND LOGIC_OR FSLASH BSLASH PCT EXCLAIM
 %token COMMA SEMI COLON EOF
 %token QMARK PLUSPLUS MINUSMINUS
-%token IF ELSE IS REPEAT WHILE CONTINUE BREAK LET CONST
+%token IF ELSE IS REPEAT WHILE CONTINUE BREAK LET CONST TYPE
 %token GOTO RARROW ANY
 %token NORTH EAST SOUTH WEST
-%token INT DIR FIELD RESOURCE L_SHIFT R_SHIFT
+%token L_SHIFT R_SHIFT
 %token RETURN NULL
 %token TIMES_EQ MINUS_EQ PLUS_EQ L_SHIFT_EQ R_SHIFT_EQ
 %token DOT DOTDOT PIPE
@@ -67,11 +67,13 @@ let features fs =
 %public seperated_or_empty(S,C):
   | {[]}
   | C  {[$1]}
+  | C S {[$1]}
   | C S seperated(S,C) {$1::$3}
 ;
 
 %public seperated(S,C):
   | C  {[$1]}
+  | C S {[$1]}
   | C S seperated(S,C) {$1::$3}
 ;
 
@@ -80,18 +82,14 @@ main:
 ;
 
 simple_typ:
-  | INT { TE_Int }
-  | DIR { TE_Dir }
-  | FIELD { TE_Field }
-  | RESOURCE { TE_Resource }
+  | NAME { TE_Identifier $1 }
   | typ LPAR seperated_or_empty(COMMA, typ) RPAR { TE_Func($1, $3) }
   | LBRAKE seperated(COMMA, tuple_type_element) RBRAKE { TE_Tuple $2 }
-  | LPAR typ RPAR { $2 }
 ;
 
 tuple_type_element:
   | typ       { ($1, None) }
-  | typ NAME  { ($1, Some $2) }
+  | NAME COLON typ  { ($3, Some $1) }
 ;
 
 typ:
@@ -141,9 +139,9 @@ expr:
   | EXCLAIM expression                      { Unary_op (Negate, $2) } %prec UNARY
   | expression binop expression             { Binary_op ($2, $1, $3) }
   | BSLASH typ COLON LPAR seperated_or_empty(COMMA,func_arg) RPAR block          { features ["func"] ; Func{ data = ($2, $5, Stmt($7,$symbolstartpos.pos_lnum)); cache = None} }
-  | BSLASH LPAR seperated_or_empty(COMMA,func_arg) RPAR block              { features ["func";"sugar"] ; Func{ data = (TE_Int, $3, Stmt($5,$symbolstartpos.pos_lnum)); cache = None} }
+  | BSLASH LPAR seperated_or_empty(COMMA,func_arg) RPAR block              { features ["func";"sugar"] ; Func{ data = (TE_Identifier "int", $3, Stmt($5,$symbolstartpos.pos_lnum)); cache = None} }
   | BSLASH typ COLON LPAR seperated_or_empty(COMMA,func_arg) RPAR RARROW expression   { features ["func";"sugar"] ; Func{ data = ($2, $5, Stmt(Return $8,$symbolstartpos.pos_lnum)); cache = None} }
-  | BSLASH LPAR seperated_or_empty(COMMA,func_arg) RPAR RARROW expression       { features ["func";"sugar"] ; Func{ data = (TE_Int, $3, Stmt(Return $6,$symbolstartpos.pos_lnum)); cache = None} }
+  | BSLASH LPAR seperated_or_empty(COMMA,func_arg) RPAR RARROW expression       { features ["func";"sugar"] ; Func{ data = (TE_Identifier "int", $3, Stmt(Return $6,$symbolstartpos.pos_lnum)); cache = None} }
   | expression QMARK expression COLON expression      { features ["control";"sugar"] ; Ternary($1,$3,$5) }
   | PLUSPLUS expression                    { features ["sugar"] ; Increment($2, true)} 
   | expression PLUSPLUS                    { features ["sugar"] ; Increment($1, false)}
@@ -163,7 +161,7 @@ range:
 ;
 
 func_arg:
-  | typ NAME { ($1,$2) }
+  | NAME COLON typ { ($3,$1) }
 ;
 
 %inline binop:
@@ -234,10 +232,11 @@ non_control_flow_stmt:
   | expression TIMES_EQ expression    { features ["memory"; "sugar"] ; Assign ($1, Expr(Binary_op(Times, $1, $3), $symbolstartpos.pos_lnum)) }
   | expression L_SHIFT_EQ expression  { features ["memory"; "sugar"] ; Assign ($1, Expr(Binary_op(LeftShift, $1, $3), $symbolstartpos.pos_lnum)) }
   | expression R_SHIFT_EQ expression  { features ["memory"; "sugar"] ; Assign ($1, Expr(Binary_op(RightShift, $1, $3), $symbolstartpos.pos_lnum)) }
-  | typ NAME                      { features ["memory"] ; Declare($1,$2) }
-  | typ NAME EQ expression        { features ["memory"] ; DeclareAssign(Some $1, $2, $4) }
+  | LET NAME COLON typ                { features ["memory"] ; Declare($4,$2) }
+  | LET NAME COLON typ EQ expression  { features ["memory"] ; DeclareAssign(Some $4, $2, $6) }
   | LET NAME EQ expression        { features ["memory"; "sugar"] ; DeclareAssign(None, $2, $4) }
   | CONST NAME EQ expression      { features ["memory"] ; DeclareConst($2, $4) }
+  | TYPE NAME EQ typ              { DeclareType($4, $2) }
 ;
 
 direction:

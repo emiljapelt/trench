@@ -4,11 +4,11 @@ let end_test = \() {
     let a = 1 / b;
 };
 
-int current_test;
-int assertions;
-int has_failed;
+let current_test : int;
+let assertions : int;
+let has_failed : int;
 
-let assert = \(int v) {
+let assert = \(v: int) {
     if (has_failed) return 0;
     assertions++;
     if (v) return 0;
@@ -18,7 +18,7 @@ let assert = \(int v) {
     }
 };
 
-let test_case = \(int test_id, int() test) {
+let test_case = \(test_id: int, test: int()) {
     current_test = test_id;
     has_failed = 0;
     assertions = 0;
@@ -26,7 +26,7 @@ let test_case = \(int test_id, int() test) {
     test();
 };
 
-let clone = \(int() f) {
+let clone = \(f: int()) {
     let _id = id;
     projection();
     if (_id == id) return 0;
@@ -113,7 +113,7 @@ test_case(3, \() {
 
 // Tree
 test_case(4, \() {
-    int prev = count(#sapling);
+    let prev: int = count(#sapling);
     plant_tree(E);
     assert(count(#sapling) < prev);
     repeat 3 pass();
@@ -203,15 +203,15 @@ test_case(7, \() {
 // function usage
 test_case(8, \() {
 
-    let both = \int:(int a, int b) {
+    let both = \int:(a: int, b: int) {
         return a ? b : 0;
     };
 
-    let either = \int:(int a, int b) {
+    let either = \int:(a: int, b: int) {
         return a ? 1 : b;
     };
 
-    let not = \int:(int a) {
+    let not = \int:(a: int) {
         return !a;
     };
 
@@ -243,7 +243,7 @@ test_case(8, \() {
 
 // null test
 test_case(9, \() {
-    int() f;
+    let f: int();
 
     assert(f == null);
 
@@ -259,7 +259,7 @@ test_case(9, \() {
 // can pass builtin functions
 test_case(10, \() {
 
-    let f = \int:(int(dir) f) {
+    let f = \int:(f: int(dir)) {
         return f(N);
     };
 
@@ -280,7 +280,7 @@ test_case(10, \() {
 test_case(11, \() {
 
     clone(\() {
-        int[2] arr;
+        let arr: int[2];
         while(pager_read() != 1) pass();
 
         arr[-1] = 1;
@@ -317,7 +317,7 @@ test_case(12, \() {
 
 // arithmatics
 test_case(12, \() {
-    int a;
+    let a : int;
 
     assert(a++ == 0);
     assert(a == 1);
@@ -332,7 +332,7 @@ test_case(12, \() {
 
 // simple stored array
 test_case(13, \() {
-    int[4] array;
+    let array : int[4];
 
     assert(|array| == 4);
 

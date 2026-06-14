@@ -449,11 +449,18 @@ let generate_meta_builtin map bs : builtin =
     themes = [];
     meta = [];
   }
+
+let builtin_types = [
+  Type("int", T_Int);
+  Type("dir", T_Dir);
+  Type("resource", T_Resource);
+  Type("field", T_Field);
+]
   
 let generate_initial_scope () : identifier list =
   let builtins = builtins () in
   let meta = generate_meta_builtin Flags.compile_flags.settings builtins in
   let builtins = (meta :: builtins) 
     |> List.filter (fun b -> themes b.themes && features b.features) in
-  List.map (fun b -> Const(b.name, Expr(b.expr,0))) builtins
+  List.map (fun b -> Const(b.name, Expr(b.expr,0))) builtins @ builtin_types
   

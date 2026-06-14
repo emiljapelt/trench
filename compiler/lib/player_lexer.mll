@@ -16,10 +16,7 @@
                         "S", SOUTH;
                         "W", WEST;
                         "goto", GOTO;
-                        "int", INT;
-                        "dir", DIR;
-                        "field", FIELD;
-                        "resource", RESOURCE;
+                        "type", TYPE;
                         "let", LET;
                         "return", RETURN;
                         "null", NULL;

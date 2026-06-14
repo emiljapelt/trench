@@ -77,10 +77,7 @@ type typ =
     | T_Null
 
 and typ_expr =
-    | TE_Int
-    | TE_Dir
-    | TE_Field
-    | TE_Resource
+    | TE_Identifier of string
     | TE_Array of typ_expr * expression
     | TE_Tuple of (typ_expr * string option) list
     | TE_Func of typ_expr * typ_expr list
@@ -101,6 +98,7 @@ and stmt =
     | Declare of typ_expr * string
     | DeclareAssign of typ_expr option * string * expression
     | DeclareConst of string * expression
+    | DeclareType of typ_expr * string
     | Return of expression
     | ExprStmt of expression
     | Repeat of expression option * statement
@@ -167,7 +165,8 @@ and unop =
 
 and identifier =
     | Var of typ * string
-    | Const of  string * expression (* typ needed ??? *)
+    | Const of  string * expression
+    | Type of string * typ
 
 and  file = 
     | File of statement list * int
@@ -327,6 +326,7 @@ let available_labels stmt =
 
 let identifier_name id = match id with
   | Var(_,n) 
+  | Type(n,_)
   | Const(n,_) -> n
 
 let is_bound name scopes =

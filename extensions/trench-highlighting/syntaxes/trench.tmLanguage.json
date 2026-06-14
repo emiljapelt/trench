@@ -9,7 +9,7 @@
 		"main": {
 			"patterns": [{
 				"name": "keyword",
-				"match": "\\b(let|const)\\b"
+				"match": "\\b(let|const|type)\\b"
 			},{
 				"name": "support.type",
 				"match": "\\b(int|dir|field|property|resource)\\b"
