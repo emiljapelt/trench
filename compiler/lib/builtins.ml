@@ -133,7 +133,7 @@ let builtins () : builtin list = [
     themes = ["military";"forestry"]; features = [];
     meta = [
       "range", Int 6;
-      "uses", Resource R_Ammo;
+      "resource", Resource R_Ammo;
     ]
   };{
     name = "look";
@@ -155,7 +155,7 @@ let builtins () : builtin list = [
     themes = ["military"]; features = []; 
     meta = [
       "cost", Int 1;
-      "uses", Resource R_Explosive;
+      "resource", Resource R_Explosive;
     ]
   };{
     name = "move";
@@ -174,7 +174,7 @@ let builtins () : builtin list = [
     meta = [
       "cost", Int 0;
       "range", Int 1;
-      "uses", Resource R_Wood;
+      "resource", Resource R_Wood;
     ]
   };{
     name = "fortify";
@@ -183,7 +183,7 @@ let builtins () : builtin list = [
     meta = [
       "cost", Int 5;
       "range", Int 1;
-      "uses", Resource R_Wood;
+      "resource", Resource R_Wood;
     ]
   };{
     name = "bomb";
@@ -192,7 +192,7 @@ let builtins () : builtin list = [
     meta = [
       "range", Int 4;
       "cost", Int 1;
-      "uses", Resource R_Explosive;
+      "resource", Resource R_Explosive;
     ]
   };{
     name = "write";
@@ -211,7 +211,7 @@ let builtins () : builtin list = [
     meta = [
       "cost", Int 50;
       "upkeep", Int 10;
-      "uses", Resource R_Mana;
+      "resource", Resource R_Mana;
     ]
   };{
     name = "freeze";
@@ -221,7 +221,7 @@ let builtins () : builtin list = [
       "cost", Int 25;
       "duration", Int 2;
       "range", Int 5;
-      "uses", Resource R_Mana;
+      "resource", Resource R_Mana;
     ]
   };{
     name = "fireball";
@@ -230,7 +230,7 @@ let builtins () : builtin list = [
     meta = [
       "range", Int 5;
       "cost", Int 10;
-      "uses", Resource R_Mana;
+      "resource", Resource R_Mana;
     ]
   };{
     name = "meditate";
@@ -246,7 +246,7 @@ let builtins () : builtin list = [
     meta = [
       "cost", Int 5;
       "cost_type", Resource R_Mana;
-      "uses", Resource R_Mana;
+      "resource", Resource R_Mana;
     ]
   };{
     name = "disarm";
@@ -259,7 +259,7 @@ let builtins () : builtin list = [
     themes = ["wizardry"]; features = [];
     meta = [
       "cost", Int 20;
-      "uses", Resource R_Mana;
+      "resource", Resource R_Mana;
     ]
   };{
     name = "pager_set";
@@ -282,7 +282,7 @@ let builtins () : builtin list = [
     themes = []; features = [];
     meta = [
       "cost", Int 10;
-      "uses", Resource R_Wood;
+      "resource", Resource R_Wood;
     ]
   };{
     name = "plant_tree";
@@ -290,7 +290,7 @@ let builtins () : builtin list = [
     themes = ["forestry"]; features = [];
     meta = [
       "delay", Int 3;
-      "uses", Resource R_Sapling;
+      "resource", Resource R_Sapling;
     ]
   };{
     name = "bridge";
@@ -298,7 +298,7 @@ let builtins () : builtin list = [
     themes = []; features = [];
     meta = [
       "cost", Int 20;
-      "uses", Resource R_Wood;
+      "resource", Resource R_Wood;
     ]
   };{
     name = "collect";
@@ -328,7 +328,7 @@ let builtins () : builtin list = [
     themes = []; features = [];
     meta = [
       "cost", Int 30;
-      "uses", Resource R_Wood;
+      "resource", Resource R_Wood;
       "capacity", Int 4;
       "wood_cap", Int 50;
       "clay_cap", Int 50;
@@ -343,7 +343,7 @@ let builtins () : builtin list = [
     expr = builtin_func T_Int [T_Dir] ( -30);
     themes = ["forestry"]; features = [];
     meta = [
-      "uses", Resource R_BearTrap;
+      "resource", Resource R_BearTrap;
     ]
   };{
     name = "throw_clay";
@@ -352,7 +352,7 @@ let builtins () : builtin list = [
     meta = [
       "cost", Int 1;
       "range", Int 3;
-      "uses", Resource R_Clay;
+      "resource", Resource R_Clay;
     ]
   };{
     name = "clay_golem";
@@ -360,7 +360,7 @@ let builtins () : builtin list = [
     themes = ["pottery"]; features = ["fork"];
     meta = [
       "cost", Int 5;
-      "uses", Resource R_Clay;
+      "resource", Resource R_Clay;
     ]
   };{
     name = "drop";
@@ -378,7 +378,7 @@ let builtins () : builtin list = [
     themes = []; features = [];
     meta = [
       "cost", Int 10;
-      "uses", Resource R_Wood;
+      "resource", Resource R_Wood;
     ]
   };{
     name = "craft";
@@ -410,7 +410,7 @@ let builtins () : builtin list = [
     meta = [
       "cost", Int 20;
       "range", Int 2;
-      "uses", Resource R_Mana;
+      "resource", Resource R_Mana;
     ]
   };{
     name = "blink";
@@ -419,7 +419,7 @@ let builtins () : builtin list = [
     meta = [
       "cost", Int 10;
       "duration", Int 2;
-      "uses", Resource R_Mana;
+      "resource", Resource R_Mana;
     ]
   };{
     name = "search";
