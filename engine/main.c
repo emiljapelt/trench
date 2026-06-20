@@ -17,6 +17,7 @@
 #include "log.h"
 
 void debug_print(player_state* ps) {
+    fprintf(stderr,"\nRound %i\n", _gs->round);
     fprintf(stderr,"\nPlayer %s(%i)\n", ps->name, ps->entity->id);
     for(int i = 0; i < ps->sp; i++) {
         fprintf(stderr,"%i, ", ps->stack[i]); wait(0.1);
@@ -176,8 +177,8 @@ void player_turn_default(player_state* ps) {
             wait(1); 
         }
         else if (_gs->feed_change) {
-            print_board(); 
-            wait(0.5); 
+            print_board();
+            wait(0.25);
         }
 
         if (!ps->entity->active) return;
@@ -394,6 +395,7 @@ void play_round_default() {
 
         check_win_condition();
     }
+    if (_gs->round - _gs->latest_print >= 1000) print_board();
     if (_gr->nuke > 0 && _gs->round % _gr->nuke == 0) nuke_board();
     garbage_collect();
 }
@@ -405,7 +407,6 @@ void play_round() {
             break;
     }
     _log_flush();
-    clear_screen();
 }
 
 // Mode: 0
@@ -431,7 +432,6 @@ void dynamic_mode() {
                     if (!entity->active) continue; 
                     if (entity->player->is_original_player)
                         get_new_directive(entity->player);
-                    clear_screen();
                     print_board();
                 }
             }
@@ -453,7 +453,6 @@ void manual_mode() {
                 if (!entity->active) continue;
                 if (entity->player->is_original_player)
                     get_new_directive(entity->player);
-                clear_screen();
                 print_board();
                 player_turn_default(entity->player);
                 check_win_condition();
@@ -483,7 +482,6 @@ int main(int argc, char** argv) {
     terminal_blocking_read_off();
     terminal_canonical_off();
 
-    clear_screen();
     print_board();
 
     handle_input();

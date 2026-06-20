@@ -185,6 +185,7 @@ field_visual empty_visual() {
 }
 
 void print_board() {
+    clear_screen();
     reset_cursor();
     int feed_index = 0;
 
@@ -247,4 +248,5 @@ void print_board() {
     puts(view_buf);
 
     _gs->feed_change = 0;
+    _gs->latest_print = _gs->round;
 }

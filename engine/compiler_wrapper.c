@@ -309,6 +309,7 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
 
             *gs = (game_state) {
                 .round = 1,
+                .latest_print = 1,
                 .map_width = map_width,
                 .map_height = map_height,
                 .id_counter = 0,

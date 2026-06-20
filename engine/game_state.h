@@ -23,6 +23,7 @@ typedef struct team_state {
 
 typedef struct game_state {
     int round;
+    int latest_print;
     int map_width;
     int map_height;
     int id_counter;
