@@ -12,13 +12,100 @@ let features fs =
 let builtin_func ret args addr =
   ASM(T_Func(ret,args), [Instr_Place; I(addr)])
 
+let structure elements = StructureLiteral(List.map (fun (n,e) -> StructureElement(Some n, Expr(e,0))) elements)
+
 type builtin = {
   name: string;
   expr: expr;
   themes: string list;
   features: string list;
-  meta: (string * expr) list;
+  meta: meta list;
 }
+
+and value_link =
+  | No
+  | Impl
+  | Setting of string
+
+and meta = 
+  | Value of string * expr * value_link
+  | Structure of string * meta list
+
+let rec translate_meta settings loc meta = 
+  let value s i = Int (settings |> StringMap.find_opt s |> Option.value ~default:i) in
+  match meta with
+  | Value(n,Int i,Impl) -> (n, value (loc^"."^n) i)
+  | Value(n,Int i, Setting s) -> (n, value s i)
+  | Value(n,e,_) -> (n,e)
+  | Structure(n, entries) -> (n, StructureLiteral(
+    entries 
+    |> List.map (translate_meta settings (loc^"."^n))
+    |> List.map (fun (n,e) -> StructureElement(Some n, Expr(e,0)))
+  ))
+
+
+
+(*
+type _builtin_info = {
+  name: string;
+  themes: string list;
+  features: string list;
+  value: _builtin;
+}
+
+and _builtin = 
+  | Atom of expr * string option 
+  | Structure of _builtin_info list
+
+
+let _builtins () : _builtin_info list = [
+  {
+    name = "fireball";
+    themes = ["wizardry"]; features = [];
+    value = Structure [{
+      name = "cast";
+      themes = []; features = [];
+      value = Atom(builtin_func T_Int [T_Dir] (-14), None);
+    };{
+      name = "range";
+      themes = []; features = ["meta"];
+      value = Atom(Int 5, Some "fireball.range");
+    };{
+      name = "cost";
+      themes = []; features = ["meta"];
+      value = Structure [{
+        name = "resource";
+        themes = []; features = [];
+        value = Atom (Resource R_Mana, None);
+      };{
+        name = "amount";
+        themes = []; features = [];
+        value = Atom(Int 10, Some "fireball.cost")
+      }]
+    }]
+  }
+]
+
+let rec translate_builtin settings builtin = match builtin with
+  | Atom(Int i, Some setting) -> Int (settings |> StringMap.find_opt setting |> Option.value ~default:i)
+  | Atom(expr, _) -> expr 
+  | Structure entries -> StructureLiteral (
+    entries 
+    |> List.filter_map (translate_builtin_info settings)
+    |> List.map (fun (n,e) -> StructureElement(Some n, Expr(e,0))))
+
+and translate_builtin_info settings (info : _builtin_info) = 
+  if features info.features && themes info.themes 
+  then Some((info.name, translate_builtin settings info.value))
+  else None 
+
+let translate_builtins settings = 
+  _builtins ()
+  |> List.filter_map (translate_builtin_info settings)
+  |> List.map (fun (n,e) -> Const(n, Expr(e,0)))
+*)
+
+
 
 let builtins () : builtin list = [
   {
@@ -61,19 +148,19 @@ let builtins () : builtin list = [
     meta = []
   };{
     name = "map";
-    expr = StructureLiteral[
-      StructureElement(Some "width", Expr(Int Flags.compile_flags.map_width, 0));
-      StructureElement(Some "height", Expr(Int Flags.compile_flags.map_height, 0));
+    expr = structure[
+      ("width", Int Flags.compile_flags.map_width);
+      ("height", Int Flags.compile_flags.map_height);
     ];
     themes = []; features = ["meta"];
     meta = []
   };{
     name = "player";
-    expr = StructureLiteral[
-      StructureElement(Some "x", Expr(ASM(T_Int,[Instr_Meta; I(0)]), 0));
-      StructureElement(Some "y", Expr(ASM(T_Int,[Instr_Meta; I(1)]), 0));
-      StructureElement(Some "id", Expr(ASM(T_Int,[Instr_Meta; I(2)]), 0));
-      StructureElement(Some "actions", Expr(ASM(T_Int,[Instr_Meta; I(6)]), 0));
+    expr = structure[
+      ("x", ASM(T_Int,[Instr_Meta; I(0)]));
+      ("y", ASM(T_Int,[Instr_Meta; I(1)]));
+      ("id", ASM(T_Int,[Instr_Meta; I(2)]));
+      ("actions", ASM(T_Int,[Instr_Meta; I(6)]));
     ];
     themes = []; features = ["meta"];
     meta = []
@@ -132,30 +219,35 @@ let builtins () : builtin list = [
     expr = builtin_func T_Int [T_Dir] (-1);
     themes = ["military";"forestry"]; features = [];
     meta = [
-      "range", Int 6;
-      "resource", Resource R_Ammo;
+      Value ("range", Int 6, Impl);
+      Structure ("cost", [
+        Value ("resource", Resource R_Ammo, No);
+        Value ("amount", Int 1, No);
+      ])
     ]
   };{
     name = "look";
     expr = builtin_func T_Int [T_Dir;T_Field] (-2);
     themes = []; features = [];
     meta = [
-      "range", Int (-1);
+      Value ("range", Int (-1), Impl);
     ]
   };{
     name = "scan";
     expr = builtin_func T_Field [T_Dir;T_Int] (-3);
     themes = []; features = [];
     meta = [
-      "range", Int (-1);
+      Value ("range", Int (-1), Impl);
     ]
   };{
     name = "mine";
     expr = builtin_func T_Int [T_Dir] (-4);
     themes = ["military"]; features = []; 
     meta = [
-      "cost", Int 1;
-      "resource", Resource R_Explosive;
+      Structure ("cost", [
+        Value ("resource", Resource R_Explosive, No);
+        Value ("amount", Int 1, Setting "mine.cost")
+      ])
     ]
   };{
     name = "move";
@@ -172,27 +264,33 @@ let builtins () : builtin list = [
     expr = builtin_func T_Int [T_Dir;T_Int] (-7);
     themes = []; features = [];
     meta = [
-      "cost", Int 0;
-      "range", Int 1;
-      "resource", Resource R_Wood;
+      Value ("range", Int 1, Impl);
+      Structure ("cost", [
+        Value ("resource", Resource R_Wood, No);
+        Value ("amount", Int 0, Setting "trench.cost");
+      ])
     ]
   };{
     name = "fortify";
     expr = builtin_func T_Int [T_Dir;T_Int] (-8);
     themes = []; features = [];
     meta = [
-      "cost", Int 5;
-      "range", Int 1;
-      "resource", Resource R_Wood;
+      Value ("range", Int 1, Impl);
+      Structure ("cost", [
+        Value ("resource", Resource R_Wood, No);
+        Value ("amount", Int 5, Setting "fortify.cost");
+      ])
     ]
   };{
     name = "bomb";
     expr = builtin_func T_Int [T_Dir;T_Int] (-9);
     themes = ["military"]; features = [];
     meta = [
-      "range", Int 4;
-      "cost", Int 1;
-      "resource", Resource R_Explosive;
+      Value ("range", Int 4, Impl);
+      Structure ("cost", [
+        Value ("resource", Resource R_Explosive, No);
+        Value ("amount", Int 1, Setting "bomb.cost");
+      ])
     ]
   };{
     name = "write";
@@ -209,44 +307,51 @@ let builtins () : builtin list = [
     expr = builtin_func T_Int [] (-12);
     themes = ["wizardry"]; features = ["fork"];
     meta = [
-      "cost", Int 50;
-      "upkeep", Int 10;
-      "resource", Resource R_Mana;
+      Value ("upkeep", Int 10, Impl);
+      Structure ("cost", [
+        Value ("resource", Resource R_Mana, No);
+        Value ("amount", Int 50, Setting "projection.cost");
+      ])
     ]
   };{
     name = "freeze";
     expr = builtin_func T_Int [T_Dir;T_Int] (-13);
     themes = ["wizardry"]; features = [];
     meta = [
-      "cost", Int 25;
-      "duration", Int 2;
-      "range", Int 5;
-      "resource", Resource R_Mana;
+      Value ("duration", Int 2, Impl);
+      Value ("range", Int 5, Impl);
+      Structure ("cost", [
+        Value ("resource", Resource R_Mana, No);
+        Value ("amount", Int 25, Setting "freeze.cost");
+      ])
     ]
   };{
     name = "fireball";
     expr = builtin_func T_Int [T_Dir] (-14);
     themes = ["wizardry"]; features = [];
     meta = [
-      "range", Int 5;
-      "cost", Int 10;
-      "resource", Resource R_Mana;
+      Value ("range", Int 5, Impl);
+      Structure ("cost", [  
+        Value ("resource", Resource R_Mana, No);
+        Value ("amount", Int 10, Setting "fireball.cost");
+      ])
     ]
   };{
     name = "meditate";
     expr = builtin_func T_Int [] (-15);
     themes = ["wizardry"]; features = [];
     meta = [
-      "amount", Int 20;
+      Value ("amount", Int 20, Impl);
     ]
   };{
     name = "dispel";
     expr = builtin_func T_Int [T_Dir] (-16);
     themes = ["wizardry"]; features = [];
     meta = [
-      "cost", Int 5;
-      "cost_type", Resource R_Mana;
-      "resource", Resource R_Mana;
+      Structure ("cost", [  
+        Value ("resource", Resource R_Mana, No);
+        Value ("amount", Int 5, Setting "dispel.cost");
+      ])
     ]
   };{
     name = "disarm";
@@ -258,8 +363,10 @@ let builtins () : builtin list = [
     expr = builtin_func T_Int [T_Dir] (-18);
     themes = ["wizardry"]; features = [];
     meta = [
-      "cost", Int 20;
-      "resource", Resource R_Mana;
+      Structure ("cost", [  
+        Value ("resource", Resource R_Mana, No);
+        Value ("amount", Int 20, Setting "mana_drain.cost");
+      ])
     ]
   };{
     name = "pager_set";
@@ -281,31 +388,38 @@ let builtins () : builtin list = [
     expr = builtin_func T_Int [T_Dir] (-22);
     themes = []; features = [];
     meta = [
-      "cost", Int 10;
-      "resource", Resource R_Wood;
+      Structure ("cost", [  
+        Value ("resource", Resource R_Wood, No);
+        Value ("amount", Int 10, Setting "wall.cost");
+      ])
     ]
   };{
     name = "plant_tree";
     expr = builtin_func T_Int [T_Dir] (-23);
     themes = ["forestry"]; features = [];
     meta = [
-      "delay", Int 3;
-      "resource", Resource R_Sapling;
+      Value ("delay", Int 3, Impl);
+      Structure ("cost", [  
+        Value ("resource", Resource R_Sapling, No);
+        Value ("amount", Int 1, Setting "plant_tree");
+      ])
     ]
   };{
     name = "bridge";
     expr = builtin_func T_Int [T_Dir] (-24);
     themes = []; features = [];
     meta = [
-      "cost", Int 20;
-      "resource", Resource R_Wood;
+      Structure ("cost", [  
+        Value ("resource", Resource R_Wood, No);
+        Value ("amount", Int 20, Setting "bridge.cost");
+      ])
     ]
   };{
     name = "collect";
     expr = builtin_func T_Int [T_Dir;T_Int] (-25);
     themes = []; features = [];
     meta = [
-      "range", Int 1;
+      Value ("range", Int 1, Setting "collect.range");
     ]
   };{
     name = "say";
@@ -327,40 +441,49 @@ let builtins () : builtin list = [
     expr = builtin_func T_Int [T_Dir] (-29);
     themes = []; features = [];
     meta = [
-      "cost", Int 30;
-      "resource", Resource R_Wood;
-      "capacity", Int 4;
-      "wood_cap", Int 50;
-      "clay_cap", Int 50;
-      "ammo_cap", Int 100;
-      "sapling_cap", Int 20;
-      "beartrap_cap", Int 20;
-      "explosive_cap", Int 10;
-      "metal_cap", Int 10;
+      Structure ("cost", [  
+        Value ("resource", Resource R_Wood, No);
+        Value ("amount", Int 30, Setting "boat.cost");
+      ]);
+      Value ("capacity", Int 4, Impl);
+      Value ("wood_cap", Int 50, Impl);
+      Value ("clay_cap", Int 50, Impl);
+      Value ("ammo_cap", Int 100, Impl);
+      Value ("sapling_cap", Int 20, Impl);
+      Value ("beartrap_cap", Int 20, Impl);
+      Value ("explosive_cap", Int 10, Impl);
+      Value ("metal_cap", Int 10, Impl);
     ]
   };{
     name = "bear_trap";
     expr = builtin_func T_Int [T_Dir] ( -30);
     themes = ["forestry"]; features = [];
     meta = [
-      "resource", Resource R_BearTrap;
+      Structure ("cost", [  
+        Value ("resource", Resource R_BearTrap, No);
+        Value ("amount", Int 1, Setting "bear_trap.cost");
+      ])
     ]
   };{
     name = "throw_clay";
     expr = builtin_func T_Int [T_Dir;T_Int] (-31);
     themes = ["pottery"]; features = [];
     meta = [
-      "cost", Int 1;
-      "range", Int 3;
-      "resource", Resource R_Clay;
+      Value ("range", Int 3, Impl);
+      Structure ("cost", [  
+        Value ("resource", Resource R_Clay, No);
+        Value ("amount", Int 1, Setting "throw_clay.cost");
+      ])
     ]
   };{
     name = "clay_golem";
     expr = builtin_func T_Int [] (-32);
     themes = ["pottery"]; features = ["fork"];
     meta = [
-      "cost", Int 5;
-      "resource", Resource R_Clay;
+      Structure ("cost", [  
+        Value ("resource", Resource R_Clay, No);
+        Value ("amount", Int 5, Setting "clay_golem.cost");
+      ])
     ]
   };{
     name = "drop";
@@ -377,16 +500,18 @@ let builtins () : builtin list = [
     expr = builtin_func T_Int [T_Dir] (-35);
     themes = []; features = [];
     meta = [
-      "cost", Int 10;
-      "resource", Resource R_Wood;
+      Structure ("cost", [
+        Value ("resource", Resource R_Wood, No);
+        Value ("amount", Int 10, Setting "mine_shaft.cost");
+      ])
     ]
   };{
     name = "craft";
     expr = builtin_func T_Int [T_Resource] (-36);
     themes = []; features = [];
     meta = [
-      "ammo_per_metal", Int 3;
-      "beartraps_per_metal", Int 1;
+      Value ("ammo_per_metal", Int 3, Impl);
+      Value ("beartraps_per_metal", Int 1, Impl);
     ]
   };{
     name = "count";
@@ -408,18 +533,22 @@ let builtins () : builtin list = [
     expr = builtin_func T_Int [T_Dir] (-40);
     themes = ["wizardry"]; features = [];
     meta = [
-      "cost", Int 20;
-      "range", Int 2;
-      "resource", Resource R_Mana;
+      Value ("range", Int 2, Impl);
+      Structure ("cost", [  
+        Value ("resource", Resource R_Mana, No);
+        Value ("amount", Int 20, Setting "obliviate.cost");
+      ])
     ]
   };{
     name = "blink";
     expr = builtin_func T_Int [] (-41);
     themes = []; features = [];
     meta = [
-      "cost", Int 10;
-      "duration", Int 2;
-      "resource", Resource R_Mana;
+      Value ("duration", Int 2, Impl);
+      Structure ("cost", [  
+        Value ("resource", Resource R_Mana, No);
+        Value ("amount", Int 10, Setting "blink.cost");
+      ]) 
     ]
   };{
     name = "search";
@@ -431,20 +560,10 @@ let builtins () : builtin list = [
 
 let generate_meta_builtin map bs : builtin =
   let entries = List.filter_map (fun b -> if List.is_empty b.meta then None else Some(b.name, b.meta)) bs in
-  let value n d : expr = Int (map |> StringMap.find_opt n |> Option.value ~default:d) in
-  let elem n e = StructureElement (Some n, Expr(e, 0)) in
-  let expr = StructureLiteral(List.map (fun (name, props) -> 
-    (
-      elem name (StructureLiteral(List.map (fun (prop, default) -> match default with
-        | Int i -> elem prop (value (name^"."^prop) i)
-        | _ -> elem prop default
-      ) props)) 
-    )
-  ) entries)
-  in
+  let translated = List.map (fun (n, metas) -> (n, List.map (translate_meta map n) metas)) entries in
   {
     name = "meta";
-    expr = expr;
+    expr = StructureLiteral(List.map (fun (name,metas) -> StructureElement(Some name, Expr(StructureLiteral(List.map (fun (entry,expr) -> StructureElement(Some entry, Expr(expr,0))) metas),0))) translated);
     features = ["meta"];
     themes = [];
     meta = [];
