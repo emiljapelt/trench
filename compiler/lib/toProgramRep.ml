@@ -580,42 +580,56 @@ and compile_stmts state stmts =
   in
   aux stmts state []
 
-and compile_stmt (Stmt(stmt,ln)) state : (compile_state * instruction list)  =
+and compile_stmt (Stmt(stmt,ln)) state : (compile_state * instruction list) =
+  let reduce_compile = reduce_expression state >> compile_expr state in
   try match stmt with
   | If (c, a, b) -> (
     new_label_context () ;
-    let (c_typ, c_instrs) = c |> reduce_expression state |> compile_expr state in
+    let (c_typ, c_instrs) = reduce_compile c in
     let (_, a_instrs) = compile_stmt a state in
     let (_, b_instrs) = compile_stmt b state in
     match c_typ with
     | T_Int -> (state, c_instrs @ [Instr_GoToIf ; label_ref "if_true"] @ b_instrs @ [Instr_GoTo ; label_ref "if_stop" ; label "if_true"] @ a_instrs @ [label "if_stop"])
     | _ -> raise_failure "Condition must be of type 'int'"
   )
-  | IfIs(_) -> raise_failure "IfIs not implemented"(*
-    let label_end = Helpers.new_label "ifis_end" in
-    let (c_typ, c_instrs) = compile_expr state c in
-
-    let rec comp_alts alts next acc = match alts with
-      | [] -> acc
-      | (alt_v,alt_s)::t -> Instr_Copy :: compile_expr alt_v state (Instr_Eq :: Instr_Not :: Instr_GoToIf :: LabelRef(next) :: compile_stmt alt_s state (Instr_GoTo :: LabelRef(label_end) :: Label(next) :: (comp_alts t (Helpers.new_label "ifis_alt") acc)))
+  | IfIs(c,cases,else_opt) -> (
+    new_label_context () ;
+    let (c_typ, c_instrs) = reduce_compile c in
+    if (type_size c_typ != 1) then raise_failure ("Type cannot be used in if-is statements: " ^ type_string c_typ) else
+    let compile_comparison expr = 
+      let (typ, instrs) = reduce_compile expr in
+      if not(can_assign c_typ typ) then raise_failure ("All cases must match condition type: "^type_string c_typ) else
+      [Instr_Copy] @ instrs @ [Instr_Eq ; Instr_Swap]
     in
-    match opt with
-    | None -> compile_expr v state (comp_alts alts (Helpers.new_label "ifis_alt") (Label(label_end) :: acc))
-    | Some other -> compile_expr v state (comp_alts alts (Helpers.new_label "ifis_alt") (Instr_MoveSP :: I(-1) :: compile_stmt other state (Label(label_end) :: acc)))
-  *)
+    let compile_case exprs = 
+      [Instr_Copy] @ (exprs |> List.map compile_comparison |> List.flatten) @ [Instr_MoveSP ; I(-1)] @ (List.init (List.length exprs - 1) (return Instr_Or))
+    in
+    let case_label l = label_name("ifis_case_" ^ string_of_int (List.length l)) in
+    let rec compile cases next acc = match cases with
+      | [] -> acc
+      | (exprs, stmt)::t -> 
+        let (_, instrs) = compile_stmt stmt state in
+        Instr_Copy :: compile_case exprs @ [Instr_Not ; Instr_GoToIf ; LabelRef next ; Instr_MoveSP ; I(-1)] @ instrs @ [Instr_GoTo ; label_ref "ifis_end" ; Label next] @ compile t (case_label t) acc
+    in
+    let else_instrs = else_opt |> Option.fold 
+      ~none: []
+      ~some:(fun else_stmt -> compile_stmt else_stmt state |> snd)
+    in
+    (state, c_instrs @ compile cases (case_label cases) [Instr_MoveSP ; I(-1)] @ else_instrs @ [label "ifis_end"])
+  )
   | Block stmts -> (
     let (state', instrs) = compile_stmts state stmts in
     ({state with size = state.size + state'.size}, instrs)
   )
   | While(c,s,None) -> 
     new_label_context () ;
-    let (c_typ, c_instrs) = c |> reduce_expression state |> compile_expr state in
+    let (c_typ, c_instrs) = reduce_compile c in
     if c_typ != T_Int then raise_failure "Conditon must be of type 'int'" else
     let (_, s_instrs) = compile_stmt s {state with break = Some(label_name "while_stop"); continue = Some(label_name "while_cond") } in
     (state, [Instr_GoTo ; label_ref "while_cond" ; label "while_start"] @ s_instrs @ [label "while_cond"] @ c_instrs @ [Instr_GoToIf ; label_ref "while_start" ; label "while_stop"])
   | While(c,s,Some si) ->
     new_label_context () ; 
-    let (c_typ, c_instrs) = c |> reduce_expression state |> compile_expr state in
+    let (c_typ, c_instrs) = reduce_compile c in
     if c_typ != T_Int then raise_failure "Conditon must be of type 'int'" else
     let (_, si_instrs) = compile_stmt si state in
     let (_, s_instrs) = compile_stmt s {state with break = Some(label_name "while_stop"); continue = Some(label_name "while_iter") } in
@@ -632,7 +646,7 @@ and compile_stmt (Stmt(stmt,ln)) state : (compile_state * instruction list)  =
     match find_expr_location target state with
     | ComputeStack _ -> raise_failure "Not an assignable target"
     | StorageStack loc -> 
-      let (expr_typ, expr_instrs) = expr |> reduce_expression state |> compile_expr state in
+      let (expr_typ, expr_instrs) = reduce_compile expr in
       if can_assign loc.typ expr_typ then
         (state, expr_instrs @ adjust_value loc.typ expr_typ @ loc.instrs @ [loc.store ; I(type_size loc.typ)])
       else 
@@ -643,7 +657,7 @@ and compile_stmt (Stmt(stmt,ln)) state : (compile_state * instruction list)  =
     ({state with scopes = { local = Var(typ,name)::state.scopes.local; global = state.scopes.global }; size = state.size + type_size typ }, [])
   | DeclareAssign (typ_opt, name, expr) -> (match typ_opt with
     | None -> (
-      let (typ, expr_instrs) = expr |> reduce_expression state |> compile_expr state in
+      let (typ, expr_instrs) = reduce_compile expr in
       if not(can_declare typ) then  raise_failure ("Cannot declare a variable of type '"^type_string typ^"'")
       else let state' = {state with scopes = { local = Var(typ,name)::state.scopes.local; global = state.scopes.global }; size = state.size + type_size typ} in 
       match find_identifier_location name state' with
@@ -652,7 +666,7 @@ and compile_stmt (Stmt(stmt,ln)) state : (compile_state * instruction list)  =
     )
     | Some typ -> (
       let typ = eval_type_expr state typ in
-      let (expr_typ, expr_instrs) = expr |> reduce_expression state |> compile_expr state in
+      let (expr_typ, expr_instrs) = reduce_compile expr in
       if not(can_assign typ expr_typ) then raise_failure ("Cannot assign a value of type '" ^type_string expr_typ^ "' to a variable of type '" ^type_string typ^ "'") else
       let state' = {state with scopes = { local = Var(typ,name)::state.scopes.local; global = state.scopes.global }; size = state.size + type_size typ} in 
       match find_identifier_location name state' with
@@ -673,7 +687,7 @@ and compile_stmt (Stmt(stmt,ln)) state : (compile_state * instruction list)  =
     then (state, [Instr_GoTo ; LabelRef n])
     else raise_failure ("Unavailable label: "^n)
   | Return expr -> (
-    let (expr_typ, expr_instrs) = expr |> reduce_expression state |> compile_expr state in
+    let (expr_typ, expr_instrs) = reduce_compile expr in
     match state.ret_type with
     | Some typ when can_assign typ expr_typ -> 
       (state, expr_instrs @ adjust_value typ expr_typ @ [Instr_Return ; I(type_size typ)])
@@ -701,7 +715,7 @@ and compile_stmt (Stmt(stmt,ln)) state : (compile_state * instruction list)  =
     | _ -> raise_failure "Not supported"
   )
   | ExprStmt expr -> 
-    let (typ, instrs) = expr |> reduce_expression state |> compile_expr state in
+    let (typ, instrs) = reduce_compile expr in
     (state, instrs @ [Instr_MoveSP ; I(-(type_size typ))])
   with 
   | Failure(p,None,msg) -> raise (Failure(p,Some ln, msg))

@@ -20,13 +20,13 @@ let uncurry f (a,b) = f a b
 let (<<) f g x = f(g(x))
 let (>>) g f x = f(g(x))
 
-let rename n =
+(*let rename n =
   let number = ng.next in
   let () = ng.next <- ng.next+1 in
   n ^ "_" ^ Int.to_string number
 
 let reset_rename_generator () = 
-  ng.next <- 0
+  ng.next <- 0*)
 
 (* Labels *)
 let lg = ( {next = 0;} )

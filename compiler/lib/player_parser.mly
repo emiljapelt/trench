@@ -222,7 +222,7 @@ stmt1_inner:
 ;
 
 alt:
-  | IS simple_expression stmt1   { ($2,$3) }
+  | IS seperated(COMMA, simple_expression) COLON stmt1   { ($2,$4) }
 ;
 
 non_control_flow_stmt:

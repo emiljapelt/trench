@@ -86,10 +86,10 @@ and  statement =
     | Stmt of stmt * int
 
 and stmt =
-    | If of  expression *  statement *  statement
-    | IfIs of  expression * ( expression *  statement) list *  statement option
+    | If of  expression * statement * statement
+    | IfIs of  expression * (expression list * statement) list * statement option
     | Block of  statement list
-    | While of  expression *  statement *  statement option
+    | While of  expression * statement * statement option
     | Continue
     | Break
     | Assign of  expression *  expression
