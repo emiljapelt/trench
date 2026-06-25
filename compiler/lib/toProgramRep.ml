@@ -714,7 +714,7 @@ and compile_stmt (Stmt(stmt,ln)) state : (compile_state * instruction list) =
       let state' = {state with break = Some _stop; continue = Some _start } in
       let (_, instrs) = compile_stmt stmt state' in
       (state, Label _start :: instrs @ [Instr_GoTo ; LabelRef _start ; Label _stop])
-    | Some Expr(Int i, ln) -> 
+    | Some Expr(Int i, _) -> 
       let _stop = label "stop" in
       let continues = List.init i (fun i -> label (string_of_int i)) in
       let instrs = List.map (fun cont -> 

@@ -31,13 +31,6 @@
   | _ when s.[1] = '\\' -> raise (Failure (Some((Lexing.lexeme_start_p lexbuf).pos_fname), Some((Lexing.lexeme_start_p lexbuf).pos_lnum), ("Unknown escape character: " ^ s)))
   | _ -> s.[1]
 
-  let incr_linenum lexbuf = 
-    let pos = lexbuf.Lexing.lex_curr_p in
-    lexbuf.Lexing.lex_curr_p <- { pos with
-      Lexing.pos_lnum = pos.Lexing.pos_lnum + 1;
-      Lexing.pos_bol = pos.Lexing.pos_cnum;
-    }
-
   let set_filename filename lexbuf =
     let pos = lexbuf.Lexing.lex_curr_p in
     lexbuf.Lexing.lex_curr_p <- { pos with
@@ -47,8 +40,8 @@
 
 rule lex = parse
         [' ' '\t']               { lex lexbuf }
-    |   ('\r''\n' | '\n')        { incr_linenum lexbuf ; lex lexbuf }
-    |   "//" [^ '\n' '\r']* ('\r''\n' | '\n' | eof)       { incr_linenum lexbuf ; lex lexbuf }
+    |   ('\r''\n' | '\n')        { Lexing.new_line lexbuf ; lex lexbuf }
+    |   "//" [^ '\n' '\r']* ('\r''\n' | '\n' | eof)       { Lexing.new_line lexbuf ; lex lexbuf }
     |   "/*"  { comment lexbuf ; lex lexbuf }
     |   ['0'-'9']+ as lxm { CSTINT (int_of_string lxm) }
     |   '#' ['A'-'Z' 'a'-'z' ''' '_'] ['A'-'Z' 'a'-'z' '0'-'9' '_'] * as id { RESOURCE_NAME (String.sub id 1 (String.length id - 1)) }
@@ -105,6 +98,6 @@ and start filename = parse
 and comment = parse
   | "/*"    { comment lexbuf; comment lexbuf }
   | "*/"    { () }
-  |   ('\r''\n' | '\n')        { incr_linenum lexbuf ; comment lexbuf }
+  |   ('\r''\n' | '\n')        { Lexing.new_line lexbuf ; comment lexbuf }
   | (eof | '\026')   { raise (Failure(Some((Lexing.lexeme_start_p lexbuf).pos_fname), Some((Lexing.lexeme_start_p lexbuf).pos_lnum), ("Unterminated comment"))) }
   | _ { comment lexbuf }

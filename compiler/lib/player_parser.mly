@@ -127,6 +127,8 @@ struct_element:
   | DOTDOT expression       { SpreadElement $2 }
 ;
 
+
+/* Position is based on the first char, so in parentheses the first parentheses determins the expressions position... Creating bad errors*/
 expression:
   | expr { Expr($1,$symbolstartpos.pos_lnum) }
 ;
