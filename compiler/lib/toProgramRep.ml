@@ -7,6 +7,12 @@ open Resources
 open Helpers
 open Flags
 
+
+
+let raise_failure_on ln msg = raise (Failure (None, Some ln, msg))
+let raise_expr_failure (Expr(_,ln)) msg = raise (Failure (None, Some ln, msg))
+
+
 (*** Compiling functions ***)
 
 
@@ -258,7 +264,7 @@ let rec compile_expr (state:compile_state) (Expr(expr, ln) as expression) : (typ
   | Field f -> (T_Field, [Instr_Place ; I(field_value f)])
   | Resource r -> (T_Resource, [Instr_Place ; I(resource_value r)])
   | Random -> (T_Int, [Instr_Random])
-  | RandomAccess expr -> (match compile_expr state expr with
+  | RandomAccess expr -> (match compile_expr state expr with (*Unused*)
     | (T_Array(typ, size), instrs) -> 
       let elem_size = type_size typ in
       (typ, instrs @ [Instr_Place ; I(size) ; Instr_Random ; Instr_Mod ; Instr_Place; I(elem_size) ; Instr_Mul ; Instr_Extract ; I(size * elem_size) ; I(elem_size) ])
@@ -593,10 +599,10 @@ and compile_stmt (Stmt(stmt,ln)) state : (compile_state * instruction list) =
     let _stop = label "stop" in
     let case_labels = List.init (List.length cases) string_of_int in
     let (c_typ, c_instrs) = reduce_compile c in
-    if (type_size c_typ != 1) then raise_failure ("Type cannot be used in if-is statements: " ^ type_string c_typ) else
+    if (type_size c_typ != 1) then raise_expr_failure c ("Type cannot be used in if-is statements: " ^ type_string c_typ) else
     let compile_comparison expr = 
       let (typ, instrs) = reduce_compile expr in
-      if not(can_assign c_typ typ) then raise_failure ("All cases must match condition type: "^type_string c_typ) else
+      if not(can_assign c_typ typ) then raise_expr_failure expr ("All cases must match condition type: "^type_string c_typ) else
       [Instr_Copy] @ instrs @ [Instr_Eq ; Instr_Swap]
     in
     let compile_case exprs = 
@@ -624,7 +630,7 @@ and compile_stmt (Stmt(stmt,ln)) state : (compile_state * instruction list) =
     let _start = label "start" in
     let _stop = label "stop" in
     let (c_typ, c_instrs) = reduce_compile c in
-    if c_typ != T_Int then raise_failure "Conditon must be of type 'int'" else
+    if c_typ != T_Int then raise_expr_failure c "Conditon must be of type 'int'" else
     let (_, s_instrs) = compile_stmt s {state with break = Some(_stop); continue = Some(_cond) } in
     (state, [Instr_GoTo ; LabelRef _cond ; Label _start] @ s_instrs @ [Label _cond] @ c_instrs @ [Instr_GoToIf ; LabelRef _start ; Label _stop])
   | While(c,s,Some si) ->
@@ -634,7 +640,7 @@ and compile_stmt (Stmt(stmt,ln)) state : (compile_state * instruction list) =
     let _iter = label "iter" in
     let _stop = label "stop" in
     let (c_typ, c_instrs) = reduce_compile c in
-    if c_typ != T_Int then raise_failure "Conditon must be of type 'int'" else
+    if c_typ != T_Int then raise_expr_failure c "Conditon must be of type 'int'" else
     let (_, si_instrs) = compile_stmt si state in
     let (_, s_instrs) = compile_stmt s {state with break = Some(_stop); continue = Some(_iter) } in
     (state, [Instr_GoTo ; LabelRef _cond ; Label _start] @ s_instrs @ [Label _iter] @ si_instrs @ [Label _cond] @ c_instrs @ [Instr_GoToIf ; LabelRef _start ; Label _stop])
@@ -662,7 +668,7 @@ and compile_stmt (Stmt(stmt,ln)) state : (compile_state * instruction list) =
   | DeclareAssign (typ_opt, name, expr) -> (match typ_opt with
     | None -> (
       let (typ, expr_instrs) = reduce_compile expr in
-      if not(can_declare typ) then  raise_failure ("Cannot declare a variable of type '"^type_string typ^"'")
+      if not(can_declare typ) then raise_failure ("Cannot declare a variable of type '"^type_string typ^"'")
       else let state' = {state with scopes = { local = Var(typ,name)::state.scopes.local; global = state.scopes.global }; size = state.size + type_size typ} in 
       match find_identifier_location name state' with
       | Some StorageStack loc -> (state', expr_instrs @ loc.instrs @ [loc.store ; I(type_size loc.typ)])
@@ -680,7 +686,7 @@ and compile_stmt (Stmt(stmt,ln)) state : (compile_state * instruction list) =
   )
   | DeclareConst(name, expr) -> 
     let expr = reduce_expression state expr in
-    if not(is_constant state expr) then raise_failure "Could not reduce to a constant" else
+    if not(is_constant state expr) then raise_expr_failure expr "Could not reduce to a constant" else
     ({state with scopes = { local = Const(name,expr)::state.scopes.local; global = state.scopes.global } }, [])
   | DeclareType(typ, name) ->
     let typ = eval_type_expr state typ in
@@ -708,7 +714,7 @@ and compile_stmt (Stmt(stmt,ln)) state : (compile_state * instruction list) =
       let state' = {state with break = Some _stop; continue = Some _start } in
       let (_, instrs) = compile_stmt stmt state' in
       (state, Label _start :: instrs @ [Instr_GoTo ; LabelRef _start ; Label _stop])
-    | Some Expr(Int i, _) -> 
+    | Some Expr(Int i, ln) -> 
       let _stop = label "stop" in
       let continues = List.init i (fun i -> label (string_of_int i)) in
       let instrs = List.map (fun cont -> 
@@ -716,7 +722,7 @@ and compile_stmt (Stmt(stmt,ln)) state : (compile_state * instruction list) =
         instrs @ [Label cont]
       ) continues in
       (state, List.flatten instrs @ [Label _stop])
-    | _ -> raise_failure "Not supported"
+    | Some expr -> raise_expr_failure expr "Expression cannot be used as condition for a repeat statement"
   )
   | ExprStmt expr -> 
     let (typ, instrs) = reduce_compile expr in
