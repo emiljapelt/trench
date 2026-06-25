@@ -20,21 +20,21 @@ let uncurry f (a,b) = f a b
 let (<<) f g x = f(g(x))
 let (>>) g f x = f(g(x))
 
-(*let rename n =
-  let number = ng.next in
-  let () = ng.next <- ng.next+1 in
-  n ^ "_" ^ Int.to_string number
-
-let reset_rename_generator () = 
-  ng.next <- 0*)
 
 (* Labels *)
-let lg = ( {next = 0;} )
+type label_context = {
+  mutable next: int;
+  mutable name: string;
+}
 
-let label_context () = lg.next
+let lg = ( {next = 0; name = ""} )
 
-let new_label_context () =
-  lg.next <- lg.next+1
+let label_context () = string_of_int lg.next ^ "_" ^ lg.name
+
+let new_label_context name =
+  lg.next <- lg.next+1 ; lg.name <- name
+
+let label name = label_context () ^ "_" ^ name
 
 
 (* Lookup *)

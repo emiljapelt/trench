@@ -185,6 +185,8 @@ type compile_state = {
     size: int
 }
 
+let get_expr (Expr(expr,_)) = expr
+
 let string_of_dir d = match d with
     | North -> "0"
     | East -> "1"
