@@ -39,8 +39,9 @@ Many of the builtin identifiers, especially the functions, have properties which
 - How much does it cost the use this function?
 - Which resource will be used?
 - How far can a fireball travel?
+- How much wood can I carry?
 
-This kind of information is gathered in the meta structure, if the `meta` feature is active, and the themes and features of the particular builtin are also active (You cannot lookup what it costs to cast a fireball, if the fireball functions does not exist).
+This kind of information is gathered in the meta structure, if the `meta` feature is active, and the relevant themes and features are also active, i.e. you cannot lookup what it costs to cast a fireball, if the fireball function does not exist. The structure also has a `resource` entry, containing infomation abount how much of any resource a player can carry. `meta.resource.wood` is the amount of wood a player may carry.
 
 Which informations that are available for a particular builtin, is explained where the builtin itself is explained.
 

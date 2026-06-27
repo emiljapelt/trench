@@ -116,7 +116,10 @@ let to_game_setup game_file_dir gsps =
     | [] -> (GS acc)
     | h::t -> aux t (match h with
       | Team t -> (GS ({acc with teams = (fix_team_paths game_file_dir t) :: acc.teams}))
-      | Resources rs -> (GS ({acc with resources = List.fold_left (fun acc (name, value) -> ResourceMap.add (string_to_resource name) value acc) acc.resources rs}))
+      | Resources rs -> 
+        let map = List.fold_left (fun acc (name, value) -> ResourceMap.add (string_to_resource name) value acc) acc.resources rs in
+        Flags.set_resources map ;
+        (GS ({acc with resources = map}))
       | Actions i -> if i > 0 then (GS ({acc with actions = i})) else raise_failure "Must have some actions per turn"
       | Steps i -> if i > 0 then (GS ({acc with steps = i})) else raise_failure "Must have some steps per turn"
       | Mode i -> (GS ({acc with mode = i}))
@@ -208,10 +211,6 @@ let compile_player_file path size_limit = try (
 let game_setup_player (PI player) = 
   if (List.length player.files < 1) then raise_failure ("Player with no files: " ^ player.name)
   else
-  (* simpler checking??? Just type checking??? *)
-  (*let check_files = List.fold_left (fun acc file -> if (file = "_") then Ok([||])::acc else compile_player_file file :: acc) [] player.files in 
-  let failure = List.find_opt Result.is_error check_files in 
-  if Option.is_some failure then raise_failure (failure |> Option.get |> Result.get_error) else*)
   {
     team = player.team;
     name = player.name;

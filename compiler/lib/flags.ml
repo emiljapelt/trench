@@ -1,5 +1,6 @@
-
+open Resources
 open Helpers
+
 
 type flag_record = {
   mutable features : StringSet.t;
@@ -8,6 +9,7 @@ type flag_record = {
   mutable map_width : int;
   mutable map_height : int;
   mutable settings : int StringMap.t;
+  mutable resources : (int * int) ResourceMap.t;
 }
 
 let compile_flags : flag_record = {
@@ -17,6 +19,7 @@ let compile_flags : flag_record = {
   map_width = -1;
   map_height = -1;
   settings = StringMap.empty;
+  resources = ResourceMap.empty;
 } 
 
 let set_themes ts = compile_flags.themes <- ts ; ()
@@ -31,3 +34,5 @@ let set_map_size (w, h) =
   ()
 
 let set_settings s = compile_flags.settings <- s ; ()
+
+let set_resources s = compile_flags.resources <- s ; ()

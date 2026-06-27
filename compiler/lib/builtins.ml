@@ -1,4 +1,5 @@
 open Absyn
+open Resources
 open ProgramRep
 open Flags
 open Helpers
@@ -31,7 +32,8 @@ and meta =
   | Value of string * expr * value_link
   | Structure of string * meta list
 
-let rec translate_meta settings loc meta = 
+let rec translate_meta loc meta = 
+  let settings = Flags.compile_flags.settings in
   let value s i = Int (settings |> StringMap.find_opt s |> Option.value ~default:i) in
   match meta with
   | Value(n,Int i,Impl) -> (n, value (loc^"."^n) i)
@@ -39,7 +41,7 @@ let rec translate_meta settings loc meta =
   | Value(n,e,_) -> (n,e)
   | Structure(n, entries) -> (n, StructureLiteral(
     entries 
-    |> List.map (translate_meta settings (loc^"."^n))
+    |> List.map (translate_meta (loc^"."^n))
     |> List.map (fun (n,e) -> StructureElement(Some n, Expr(e,0)))
   ))
 
@@ -558,12 +560,18 @@ let builtins () : builtin list = [
   };
 ]
 
-let generate_meta_builtin map bs : builtin =
+let generate_resource_meta () =
+  let resources = Flags.compile_flags.resources |> ResourceMap.to_list in
+  StructureLiteral (List.map (fun (r, (_, m)) -> StructureElement(Some (resource_to_string r), Expr(Int m,0))) resources)
+
+let generate_meta_builtin bs : builtin =
   let entries = List.filter_map (fun b -> if List.is_empty b.meta then None else Some(b.name, b.meta)) bs in
-  let translated = List.map (fun (n, metas) -> (n, List.map (translate_meta map n) metas)) entries in
+  let translated = List.map (fun (n, metas) -> (n, List.map (translate_meta n) metas)) entries in
+  let elements = List.map (fun (name,metas) -> StructureElement(Some name, Expr(StructureLiteral(List.map (fun (entry,expr) -> StructureElement(Some entry, Expr(expr,0))) metas),0))) translated in
+  let resource_element = StructureElement(Some "resource", Expr(generate_resource_meta (), 0)) in
   {
     name = "meta";
-    expr = StructureLiteral(List.map (fun (name,metas) -> StructureElement(Some name, Expr(StructureLiteral(List.map (fun (entry,expr) -> StructureElement(Some entry, Expr(expr,0))) metas),0))) translated);
+    expr = StructureLiteral(resource_element :: elements);
     features = ["meta"];
     themes = [];
     meta = [];
@@ -578,7 +586,7 @@ let builtin_types = [
   
 let generate_initial_scope () : identifier list =
   let builtins = builtins () in
-  let meta = generate_meta_builtin Flags.compile_flags.settings builtins in
+  let meta = generate_meta_builtin builtins in
   let builtins = (meta :: builtins) 
     |> List.filter (fun b -> themes b.themes && features b.features) in
   List.map (fun b -> Const(b.name, Expr(b.expr,0))) builtins @ builtin_types

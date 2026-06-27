@@ -10,20 +10,25 @@ Some language constructs require some game settings to be enabled, called featur
 
 ## Comments
 
-Comments start with `//` and end at the end of the same line.
+Comments start with `//` and end at the end of the same line, or `/*` `*/` for multiline comments.
 
 Examples:
 ```
 // This entire line is a comment
 
 let x : int = 2;  // There can be actual code before a comment
+
+/*
+That is ...
+nice
+*/
 ```
 
 ## Types
 
 ### int
 
-Whole numbers including negatives, represented using 32 bits. Only base-10 is currently supported.
+Whole numbers, represented using 32 bits. Only base-10 is currently supported.
 
 This type is also used for as the boolean value, where positive values are *true*, and other values are *false*.
 
@@ -42,14 +47,6 @@ Examples:
 ### dir
 
 The 4 cardinal directions, N, S, E and W.
-
-Examples:
-```
-N
-S
-E
-W
-```
 
 ### field
 
@@ -86,7 +83,7 @@ Values of this type can be used with the following operators.
 | Operator | Result | Type |
 | --- | --- | --- |
 | *a* + *b* | The union of the properties of the operands | field |
-| *a* - *b* | The properties of the left hand operand, except the properties of the right hand operand | field |
+| *a* - *b* | The properties of the left hand operand, except for the properties of the right hand operand | field |
 | *a* == *b* | 1 if the operands are entirely equal, otherwise 0 | int |
 | *a* != *b* | 1 if the operands are at all different, otherwise 0 | int |
 | *a* is *b* | 1 if the left hand operand has atleast all the properties of the right hand operand, otherwise 0 | int |
@@ -97,7 +94,7 @@ Values of this type can be used with the following operators.
 
 ### resource
 
-The `resource` type describes the different resources that a player can have, such as wood and bullets. The syntax is a hashtag followed by the name of the resource, e.g. `#wood` or `#explosive`. Players can use the builtin [count](./builtins.md#count) to get their current amount a resource.
+The `resource` type describes the different resources that a player can have, such as wood and ammunition. The syntax is a hashtag followed by the name of the resource, e.g. `#wood` or `#explosive`. Players can use the builtin [count](./builtins.md#count) to get their current amount of a resource.
 
 The available properties are:
 
@@ -126,7 +123,7 @@ my_array = [1,2];
 say(my_array[0]);
 ```
 
-If the setting `auto_resize` is set to `true`, the compiler will automatically resize arrays, altough not recursivly. The the array is to small it will be padded with default values, and if it is to long the end will be cut of. 
+If the setting `auto_resize` is set to `true`, the compiler will automatically resize arrays, altough not recursivly. If the array is to small it will be padded with default values, and if it is to long the end will be cut of. 
 
 To manually resize, range access can be utilized.
 
@@ -134,7 +131,7 @@ To manually resize, range access can be utilized.
 | --- | --- |
 | a[n..] | `n` must be a constant. Take from `n` to the end of the array |
 | a[..n] | `n` must be a constant. Take from the start of the array, until `n` |
-| a[m..n] | `n` must be a constant. Take `m` elements, starting from `n` |
+| a[n..m] | `m` must be a constant. Take `m` elements, starting from `n` |
 
 ### tuple
 
@@ -166,7 +163,7 @@ and a function is specified as such:
 
 ```\type:(name: type , ...) { ... }```
 
-The first type is the return type, all functions must have one. Inside the parentheses are the function parameters, which there may be zero or more of, and finally the function body.
+The first type is the return type, all functions have one. Inside the parentheses are the function parameters, which there may be zero or more of, and finally the function body.
 
 Examples:
 
@@ -175,7 +172,7 @@ let add : int(int,int) = \int:(a: int, b: int) {
     return a + b;
 };
 
-let move = \int:(d: dir) {
+let move = \(d: dir) {
     if (!look(d, @trapped) = 1) move(d);
 };
 
@@ -275,16 +272,6 @@ say x;         // -> 2
 Evaluates to a random non-negative integer.
 
 ---
-### Random from set
-**type:** *any*
-
-**syntax:** `?[a ... z]`
-
-**features:** random
-
-Evaluates to one of the given values. All values must have the same type, which will also the the resulting type.
-
----
 ### Unary operation
 
 *op* *value*
@@ -358,7 +345,7 @@ i++;
 ### Label
 **syntax:** *name*`:`
 
-A label gives a particular point in the program a name. It can be used to jump to that point during execution. The names follow the same syntax as variables, but must be unique.
+A label gives a particular point in the program a name. It can be used to jump to that point during execution. These must be unique.
 
 ---
 
@@ -374,7 +361,7 @@ Continues execution of the program at the *name* label.
 
 **features:** memory
 
-Declares a variable or constant of the given type and name, assigning the resulting value of evaluating the expression, if one is given.
+Declares a variable or constant of the given type and name, assigning the resulting value of evaluating the expression, if one is given. Multiple identifers of the same name can be declared, but only the most recent can be accessed.
 
 ---
 
@@ -382,12 +369,12 @@ Declares a variable or constant of the given type and name, assigning the result
 
 **syntax:** `type` *name* `=` *type* `;`
 
-Declares a type alias;
+Declares a type alias. Multiple aliases of the same name can be declared, but only the most recent can be accessed.
 
 ---
 
 ### Assignment
-**syntax:** *name* `=` *expr* `;`
+**syntax:** *target* `=` *expr* `;`
 
 **features:** memory, sugar*
 
@@ -399,7 +386,6 @@ Assigns the resulting value of evaluating the expression, to the variable of the
 **features:** control
 
 ```
-
 if (look(N, @ocean) > 10)
     give_up();
 
@@ -407,22 +393,27 @@ if (#mana == 0) meditate();
 else fireball(d);
 ```
 
-### If-Is
+### If-Is-Else
 **features:** control, sugar
+
+The condition is evaluated once, and the first case, from the top, which contains a value equal to the condition, is executed. If nothing matched and an `else` is defined, the `else`-statement is executed.
+
+The condition can be of any type, for which the `==` operator is defined, i.e. anything but structures.
+
 
 ```
 if (x) 
-    is 1 move(N);
-    is y move(S);
-    is (2 * y) move(E);
+    is 1, 2: move(N);
+    is y: move(S);
+    is (2 * y): move(E);
 else
     say(0);
 ```
 
 ### Repeat
-**syntax:** `repeat` *x* *stmt*
+**syntax:** `repeat` *x* *stmt* | `repeat` *stmt*
 
-Where *x* is a constant integer. Compiles the given statement *x* times 
+If *x* is given, it must be a constant `int`, and the statement will be compiled *x* times. Otherwise an infinite loop is created.
 
 ```
 repeat 5 move(N);
@@ -431,6 +422,8 @@ repeat 3 {
     move(N);
     trench();
 }
+
+repeat say(1234);
 ```
 
 ---

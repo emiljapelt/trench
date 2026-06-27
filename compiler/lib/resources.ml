@@ -21,6 +21,16 @@ let string_to_resource s = match s with
   | "metal" -> R_Metal
   | _ -> raise_failure ("Unknown resource: " ^ s)
 
+let resource_to_string s = match s with
+  | R_Explosive -> "explosive"
+  | R_Ammo -> "ammo"
+  | R_Mana -> "mana"
+  | R_Sapling -> "sapling"
+  | R_Clay -> "clay"
+  | R_Wood -> "wood"
+  | R_BearTrap -> "bear_trap"
+  | R_Metal -> "metal"
+
 let resource_value r = match r with
   | R_Explosive -> 0
   | R_Ammo -> 1
