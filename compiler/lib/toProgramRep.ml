@@ -356,7 +356,7 @@ let rec compile_expr (state:compile_state) (Expr(expr, ln) as expression) : (typ
       let (ret,args,body) = f.data in
       new_label_context "func" ;
       let _start = label "start" in
-      let _step = label "stop" in
+      let _stop = label "stop" in
       let ret = eval_type_expr state ret in
       let args = List.map (fun (t,n) -> (eval_type_expr state t, n)) args in
       let typ = T_Func(ret, List.map fst args) in
@@ -377,7 +377,7 @@ let rec compile_expr (state:compile_state) (Expr(expr, ln) as expression) : (typ
         size = 0;
       } in
       let (state', body) = compile_stmt body {new_state with scopes = ({ local = new_state.scopes.local; global = new_state.scopes.global })} in
-      (typ, [Instr_GoTo ; LabelRef _step ; Label _start ; Instr_Declare ; I(state'.size)] @ body @ [Instr_Declare ; I(type_size ret) ; Instr_Return ; I(type_size ret) ; Label _step ; Instr_Place ; LabelRef _start])
+      (typ, [Instr_GoTo ; LabelRef _stop ; Label _start ; Instr_Declare ; I(state'.size)] @ body @ [Instr_Declare ; I(type_size ret) ; Instr_Return ; I(type_size ret) ; Label _stop ; Instr_Place ; LabelRef _start])
   )
   | Call(f,args) -> (
     (* TODO: Support shorthands directly... somehow... maybe *)
@@ -590,14 +590,13 @@ and compile_stmt (Stmt(stmt,ln)) state : (compile_state * instruction list) =
     let (_, a_instrs) = compile_stmt a state in
     let (_, b_instrs) = compile_stmt b state in
     match c_typ with
-    | T_Int -> (state, c_instrs @ [Instr_GoToIf ; LabelRef _stop] @ b_instrs @ [Instr_GoTo ; LabelRef _stop ; Label _true] @ a_instrs @ [Label _stop])
+    | T_Int -> (state, c_instrs @ [Instr_GoToIf ; LabelRef _true] @ b_instrs @ [Instr_GoTo ; LabelRef _stop ; Label _true] @ a_instrs @ [Label _stop])
     | _ -> raise_failure "Condition must be of type 'int'"
   )
   | IfIs(c,cases,else_opt) -> (
     new_label_context "ifis" ;
-    let _true = label "true" in
     let _stop = label "stop" in
-    let case_labels = List.init (List.length cases) string_of_int in
+    let _cases = List.init (List.length cases) string_of_int in
     let (c_typ, c_instrs) = reduce_compile c in
     if (type_size c_typ != 1) then raise_expr_failure c ("Type cannot be used in if-is statements: " ^ type_string c_typ) else
     let compile_comparison expr = 
@@ -618,7 +617,7 @@ and compile_stmt (Stmt(stmt,ln)) state : (compile_state * instruction list) =
       ~none: []
       ~some:(fun else_stmt -> compile_stmt else_stmt state |> snd)
     in
-    (state, c_instrs @ compile (List.combine cases case_labels) [Instr_MoveSP ; I(-1)] @ else_instrs @ [Label _stop])
+    (state, c_instrs @ compile (List.combine cases _cases) [Instr_MoveSP ; I(-1)] @ else_instrs @ [Label _stop])
   )
   | Block stmts -> (
     let (state', instrs) = compile_stmts state stmts in
@@ -716,11 +715,11 @@ and compile_stmt (Stmt(stmt,ln)) state : (compile_state * instruction list) =
       (state, Label _start :: instrs @ [Instr_GoTo ; LabelRef _start ; Label _stop])
     | Some Expr(Int i, _) -> 
       let _stop = label "stop" in
-      let continues = List.init i (fun i -> label (string_of_int i)) in
-      let instrs = List.map (fun cont -> 
-        let (_,instrs) = compile_stmt stmt {state with break = Some _stop; continue = Some cont} in
-        instrs @ [Label cont]
-      ) continues in
+      let _continues = List.init i (fun i -> label (string_of_int i)) in
+      let instrs = List.map (fun _cont -> 
+        let (_,instrs) = compile_stmt stmt {state with break = Some _stop; continue = Some _cont} in
+        instrs @ [Label _cont]
+      ) _continues in
       (state, List.flatten instrs @ [Label _stop])
     | Some expr -> raise_expr_failure expr "Expression cannot be used as condition for a repeat statement"
   )
