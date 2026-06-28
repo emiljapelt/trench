@@ -1415,7 +1415,6 @@ int is_action(builtin_func func_addr) {
         case BUILTIN_CLAY_GOLEM:
         case BUILTIN_MINE_SHAFT:
         case BUILTIN_CRAFT:
-        case BUILTIN_COUNT:
         case BUILTIN_WAIT:
         case BUILTIN_OBLIVIATE:
         case BUILTIN_BLINK:
