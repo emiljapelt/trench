@@ -37,6 +37,7 @@ type instruction =
   | Instr_LoadLocal
   | Instr_StoreLocal
   | Instr_Meta
+  | Instr_Bits
 
 let instruction_to_int label_map instr = match instr with
     | I i -> Some i
@@ -75,6 +76,7 @@ let instruction_to_int label_map instr = match instr with
     | Instr_LoadLocal ->    Some 31
     | Instr_StoreLocal ->   Some 32
     | Instr_Meta ->         Some 33
+    | Instr_Bits ->         Some 34
 
 let label_set pp =
   let rec aux pp set = match pp with

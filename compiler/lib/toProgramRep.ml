@@ -155,8 +155,20 @@ and reduce_expr state expr = match expr with
     | Plus, StructureLiteral entries1, StructureLiteral entries2 -> StructureLiteral(entries1 @ entries2)
     | Times, StructureLiteral entries, Int i
     | Times, Int i, StructureLiteral entries -> StructureLiteral(List.init i (fun _ -> entries) |> List.flatten)
-    | Plus, Field a, Field b -> Field(FieldPropSet.union a b)
+    | Plus, Field a, Field b -> Field(FieldPropSet.union a b) (* Remove ?? *)
     | Minus, Field a, Field b -> Field(FieldPropSet.diff a b)
+    | And, Field a, Field b -> Field(FieldPropSet.inter a b)
+    | Or, Field a, Field b -> Field(FieldPropSet.union a b)
+    | LessOrEqual, Field a, Field b -> Int(if FieldPropSet.subset b a then 1 else 0)
+    | GreaterOrEqual, Field a, Field b -> Int(if FieldPropSet.subset a b then 1 else 0)
+
+    (* proper subset *)
+    (*
+    | Less, Field a, Field b -> Int(if FieldPropSet.subset b a && not(FieldPropSet.equal a b) then 1 else 0)
+    | Greater, Field a, Field b -> Int(if FieldPropSet.subset a b && not(FieldPropSet.equal a b) then 1 else 0)
+    *)
+    
+
     | IsCompare, Field a, Field b -> Int(if FieldPropSet.subset b a then 1 else 0)
     | AnyCompare, Field a, Field b -> Int(if not(FieldPropSet.disjoint a b) then 1 else 0)
     | _ -> Binary_op(op, e1, e2)
@@ -216,6 +228,7 @@ and reduce_expr state expr = match expr with
   | SizeOf expr -> (
     let e = reduce_expression state expr in
     match get_expr e with
+    | Field f -> Int(FieldPropSet.cardinal f)
     | StructureLiteral entries -> Int(List.length entries)
     | IdentifierAccess name -> (match lookup_value name state.scopes with
       | Some(_, (Const(_, Expr(StructureLiteral entries,_)), _)) -> Int(List.length entries)
@@ -302,9 +315,20 @@ let rec compile_expr (state:compile_state) (Expr(expr, ln) as expression) : (typ
     | Remainder, T_Int, T_Int -> (T_Int, instrs2 @ instrs1 @ [Instr_Mod])
     | RightShift, T_Dir, T_Int -> (T_Dir, [Instr_Place ; I(4)] @ instrs1 @ instrs2 @ [Instr_Add ; Instr_Mod])
     | LeftShift, T_Dir, T_Int -> (T_Dir, [Instr_Place ; I(4)] @ instrs1 @ instrs2 @ [Instr_Sub ; Instr_Mod])
-    | Plus, T_Field, T_Field ->  (T_Field, instrs1 @ instrs2 @ [Instr_BinOr])
-    | Minus, T_Field, T_Field -> (T_Field, instrs1 @ instrs2 @ [Instr_BinNot ; Instr_BinAnd]) 
-    | IsCompare, T_Field, T_Field -> (T_Int, instrs2 @ [Instr_Copy] @ instrs1 @ [Instr_BinAnd ; Instr_Eq])
+
+    | Plus, T_Field, T_Field ->  (T_Field, instrs1 @ instrs2 @ [Instr_BinOr]) (* Remove?? *)
+    | Minus, T_Field, T_Field -> (T_Field, instrs1 @ instrs2 @ [Instr_BinNot ; Instr_BinAnd]) (* Set diff *)
+    | And, T_Field, T_Field -> (T_Field, instrs1 @ instrs2 @ [Instr_BinAnd]) (* Set intersection *)
+    | Or, T_Field, T_Field -> (T_Field, instrs1 @ instrs2 @ [Instr_BinOr]) (* Set union *)
+    | LessOrEqual, T_Field, T_Field -> (T_Int, instrs1 @ [Instr_Copy] @ instrs2 @ [Instr_BinAnd ; Instr_Eq]) (* Set subset *)
+    | GreaterOrEqual, T_Field, T_Field -> (T_Int, instrs2 @ [Instr_Copy] @ instrs1 @ [Instr_BinAnd ; Instr_Eq]) (* Set subset *)
+
+    (*
+    | Less, T_Field, T_Field -> (T_Int, instrs1 @ [Instr_Copy] @ instrs2 @ [Instr_BinAnd ; Instr_Eq]) (* Set proper subset *) 
+    | Greater, T_Field, T_Field -> (T_Int, instrs2 @ [Instr_Copy] @ instrs1 @ [Instr_BinAnd ; Instr_Eq]) (* Set proper subset *) 
+    *)
+
+    | IsCompare, T_Field, T_Field -> (T_Int, instrs2 @ [Instr_Copy] @ instrs1 @ [Instr_BinAnd ; Instr_Eq]) (* a is b, b subset of a *)
     | AnyCompare, T_Field, T_Field -> (T_Int, instrs1 @ instrs2 @ [Instr_BinAnd])
     | Plus, T_Array(t1,s1), T_Array(t2,s2) when type_eq t1 t2 -> (T_Array(t1, s1+s2), instrs1 @ instrs2)
     | Plus, T_Tuple(entries1), T_Tuple(entries2) -> (T_Tuple(entries1 @ entries2), instrs1 @ instrs2)
@@ -426,6 +450,7 @@ let rec compile_expr (state:compile_state) (Expr(expr, ln) as expression) : (typ
   | SizeOf expr -> (match compile_expr state expr with
     | (T_Array(_,s), _) -> (T_Int, [Instr_Place ; I(s)])
     | (T_Tuple(entries), _) -> (T_Int, [Instr_Place ; I(List.length entries)])
+    | (T_Field, instrs) -> (T_Int, instrs @ [Instr_Bits])
     | (t, _) -> raise_failure ("Cannot get size of type: " ^ type_string t)
   )
   | ASM(typ,instrs) -> (typ,instrs)

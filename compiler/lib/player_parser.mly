@@ -173,8 +173,8 @@ func_arg:
   | NEQ         { NotEqual }
   | LTEQ        { LessOrEqual }
   | LT          { Less  }
-  | GTEQ        { Greater }
-  | GT          { GreaterOrEqual }
+  | GTEQ        { GreaterOrEqual }
+  | GT          { Greater }
   | PLUS        { Plus }
   | TIMES       { Times }
   | MINUS       { Minus }

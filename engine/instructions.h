@@ -56,6 +56,7 @@ typedef enum {
   Instr_LoadLocal =     31,
   Instr_StoreLocal =    32,
   Instr_Meta =          33,
+  Instr_Bits =          34,
 
   Instr_DEBUG = 99,
 } instruction;
@@ -322,6 +323,19 @@ int instr_binand(player_state* ps) {
     int v0 = ps->stack[--ps->sp];
     int v1 = ps->stack[--ps->sp];
     ps->stack[ps->sp++] = v0 & v1;
+    return 0;
+}
+
+int instr_bits(player_state* ps) {
+    int v = ps->stack[--ps->sp];
+    int count = 0;
+    while (v > 0) {           // until all bits are zero
+        if ((v & 1) == 1)     // check lower bit
+            count++;
+        v >>= 1;              // shift bits, removing lower bit
+    }
+
+    ps->stack[ps->sp++] = count;
     return 0;
 }
 
