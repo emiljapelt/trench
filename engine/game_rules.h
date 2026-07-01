@@ -148,8 +148,8 @@ typedef struct game_rules {
     struct {
         int x;
         int y;
-        int width;
-        int height;
+        unsigned int width;
+        unsigned int height;
         int automatic: 1;
     } viewport;
 

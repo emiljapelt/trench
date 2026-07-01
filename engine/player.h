@@ -27,8 +27,8 @@ typedef struct player_state {
     int* directive;
     int directive_len;
     int dp;
-    int remaining_steps;
-    int remaining_actions;
+    unsigned int remaining_steps;
+    unsigned int remaining_actions;
     int pager_channel;
     array_list_t* pager_msgs;
     event_list_t* pre_death_events;

@@ -18,15 +18,15 @@ typedef struct directive_info {
 typedef struct team_state {
     char* team_name;
     color* color;
-    int members_alive;
+    unsigned int members_alive;
 } team_state;
 
 typedef struct game_state {
-    int round;
-    int latest_print;
-    int map_width;
-    int map_height;
-    int id_counter;
+    unsigned int round;
+    unsigned int latest_print;
+    unsigned int map_width;
+    unsigned int map_height;
+    unsigned int id_counter;
     entity_list_t* entities;
     field_state* map;
     char* feed;

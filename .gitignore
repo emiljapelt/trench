@@ -3,6 +3,7 @@ _build
 trenchc
 trench
 trenchlate
+cartographer
 
 *.tr
 *.trg
@@ -22,3 +23,5 @@ map_gen
 !extensions/trench-highlighting/package.json
 !tests/*
 !trenchlate/
+!cartographer/
+cartographer/*.trm
