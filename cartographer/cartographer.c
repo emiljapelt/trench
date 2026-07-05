@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <math.h>
 #include <time.h>
+#include <unistd.h>
+#include <termios.h>
 
 // https://rtouti.github.io/graphics/perlin-noise-algorithm
 
@@ -19,16 +21,15 @@ float dot(vector_2 a, vector_2 b) {
 }
 
 #define permutation_size 512
-typedef struct noise_map {
+typedef struct layer {
     unsigned char data[permutation_size];
     unsigned int width;
     unsigned int height;
     float z;
-} noise_map;
+    int x;
+    int y;
+} layer;
 
-
-
-// maybe unsigned char is good enough?
 void shuffle(unsigned char* array, int len) {
     for(int i = len - 1; i > 0; i--) {
         int index = rand() % (len + 1);
@@ -39,26 +40,27 @@ void shuffle(unsigned char* array, int len) {
     }
 }
 
-noise_map make_noise_map(int w, int h, float z, char p) {
+layer make_layer(int w, int h, float z, char p) {
+    layer l;
 
-    noise_map map;
-
-    map.width = w;
-    map.height = h;
-    map.z = z;
+    l.width = w;
+    l.height = h;
+    l.z = z;
+    l.x = 0;
+    l.y = 0;
 
     if (p) {
         int i;
         for(i = 0; i < permutation_size/2; i++)
-            map.data[i] = i;
+            l.data[i] = i;
 
-        shuffle(map.data, permutation_size/2);
+        shuffle(l.data, permutation_size/2);
 
         for(i = 0; i < permutation_size/2; i++)
-            map.data[permutation_size/2 + i] = map.data[i];
+            l.data[permutation_size/2 + i] = l.data[i];
     }
 
-    return map;
+    return l;
 }
 
 vector_2 constant_vector(int v) {
@@ -79,9 +81,12 @@ float lerp(float t, float a, float b) {
     return a + t*(b-a);
 }
 
-float map_value(noise_map map, float x, float y) {
-    x *= map.z;
-    y *= map.z;
+float layer_value(layer l, float x, float y) {
+    x += l.x;
+    y += l.y;
+
+    x *= l.z;
+    y *= l.z;
 
     int X = (int)floorf(x) & 255;
     int Y = (int)floorf(y) & 255;
@@ -94,10 +99,10 @@ float map_value(noise_map map, float x, float y) {
     vector_2 BR = vec2(xf - 1.0, yf);
     vector_2 BL = vec2(xf, yf);
 
-    int VTR = map.data[(map.data[(X+1) & 255 ]+Y+1) & 255];
-    int VTL = map.data[(map.data[X]+Y+1) & 255];
-    int VBR = map.data[(map.data[(X+1) & 255]+Y) & 255];
-    int VBL = map.data[(map.data[X]+Y) & 255];
+    int VTR = l.data[(l.data[(X+1) & 255 ]+Y+1) & 255];
+    int VTL = l.data[(l.data[X]+Y+1) & 255];
+    int VBR = l.data[(l.data[(X+1) & 255]+Y) & 255];
+    int VBL = l.data[(l.data[X]+Y) & 255];
 
     float dotTR = dot(TR, constant_vector(VTR));
     float dotTL = dot(TL, constant_vector(VTL));
@@ -118,7 +123,7 @@ float map_value(noise_map map, float x, float y) {
 
 // I don't know if the difference can be seen at this resolution...
 // Or if the settings work for the resolution
-float fractal_brownian_map_value(noise_map map, int x, int y, int numOctaves) {
+/*float fractal_brownian_map_value(layer map, int x, int y, int numOctaves) {
 	float result = 0.0;
 	float amplitude = 1.0;
 	float frequency = 0.05;
@@ -133,9 +138,77 @@ float fractal_brownian_map_value(noise_map map, int x, int y, int numOctaves) {
 
 	return result;
 }
+*/
 
+#pragma region CONSOLIDATE WITH ENGINE
 
-// fine _z: ~0.2;
+void clear_screen(void) {
+    printf("\033[H\033[J");
+}
+void reset_cursor(void) {
+    printf("\033[0;0H");
+}
+
+void terminal_echo_off() {
+    struct termios config;
+
+    tcgetattr(STDIN_FILENO, &config);
+
+    config.c_lflag &= ~(ECHO);
+
+    tcsetattr(STDIN_FILENO, TCSANOW, &config);
+}
+
+void terminal_echo_on() {
+    struct termios config;
+
+    tcgetattr(STDIN_FILENO, &config);
+
+    config.c_lflag |= ECHO;
+
+    tcsetattr(STDIN_FILENO, TCSANOW, &config);
+}
+
+void terminal_canonical_off() {
+    struct termios config;
+
+    tcgetattr(STDIN_FILENO, &config);
+
+    config.c_lflag &= ~(ICANON);
+
+    tcsetattr(STDIN_FILENO, TCSANOW, &config);
+}
+
+void terminal_canonical_on() {
+    struct termios config;
+
+    tcgetattr(STDIN_FILENO, &config);
+
+    config.c_lflag |= ICANON;
+
+    tcsetattr(STDIN_FILENO, TCSANOW, &config);
+}
+
+#pragma endregion
+
+layer height_layer;
+layer biome_layer;
+layer feature_layer;
+
+enum layers {
+    HEIGHT =    0b000001,
+    BIOME =     0b000010,
+    FEAUTRE =   0b000100,
+
+    ALL =       0b000111,
+};
+
+unsigned int active_layers = ALL;
+
+char* out;
+
+int view_width;
+int view_height;
 
 #define EMPTY '.';
 #define MOUNTAIN 'M';
@@ -143,27 +216,13 @@ float fractal_brownian_map_value(noise_map map, int x, int y, int numOctaves) {
 #define TREE 'T';
 #define CLAY 'C';
 
-int main(int argc, char** argv) {
+void render() {
+    clear_screen();
+    reset_cursor();
 
-    if (argc < 3) {
-        printf("Missing arguments");
-        exit(0);
-    }
-
-    int _w = atoi(argv[1]);
-    int _h = atoi(argv[2]);
-    int _s = argc > 3 ? atoi(argv[3]) : (unsigned) time(NULL);
-    float _z = argc > 4 ? atof(argv[4]) : 0.2;
-
-    srand(_s);
-
-    noise_map height_map = make_noise_map(_w, _h, 0.12, 1);
-    noise_map biome_map = make_noise_map(_w, _h, 0.12, 1);
-    noise_map feature_map = make_noise_map(_w, _h, 0.7, 1);
-
-    for(int y = 0; y < _h; y++) {
-        for(int x = 0; x < _w; x++) {
-            float n = map_value(height_map, x, y);
+    for(int y = 0; y < view_height; y++) {
+        for(int x = 0; x < view_width; x++) {
+            float n = layer_value(height_layer, x, y);
             //float n = fractal_brownian_map_value(height_map, x, y, 3);
             char c = '?';
 
@@ -171,10 +230,10 @@ int main(int argc, char** argv) {
                 c = OCEAN;
             }
             else if (n < 0.84) {
-                if (map_value(biome_map, x, y) < 0.4 && map_value(feature_map, x, y) < 0.5) {
+                if (layer_value(biome_layer, x, y) < 0.4 && layer_value(feature_layer, x, y) < 0.5) {
                     c = TREE
                 }
-                else if (map_value(biome_map, x, y) < 0.6 && map_value(feature_map, x, y) < 0.22) {
+                else if (layer_value(biome_layer, x, y) < 0.6 && layer_value(feature_layer, x, y) < 0.22) {
                     c = CLAY
                 }
                 else {
@@ -189,4 +248,109 @@ int main(int argc, char** argv) {
         }
         printf("\n");
     }
+
+    printf("%i,%i,%i\n", 
+        active_layers & HEIGHT ? 1 : 0, 
+        active_layers & BIOME ? 1 : 0, 
+        active_layers & FEAUTRE ? 1 : 0);
+}
+
+void run() {
+    char buf[1];
+    while (1) {
+        render();
+
+        int read_status = read(STDIN_FILENO, &buf, 1);
+
+        if (read_status == -1 || read_status == 0) 
+            return;
+
+        switch (buf[0]) {
+            case '+':
+                if (active_layers & HEIGHT) height_layer.z -= 0.01;
+                if (active_layers & BIOME) biome_layer.z -= 0.01;
+                if (active_layers & FEAUTRE) feature_layer.z -= 0.01;
+                break;
+            case '-': 
+                if (active_layers & HEIGHT) height_layer.z += 0.01;
+                if (active_layers & BIOME) biome_layer.z += 0.01;
+                if (active_layers & FEAUTRE) feature_layer.z += 0.01;
+                break;
+            case '1':
+                active_layers ^= HEIGHT;
+                break;
+            case '2':
+                active_layers ^= BIOME;
+                break;
+            case '3':
+                active_layers ^= FEAUTRE;
+                break;
+            case 'a':
+                if (active_layers == ALL)
+                    active_layers = 0;
+                else
+                    active_layers = ALL;
+                break;
+            case '\033': {
+                char special_buf[2];
+                read(STDIN_FILENO, &special_buf, 2);
+                switch (special_buf[1]) {
+                    case 'A': // UP
+                        if (active_layers & HEIGHT) height_layer.y += 1;
+                        if (active_layers & BIOME) biome_layer.y += 1;
+                        if (active_layers & FEAUTRE) feature_layer.y += 1;
+                        break;
+                    case 'B': // DOWN
+                        if (active_layers & HEIGHT) height_layer.y -= 1;
+                        if (active_layers & BIOME) biome_layer.y -= 1;
+                        if (active_layers & FEAUTRE) feature_layer.y -= 1;
+                        break;
+                    case 'C': // RIGHT
+                        if (active_layers & HEIGHT) height_layer.x -= 1;
+                        if (active_layers & BIOME) biome_layer.x -= 1;
+                        if (active_layers & FEAUTRE) feature_layer.x -= 1;
+                        break;
+                    case 'D': // LEFT
+                        if (active_layers & HEIGHT) height_layer.x += 1;
+                        if (active_layers & BIOME) biome_layer.x += 1;
+                        if (active_layers & FEAUTRE) feature_layer.x += 1;
+                        break;
+                }
+                break;
+            }
+            case 'q': 
+                // Write to file
+                terminal_echo_on();
+                terminal_canonical_on();
+                exit(0);
+                break;
+        }
+    }
+}
+
+
+// fine _z: ~0.2;
+
+int main(int argc, char** argv) {
+
+    if (argc < 3) {
+        printf("Missing arguments");
+        exit(0);
+    }
+
+    terminal_echo_off();
+    terminal_canonical_off();
+
+    view_height = atoi(argv[1]);
+    view_width = atoi(argv[2]);
+    int _s = argc > 3 ? atoi(argv[3]) : (unsigned) time(NULL);
+    //float _z = argc > 4 ? atof(argv[4]) : 0.2;
+
+    srand(_s);
+
+    height_layer = make_layer(view_width, view_height, 0.12, 1);
+    biome_layer = make_layer(view_width, view_height, 0.12, 1);
+    feature_layer = make_layer(view_width, view_height, 0.7, 1);
+
+    run();
 }
