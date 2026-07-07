@@ -7,6 +7,11 @@
 
 // https://rtouti.github.io/graphics/perlin-noise-algorithm
 
+int view_width;
+int view_height;
+const float zoom_speed = 0.01;
+const float move_speed = 1;
+
 typedef struct vector_2  {
     float x;
     float y;
@@ -23,11 +28,9 @@ float dot(vector_2 a, vector_2 b) {
 #define permutation_size 512
 typedef struct layer {
     unsigned char data[permutation_size];
-    unsigned int width;
-    unsigned int height;
     float z;
-    int x;
-    int y;
+    float x;
+    float y;
 } layer;
 
 void shuffle(unsigned char* array, int len) {
@@ -40,11 +43,9 @@ void shuffle(unsigned char* array, int len) {
     }
 }
 
-layer make_layer(int w, int h, float z, char p) {
+layer make_layer(float z, char p) {
     layer l;
 
-    l.width = w;
-    l.height = h;
     l.z = z;
     l.x = 0;
     l.y = 0;
@@ -72,6 +73,22 @@ vector_2 constant_vector(int v) {
     }
 }
 
+float gradient_vector_2d(unsigned int hash, float x, float y) {
+  unsigned int h = hash & 3;
+  if (h == 0) {
+    return  x;
+  }
+
+  if (h == 1) {
+    return -x;
+  }
+
+  if (h == 2) {
+    return  y;
+  }
+  
+  return -y;
+}
 
 float fade(float t) {
     return ((6*t - 15)*t + 10)*t*t*t;
@@ -81,55 +98,36 @@ float lerp(float t, float a, float b) {
     return a + t*(b-a);
 }
 
-float layer_value(layer l, float x, float y) {
-    x += l.x;
-    y += l.y;
 
-    x *= l.z;
-    y *= l.z;
+float noise_value(layer l, float x, float y) {
+    float fx = floorf(x);
+    float fy = floorf(y);
 
-    int X = (int)floorf(x) & 255;
-    int Y = (int)floorf(y) & 255;
+    unsigned int xu = (unsigned int)fx & 255;
+    unsigned int yu = (unsigned int)fy & 255;
 
-    float xf = x - floorf(x);
-    float yf = y - floorf(y);
+    x -= fx;
+    y -= fy;
 
-    vector_2 TR = vec2(xf - 1.0, yf - 1.0);
-    vector_2 TL = vec2(xf, yf - 1.0);
-    vector_2 BR = vec2(xf - 1.0, yf);
-    vector_2 BL = vec2(xf, yf);
+    unsigned int a = l.data[xu] + yu;
+    unsigned int b = l.data[xu + 1] + yu;
 
-    int VTR = l.data[(l.data[(X+1) & 255 ]+Y+1) & 255];
-    int VTL = l.data[(l.data[X]+Y+1) & 255];
-    int VBR = l.data[(l.data[(X+1) & 255]+Y) & 255];
-    int VBL = l.data[(l.data[X]+Y) & 255];
-
-    float dotTR = dot(TR, constant_vector(VTR));
-    float dotTL = dot(TL, constant_vector(VTL));
-    float dotBR = dot(BR, constant_vector(VBR));
-    float dotBL = dot(BL, constant_vector(VBL));
-
-    float u = fade(xf);
-    float v = fade(yf);
-
-    float n = lerp(u,
-        lerp(v, dotBL, dotTL),
-        lerp(v, dotBR, dotTR)
-    );
-
-    return (n + 1.0) / 2.0; // Scale to 0 .. 1.0
+    float u = fade(x);
+    float v = fade(y);
+    
+    float n = lerp(v, lerp(u, gradient_vector_2d(l.data[a    ], x    , y    ),
+                                gradient_vector_2d(l.data[b    ], x - 1, y    )),
+                        lerp(u, gradient_vector_2d(l.data[a + 1], x    , y - 1),
+                                gradient_vector_2d(l.data[b + 1], x - 1, y - 1)));
 }
 
-
-// I don't know if the difference can be seen at this resolution...
-// Or if the settings work for the resolution
-/*float fractal_brownian_map_value(layer map, int x, int y, int numOctaves) {
+float fractal_brownian_noise_value(layer map, int x, int y, int numOctaves) {
 	float result = 0.0;
 	float amplitude = 1.0;
 	float frequency = 0.05;
 
 	while(numOctaves--) {
-		float n = amplitude * map_value(map, x * frequency, y * frequency);
+		float n = amplitude * noise_value(map, x * frequency, y * frequency);
 		result += n;
 		
 		amplitude *= 0.5;
@@ -138,7 +136,30 @@ float layer_value(layer l, float x, float y) {
 
 	return result;
 }
-*/
+
+float fractal_brownian_layer_value(layer l, float x, float y, int ocataves) {
+    float n = fractal_brownian_noise_value(
+        l,
+        ((x - (view_width/2.0f)) * l.z) + l.x,
+        ((y - (view_height/2.0f)) * l.z) + l.y,
+        8
+    );
+
+    return (n + 1.0) / 2.0;
+}
+
+float layer_value(layer l, float x, float y) {
+    float n = noise_value(
+        l,
+        ((x - (view_width/2.0f)) * l.z) + l.x,
+        ((y - (view_height/2.0f)) * l.z) + l.y
+    );
+
+    return (n + 1.0) / 2.0;
+}
+
+
+
 
 #pragma region CONSOLIDATE WITH ENGINE
 
@@ -203,12 +224,17 @@ enum layers {
     ALL =       0b000111,
 };
 
+float ocean_limit = 0.5;
+float land_limit = 0.84;
+
+enum limits {
+    OCEAN_LIMIT = 0b000001,
+
+};
+
 unsigned int active_layers = ALL;
 
-char* out;
-
-int view_width;
-int view_height;
+char* out = NULL;
 
 #define EMPTY '.';
 #define MOUNTAIN 'M';
@@ -222,18 +248,17 @@ void render() {
 
     for(int y = 0; y < view_height; y++) {
         for(int x = 0; x < view_width; x++) {
-            float n = layer_value(height_layer, x, y);
-            //float n = fractal_brownian_map_value(height_map, x, y, 3);
+            float n = fractal_brownian_layer_value(height_layer, x, y, 8);
             char c = '?';
 
             if (n < 0.5) {
                 c = OCEAN;
             }
             else if (n < 0.84) {
-                if (layer_value(biome_layer, x, y) < 0.4 && layer_value(feature_layer, x, y) < 0.5) {
+                if (fractal_brownian_layer_value(biome_layer, x, y, 4) < 0.4 && layer_value(feature_layer, x, y) < 0.5) {
                     c = TREE
                 }
-                else if (layer_value(biome_layer, x, y) < 0.6 && layer_value(feature_layer, x, y) < 0.22) {
+                else if (fractal_brownian_layer_value(biome_layer, x, y, 4) < 0.6 && layer_value(feature_layer, x, y) < 0.22) {
                     c = CLAY
                 }
                 else {
@@ -246,13 +271,27 @@ void render() {
 
             printf("%c", c);
         }
-        printf("\n");
+        putchar('\n');
     }
 
     printf("%i,%i,%i\n", 
         active_layers & HEIGHT ? 1 : 0, 
         active_layers & BIOME ? 1 : 0, 
         active_layers & FEAUTRE ? 1 : 0);
+}
+
+void move(layer* l, int x, int y) {
+    l->x += x * move_speed * l->z;
+    l->y += y * move_speed * l->z;
+}
+
+void zoom(layer* l, float a) {
+    l->z += a;
+    if (l->z < 0) l->z = 0;
+}
+
+void write_file() {
+    if (out == NULL) return;
 }
 
 void run() {
@@ -267,14 +306,14 @@ void run() {
 
         switch (buf[0]) {
             case '+':
-                if (active_layers & HEIGHT) height_layer.z -= 0.01;
-                if (active_layers & BIOME) biome_layer.z -= 0.01;
-                if (active_layers & FEAUTRE) feature_layer.z -= 0.01;
+                if (active_layers & HEIGHT) zoom(&height_layer, -zoom_speed);
+                if (active_layers & BIOME) zoom(&biome_layer, -zoom_speed);
+                if (active_layers & FEAUTRE) zoom(&feature_layer, -zoom_speed);
                 break;
             case '-': 
-                if (active_layers & HEIGHT) height_layer.z += 0.01;
-                if (active_layers & BIOME) biome_layer.z += 0.01;
-                if (active_layers & FEAUTRE) feature_layer.z += 0.01;
+                if (active_layers & HEIGHT) zoom(&height_layer, zoom_speed);
+                if (active_layers & BIOME) zoom(&biome_layer, zoom_speed);
+                if (active_layers & FEAUTRE) zoom(&feature_layer, zoom_speed);
                 break;
             case '1':
                 active_layers ^= HEIGHT;
@@ -296,32 +335,32 @@ void run() {
                 read(STDIN_FILENO, &special_buf, 2);
                 switch (special_buf[1]) {
                     case 'A': // UP
-                        if (active_layers & HEIGHT) height_layer.y += 1;
-                        if (active_layers & BIOME) biome_layer.y += 1;
-                        if (active_layers & FEAUTRE) feature_layer.y += 1;
+                        if (active_layers & HEIGHT) move(&height_layer, 0, 1);
+                        if (active_layers & BIOME) move(&biome_layer, 0, 1);
+                        if (active_layers & FEAUTRE) move(&feature_layer, 0, 1);
                         break;
                     case 'B': // DOWN
-                        if (active_layers & HEIGHT) height_layer.y -= 1;
-                        if (active_layers & BIOME) biome_layer.y -= 1;
-                        if (active_layers & FEAUTRE) feature_layer.y -= 1;
+                        if (active_layers & HEIGHT) move(&height_layer, 0, -1);
+                        if (active_layers & BIOME) move(&biome_layer, 0, -1);
+                        if (active_layers & FEAUTRE) move(&feature_layer, 0, -1);
                         break;
                     case 'C': // RIGHT
-                        if (active_layers & HEIGHT) height_layer.x -= 1;
-                        if (active_layers & BIOME) biome_layer.x -= 1;
-                        if (active_layers & FEAUTRE) feature_layer.x -= 1;
+                        if (active_layers & HEIGHT) move(&height_layer, -1, 0);
+                        if (active_layers & BIOME) move(&biome_layer, -1, 0);
+                        if (active_layers & FEAUTRE) move(&feature_layer, -1, 0);
                         break;
                     case 'D': // LEFT
-                        if (active_layers & HEIGHT) height_layer.x += 1;
-                        if (active_layers & BIOME) biome_layer.x += 1;
-                        if (active_layers & FEAUTRE) feature_layer.x += 1;
+                        if (active_layers & HEIGHT) move(&height_layer, 1, 0);
+                        if (active_layers & BIOME) move(&biome_layer, 1, 0);
+                        if (active_layers & FEAUTRE) move(&feature_layer, 1, 0);
                         break;
                 }
                 break;
             }
             case 'q': 
-                // Write to file
                 terminal_echo_on();
                 terminal_canonical_on();
+                write_file();
                 exit(0);
                 break;
         }
@@ -341,16 +380,16 @@ int main(int argc, char** argv) {
     terminal_echo_off();
     terminal_canonical_off();
 
-    view_height = atoi(argv[1]);
-    view_width = atoi(argv[2]);
+    view_width = atoi(argv[1]);
+    view_height = atoi(argv[2]);
     int _s = argc > 3 ? atoi(argv[3]) : (unsigned) time(NULL);
     //float _z = argc > 4 ? atof(argv[4]) : 0.2;
 
     srand(_s);
 
-    height_layer = make_layer(view_width, view_height, 0.12, 1);
-    biome_layer = make_layer(view_width, view_height, 0.12, 1);
-    feature_layer = make_layer(view_width, view_height, 0.7, 1);
+    height_layer = make_layer(0.12, 1);
+    biome_layer = make_layer(0.12, 1);
+    feature_layer = make_layer(0.7, 1);
 
     run();
 }
