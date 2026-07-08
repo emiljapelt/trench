@@ -43,35 +43,35 @@ field_state* create_map(char* map_data, const int x, const int y) {
         set_resource_entry(&map[(_y * x) + _x].resources, R_Metal, 0, -1);
 
         if (map_data) switch(map_data[(_y * x) + _x]) {
-            case '+': {
+            case TRM_TRENCH: {
                 field_data* data = malloc(sizeof(field_data));
                 data->trench.fortified = 0;
                 map[(_y * x) + _x].type = TRENCH;
                 map[(_y * x) + _x].data = data;
                 break;
             }
-            case 'w': {
+            case TRM_WALL: {
                 field_data* data = malloc(sizeof(field_data));
                 data->wall.fortified = 0;
                 map[(_y * x) + _x].type = WALL;
                 map[(_y * x) + _x].data = data;
                 break;
             }
-            case '~':
+            case TRM_OCEAN:
                 map[(_y * x) + _x].type = OCEAN;
                 add_event(map[(_y * x) + _x].enter_events, FIELD_EVENT, events.ocean_drowning, NULL);
                 break;
-            case 'T': 
+            case TRM_TREE: 
                 map[(_y * x) + _x].type = TREE;
                 break;
-            case 'C':
+            case TRM_CLAY:
                 field_data* data = malloc(sizeof(field_data));
                 data->clay_pit.amount = 0;
                 map[(_y * x) + _x].type = CLAY;
                 map[(_y * x) + _x].data = data;
                 add_event(map[(_y * x) + _x].exit_events, FIELD_EVENT, events.clay_spread, NULL);
                 break;
-            case 'M':
+            case TRM_MOUNTAIN:
                 map[(_y * x) + _x].type = MOUNTAIN;
                 break;
         }

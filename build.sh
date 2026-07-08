@@ -15,4 +15,9 @@ source ./build.sh
 cd ..
 mv -f ./engine/trench .
 
+echo "Building cartographer..."
+cd ./cartographer
+source ./build.sh
+cd ..
+
 echo "Done"

@@ -483,6 +483,8 @@ int main(int argc, char** argv) {
     terminal_blocking_read_off();
     terminal_canonical_off();
 
+    set_wait_time_scaler(&_gr->time_scale);
+
     print_board();
 
     handle_input();

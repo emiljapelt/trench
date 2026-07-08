@@ -7,6 +7,11 @@ typedef struct color {
     unsigned int b : 8;
 } color;
 
+typedef enum {
+    FORE = '3',
+    BACK = '4',
+} color_target;
+
 typedef enum print_mod {
     BOLD = 1,
     SLIM = 2,

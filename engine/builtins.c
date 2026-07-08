@@ -9,12 +9,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-
-#pragma region BUILTIN_VARIABLES
-
-#pragma endregion
-
-
 #pragma region BUILTIN_FUNCTIONS
 
 int builtin_shoot(player_state* ps) {

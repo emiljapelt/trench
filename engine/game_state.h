@@ -8,6 +8,7 @@
 #include "resource_registry.h"
 #include "visual.h"
 #include "fields.h"
+#include "symbols.h"
 
 typedef struct directive_info {
     int dir_len;

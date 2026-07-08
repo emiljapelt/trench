@@ -8,6 +8,7 @@
 #include "vehicles.h"
 #include "events.h"
 #include "visual.h"
+#include "symbols.h"
 
 typedef enum {
     EMPTY,

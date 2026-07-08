@@ -1,2 +1,2 @@
 #!/bin/bash
-gcc -o ./cartographer ./cartographer.c -lm
+gcc -o ./cartographer ../engine/util.c ../engine/color.c ../engine/symbols.c ./cartographer.c -lm

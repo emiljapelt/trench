@@ -5,6 +5,10 @@
 #include <unistd.h>
 #include <termios.h>
 
+#include "../engine/util.h"
+#include "../engine/symbols.h"
+#include "../engine/color.h"
+
 // https://rtouti.github.io/graphics/perlin-noise-algorithm
 
 int view_width;
@@ -25,9 +29,9 @@ float dot(vector_2 a, vector_2 b) {
     return a.x * b.x + a.y * b.y;
 }
 
-#define permutation_size 512
+#define perm_size 256
 typedef struct layer {
-    unsigned char data[permutation_size];
+    unsigned char data[perm_size * 2];
     float z;
     float x;
     float y;
@@ -52,13 +56,13 @@ layer make_layer(float z, char p) {
 
     if (p) {
         int i;
-        for(i = 0; i < permutation_size/2; i++)
+        for(i = 0; i < perm_size; i++)
             l.data[i] = i;
 
-        shuffle(l.data, permutation_size/2);
+        shuffle(l.data, perm_size);
 
-        for(i = 0; i < permutation_size/2; i++)
-            l.data[permutation_size/2 + i] = l.data[i];
+        for(i = 0; i < perm_size; i++)
+            l.data[perm_size + i] = l.data[i];
     }
 
     return l;
@@ -103,8 +107,8 @@ float noise_value(layer l, float x, float y) {
     float fx = floorf(x);
     float fy = floorf(y);
 
-    unsigned int xu = (unsigned int)fx & 255;
-    unsigned int yu = (unsigned int)fy & 255;
+    unsigned int xu = (unsigned int)fx % perm_size;
+    unsigned int yu = (unsigned int)fy % perm_size;
 
     x -= fx;
     y -= fy;
@@ -158,60 +162,6 @@ float layer_value(layer l, float x, float y) {
     return (n + 1.0) / 2.0;
 }
 
-
-
-
-#pragma region CONSOLIDATE WITH ENGINE
-
-void clear_screen(void) {
-    printf("\033[H\033[J");
-}
-void reset_cursor(void) {
-    printf("\033[0;0H");
-}
-
-void terminal_echo_off() {
-    struct termios config;
-
-    tcgetattr(STDIN_FILENO, &config);
-
-    config.c_lflag &= ~(ECHO);
-
-    tcsetattr(STDIN_FILENO, TCSANOW, &config);
-}
-
-void terminal_echo_on() {
-    struct termios config;
-
-    tcgetattr(STDIN_FILENO, &config);
-
-    config.c_lflag |= ECHO;
-
-    tcsetattr(STDIN_FILENO, TCSANOW, &config);
-}
-
-void terminal_canonical_off() {
-    struct termios config;
-
-    tcgetattr(STDIN_FILENO, &config);
-
-    config.c_lflag &= ~(ICANON);
-
-    tcsetattr(STDIN_FILENO, TCSANOW, &config);
-}
-
-void terminal_canonical_on() {
-    struct termios config;
-
-    tcgetattr(STDIN_FILENO, &config);
-
-    config.c_lflag |= ICANON;
-
-    tcsetattr(STDIN_FILENO, TCSANOW, &config);
-}
-
-#pragma endregion
-
 layer height_layer;
 layer biome_layer;
 layer feature_layer;
@@ -221,7 +171,7 @@ enum layers {
     BIOME =     0b000010,
     FEAUTRE =   0b000100,
 
-    ALL =       0b000111,
+    ALL_LAYERS =       0b000111,
 };
 
 float ocean_limit = 0.5;
@@ -232,52 +182,41 @@ enum limits {
 
 };
 
-unsigned int active_layers = ALL;
+unsigned int active_layers = ALL_LAYERS;
+
+char* map;
 
 char* out = NULL;
 
-#define EMPTY '.';
-#define MOUNTAIN 'M';
-#define OCEAN '~';
-#define TREE 'T';
-#define CLAY 'C';
-
-void render() {
-    clear_screen();
-    reset_cursor();
-
+void generate() {
+    int i = 0;
     for(int y = 0; y < view_height; y++) {
         for(int x = 0; x < view_width; x++) {
             float n = fractal_brownian_layer_value(height_layer, x, y, 8);
             char c = '?';
 
             if (n < 0.5) {
-                c = OCEAN;
+                c = TRM_OCEAN;
             }
             else if (n < 0.84) {
                 if (fractal_brownian_layer_value(biome_layer, x, y, 4) < 0.4 && layer_value(feature_layer, x, y) < 0.5) {
-                    c = TREE
+                    c = TRM_TREE;
                 }
                 else if (fractal_brownian_layer_value(biome_layer, x, y, 4) < 0.6 && layer_value(feature_layer, x, y) < 0.22) {
-                    c = CLAY
+                    c = TRM_CLAY;
                 }
                 else {
-                    c = EMPTY
+                    c = TRM_EMPTY;
                 }
             }
             else {    
-                c = MOUNTAIN;
+                c = TRM_MOUNTAIN;
             }
 
-            printf("%c", c);
+            map[i++] = c;
         }
-        putchar('\n');
+        map[i++] = '\n';
     }
-
-    printf("%i,%i,%i\n", 
-        active_layers & HEIGHT ? 1 : 0, 
-        active_layers & BIOME ? 1 : 0, 
-        active_layers & FEAUTRE ? 1 : 0);
 }
 
 void move(layer* l, int x, int y) {
@@ -290,14 +229,81 @@ void zoom(layer* l, float a) {
     if (l->z < 0) l->z = 0;
 }
 
-void write_file() {
+void to_terminal() {
+    int i = 0;
+    char c = map[i];
+    color fclr = color_lookup[DARK_GREY];
+    color bclr = color_lookup[BLACK];
+    const char* s = NULL;
+    while(c != 0) {
+        
+        switch (c) {
+            case '\n':
+                printf(_TERM_PRINT_RESET); 
+                putchar('\n'); 
+                goto end;
+            case 'T': 
+                fclr = color_lookup[GREEN];
+                bclr = color_lookup[BLACK];
+                s = symbol_lookup[TREE_VISUAL];
+                break;
+            case '~': 
+                fclr = color_lookup[ICE_BLUE];
+                bclr = color_lookup[BLUE];
+                s = "~";
+                break;
+            case '.': 
+                fclr = color_lookup[DARK_GREY];
+                bclr = color_lookup[BLACK];
+                s = symbol_lookup[MIDDOT];
+                break;
+            case 'M':
+                fclr = color_lookup[LIGHT_GREY];
+                bclr = color_lookup[BLACK];
+                s = symbol_lookup[MOUNTAIN_VISUAL];
+                break;
+            case 'C': 
+                fclr = color_lookup[CLAY_BROWN];
+                bclr = color_lookup[WOOD_BROWN];
+                s = " ";
+                break;
+            default:
+                printf("%s?\n" _TERM_PRINT_RESET);
+                goto end;
+        }
+
+        printf(_TERM_PRINT_COLOR, FORE, fclr.r, fclr.g, fclr.b);
+        printf(_TERM_PRINT_COLOR, BACK, bclr.r, bclr.g, bclr.b);
+        printf("%s", s);
+
+        end:
+        c = map[++i];
+    }
+}
+
+void to_file() {
     if (out == NULL) return;
+
+    FILE* f = fopen(out, "w");
+
+    if (f == NULL) return;
+
+    fprintf(f, "%s", map);
+    fclose(f);
 }
 
 void run() {
     char buf[1];
     while (1) {
-        render();
+        generate();
+        clear_screen();
+        reset_cursor();
+        to_terminal();
+
+        printf("%i,%i,%i\n", 
+            active_layers & HEIGHT ? 1 : 0, 
+            active_layers & BIOME ? 1 : 0, 
+            active_layers & FEAUTRE ? 1 : 0);
 
         int read_status = read(STDIN_FILENO, &buf, 1);
 
@@ -325,10 +331,10 @@ void run() {
                 active_layers ^= FEAUTRE;
                 break;
             case 'a':
-                if (active_layers == ALL)
+                if (active_layers == ALL_LAYERS)
                     active_layers = 0;
                 else
-                    active_layers = ALL;
+                    active_layers = ALL_LAYERS;
                 break;
             case '\033': {
                 char special_buf[2];
@@ -360,15 +366,14 @@ void run() {
             case 'q': 
                 terminal_echo_on();
                 terminal_canonical_on();
-                write_file();
+                to_file();
+                free(map);
                 exit(0);
                 break;
         }
     }
 }
 
-
-// fine _z: ~0.2;
 
 int main(int argc, char** argv) {
 
@@ -382,13 +387,17 @@ int main(int argc, char** argv) {
 
     view_width = atoi(argv[1]);
     view_height = atoi(argv[2]);
-    int _s = argc > 3 ? atoi(argv[3]) : (unsigned) time(NULL);
-    //float _z = argc > 4 ? atof(argv[4]) : 0.2;
+    out = argc > 3 ? argv[3] : NULL;
+    int _s = argc > 4 ? atoi(argv[4]) : (unsigned) time(NULL);
+    
+    int map_size = sizeof(char) * (view_width + 1) * view_height;
+    map = malloc(map_size + 1);
+    map[map_size] = 0;
 
     srand(_s);
 
-    height_layer = make_layer(0.12, 1);
-    biome_layer = make_layer(0.12, 1);
+    height_layer = make_layer(0.2, 1);
+    biome_layer = make_layer(0.2, 1);
     feature_layer = make_layer(0.7, 1);
 
     run();

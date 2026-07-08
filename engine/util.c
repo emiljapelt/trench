@@ -1,5 +1,6 @@
 #include "util.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <termios.h>
@@ -24,14 +25,29 @@ int clamp(int a, int hi, int lo) {
     return a;
 }
 
+float* wait_time_scaler = NULL;
+
+void set_wait_time_scaler(float* s) {
+    wait_time_scaler = s;
+}
+
 void wait(float seconds) {
     #ifdef _WIN32
     #include <windows.h>
-    Sleep((seconds * _gr->time_scale) * 1000);
+    Sleep((seconds * (*wait_time_scaler)) * 1000);
     #elif __unix__
     #include <unistd.h>
-    usleep((seconds * _gr->time_scale) * 1000000);
+    usleep((seconds * (*wait_time_scaler)) * 1000000);
     #endif
+}
+
+// https://stackoverflow.com/questions/26423537/how-to-position-the-input-text-cursor-in-c
+void clear_screen(void) {
+    printf("\033[H\033[J");
+}
+
+void reset_cursor(void) {
+    printf("\033[0;0H");
 }
 
 void terminal_echo_off() {
