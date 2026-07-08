@@ -16,8 +16,10 @@ let cont_optimize_instruction_list instrs =
       | I(a)::Instr_Place::I(b)::Instr_Place::acc -> c(I(b-a)::Instr_Place::acc)
       | _ -> c(Instr_Sub::acc)
     )
+    (* Tail call optimization *)
+    | Instr_Return::Instr_Call::t -> aux t (fun acc -> c (Instr_Return::Instr_TCall::acc))
     (*| I(_)::Instr_Return::I(_)::Instr_Declare::I(s)::Instr_Return::t ->
-      aux t (fun acc -> c(Instr_Return::I(s)::acc))  *) (* Attemt to remove implicit return, breaks test *)
+      aux t (fun acc -> c(I(s)::Instr_Return::acc)) *) (* Attemt to remove implicit return, breaks test *)
     | h::t -> aux t (fun acc -> c(h::acc))
   in
   aux (List.rev instrs) (List.rev)

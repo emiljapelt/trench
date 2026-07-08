@@ -57,6 +57,7 @@ typedef enum {
   Instr_StoreLocal =    32,
   Instr_Meta =          33,
   Instr_Bits =          34,
+  Instr_TCall =         35,
 
   Instr_DEBUG = 99,
 } instruction;
@@ -227,7 +228,8 @@ int instr_call(player_state* ps) {
         return 0;
     }
 
-    if (ps->sp + arg_count + 3 >= _gr->stack_size) {
+    // args + stack frame note
+    if (ps->sp + arg_count + 2 >= _gr->stack_size) {
         kill_player(ps, stack_overflow_msg);
         return 0;
     }
@@ -257,7 +259,7 @@ int instr_call(player_state* ps) {
     memcpy(&ps->stack[ps->sp], args, sizeof(int) * arg_count);
     ps->sp += arg_count;
     ps->dp = func_addr;
-    _log(DEBUG, "f_addr: %i, args: %i", func_addr, arg_count);
+    _log(DEBUG, "call addr: %i, args: %i", func_addr, arg_count);
 }
 
 int instr_return(player_state* ps) {
@@ -463,6 +465,42 @@ int instr_meta(player_state* ps) {
     }
 
     return 0;
+}
+
+int instr_tcall(player_state* ps) {
+    int arg_count = ps->stack[--ps->sp];
+    int func_addr = ps->stack[--ps->sp];
+
+    if (func_addr == 0) {
+        kill_player(ps, null_call_msg);
+        return 0;
+    }
+
+    // Check the check for correctness :)
+    if (ps->bp + arg_count + 1 >= _gr->stack_size) {
+        kill_player(ps, stack_overflow_msg);
+        return 0;
+    }
+
+    if (func_addr < 0) { // builtin handling
+        if (is_action(func_addr) && !use_resource(1, &ps->remaining_actions)) {
+            ps->dp--;
+            ps->remaining_steps = 0;
+            ps->stack[ps->sp++] = func_addr;
+            ps->stack[ps->sp++] = arg_count;
+            return 0;
+        }
+        return handle_builtin_function(ps, func_addr);
+    }
+
+    int args[arg_count];
+    memcpy(args, &ps->stack[ps->sp - arg_count], sizeof(int) * arg_count);
+
+    ps->sp = ps->bp;
+    memcpy(&ps->stack[ps->sp], args, sizeof(int) * arg_count);
+    ps->sp += arg_count;
+    ps->dp = func_addr;
+    _log(DEBUG, "tcall addr: %i, args: %i", func_addr, arg_count);
 }
 
 #pragma endregion

@@ -169,6 +169,7 @@ void player_turn_default(player_state* ps) {
             case Instr_StoreGlobal: change = instr_store(ps, 0); break;
             case Instr_Meta: change = instr_meta(ps); break;
             case Instr_Bits: change = instr_bits(ps); break;
+            case Instr_TCall: change = instr_tcall(ps); break;
             default: return;
         }
 
