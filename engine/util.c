@@ -25,6 +25,12 @@ int clamp(int a, int hi, int lo) {
     return a;
 }
 
+float clampf(float a, float hi, float lo) {
+    if (a < lo) return lo;
+    if (a > hi) return hi;
+    return a;
+}
+
 float* wait_time_scaler = NULL;
 
 void set_wait_time_scaler(float* s) {

@@ -10,6 +10,7 @@ extern const char* out_of_bounds_msg;
 void set_wait_time_scaler(float*);
 void wait(float seconds);
 int clamp(int a, int hi, int lo);
+float clampf(float a, float hi, float lo);
 int max(int a, int b);
 
 static inline int use_resource(int amount, int* avail) {
