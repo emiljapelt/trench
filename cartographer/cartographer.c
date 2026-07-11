@@ -15,6 +15,7 @@ int view_width;
 int view_height;
 const float zoom_speed = 0.01;
 const float move_speed = 1;
+const float limit_move = 0.01;
 
 typedef struct vector_2  {
     float x;
@@ -169,19 +170,22 @@ layer feature_layer;
 enum layers {
     HEIGHT =    0b000001,
     BIOME =     0b000010,
-    FEAUTRE =   0b000100,
+    FEATURE =   0b000100,
 
     ALL_LAYERS =       0b000111,
 };
 
-float ocean_limit = 0.5;
-float land_limit = 0.84;
+float ocean_land_limit = 0.5;
+float land_mountain_limit = 0.84;
 
 enum limits {
-    OCEAN_LIMIT = 0b000001,
+    OCEAN_LAND_LIMIT =      0b000001,
+    LAND_MOUNTAIN_LIMIT =   0b000010,
 
+    ALL_LIMITS =            0b000011,
 };
 
+unsigned int active_limits = 0;
 unsigned int active_layers = ALL_LAYERS;
 
 char* map;
@@ -195,10 +199,10 @@ void generate() {
             float n = fractal_brownian_layer_value(height_layer, x, y, 8);
             char c = '?';
 
-            if (n < 0.5) {
+            if (n < ocean_land_limit) {
                 c = TRM_OCEAN;
             }
-            else if (n < 0.84) {
+            else if (n < land_mountain_limit) {
                 if (fractal_brownian_layer_value(biome_layer, x, y, 4) < 0.4 && layer_value(feature_layer, x, y) < 0.5) {
                     c = TRM_TREE;
                 }
@@ -227,6 +231,10 @@ void move(layer* l, int x, int y) {
 void zoom(layer* l, float a) {
     l->z += a;
     if (l->z < 0) l->z = 0;
+}
+
+void move_limit(float* limit, float d) {
+    *limit = clampf(*limit + d * limit_move, 1, 0);
 }
 
 void to_terminal() {
@@ -300,10 +308,13 @@ void run() {
         reset_cursor();
         to_terminal();
 
-        printf("%i,%i,%i\n", 
+        printf("  HBF   O L M\n");
+        printf("l:%i%i%i i: %i %i\n", 
             active_layers & HEIGHT ? 1 : 0, 
             active_layers & BIOME ? 1 : 0, 
-            active_layers & FEAUTRE ? 1 : 0);
+            active_layers & FEATURE ? 1 : 0,
+            active_limits & OCEAN_LAND_LIMIT ? 1 : 0,
+            active_limits & LAND_MOUNTAIN_LIMIT ? 1 : 0);
 
         int read_status = read(STDIN_FILENO, &buf, 1);
 
@@ -314,28 +325,66 @@ void run() {
             case '+':
                 if (active_layers & HEIGHT) zoom(&height_layer, -zoom_speed);
                 if (active_layers & BIOME) zoom(&biome_layer, -zoom_speed);
-                if (active_layers & FEAUTRE) zoom(&feature_layer, -zoom_speed);
+                if (active_layers & FEATURE) zoom(&feature_layer, -zoom_speed);
+
+                if (active_limits & OCEAN_LAND_LIMIT) move_limit(&ocean_land_limit, 1);
+                if (active_limits & LAND_MOUNTAIN_LIMIT) move_limit(&land_mountain_limit, 1);
                 break;
+
             case '-': 
                 if (active_layers & HEIGHT) zoom(&height_layer, zoom_speed);
                 if (active_layers & BIOME) zoom(&biome_layer, zoom_speed);
-                if (active_layers & FEAUTRE) zoom(&feature_layer, zoom_speed);
+                if (active_layers & FEATURE) zoom(&feature_layer, zoom_speed);
+
+                if (active_limits & OCEAN_LAND_LIMIT) move_limit(&ocean_land_limit, -1);
+                if (active_limits & LAND_MOUNTAIN_LIMIT) move_limit(&land_mountain_limit, -1);
                 break;
+
             case '1':
                 active_layers ^= HEIGHT;
                 break;
+
             case '2':
                 active_layers ^= BIOME;
                 break;
+
             case '3':
-                active_layers ^= FEAUTRE;
+                active_layers ^= FEATURE;
                 break;
+
+            case '4':
+                active_limits ^= OCEAN_LAND_LIMIT;    
+                break;
+
+            case '5':
+                active_limits ^= LAND_MOUNTAIN_LIMIT;
+                break;
+
             case 'a':
+                if (active_layers == ALL_LAYERS && active_limits == ALL_LIMITS) {
+                    active_layers = 0;
+                    active_limits = 0;
+                }
+                else {
+                    active_layers = ALL_LAYERS;
+                    active_limits = ALL_LIMITS;
+                }
+                break;
+
+            case 'l':
                 if (active_layers == ALL_LAYERS)
                     active_layers = 0;
                 else
                     active_layers = ALL_LAYERS;
                 break;
+
+            case 'i':
+                if (active_limits == ALL_LIMITS)
+                    active_limits = 0;
+                else
+                    active_limits = ALL_LIMITS;
+                break;
+
             case '\033': {
                 char special_buf[2];
                 read(STDIN_FILENO, &special_buf, 2);
@@ -343,22 +392,25 @@ void run() {
                     case 'A': // UP
                         if (active_layers & HEIGHT) move(&height_layer, 0, 1);
                         if (active_layers & BIOME) move(&biome_layer, 0, 1);
-                        if (active_layers & FEAUTRE) move(&feature_layer, 0, 1);
+                        if (active_layers & FEATURE) move(&feature_layer, 0, 1);
                         break;
+
                     case 'B': // DOWN
                         if (active_layers & HEIGHT) move(&height_layer, 0, -1);
                         if (active_layers & BIOME) move(&biome_layer, 0, -1);
-                        if (active_layers & FEAUTRE) move(&feature_layer, 0, -1);
+                        if (active_layers & FEATURE) move(&feature_layer, 0, -1);
                         break;
+
                     case 'C': // RIGHT
                         if (active_layers & HEIGHT) move(&height_layer, -1, 0);
                         if (active_layers & BIOME) move(&biome_layer, -1, 0);
-                        if (active_layers & FEAUTRE) move(&feature_layer, -1, 0);
+                        if (active_layers & FEATURE) move(&feature_layer, -1, 0);
                         break;
+
                     case 'D': // LEFT
                         if (active_layers & HEIGHT) move(&height_layer, 1, 0);
                         if (active_layers & BIOME) move(&biome_layer, 1, 0);
-                        if (active_layers & FEAUTRE) move(&feature_layer, 1, 0);
+                        if (active_layers & FEATURE) move(&feature_layer, 1, 0);
                         break;
                 }
                 break;
