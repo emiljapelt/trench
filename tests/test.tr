@@ -1,14 +1,14 @@
 
-let end_test = int:() {
+let end_test = \() {
     let b = 0;
     let a = 1 / b;
 };
 
-let current_test = 0;
-let assertions = 0;
-let has_failed = 0;
+let current_test : int;
+let assertions : int;
+let has_failed : int;
 
-let assert = int:(int v) {
+let assert = \(v: int) {
     if (has_failed) return 0;
     assertions++;
     if (v) return 0;
@@ -18,7 +18,7 @@ let assert = int:(int v) {
     }
 };
 
-let test_case = int:(int test_id, int() test) {
+let test_case = \(test_id: int, test: int()) {
     current_test = test_id;
     has_failed = 0;
     assertions = 0;
@@ -26,19 +26,18 @@ let test_case = int:(int test_id, int() test) {
     test();
 };
 
-let clone = int:(int() f) {
+let clone = \(f: int()) {
     let _id = id;
     projection();
     if (_id == id) return 0;
     else f();
 };
 
-
 // START
 
 
 // move
-test_case(1, int:() {
+test_case(1, \() {
     let prev_y = y;
     let prev_x = x;
     wall(N);
@@ -57,10 +56,10 @@ test_case(1, int:() {
 
 
 // pager
-test_case(2, int:() {
+test_case(2, \() {
     pager_set(1337);
 
-    clone(int:() {
+    clone(\() {
         pager_write(123);
         end_test();
     });
@@ -68,7 +67,7 @@ test_case(2, int:() {
     repeat 2 pass();
     assert(pager_read() == 123);
 
-    clone(int:() {
+    clone(\() {
         pager_write(123);
         end_test();
     });
@@ -80,10 +79,10 @@ test_case(2, int:() {
 
 
 // bridge/ocean
-test_case(3, int:() {
+test_case(3, \() {
     while(!(scan(W, 1) is @ocean)) move(W);
 
-    clone(int:() {
+    clone(\() {
         move(W);
         pager_write(420);
         end_test();
@@ -93,7 +92,7 @@ test_case(3, int:() {
 
     bridge(W);
 
-    clone(int:() {
+    clone(\() {
         move(W);
         pager_write(420);
         end_test();
@@ -103,7 +102,7 @@ test_case(3, int:() {
 
     bomb(W, 1);
 
-    clone(int:() {
+    clone(\() {
         move(W);
         pager_write(420);
         end_test();
@@ -113,8 +112,8 @@ test_case(3, int:() {
 });
 
 // Tree
-test_case(4, int:() {
-    int prev = count(#sapling);
+test_case(4, \() {
+    let prev: int = count(#sapling);
     plant_tree(E);
     assert(count(#sapling) < prev);
     repeat 3 pass();
@@ -126,7 +125,7 @@ test_case(4, int:() {
     assert(x == prev);
 
     prev = count(#sapling);
-    collect(E);
+    collect(E, 1);
     assert(count(#sapling) > prev);
 
     prev = count(#wood);
@@ -140,27 +139,39 @@ test_case(4, int:() {
 });
 
 // Drop resources on death
-test_case(5, int:() {
+test_case(5, \() {
+    assert(search(#wood) == 0);
     drop(1, #wood);
+    assert(search(#wood) == 1);
 
-    clone(int:() {
+    clone(\() {
+        assert(search(#wood) == 1);
+        let prev = count(#wood);
         take(1, #wood);
+        assert(count(#wood) == prev + 1);
+        assert(search(#wood) == 0);
         move(E);
         end_test();
     });
 
     repeat 2 pass();
+
     let prev = count(#wood);
+    assert(search(#wood) == 0);
     take(1, #wood);
+    assert(search(#wood) == 0);
     assert(count(#wood) == prev);
 
     move(E);
+    let prev_search = search(#wood);
+    assert(prev_search != 0);
     take(1, #wood);
+    assert(search(#wood) == prev_search - 1);
     assert(count(#wood) == prev + 1);
 });
 
 // Can use boat
-test_case(6, int:() {
+test_case(6, \() {
     while(!(scan(W, 1) is @ocean)) move(W);
 
     boat(W);
@@ -172,10 +183,10 @@ test_case(6, int:() {
 });
 
 // stack overflow kills
-test_case(7, int:() {
+test_case(7, \() {
 
     write(1);
-    clone(int:() {
+    clone(\() {
         if (read() == 1) {
             write(0);
             pass(); 
@@ -190,17 +201,17 @@ test_case(7, int:() {
 });
 
 // function usage
-test_case(8, int:() {
+test_case(8, \() {
 
-    let both = int:(int a, int b) {
+    let both = \int:(a: int, b: int) {
         return a ? b : 0;
     };
 
-    let either = int:(int a, int b) {
+    let either = \int:(a: int, b: int) {
         return a ? 1 : b;
     };
 
-    let not = int:(int a) {
+    let not = \int:(a: int) {
         return !a;
     };
 
@@ -231,12 +242,12 @@ test_case(8, int:() {
 });
 
 // null test
-test_case(9, int:() {
-    int() f;
+test_case(9, \() {
+    let f: int();
 
     assert(f == null);
 
-    f = int:() { return 1; };
+    f = \int:() { return 1; };
 
     assert(f != null);
 
@@ -245,10 +256,10 @@ test_case(9, int:() {
     assert(f == null);
 });
 
-// can pass() builtin functions
-test_case(10, int:() {
+// can pass builtin functions
+test_case(10, \() {
 
-    let f = int:(int(dir) f) {
+    let f = \int:(f: int(dir)) {
         return f(N);
     };
 
@@ -266,10 +277,10 @@ test_case(10, int:() {
 
 // array bounds check
 
-test_case(11, int:() {
+test_case(11, \() {
 
-    clone(int:() {
-        int[2] arr;
+    clone(\() {
+        let arr: int[2];
         while(pager_read() != 1) pass();
 
         arr[-1] = 1;
@@ -285,7 +296,7 @@ test_case(11, int:() {
 
 // scope test
 let a = 1;
-test_case(12, :() {
+test_case(12, \() {
     assert(a == 1);
     let a = 2;
     assert(a == 2);
@@ -302,6 +313,71 @@ test_case(12, :() {
         assert(a == 3);
     }
     assert(a == 2);
+});
+
+// arithmatics
+test_case(12, \() {
+    let a : int;
+
+    assert(a++ == 0);
+    assert(a == 1);
+    assert(a-- == 1);
+    assert(a == 0);
+
+    assert(++a == 1);
+    assert(a == 1);
+    assert(--a == 0);
+    assert(a == 0);
+});
+
+// simple stored array
+test_case(13, \() {
+    let array : int[4];
+
+    assert(|array| == 4);
+
+    assert(array[0] == 0);
+    assert(array[1] == 0);
+    assert(array[2] == 0);
+    assert(array[3] == 0);
+
+    array = [0,1,2,3];
+
+    assert(array[0] == 0);
+    assert(array[1] == 1);
+    assert(array[2] == 2);
+    assert(array[3] == 3);
+
+    array[..1] = [5,5];
+
+    assert(array[0] == 5);
+    assert(array[1] == 5);
+    assert(array[2] == 2);
+    assert(array[3] == 3);
+
+    array[2..] = [6,6];
+
+    assert(array[0] == 5);
+    assert(array[1] == 5);
+    assert(array[2] == 6);
+    assert(array[3] == 6);
+});
+
+// simple const array
+test_case(14, \() {
+    const array = [0,1,2,3];
+
+    assert(|array| == 4);
+
+    assert(array[0] == 0);
+    assert(array[1] == 1);
+    assert(array[2] == 2);
+    assert(array[3] == 3);
+
+    assert(|(array[0..2])| == 2);
+
+    assert(array[0..2][0] == 0); 
+    assert(array[0..2][1] == 1);
 });
 
 end_test();

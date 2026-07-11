@@ -16,14 +16,12 @@
                         "S", SOUTH;
                         "W", WEST;
                         "goto", GOTO;
-                        "int", INT;
-                        "dir", DIR;
-                        "field", FIELD;
-                        "property", PROP;
-                        "resource", RESOURCE;
+                        "type", TYPE;
                         "let", LET;
                         "return", RETURN;
                         "null", NULL;
+                        "any", ANY;
+                        "const", CONST;
                       ] 
   
   let char_of_string s lexbuf = match s with
@@ -32,13 +30,6 @@
   | "\'\\\\'" -> '\\'
   | _ when s.[1] = '\\' -> raise (Failure (Some((Lexing.lexeme_start_p lexbuf).pos_fname), Some((Lexing.lexeme_start_p lexbuf).pos_lnum), ("Unknown escape character: " ^ s)))
   | _ -> s.[1]
-
-  let incr_linenum lexbuf = 
-    let pos = lexbuf.Lexing.lex_curr_p in
-    lexbuf.Lexing.lex_curr_p <- { pos with
-      Lexing.pos_lnum = pos.Lexing.pos_lnum + 1;
-      Lexing.pos_bol = pos.Lexing.pos_cnum;
-    }
 
   let set_filename filename lexbuf =
     let pos = lexbuf.Lexing.lex_curr_p in
@@ -49,8 +40,9 @@
 
 rule lex = parse
         [' ' '\t']               { lex lexbuf }
-    |   ('\r''\n' | '\n')        { incr_linenum lexbuf ; lex lexbuf }
-    |   "//" [^ '\n' '\r']* ('\r''\n' | '\n' | eof)       { incr_linenum lexbuf ; lex lexbuf }
+    |   ('\r''\n' | '\n')        { Lexing.new_line lexbuf ; lex lexbuf }
+    |   "//" [^ '\n' '\r']* ('\r''\n' | '\n' | eof)       { Lexing.new_line lexbuf ; lex lexbuf }
+    |   "/*"  { comment lexbuf ; lex lexbuf }
     |   ['0'-'9']+ as lxm { CSTINT (int_of_string lxm) }
     |   '#' ['A'-'Z' 'a'-'z' ''' '_'] ['A'-'Z' 'a'-'z' '0'-'9' '_'] * as id { RESOURCE_NAME (String.sub id 1 (String.length id - 1)) }
     |   '@' ['A'-'Z' 'a'-'z' ''' '_'] ['A'-'Z' 'a'-'z' '0'-'9' '_'] * as id { FIELD_PROP (String.sub id 1 (String.length id - 1)) }
@@ -68,7 +60,10 @@ rule lex = parse
     |   "--"          { MINUSMINUS }
     |   '-'           { MINUS }
     |   '*'           { TIMES }
+    |   '\\'          { BSLASH }
     |   '/'           { FSLASH }
+    |   '.'           { DOT }
+    |   ".."          { DOTDOT }
     |   '%'           { PCT }
     |   '='           { EQ }
     |   "=="          { EQEQ }
@@ -80,8 +75,9 @@ rule lex = parse
     |   ">>"          { R_SHIFT }
     |   ">"           { GT }
     |   "=>"          { RARROW }
-    |   "&"           { LOGIC_AND }
-    |   "|"           { LOGIC_OR }
+    |   "&&"          { LOGIC_AND }
+    |   "||"          { LOGIC_OR }
+    |   "|"           { PIPE }
     |   '?'           { QMARK }
     |   '!'           { EXCLAIM }
     |   '('           { LPAR }
@@ -98,3 +94,10 @@ rule lex = parse
 
 and start filename = parse
        "" { set_filename filename lexbuf ; lex lexbuf }
+
+and comment = parse
+  | "/*"    { comment lexbuf; comment lexbuf }
+  | "*/"    { () }
+  |   ('\r''\n' | '\n')        { Lexing.new_line lexbuf ; comment lexbuf }
+  | (eof | '\026')   { raise (Failure(Some((Lexing.lexeme_start_p lexbuf).pos_fname), Some((Lexing.lexeme_start_p lexbuf).pos_lnum), ("Unterminated comment"))) }
+  | _ { comment lexbuf }

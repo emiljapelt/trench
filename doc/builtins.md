@@ -1,10 +1,8 @@
 [Back to overview](../README.md)
 
-The trench language contains builtin functions and variables, some of which relate to themes and features. Builtins cannot be reassigned. If a variable of the same name is declared, that variable will be used instead of the builtin one, allowing user to overwrite them.
+The trench language contains builtin functions and identifiers, some of which relate to themes and features. Builtins cannot be reassigned. If an identifier of the same name is declared it will be used instead of the builtin one, allowing user to overwrite them.
 
-Some builtin function have shorthand versions, which are only available when the function is called directly, i.e. not via assignment or passed as argument. These are explain in the functions section.
-
-Some builtin functions return a result in the form of an `int`, which may be an error. The following table shows the different named errors, each of which has a corresponding builtin variable.
+Some builtin functions return a result in the form of an `int`, which may be an error. The following table shows the different named errors, each of which has a corresponding builtin identifier.
 
 | Name | Value |
 | --- | --- |
@@ -19,7 +17,7 @@ Some builtin functions return a result in the form of an `int`, which may be an 
 
 ---
 
-## Variables
+## Identifiers
 
 | Name | Type | Explaination |
 | --- | --- | --- |
@@ -30,8 +28,22 @@ Some builtin functions return a result in the form of an `int`, which may be an 
 | map_height | int | The height of the map |
 | round | int | The current round number |
 | true | int | Is just 1 |
-| false | int | Ist just 0 |
+| false | int | Is just 0 |
+| player | [int x, int y, int id] | Contains information about the player |
+| map | [int width, int height] | Contains information about the map |
+| meta | ... | Contains information about other builtin identifiers, such as the cost of calling a function |
 
+## The meta structure
+
+Many of the builtin identifiers, especially the functions, have properties which the players might want to know. Such as: 
+- How much does it cost the use this function?
+- Which resource will be used?
+- How far can a fireball travel?
+- How much wood can I carry?
+
+This kind of information is gathered in the meta structure, if the `meta` feature is active, and the relevant themes and features are also active, i.e. you cannot lookup what it costs to cast a fireball, if the fireball function does not exist. The structure also has a `resource` entry, containing infomation abount how much of any resource a player can carry. `meta.resource.wood` is the amount of wood a player may carry.
+
+Which informations that are available for a particular builtin, is explained where the builtin itself is explained.
 
 ## Functions
 
@@ -143,16 +155,20 @@ Changes the channel of the players pager to `i`.
 
 Returns a snapshot of the properties of the field in direction `d`, at a distance of `i` fields. It is possible to scan past an obstruction. By default the is no limit to the size of `i`. If `i` is less the `0`, it becomes `0`.
 
+**Meta:** range
+
 ---
 
 ### Look
-`look` `int:(dir d, property p)`
+`look` `int:(dir d, field f)`
 
-Get the distance to the nearest field in the direction `d`, which has the property `p`. By default the is no limit to the range.
+Get the distance to the nearest field in the direction `d`, which has all the properties of `f`. By default the is no limit to the range.
+
+**Meta:** range
 
 **Returns:**
 
-The distance to the first field with property `p`, or `_ERROR` if no such field was found.
+The distance to the first field with property `f`, or `_ERROR` if no such field was found.
 
 ---
 
@@ -163,16 +179,11 @@ Attempt to collect resources from the field `p` fields in direction `d`.  If `p`
 
 Resources can be collected from TREE, MINE_SHAFT and CLAY fields.
 
+**Meta:** range
+
 **Returns:** 
 
 If the targeted field is out of bounds `_OUT_OF_BOUNDS` is returned, if a resource was collected `_SUCCESS` is returned, otherwise `_ERROR` is returned.
-
-**Shorthands:**
-
-| Signature | Equivalent |
-| --- | --- |
-| `int:()` | `collect(N, 0)` |
-| `int:(dir d)` | `collect(d, 1)` |
 
 ---
 
@@ -190,7 +201,9 @@ Always `_SUCCESS`.
 ### Trench <sub><small>action</small></sub>
 `trench` `int:(dir d, int p)`
 
-Attemp to create a trench `p` fields in direction `d`. If `p` is greater than 1 (`trench.range`) or less than 0, it is clamped to the valid range.
+Attempt to create a trench `p` fields in direction `d`. If `p` is greater than 1 (`trench.range`) or less than 0, it is clamped to the valid range. It costs `0` `wood` (`trench.cost`) to create a trench.
+
+**Meta:** cost, range, resource
 
 **Returns:**  
 
@@ -199,13 +212,6 @@ Attemp to create a trench `p` fields in direction `d`. If `p` is greater than 1 
 | _SUCCESS | A trench was created |
 | _OUT_OF_BOUNDS | The target field is out of bounds |
 | _INVALID_TARGET | The trench could not be created |
-
-**Shorthands:**
-
-| Signature | Equivalent |
-| --- | --- |
-| `int:()` | `trench(N, 0)` |
-| `int:(dir d)` | `trench(d, 1)` |
 
 ---
 
@@ -216,6 +222,8 @@ Attemp to fortify the field `p` fields in direction `d`. This costs `5` `wood` (
 
 TRENCH, WALL and MINE_SHAFT fields can be fortified, but only once.
 
+**Meta:** cost, range, resource
+
 **Returns:**
 
 | Value | Explaination |
@@ -225,13 +233,6 @@ TRENCH, WALL and MINE_SHAFT fields can be fortified, but only once.
 | _INVALID_TARGET | The field could not be fortified |
 | _MISSING_RESOURCE | The player did not have enough resources |
 
-**Shorthands:**
-
-| Signature | Equivalent |
-| --- | --- |
-| `int:()` | `fortify(N, 0)` |
-| `int:(dir d)` | `fortify(d, 1)` |
-
 ---
 
 ### Shoot <sub><small>action</small></sub>
@@ -240,6 +241,8 @@ TRENCH, WALL and MINE_SHAFT fields can be fortified, but only once.
 Fire a bullet in direction `d`, spending `1` `ammo` to do so. The bullet will travel until it hits an obstruction or a player which is not in cover, with a maximum range of `6` (`shoot.range`). The bullet will only hit a single player on a field.
 
 **Themes:** military, forestry
+
+**Meta:** range, resource
 
 **Returns:**
 
@@ -266,6 +269,8 @@ Remove all physical events from the adjecent field in direction `d`.
 Plant a tree on the adjecent field in direction `d`, spending `1` `#sapling`. This creates a physical event on the target field, which will turn the target field into a TREE field after 3 rounds (`plant_tree.delay`), if the field is EMPTY at that point. 
 
 **Themes:** forestry
+
+**Meta:** delay, resource
 
 **Returns:** 
 
@@ -295,6 +300,8 @@ Always `_SUCCESS`.
 
 Build a WALL in one field direction `d`. This cost `10` `wood` (`wall.cost`), and requires that the target field is EMPTY.
 
+**Meta:** cost, resource
+
 **Returns:**
 
 | Value | Explaination |
@@ -310,6 +317,8 @@ Build a WALL in one field direction `d`. This cost `10` `wood` (`wall.cost`), an
 `bridge` `int:(dir d)`
 
 Build a BRIDGE in one field direction `d`. This cost `20` `wood` (`bridge.cost`), and requires that the target field is OCEAN.
+
+**Meta:** cost, resource
 
 **Returns:**
 
@@ -327,6 +336,8 @@ Throw a ball of clay in direction `d`, upto a maximal range of `i`. If `i` is gr
 
 If the clay hits an obstruction it will be damaged, if it hits a player that player will die. Otherwise, if the ball lands on an EMPTY field, that field is converted to a CLAY field, and if that field was already a CLAY field, a unit of clay will be added to the field.
 
+**Meta:** cost, range, resource
+
 **Themes:** pottery
 
 **Returns:**
@@ -343,6 +354,8 @@ Create a golem of clay.
 **Themes:** pottery
 
 **Features:** fork
+
+**Meta:** cost, resource
 
 **Returns:**
 
@@ -372,6 +385,8 @@ Create a golem of clay.
 ### Mine shaft <sub><small>action</small></sub>
 `mine_shaft` `int:(dir d) | int:()`
 
+**Meta:** cost, resource
+
 **Returns:**
 
 ---
@@ -392,6 +407,8 @@ The amount of resource `r` that the player currently has.
 
 ### Bomb <sub><small>action</small></sub>
 **themes:** military
+
+**Meta:** range, cost, resource
 
 **syntax:** `bomb d i`
 

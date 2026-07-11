@@ -10,20 +10,25 @@ Some language constructs require some game settings to be enabled, called featur
 
 ## Comments
 
-Comments start with `//` and end at the end of the same line.
+Comments start with `//` and end at the end of the same line, or `/*` `*/` for multiline comments.
 
 Examples:
 ```
 // This entire line is a comment
 
-int x = 2;  // There can be actual code before a comment
+let x : int = 2;  // There can be actual code before a comment
+
+/*
+That is ...
+nice
+*/
 ```
 
 ## Types
 
 ### int
 
-Whole numbers including negatives, represented using 32 bits. Only base-10 is currently supported.
+Whole numbers, represented using 32 bits. Only base-10 is currently supported.
 
 This type is also used for as the boolean value, where positive values are *true*, and other values are *false*.
 
@@ -43,17 +48,9 @@ Examples:
 
 The 4 cardinal directions, N, S, E and W.
 
-Examples:
-```
-N
-S
-E
-W
-```
+### field
 
-### property / field
-
-a value of the `property` type is a property that a field may have. a value of the `field` type is a collection of properties describing a specific field.
+A value of the `field` type is a collection of properties describing a specific field.
 
 The available properties are:
 
@@ -76,12 +73,28 @@ The available properties are:
 | mountain | This field is a mountain |
 | enemy | There is an enemy on the field |
 | ally | There is an ally on the field |
+| vehicle | There is a vehicle on the field |
+| all | A field with every property |
 
-These properties of a field can be queried using the ```is``` expression.
+A field value with a single property can be created with the syntax: `@`*property*.
+
+Values of this type can be used with the following operators.
+
+| Operator | Result | Type |
+| --- | --- | --- |
+| *a* + *b* | The union of the properties of the operands | field |
+| *a* - *b* | The properties of the left hand operand, except for the properties of the right hand operand | field |
+| *a* == *b* | 1 if the operands are entirely equal, otherwise 0 | int |
+| *a* != *b* | 1 if the operands are at all different, otherwise 0 | int |
+| *a* is *b* | 1 if the left hand operand has atleast all the properties of the right hand operand, otherwise 0 | int |
+| *a* any *b* | 1 if the operands have any property in common, otherwise 0 | int |
+| ! *a* | The field with the opposite properties of the operands | field |
+
+
 
 ### resource
 
-The `resource` type describes the different resources that a player can have, such as wood and bullets. The syntax is a hashtag followed by the name of the resource, e.g. `#wood` or `#explosive`. Players can use the builtin [count](./builtins.md#count) to get their current amount a resource.
+The `resource` type describes the different resources that a player can have, such as wood and ammunition. The syntax is a hashtag followed by the name of the resource, e.g. `#wood` or `#explosive`. Players can use the builtin [count](./builtins.md#count) to get their current amount of a resource.
 
 The available properties are:
 
@@ -96,17 +109,46 @@ The available properties are:
 
 ### array
 
-Arrays are fixed sized lists of values belonging to a single type. The size is given at declaration, and values can be indexed, starting at 0. Arrays cannot be given as argument to a function, nor can they be the return type.
+Arrays are fixed sized lists of values belonging to a single type. The size is given at declaration, and values can be indexed, starting at 0.
 
 ```
 // Declare
-int[2] my_array;
+let my_array : int[2];
 
 // Assign
 my_array[0] = 57;
+my_array = [1,2];
 
 // Access
 say(my_array[0]);
+```
+
+If the setting `auto_resize` is set to `true`, the compiler will automatically resize arrays, altough not recursivly. If the array is to small it will be padded with default values, and if it is to long the end will be cut of. 
+
+To manually resize, range access can be utilized.
+
+| Syntax | Description |
+| --- | --- |
+| a[n..] | `n` must be a constant. Take from `n` to the end of the array |
+| a[..n] | `n` must be a constant. Take from the start of the array, until `n` |
+| a[n..m] | `m` must be a constant. Take `m` elements, starting from `n` |
+
+### tuple
+
+Tuples are structures of values, which may have names. It uses a similar syntax to arrays.
+
+```
+// Declare
+let my_tuple: [int, d: dir];
+
+// Assign
+my_tuple[0] = 41;
+my_tuple.d = S;
+my_tuple = [23, E];
+
+// Access
+say(my_tuple[0]);
+move(my_tuple.d);
 ```
 
 ### function
@@ -119,23 +161,23 @@ The type of a function is written as such:
 
 and a function is specified as such:
 
-```type:(type name, ...) { ... }```
+```\type:(name: type , ...) { ... }```
 
-The first type is the return type, all functions must have one. Inside the parentheses are the function parameters, which there may be zero or more of, and finally the function body.
+The first type is the return type, all functions have one. Inside the parentheses are the function parameters, which there may be zero or more of, and finally the function body.
 
 Examples:
 
 ```
-int(int,int) add = int:(int a, int b) {
+let add : int(int,int) = \int:(a: int, b: int) {
     return a + b;
 };
 
-let move = int:(dir d) {
+let move = \(d: dir) {
     if (!look(d, @trapped) = 1) move(d);
 };
 
-let random_move = int:() {
-    move(?[N S E W]);
+let random_move = \int:() {
+    move([N,S,E,W][? % 4]);
 };
 
 
@@ -143,16 +185,16 @@ let random_move = int:() {
 
 Notice that even though all function have a return type, not all of these examples have a return statement. This is because all functions have an implicit return statement at the end, returning the default value of their return type.
 
-Inside of a function only the parameters, locally declared and global variables are available. Additionally the local variable `this` is implicitly declared in all functions, and refer to the function itself, enabling recursion.
+Inside of a function only the parameters, locally declared and global variables are available. Additionally the local constant `this` is implicitly declared in all functions, and refer to the function itself, enabling recursion.
 
 ```
 let a = 0;
 
-let f1 = int:(int b) {
+let f1 = \int:(b: int) {
 
     let c = 0;
 
-    let f2 = int:(int d) {
+    let f2 = \int:(d: int) {
         let e = 0;
         // can reach: a, d, e
     };
@@ -179,24 +221,24 @@ Functions have a few pieces of syntactic sugar.
 - If the function should just return the result of an expression the `=>` synax can be used:
 
 ```
-let sqr = :(int a) => a * a;
+let sqr = \(a: int) => a * a;
 
-let negate = :(int a) {
+let negate = \(a: int) {
     if (a < 0) return a;
     else return -a;
 };
 
-let opposite = dir:(dir d) => d << 2;
+let opposite = \dir:(d: dir) => d << 2;
 ```
 
 
 ## Expressions
 
-### Variables
+### Identifiers
 
 **features:** memory
 
-Variables are name for data, they start with a letter which is followed by an amount of letters, numbers and underscores. 
+Identifiers are name for data, they start with a letter which is followed by an amount of letters, numbers and underscores. They may refer to variables or constants;
 
 Examples:
 
@@ -206,14 +248,14 @@ my_variable
 MyVariable
 field2_1
 ```
-Variables do not have to be unique. When referenced the nearest variable in scope will be used.
+Identifiers do not have to be unique. When referenced the nearest variable in scope will be used.
 
 ```
-int x = 1;
-int x = 2;
+let x = 1;
+let x = 2;
 {
     say x;     // -> 2
-    int x = 3
+    let x = 3
     say x;     // -> 3
 }
 say x;         // -> 2
@@ -228,16 +270,6 @@ say x;         // -> 2
 **features:** random
 
 Evaluates to a random non-negative integer.
-
----
-### Random from set
-**type:** *any*
-
-**syntax:** `?[a ... z]`
-
-**features:** random
-
-Evaluates to one of the given values. All values must have the same type, which will also the the resulting type.
 
 ---
 ### Unary operation
@@ -271,15 +303,6 @@ Evaluates to one of the given values. All values must have the same type, which 
 | dir | << | int | Rotate left |
 | dir | >> | int | Rotate right |
 
-
----
-
-### Is
-**type:** int
-
-**syntax:** *field* `is` *property*
-
-Evaluates to `1` if the given field has the given property. Otherwise it evaluates to `0`.
 
 ---
 
@@ -322,7 +345,7 @@ i++;
 ### Label
 **syntax:** *name*`:`
 
-A label gives a particular point in the program a name. It can be used to jump to that point during execution. The names follow the same syntax as variables, but must be unique.
+A label gives a particular point in the program a name. It can be used to jump to that point during execution. These must be unique.
 
 ---
 
@@ -334,16 +357,24 @@ Continues execution of the program at the *name* label.
 ---
 
 ### Declaration
-**syntax:** *type* *name* `;` | *type* *name* `=` *expr* `;` | *let* *name* `=` *expr* `;`
+**syntax:** `let` *name* `:` *type* `;` | `let` *name* `:` *type* `=` *expr* `;` | `let` *name* `=` *expr* `;` | `const` *name* `=` *expr* `;`
 
 **features:** memory
 
-Declares a variable of the given type and name, assigning the resulting value of evaluating the expression, if one is given.
+Declares a variable or constant of the given type and name, assigning the resulting value of evaluating the expression, if one is given. Multiple identifers of the same name can be declared, but only the most recent can be accessed.
+
+---
+
+### Type Declaration
+
+**syntax:** `type` *name* `=` *type* `;`
+
+Declares a type alias. Multiple aliases of the same name can be declared, but only the most recent can be accessed.
 
 ---
 
 ### Assignment
-**syntax:** *name* `=` *expr* `;`
+**syntax:** *target* `=` *expr* `;`
 
 **features:** memory, sugar*
 
@@ -355,7 +386,6 @@ Assigns the resulting value of evaluating the expression, to the variable of the
 **features:** control
 
 ```
-
 if (look(N, @ocean) > 10)
     give_up();
 
@@ -363,22 +393,27 @@ if (#mana == 0) meditate();
 else fireball(d);
 ```
 
-### If-Is
+### If-Is-Else
 **features:** control, sugar
+
+The condition is evaluated once, and the first case, from the top, which contains a value equal to the condition, is executed. If nothing matched and an `else` is defined, the `else`-statement is executed.
+
+The condition can be of any type, for which the `==` operator is defined, i.e. anything but structures.
+
 
 ```
 if (x) 
-    is 1 move(N);
-    is y move(S);
-    is (2 * y) move(E);
+    is 1, 2: move(N);
+    is y: move(S);
+    is (2 * y): move(E);
 else
     say(0);
 ```
 
 ### Repeat
-**syntax:** `repeat` *x* *stmt*
+**syntax:** `repeat` *x* *stmt* | `repeat` *stmt*
 
-Where *x* is a constant integer. Compiles the given statement *x* times 
+If *x* is given, it must be a constant `int`, and the statement will be compiled *x* times. Otherwise an infinite loop is created.
 
 ```
 repeat 5 move(N);
@@ -387,6 +422,8 @@ repeat 3 {
     move(N);
     trench();
 }
+
+repeat say(1234);
 ```
 
 ---

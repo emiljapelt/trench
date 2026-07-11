@@ -1,11 +1,7 @@
-open Optimize
-open Typing
 open Exceptions
 open ToProgramRep
 open ProgramRep
 open Absyn
-open Transform
-open Settings
 open Resources
 open Bigarray
 open Helpers
@@ -67,8 +63,6 @@ let complete_path base path = compress_path (if path.[0] = '.' then (String.sub 
 
 let default_game_setup = GS {
   teams = [];
-  themes = StringSet.empty;
-  features = StringSet.empty;
   resources = default_resources;
   actions = 1;
   steps = 100;
@@ -116,64 +110,57 @@ let fix_map_path game_file_dir map = match map with
 let fix_team_paths game_file_dir (TI team_info) = 
   (TI ({team_info with players = List.map (fun (PI player) -> (PI {player with files = List.map (fix_path game_file_dir) player.files})) team_info.players}))
 
+  
 let to_game_setup game_file_dir gsps =
   let rec aux gs (GS acc) = match gs with
     | [] -> (GS acc)
     | h::t -> aux t (match h with
       | Team t -> (GS ({acc with teams = (fix_team_paths game_file_dir t) :: acc.teams}))
-      | Resources rs -> (GS ({acc with resources = List.fold_left (fun acc (name, value) -> ResourceMap.add (string_to_resource name) value acc) acc.resources rs}))
-      | Themes ts -> (GS ({acc with themes = ts}))
-      | Features fs -> (GS ({acc with features = fs}))
+      | Resources rs -> 
+        let map = List.fold_left (fun acc (name, value) -> ResourceMap.add (string_to_resource name) value acc) acc.resources rs in
+        Flags.set_resources map ;
+        (GS ({acc with resources = map}))
       | Actions i -> if i > 0 then (GS ({acc with actions = i})) else raise_failure "Must have some actions per turn"
       | Steps i -> if i > 0 then (GS ({acc with steps = i})) else raise_failure "Must have some steps per turn"
       | Mode i -> (GS ({acc with mode = i}))
-      | Map m -> (GS ({acc with map = m |> fix_map_path game_file_dir |> check_map}))
+      | Map m -> 
+        let m = m |> fix_map_path game_file_dir |> check_map in
+        Flags.set_map_size (get_map_size m) ;
+        (GS ({acc with map = m}))
       | Nuke i -> if i >= 0 then (GS ({acc with nuke = i})) else raise_failure "Nuke option size cannot be negative"
       | ExecMode em -> GS ({acc with exec_mode = em})
       | Seed s -> GS ({acc with seed = s})
       | TimeScale f -> if (f >= 0.0) then GS ({acc with time_scale = f}) else raise_failure "Time scale option cannot be negative"
-      | SettingOverwrites so -> (GS ({acc with setting_overwrites = so}))
+      | SettingOverwrites so -> 
+        let map = StringMap.of_list so in
+        Flags.set_settings map ;
+        (GS ({acc with setting_overwrites = StringMap.to_list map}))
       | Debug b -> (GS ({acc with debug = b}))
       | Viewport(w,h) -> if w > 0 || h > 0  then (GS ({acc with viewport = (w,h)})) else raise_failure "Viewport must be two non-zero ints"
       | AutoStart b -> (GS ({acc with auto_start = b}))
+      | Features fs -> Flags.set_features fs ; GS acc
+      | Themes ts -> Flags.set_themes ts ; GS acc
+      | AutoResize v -> Flags.set_auto_resize v ; GS acc
     )
   in
   aux gsps default_game_setup
 
-let compile parser lexer transforms checks compiler stringer path =
+let compile parser lexer path =
   let path = (compress_path (total_path path)) in
   try (
     let lexbuf = (Lexing.from_string (read_file path)) in
-    let result = 
     try 
       parser (lexer path) lexbuf
     with
     | Failure(None,None,m) -> raise (Failure(Some path,Some(lexbuf.lex_curr_p.pos_lnum),m))
     | Failure(p,l,m) -> raise (Failure(p,l,m))
     | _ -> raise (Failure(Some path, Some(lexbuf.lex_curr_p.pos_lnum), "Syntax error"))
-    in
-    List.iter (fun check -> check result) checks ;
-    List.fold_left (fun acc trans -> trans acc) result transforms |> compiler |> stringer
+    
   )
   with 
   | Failure(None,ln,msg) -> raise (Failure(Some path,ln,msg))
   | Failure _ as f -> raise f
   (*| _ -> raise (Failure(Some path, None, "Parser error"))*)
-  
-
-(*
-let check_no_negative_arrays (File(regs,_)) =
-  let rec check_type t = match t with
-  | T_Array(t,i) -> if i < 0 then false else check_type t
-  | _ -> true
-  in
-  let rec aux regs = match regs with
-  | [] -> ()
-  | Var(ty,n)::t -> 
-    if check_type ty then aux t
-    else raise_failure (n ^ " contains a negative sized array")
-  in
-  aux regs*)
 
 let player_to_program size_limit program = 
   let program = program_to_int_list program in
@@ -204,7 +191,8 @@ type compiled_game_file = {
   resources: (int * int * int) array;
   seed: int option;
   time_scale: float;
-  settings: settings;
+  settings_count: int;
+  settings: setting array;
   debug: bool;
   viewport: int * int;
   auto_start: bool;
@@ -212,12 +200,10 @@ type compiled_game_file = {
 
 let compile_player_file path size_limit = try (
   check_path path [".tr"] ;
-  let result = (compile Player_parser.main Player_lexer.start [
-    type_check_program;
-    rename_variables_of_file;
-    optimize_program;
-  ] (*[check_no_negative_arrays]*)[] compile_player (player_to_program size_limit) path)
-in Ok(result)
+  compile Player_parser.main Player_lexer.start path 
+  |> compile_player
+  |> (player_to_program size_limit)
+  |> Result.ok
 ) with
 | Failure(None,ln,msg) -> Error(format_failure (Failure(Some path, ln, msg)))
 | Failure _ as f -> Error(format_failure f)
@@ -225,10 +211,6 @@ in Ok(result)
 let game_setup_player (PI player) = 
   if (List.length player.files < 1) then raise_failure ("Player with no files: " ^ player.name)
   else
-  (* simpler checking??? Just type checking??? *)
-  (*let check_files = List.fold_left (fun acc file -> if (file = "_") then Ok([||])::acc else compile_player_file file :: acc) [] player.files in 
-  let failure = List.find_opt Result.is_error check_files in 
-  if Option.is_some failure then raise_failure (failure |> Option.get |> Result.get_error) else*)
   {
     team = player.team;
     name = player.name;
@@ -237,12 +219,6 @@ let game_setup_player (PI player) =
     extra_files_count = List.length player.files - 1;
     extra_files = List.tl player.files |> List.rev |> Array.of_list;
   }
-
-let set_themes ts =
-  Flags.compile_flags.themes <- ts ; ()
-
-let set_features fs =
-  Flags.compile_flags.features <- fs ; ()
 
 let add_team_info board_size (teams : team_info list) : team_info list =
   let compute_origin (PI player) (TI team) = 
@@ -290,7 +266,7 @@ let format_game_setup (GS gs) =
     mode = gs.mode;
     nuke = gs.nuke;
     player_count = List.length players;
-    player_info = (set_features gs.features ; set_themes gs.themes ; Array.of_list (List.map game_setup_player players));
+    player_info = Array.of_list (List.map game_setup_player players);
     team_count = Array.length teams;
     teams = teams;
     exec_mode = gs.exec_mode;
@@ -298,16 +274,20 @@ let format_game_setup (GS gs) =
     seed = gs.seed;
     time_scale = gs.time_scale;
     map = gs.map;
-    settings = overwrite_settings default_settings gs.setting_overwrites;
+    settings_count = List.length gs.setting_overwrites;
+    settings = Array.of_list gs.setting_overwrites;
     debug = gs.debug;
     viewport = gs.viewport;
     auto_start = gs.auto_start;
   }
 
 let compile_game_file path = try (
-  let _ = check_path path [".trg"] in
+  check_path path [".trg"];
   let game_file_dir = Filename.dirname path in
-  Ok(compile Game_parser.main Game_lexer.start [] [] (to_game_setup game_file_dir) (format_game_setup) path)
+  compile Game_parser.main Game_lexer.start path
+  |> to_game_setup game_file_dir
+  |> format_game_setup
+  |> Result.ok
 ) with
 | Failure(None,ln,msg) -> Error(format_failure (Failure(Some path, ln, msg)))
 | Failure _ as f -> Error(format_failure f)

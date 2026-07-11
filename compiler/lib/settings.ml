@@ -8,6 +8,11 @@ type cost_setting = {
   cost: int;
 }
 
+type blink_setting = {
+  cost: int;
+  duration: int;
+}
+
 type range_and_cost_setting = {
   range: int;
   cost: int;
@@ -91,6 +96,8 @@ type settings = {
   craft: craft_setting;
   trench: range_setting;
   collect: range_setting;
+  obliviate: range_and_cost_setting;
+  blink: blink_setting;
 }
 
 type ('a, 'b) overwrite = (string * ('a -> 'b -> 'a)) list
@@ -108,6 +115,11 @@ let range_setting_overwrite = overwritter [
 
 let cost_setting_overwrite = overwritter [
   ("cost", fun _ v -> {cost = v} );
+]
+
+let blink_setting_overwrite = overwritter [
+  ("cost", fun (s : blink_setting) v -> {s with cost = v} );
+  ("duration", fun s v -> {s with duration = v})
 ]
 
 let range_and_cost_setting_overwrite = overwritter [
@@ -202,7 +214,9 @@ let rec overwrite_settings settings overwrites =
           | "mine_shaft" -> ({ settings with mine_shaft = cost_setting_overwrite settings.mine_shaft setting_overwrites })
           | "craft" ->      ({ settings with craft = craft_setting_overwrite settings.craft setting_overwrites })
           | "trench" ->     ({ settings with trench = range_setting_overwrite settings.trench setting_overwrites })
-          | "collect" ->     ({ settings with collect = range_setting_overwrite settings.collect setting_overwrites })
+          | "collect" ->    ({ settings with collect = range_setting_overwrite settings.collect setting_overwrites })
+          | "obliviate" ->  ({ settings with obliviate = range_and_cost_setting_overwrite settings.obliviate setting_overwrites })
+          | "blink" ->      ({ settings with blink = blink_setting_overwrite settings.blink setting_overwrites })
           | _ -> raise_failure ("No setting group: '" ^ name ^ "'")
         )
       )
@@ -239,4 +253,6 @@ let default_settings : settings = {
   craft = { ammo_per_metal = 3; beartraps_per_metal = 1; };
   trench = { range = 1; };
   collect = { range = 1; };
+  obliviate = { cost = 20; range = 2; };
+  blink = { cost = 10; duration = 2; };
 }

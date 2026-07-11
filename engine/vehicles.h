@@ -11,11 +11,9 @@ typedef enum {
 } vehicle_type;
 
 typedef struct vehicle_state {
-    int id;
     vehicle_type type : 8;
+    entity_t* entity;
     entity_list_t* entities;
-    location location;
-    unsigned int destroy : 1;
     resource_registry resources;
 } vehicle_state;
 
@@ -25,6 +23,6 @@ vehicle_move_function get_vehicle_move_func(vehicle_type type);
 
 int get_vehicle_capacity(vehicle_type type);
 
-void destroy_vehicle(vehicle_state* v, char* death_msg);
+void destroy_vehicle(vehicle_state* v);
 
 #endif

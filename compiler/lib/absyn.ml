@@ -1,5 +1,6 @@
 open Helpers
 open Resources
+open ProgramRep
 
 type direction =
     | North
@@ -18,6 +19,7 @@ type field_prop =
     | Flammable_Prop
     | Cover_Prop
     | Shelter_Prop
+    | Meltable_Prop
     | IsEmpty_Prop
     | IsTrench_Prop
     | IsIceBlock_Prop
@@ -28,68 +30,150 @@ type field_prop =
     | IsClay_Prop
     | IsMineShaft_Prop
     | IsMountain_Prop
-    | IsEnemy_Prop
-    | IsAlly_Prop
+    | Enemy_Prop
+    | Ally_Prop
+    | Vehicle_Prop
 
-and typ =
+let prop_index p = match p with
+  | Obstruction_Prop ->     0b00000000000000000000000000000001
+  | Player_Prop ->          0b00000000000000000000000000000010
+  | Trapped_Prop ->         0b00000000000000000000000000000100
+  | Flammable_Prop ->       0b00000000000000000000000000001000
+  | Cover_Prop ->           0b00000000000000000000000000010000
+  | Shelter_Prop ->         0b00000000000000000000000000100000
+  | Meltable_Prop ->        0b00000000000000000000000001000000
+  | IsEmpty_Prop ->         0b00000000000000000000000010000000
+  | IsTrench_Prop ->        0b00000000000000000000000100000000
+  | IsIceBlock_Prop ->      0b00000000000000000000001000000000
+  | IsTree_Prop ->          0b00000000000000000000010000000000
+  | IsOcean_Prop ->         0b00000000000000000000100000000000
+  | IsWall_Prop ->          0b00000000000000000001000000000000
+  | IsBridge_Prop ->        0b00000000000000000010000000000000
+  | IsClay_Prop ->          0b00000000000000000100000000000000
+  | IsMineShaft_Prop ->     0b00000000000000001000000000000000
+  | IsMountain_Prop ->      0b00000000000000010000000000000000
+  | Enemy_Prop ->           0b00000000000000100000000000000000
+  | Ally_Prop ->            0b00000000000001000000000000000000
+  | Vehicle_Prop ->         0b00000000000010000000000000000000
+
+module FieldProp = struct
+  type t = field_prop
+  let compare = fun a b -> Int.compare (prop_index a) (prop_index b)
+end
+module FieldPropSet = Set.Make(FieldProp)
+
+type field = FieldPropSet.t
+
+let field_value = FieldPropSet.to_list >> List.map prop_index >> List.fold_left (+) 0
+
+type typ =
     | T_Int
     | T_Dir
     | T_Field
-    | T_Prop
     | T_Resource
     | T_Array of typ * int
+    | T_Tuple of (typ * string option) list
     | T_Func of typ * typ list
     | T_Null
 
-and statement =
-    | Stmt of statement_inner * int
+and typ_expr =
+    | TE_Identifier of string
+    | TE_Array of typ_expr * expression
+    | TE_Tuple of (typ_expr * string option) list
+    | TE_Func of typ_expr * typ_expr list
 
-and target =
-    | Local of string
-    | Array of target * value
+and  statement =
+    | Stmt of stmt * int
 
-and statement_inner =
-    | If of value * statement * statement
-    | IfIs of value * (value * statement) list * statement option
-    | Block of statement list
-    | While of value * statement * statement option
+and stmt =
+    | If of  expression * statement * statement
+    | IfIs of  expression * (expression list * statement) list * statement option
+    | Block of  statement list
+    | While of  expression * statement * statement option
     | Continue
     | Break
-    | Assign of target * value
+    | Assign of  expression *  expression
     | Label of string
     | GoTo of string
-    | Declare of typ * string
-    | DeclareAssign of typ option * string * value
-    | Return of value
-    | Expr of value
+    | Declare of typ_expr * string
+    | DeclareAssign of typ_expr option * string * expression
+    | DeclareConst of string * expression
+    | DeclareType of typ_expr * string
+    | Return of expression
+    | ExprStmt of expression
+    | Repeat of expression option * statement
 
-and value =
-    | Reference of target
+and expression =
+    | Expr of expr * int
+
+and expr =
+    | IdentifierAccess of string
+    | IndexAccess of expression * range
+    | TupleAccess of expression * string
     | Resource of resource
-    | Increment of target * bool
-    | Decrement of target * bool
-    | Binary_op of string * value * value
-    | Unary_op of string * value
+    | Increment of expression * bool
+    | Decrement of expression * bool
+    | Binary_op of binop * expression * expression
+    | Unary_op of unop * expression
     | Int of int
-    | Prop of field_prop
+    | Field of field
     | Direction of direction
     | Random
-    | RandomSet of value list
-    | FieldProp of value * value
-    | Func of typ * (typ * string) list * statement
-    | Call of value * value list
-    | Ternary of value * value * value
+    | RandomAccess of expression
+    | Func of func
+    | Call of expression *  expression list
+    | Ternary of expression * expression * expression
     | Null
+    | StructureLiteral of structure_element list
+    | SizeOf of expression
+    | ASM of typ * instruction list
 
-and variable =
+and structure_element =
+    | StructureElement of string option * expression
+    | SpreadElement of expression
+
+and func = {
+    data : typ_expr * (typ_expr * string) list * statement;
+    mutable cache : (typ*string) option;
+}
+
+and range =
+    | Index of expression
+    | Range of expression option * expression option
+
+and binop =
+    | Plus
+    | Minus
+    | Times
+    | And
+    | Or
+    | Equal
+    | NotEqual
+    | Less
+    | LessOrEqual
+    | Greater
+    | GreaterOrEqual
+    | Divide
+    | Remainder
+    | RightShift
+    | LeftShift
+    | IsCompare
+    | AnyCompare
+
+and unop =
+    | Negate
+
+and identifier =
     | Var of typ * string
+    | Const of  string * expression
+    | Type of string * typ
 
-and file = 
-    | File of statement list
+and  file = 
+    | File of statement list * int
 
 type scopes = {
-    local: variable list;
-    global: variable list option;
+    local: identifier list;
+    global: identifier list option;
 }
 
 type compile_state = {
@@ -98,7 +182,10 @@ type compile_state = {
     break: string option;
     continue: string option;
     ret_type: typ option;
+    size: int
 }
+
+let get_expr (Expr(expr,_)) = expr
 
 let string_of_dir d = match d with
     | North -> "0"
@@ -112,33 +199,39 @@ let int_of_dir d = match d with
     | South -> 2
     | West -> 3
 
+
+let rec type_string t = 
+    let entry_string typ name = type_string typ ^ match name with
+    | None -> ""
+    | Some n -> " "^n
+    in    
+    match t with
+    | T_Int -> "int"
+    | T_Dir -> "dir"
+    | T_Field -> "field"
+    | T_Resource -> "resource"
+    | T_Array(t,i) -> (type_string t) ^ "[" ^ string_of_int i ^"]"
+    | T_Tuple(ts) -> "[" ^ (ts |> List.map (uncurry entry_string) |> String.concat ", ")  ^ "]"
+    | T_Func(r,args) -> (type_string r) ^ "(" ^ (args |> List.map type_string |> String.concat ", ")  ^ ")"
+    | T_Null -> "null"
+
 let rec type_size t = match t with
     | T_Int 
     | T_Dir 
-    | T_Prop
     | T_Resource
     | T_Func _
     | T_Null
     | T_Field -> 1
     | T_Array(t,s) -> s * (type_size t)
-
-let rec type_string t = match t with
-  | T_Int -> "int"
-  | T_Dir -> "dir"
-  | T_Field -> "field"
-  | T_Prop -> "property"
-  | T_Resource -> "resource"
-  | T_Array(t,_) -> (type_string t) ^ "[]"
-  | T_Func(r,args) -> (type_string r) ^ "(" ^ (args |> List.map type_string |> String.concat ",")  ^ ")"
-  | T_Null -> "null"
+    | T_Tuple(ts) -> List.fold_left (fun acc (t, _) -> acc + type_size t) 0 ts
 
 let rec type_eq t1 t2 = match t1,t2 with
   | T_Int, T_Int
   | T_Dir, T_Dir
-  | T_Prop, T_Prop
   | T_Resource, T_Resource
   | T_Field, T_Field -> true
-  | T_Array(st1,_), T_Array(st2,_) -> type_eq st1 st2
+  | T_Array(st1,size1), T_Array(st2,size2) -> size1 = size2 && type_eq st1 st2
+  | T_Tuple(ts1), T_Tuple(ts2) -> List.length ts1 = List.length ts2 && List.combine ts1 ts2 |> List.for_all (fun ((t1,_),(t2,_)) -> type_eq t1 t2)
   | T_Func(ret, params), T_Func(ret', params') -> 
     List.length params = List.length params' 
     && List.combine params params' |> List.for_all (fun (p,p') -> type_eq p p')
@@ -169,7 +262,7 @@ type map =
     | EmptyMap of int * int
     | FileMap of string * (int * int)
 
-type setting_overwrites = string * (string * int) list
+type setting = (string * int)
 
 type string_set_part =
     | Add of string
@@ -189,16 +282,15 @@ type game_setup_part =
     | Seed of int option
     | TimeScale of float
     | Map of map
-    | SettingOverwrites of setting_overwrites list
+    | SettingOverwrites of setting list
     | Debug of bool
     | Viewport of int * int
     | AutoStart of bool
+    | AutoResize of bool
 
 type game_setup = GS of {
     teams: team_info list;
     resources: (int*int) ResourceMap.t;
-    themes: StringSet.t;
-    features: StringSet.t;
     actions: int;
     steps: int;
     mode: int;
@@ -207,10 +299,10 @@ type game_setup = GS of {
     seed: int option;
     time_scale: float;
     map: map;
-    setting_overwrites: setting_overwrites list;
+    setting_overwrites: setting list;
     debug: bool;
     viewport: int * int;
-    auto_start: bool
+    auto_start: bool;
 }
 
 let resolve_string_set all parts =
@@ -221,3 +313,29 @@ let resolve_string_set all parts =
         | All :: t -> aux t (StringSet.union all acc)
     in
     aux parts StringSet.empty
+
+let available_labels stmt =
+  let rec aux (Stmt(stmt,_)) set = match stmt with 
+    | Label n -> StringSet.union set (StringSet.singleton n)
+    | If(_,t,f) -> StringSet.union (aux t set) (aux f set)
+    | IfIs(_,alts,Some el) -> List.fold_left (fun acc (_,s) -> aux s acc) (aux el set) alts 
+    | IfIs(_,alts,None) -> List.fold_left (fun acc (_,s) -> aux s acc) set alts 
+    | Block(stmts) -> List.fold_left (fun acc s -> aux s acc) set stmts
+    | While(_,stmt,_) -> aux stmt set
+    | _ -> set
+  in
+  aux stmt StringSet.empty
+
+let identifier_name id = match id with
+  | Var(_,n) 
+  | Type(n,_)
+  | Const(n,_) -> n
+
+let is_bound name scopes =
+  match List.find_opt (fun id -> identifier_name id = name) scopes.local with
+  | Some _ -> true
+  | None -> (
+    match Option.map (fun scope -> List.find_opt (fun id -> identifier_name id = name) scope) scopes.global |> Option.join with
+    | Some _ -> true
+    | _ -> false
+  )

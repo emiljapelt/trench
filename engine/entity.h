@@ -8,23 +8,22 @@ typedef enum {
     ENTITY_VEHICLE,
 } entity_type;
 
+
+// Maybe instead of players 'alive' and vehicles 'destroy', entites should have a coherent way of being marked for removal.
+// Fits with a more general "garbage collection"
 typedef struct entity_t {
     entity_type type : 8;
+    unsigned int active : 1;
+    int id;
+    location location;
     union {
         struct player_state* player;
         struct vehicle_state* vehicle;
     };
 } entity_t;
 
-typedef struct entity_namespace {
-    entity_t* (*of_player)(struct player_state*);
-    entity_t* (*of_vehicle)(struct vehicle_state*);
-    int (*get_id)(struct entity_t*);
-    location (*get_location)(struct entity_t*);
-    void (*set_location)(struct entity_t*, location);
-} entity_namespace;
+entity_t* entity_of_player(struct player_state* player);
 
-extern const entity_namespace entity;
-
+entity_t* entity_of_vehicle(struct vehicle_state* vehicle);
 
 #endif

@@ -55,8 +55,10 @@ typedef enum {
     BUILTIN_COUNT = -37,
     BUILTIN_PASS = -38,
     BUILTIN_WAIT = -39,
+    BUILTIN_OBLIVIATE = -40,
+    BUILTIN_BLINK = -41,
+    BUILTIN_SEARCH = -42,
 } builtin_func;
-
 
 int handle_builtin_function(player_state* ps, builtin_func func_addr);
 int is_action(builtin_func func_addr);

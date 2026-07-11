@@ -11,7 +11,7 @@ themes: *
 features: *
 
 auto_start: true
-debug: true
+debug: false
 
 resources: {
     mana: 10000
@@ -33,8 +33,6 @@ team: {
 }
 
 settings: {
-    projection: {
-        upkeep: 0
-        cost: 0
-    }
+    projection.upkeep: 0
+    projection.cost: 0
 }

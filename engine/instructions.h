@@ -23,41 +23,41 @@
 #pragma region DEFINITIONS
 
 typedef enum {
-  Meta_PlayerX = 0,
-  Meta_PlayerY = 1,
-  Meta_BoardX = 2,
-  Meta_BoardY = 3,
-  Meta_PlayerID = 4,
-  Instr_Add = 5,
-  Instr_Sub = 6,
-  Instr_Mul = 7,
-  Instr_And = 8,
-  Instr_Or = 9,
-  Instr_Eq = 10,
-  Instr_Not = 11,
-  Instr_Lt = 12,
-  Instr_Div = 13,
-  Instr_Mod = 14,
-  Instr_Random = 15,
-  Instr_RandomSet = 16,
-  Instr_Place = 17,
-  Instr_Access = 18,
-  Instr_Swap = 19,
-  Instr_Copy = 20,
-  Instr_DecStack = 21,
-  Instr_FieldProp = 22,
-  Instr_Assign = 23,
-  Instr_GoToIf = 24,
-  Instr_GoTo = 25,
-  Instr_Wait = 26,
-  Instr_Pass = 27,
-  Instr_Call = 28,
-  Instr_Return = 29,
-  Instr_Declare = 30,
-  Instr_GlobalAccess = 31,
-  Instr_GlobalAssign = 32,
-  Instr_Index = 33,
-  Meta_Round = 34,
+  Instr_Add =           0,
+  Instr_Sub =           1,
+  Instr_Mul =           2,
+  Instr_And =           3,
+  Instr_Or =            4,
+  Instr_Eq =            5,
+  Instr_Not =           6,
+  Instr_Lt =            7,
+  Instr_Div =           8,
+  Instr_Mod =           9,
+  Instr_BinOr =         10,
+  Instr_BinNot =        11,
+  Instr_BinAnd =        12,
+  Instr_Random =        13,
+  Instr_GoToIf =        15,
+  Instr_GoTo =          16,
+  Instr_Wait =          17,
+  Instr_Pass =          18,
+  Instr_Call =          19,
+  Instr_Return =        20,
+  Instr_Declare =       21,
+  Instr_Place =         22,
+  Instr_Swap =          23,
+  Instr_Copy =          24,
+  Instr_MoveSP =        25,
+  Instr_BP =            26,
+  Instr_Index =         27,
+  Instr_Extract =       28,
+  Instr_LoadGlobal =    29,
+  Instr_StoreGlobal =   30,
+  Instr_LoadLocal =     31,
+  Instr_StoreLocal =    32,
+  Instr_Meta =          33,
+  Instr_Bits =          34,
+  Instr_TCall =         35,
 
   Instr_DEBUG = 99,
 } instruction;
@@ -86,7 +86,7 @@ int is_true(int a) {
 
 int instr_random_int(player_state* ps) { 
     if (ps->sp + 1 >= _gr->stack_size) {
-        death_mark_player(ps, stack_overflow_msg);
+        kill_player(ps, stack_overflow_msg);
         return 0;
     }
 
@@ -94,46 +94,15 @@ int instr_random_int(player_state* ps) {
     return 0;
 }
 
-int instr_random_range(player_state* ps) {
-    int num = ps->directive[ps->dp];
-    int pick = ps->stack[ps->sp - ((rand() % num)+1)];
-    ps->sp -= num;
-    ps->stack[ps->sp++] = pick;
-    ps->dp++;
-    return 0;
-}
-
 int instr_place(player_state* ps) {
     if (ps->sp + 1 >= _gr->stack_size) {
-        death_mark_player(ps, stack_overflow_msg);
+        kill_player(ps, stack_overflow_msg);
         return 0;
     }
 
     ps->stack[ps->sp++] = ps->directive[ps->dp];
     ps->dp++;
-    return 0;
-}
 
-int instr_access(player_state* ps) {
-    int n = ps->stack[ps->sp-1];
-    if (n < 0 || n >= (ps->sp - ps->bp)) {
-        death_mark_player(ps, frame_break_msg);
-        return 0;
-    }
-    ps->stack[ps->sp-1] = ps->stack[ps->bp + n];
-    _log(DEBUG, "ACCESS: v: %i, bp: %i, target: %i", ps->stack[ps->sp-1], ps->bp, n);
-    return 0;
-}
-
-int instr_global_access(player_state* ps) {
-    int n = ps->stack[ps->sp-1];
-    _log(DEBUG, "GLOBAL ACCESS: bp: %i, target: %i", ps->bp, n);
-    if (n < 0 || n >= global_scope_sp(ps, ps->bp, ps->sp)) {
-        death_mark_player(ps, frame_break_msg);
-        return 0;
-    }
-    ps->stack[ps->sp-1] = ps->stack[n];
-    _log(DEBUG, "found %i", ps->stack[ps->sp-1]);
     return 0;
 }
 
@@ -189,7 +158,7 @@ int instr_mul(player_state* ps) {
 int instr_div(player_state* ps) { 
     int v0 = ps->stack[--ps->sp];
     int v1 = ps->stack[--ps->sp];
-    if (v1 == 0) { death_mark_player(ps, div_zero_msg); return 0; }
+    if (v1 == 0) { kill_player(ps, div_zero_msg); return 0; }
     ps->stack[ps->sp++] = v0 / v1;
     return 0;
 }
@@ -197,7 +166,7 @@ int instr_div(player_state* ps) {
 int instr_mod(player_state* ps) {
     int v0 = ps->stack[--ps->sp];
     int v1 = ps->stack[--ps->sp];
-    if (v1 == 0) { death_mark_player(ps, div_zero_msg); return 0; }
+    if (v1 == 0) { kill_player(ps, div_zero_msg); return 0; }
     ps->stack[ps->sp++] = ((v0%v1) + v1)%v1;
     return 0;
 }
@@ -222,45 +191,18 @@ int instr_and(player_state* ps) {
     return 0;
 }
 
-int instr_assign(player_state* ps) { 
-    int v = ps->stack[--ps->sp];
-    int n = ps->stack[--ps->sp];
-    _log(DEBUG, "ASSIGN: v: %i, bp: %i, target: %i", v, ps->bp, n);
-    if (n < 0 || n >= (ps->sp - ps->bp)) {
-        death_mark_player(ps, frame_break_msg);
-        return 0;
-    }
-    ps->stack[ps->bp + n] = v;
-    return 0;
-}
+int instr_move_sp(player_state* ps) {
+    int amount = ps->directive[ps->dp++];
+    _log(DEBUG, "MOVE SP: %i", amount);
+    ps->sp += amount;
+    // Guard?
 
-int instr_global_assign(player_state* ps) { 
-    int v = ps->stack[--ps->sp];
-    int n = ps->stack[--ps->sp];
-    _log(DEBUG, "GLOBAL ASSIGN: v: %i, bp: %i, target: %i", v, ps->bp, n);
-    if (n < 0 || n >= global_scope_sp(ps, ps->bp, ps->sp)) {
-        death_mark_player(ps, frame_break_msg);
-        return 0;
-    }
-    ps->stack[n] = v;
-    return 0;
-}
-
-int instr_field_prop(player_state* ps) { 
-    int offset = ps->stack[--ps->sp];
-    int v = ps->stack[--ps->sp];
-    ps->stack[ps->sp++] = v & (1 << offset) ? 1 : 0;
-    return 0;
-}
-
-int instr_dec_stack(player_state* ps) {
-    ps->sp--;
     return 0;
 }
 
 int instr_copy(player_state* ps) {
     if (ps->sp + 1 >= _gr->stack_size) {
-        death_mark_player(ps, stack_overflow_msg);
+        kill_player(ps, stack_overflow_msg);
         return 1;
     }
 
@@ -282,12 +224,13 @@ int instr_call(player_state* ps) {
     int func_addr = ps->stack[--ps->sp];
 
     if (func_addr == 0) {
-        death_mark_player(ps, null_call_msg);
+        kill_player(ps, null_call_msg);
         return 0;
     }
 
-    if (ps->sp + arg_count + 3 >= _gr->stack_size) {
-        death_mark_player(ps, stack_overflow_msg);
+    // args + stack frame note
+    if (ps->sp + arg_count + 2 >= _gr->stack_size) {
+        kill_player(ps, stack_overflow_msg);
         return 0;
     }
 
@@ -312,15 +255,16 @@ int instr_call(player_state* ps) {
     ps->stack[ps->sp++] = old_bp;
     ps->stack[ps->sp++] = old_dp;
     ps->bp = ps->sp;
-    ps->stack[ps->sp] = func_addr;
-    memcpy(&ps->stack[ps->sp + 1], args, sizeof(int) * arg_count);
-    ps->sp += arg_count + 1;
+    
+    memcpy(&ps->stack[ps->sp], args, sizeof(int) * arg_count);
+    ps->sp += arg_count;
     ps->dp = func_addr;
-    _log(DEBUG, "f_addr: %i, args: %i", func_addr, arg_count);
+    _log(DEBUG, "call addr: %i, args: %i", func_addr, arg_count);
 }
 
 int instr_return(player_state* ps) {
-    int ret = ps->stack[--ps->sp];
+    int size = ps->directive[ps->dp++];
+    int ret_start = ps->sp - size;
     int old_dp = ps->stack[ps->bp - 1];
     int old_bp = ps->stack[ps->bp - 2];
 
@@ -328,14 +272,14 @@ int instr_return(player_state* ps) {
     ps->sp = ps->bp - 2;
     ps->bp = old_bp;
 
-    ps->stack[ps->sp++] = ret;
-    _log(DEBUG, "RETURN: ret:%i old_dp: %i, old_bp: %i", ret, old_dp, old_bp);
+    memcpy(ps->stack + ps->sp, ps->stack + ret_start, sizeof(int) * size);
+    ps->sp += size;
 }
 
 int instr_declare(player_state* ps) {
     int n = ps->directive[ps->dp];
     if (ps->sp + n >= _gr->stack_size) {
-        death_mark_player(ps, stack_overflow_msg);
+        kill_player(ps, stack_overflow_msg);
         return 0;
     }
     memset(ps->stack + ps->sp, 0, sizeof(int) * n);
@@ -345,89 +289,221 @@ int instr_declare(player_state* ps) {
 }
 
 int instr_index(player_state* ps) {
-    int idx = ps->stack[--ps->sp];
-    int arr = ps->stack[--ps->sp];
-    int arr_size = ps->directive[ps->dp++];
-    int elem_size = ps->directive[ps->dp++];
+    int index = ps->stack[--ps->sp];
+    int target = ps->stack[--ps->sp];
+    int size = ps->directive[ps->dp++];
+    int take = ps->directive[ps->dp++]; // Not needed anymore??
 
-    _log(DEBUG, "idx: %i, arr: %i, arr_size: %i, elem_size: %i", idx, arr, arr_size, elem_size);
+    _log(DEBUG, "INDEX:: index: %i, target: %i, array_size: %i, take: %i", index, target, size, take);
 
-    if (idx < 0 || idx >= arr_size) {
-        death_mark_player(ps, out_of_bounds_msg);
+    if (index < 0 || index >= size || index + take > size) {
+        kill_player(ps, out_of_bounds_msg);
         return 0;
     }
 
-    ps->stack[ps->sp++] = arr + idx * elem_size;
+    //ps->stack[ps->sp++] = target + index * elem_size;
+    ps->stack[ps->sp++] = target + index;
 
     return 0;
 }
 
+
+int instr_binor(player_state* ps) {
+    int v0 = ps->stack[--ps->sp];
+    int v1 = ps->stack[--ps->sp];
+    ps->stack[ps->sp++] = v0 | v1;
+    return 0;
+}
+
+int instr_binnot(player_state* ps) {
+    int v = ps->stack[--ps->sp];
+    ps->stack[ps->sp++] = ~v;
+    return 0;
+}
+
+int instr_binand(player_state* ps) {
+    int v0 = ps->stack[--ps->sp];
+    int v1 = ps->stack[--ps->sp];
+    ps->stack[ps->sp++] = v0 & v1;
+    return 0;
+}
+
+int instr_bits(player_state* ps) {
+    int v = ps->stack[--ps->sp];
+    int count = 0;
+    while (v > 0) {           // until all bits are zero
+        if ((v & 1) == 1)     // check lower bit
+            count++;
+        v >>= 1;              // shift bits, removing lower bit
+    }
+
+    ps->stack[ps->sp++] = count;
+    return 0;
+}
+
+
+
+/*
+Maybe loading negative addresses should work like functions do.
+Such that builtin variables wont need to polute the ISA.
+
+But... CISC or RISC ???
+- Negative addresses reduce the ISA, but increases instructions used.
+- Current solution increase ISA, but reduces instructions used.
+*/
+
+int instr_load(player_state* ps, int base) {
+    int addr = ps->stack[--ps->sp];
+    int size = ps->directive[ps->dp++];
+
+    _log(DEBUG, "LOAD:: base: %i, addr: %i, size: %i", base, addr, size);
+
+    if (ps->sp + size >= _gr->stack_size) {
+        kill_player(ps, stack_overflow_msg);
+        return 0;
+    }
+
+    memcpy(ps->stack + ps->sp, ps->stack + addr + base, sizeof(int) * size);
+
+    ps->sp += size;
+    
+    return 0;
+}
+
+int instr_bp(player_state* ps) {
+    ps->stack[ps->sp++] = ps->bp;
+    return 0;
+}
+
+int instr_store(player_state* ps, int base) {
+    int addr = ps->stack[--ps->sp];
+    int size = ps->directive[ps->dp++];
+
+    _log(DEBUG, "STORE:: base: %i, addr: %i, size: %i", base, addr, size);
+
+    ps->sp -= size;
+
+    memcpy(ps->stack + addr + base, ps->stack + ps->sp, sizeof(int) * size);
+
+    return 0;
+}
+
+int instr_extract(player_state* ps) {
+    int index = ps->stack[--ps->sp];
+    int size = ps->directive[ps->dp++];
+    int take = ps->directive[ps->dp++];
+
+    _log(DEBUG, "EXTRACT:: index: %i, size: %i, take: %i", index, size, take);
+
+    if (take > size || index < 0 || index + take > size) {
+        kill_player(ps, out_of_bounds_msg);
+        return 0;
+    }
+
+    ps->sp -= size;
+
+    memcpy(ps->stack + ps->sp, ps->stack + ps->sp + index, sizeof(int) * take);
+
+    ps->sp += take;
+
+    return 0;
+}
+
+typedef enum {
+    META_PLAYER_X =     0,
+    META_PLAYER_Y =     1,
+    META_PLAYER_ID =    2,
+    META_BOARD_WIDTH =  3,
+    META_BOARD_HEIGHT = 4,
+    META_ROUND =        5,
+    META_ACTIONS =      6,
+} meta_value;
+
+int instr_meta(player_state* ps) {
+    meta_value meta = (meta_value)ps->directive[ps->dp++];
+
+    if (ps->sp + 1 >= _gr->stack_size) {
+        kill_player(ps, stack_overflow_msg);
+        return 0;
+    }
+
+    switch (meta) {
+        case META_PLAYER_X: {
+            int x, y;
+            if (location_coords(ps->entity->location, &x, &y))
+                ps->stack[ps->sp++] = x;
+            else 
+                ps->stack[ps->sp++] = -1;
+            break;
+        }
+        case META_PLAYER_Y: {
+            int x, y;
+            if (location_coords(ps->entity->location, &x, &y))
+                ps->stack[ps->sp++] = y;
+            else 
+                ps->stack[ps->sp++] = -1;
+            break;
+        }
+        case META_PLAYER_ID:
+            ps->stack[ps->sp++] = ps->entity->id;
+            break;
+        case META_BOARD_WIDTH: // Unused
+            ps->stack[ps->sp++] = _gs->map_width;
+            break;
+        case META_BOARD_HEIGHT: // Unused
+            ps->stack[ps->sp++] = _gs->map_height;
+            break;
+        case META_ROUND:
+            ps->stack[ps->sp++] = _gs->round;
+            break;
+        case META_ACTIONS:
+            ps->stack[ps->sp++] = ps->remaining_actions;
+            break;
+        default:
+            ps->stack[ps->sp++] = 0;
+            break;
+    }
+
+    return 0;
+}
+
+int instr_tcall(player_state* ps) {
+    int arg_count = ps->stack[--ps->sp];
+    int func_addr = ps->stack[--ps->sp];
+
+    if (func_addr == 0) {
+        kill_player(ps, null_call_msg);
+        return 0;
+    }
+
+    // Check the check for correctness :)
+    if (ps->bp + arg_count + 1 >= _gr->stack_size) {
+        kill_player(ps, stack_overflow_msg);
+        return 0;
+    }
+
+    if (func_addr < 0) { // builtin handling
+        if (is_action(func_addr) && !use_resource(1, &ps->remaining_actions)) {
+            ps->dp--;
+            ps->remaining_steps = 0;
+            ps->stack[ps->sp++] = func_addr;
+            ps->stack[ps->sp++] = arg_count;
+            return 0;
+        }
+        return handle_builtin_function(ps, func_addr);
+    }
+
+    int args[arg_count];
+    memcpy(args, &ps->stack[ps->sp - arg_count], sizeof(int) * arg_count);
+
+    ps->sp = ps->bp;
+    memcpy(&ps->stack[ps->sp], args, sizeof(int) * arg_count);
+    ps->sp += arg_count;
+    ps->dp = func_addr;
+    _log(DEBUG, "tcall addr: %i, args: %i", func_addr, arg_count);
+}
 
 #pragma endregion
-
-#pragma region META_VARIABLES
-
-int meta_player_x(player_state* ps) {
-    if (ps->sp + 1 >= _gr->stack_size) {
-        death_mark_player(ps, stack_overflow_msg);
-        return 0;
-    }
-
-    int x, y;
-    location_coords(ps->location, &x, &y);
-    ps->stack[ps->sp++] = x;
-    return 0;
-}
-int meta_player_y(player_state* ps) {
-    if (ps->sp + 1 >= _gr->stack_size) {
-        death_mark_player(ps, stack_overflow_msg);
-        return 0;
-    }
-
-    int x, y;
-    location_coords(ps->location, &x, &y);
-    ps->stack[ps->sp++] = y;
-    return 0;
-}
-int meta_board_x(player_state* ps) {
-    if (ps->sp + 1 >= _gr->stack_size) {
-        death_mark_player(ps, stack_overflow_msg);
-        return 0;
-    }
-
-    ps->stack[ps->sp++] = _gs->board_x;
-    return 0;
-}
-int meta_board_y(player_state* ps) {
-    if (ps->sp + 1 >= _gr->stack_size) {
-        death_mark_player(ps, stack_overflow_msg);
-        return 0;
-    }
-
-    ps->stack[ps->sp++] = _gs->board_y;
-    return 0;
-}
-
-int meta_player_id(player_state* ps) {
-    if (ps->sp + 1 >= _gr->stack_size) {
-        death_mark_player(ps, stack_overflow_msg);
-        return 0;
-    }
-
-    ps->stack[ps->sp++] = ps->id;
-    return 0;
-}
-
-int meta_round(player_state* ps) {
-    if (ps->sp + 1 >= _gr->stack_size) {
-        death_mark_player(ps, stack_overflow_msg);
-        return 0;
-    }
-
-    ps->stack[ps->sp++] = _gs->round;
-    return 0;
-}
-
 
 /* NOT USED BUT KEEP IT AROUND FOR NOW */
 /*

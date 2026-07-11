@@ -7,11 +7,11 @@
 #include "damage.h"
 
 field_state* get_field(const int x, const int y) {
-    return _gs->board + ((y * _gs->board_x) + x);
+    return _gs->map + ((y * _gs->map_width) + x);
 }
 
 void set_field(const int x, const int y, field_state* f) {
-    _gs->board[(y * _gs->board_x) + x] = *f;
+    _gs->map[(y * _gs->map_width) + x] = *f;
 }
 
 
@@ -87,6 +87,13 @@ int has_ally(field_state* field, player_state* player) {
     return 0;
 }
 
+int has_vehicle(field_state* field) {
+    entity_list_t* list = field->entities;
+    for(int i = 0; i < list->count; i++)
+        if (get_entity(list, i)->type == ENTITY_VEHICLE) return 1;
+    return 0;
+}
+
 int has_trap(field_state* field) {
     return field->enter_events->count + field->exit_events->count;
 }
@@ -136,6 +143,7 @@ unsigned int properties_of_field(field_state* field, player_state* player) {
     if (has_enemy(field, player)) result |= PROP_IS_ENEMY;
     if (has_ally(field, player)) result |= PROP_IS_ALLY;
     if (has_trap(field)) result |= PROP_TRAPPED;
+    if (has_vehicle(field)) result |= PROP_IS_VEHICLE;
     return result;
 }
 
@@ -195,8 +203,9 @@ void destroy_field(field_state* field, char* death_msg) {
     }
     for(int i = 0; i < field->entities->count; i++) {
         entity_t* entity = get_entity(field->entities, i);
+        // What about vehicles?
         if (entity->type == ENTITY_PLAYER)
-            death_mark_player(entity->player, death_msg);
+            kill_player(entity->player, death_msg);
     }
 }
 

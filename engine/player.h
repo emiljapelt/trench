@@ -4,6 +4,7 @@
 #include "resource_registry.h"
 #include "array_list.h"
 #include "location.h"
+#include "entity.h"
 
 typedef array_list_t event_list_t;
 typedef struct team_state team_state;
@@ -15,10 +16,8 @@ typedef struct player_init {
 } player_init;
 
 typedef struct player_state {
-    unsigned char alive: 1;
+    entity_t* entity;
     unsigned char is_original_player: 1;
-    const char* death_msg;
-    int id;
     team_state* team;
     char* name;
     int* stack;
@@ -28,9 +27,8 @@ typedef struct player_state {
     int* directive;
     int directive_len;
     int dp;
-    location location;
-    int remaining_steps;
-    int remaining_actions;
+    unsigned int remaining_steps;
+    unsigned int remaining_actions;
     int pager_channel;
     array_list_t* pager_msgs;
     event_list_t* pre_death_events;

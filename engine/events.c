@@ -9,6 +9,7 @@
 #include "color.h"
 #include "player.h"
 #include "util.h"
+#include "log.h"
 
 int mine(entity_t* entity, void* data, situation situ) {
     field_args* args = (field_args*)data;
@@ -18,22 +19,26 @@ int mine(entity_t* entity, void* data, situation situ) {
 
     switch (entity->type) {
         case ENTITY_PLAYER: {
-            death_mark_player(entity->player, "Blown up by a mine");
+            kill_player(entity->player, "Blown up by a mine");
 
-            field_state* field = location_field(entity->player->location);
-            set_overlay(field, EXPLOSION);
-            set_color_overlay(field, FORE, RED);
-            set_mod_overlay(field, BOLD);
+            field_state* field = location_field(entity->location);
+            if (field != NULL) {
+                set_overlay(field, EXPLOSION);
+                set_color_overlay(field, FORE, RED);
+                set_mod_overlay(field, BOLD);
+            }
             return 1;
         }
         
         case ENTITY_VEHICLE: {
-            entity->vehicle->destroy = 1;
+            entity->active = 0;
 
-            field_state* field = location_field(entity->vehicle->location);
-            set_overlay(field, EXPLOSION);
-            set_color_overlay(field, FORE, RED);
-            set_mod_overlay(field, BOLD);
+            field_state* field = location_field(entity->location);
+            if (field != NULL) {
+                set_overlay(field, EXPLOSION);
+                set_color_overlay(field, FORE, RED);
+                set_mod_overlay(field, BOLD);
+            }
             return 1;
         }
     }
@@ -46,7 +51,7 @@ int bomb(entity_t* entity, void* data, situation situ) {
     switch (entity->type) {
         case ENTITY_PLAYER: {
             bomb_event_args* args = (bomb_event_args*)data;
-            if (args->player_id != entity->player->id) return 0;
+            if (args->player_id != entity->id) return 0;
             field_state* field = fields.get(args->x, args->y);
             set_overlay(field, EXPLOSION);
             set_color_overlay(field, FORE, RED);
@@ -63,11 +68,11 @@ int projection_upkeep(entity_t* entity, void* data, situation situ) {
     switch (entity->type) {
         case ENTITY_PLAYER: {
             player_event_args* args = (player_event_args*)data;
-            if (args->player_id != entity->player->id) return 0;
-            if (!entity->player->alive) return 1;
+            if (args->player_id != entity->id) return 0;
+            if (!entity->active) return 1;
 
             if (!spend_resource(&entity->player->resources, R_Mana, _gr->settings.projection.upkeep)) {
-                entity->player->death_msg = "Projection faded";
+                kill_player(entity->player, "Projection faded");
                 return 1;
             }
         }
@@ -84,7 +89,7 @@ int ice_block_melt(entity_t* entity, void* data, situation situ) {
             field_state* field = fields.get(args->x, args->y);
 
             if (field->type != ICE_BLOCK) return 1;
-            if (args->player_id != entity->player->id) 
+            if (args->player_id != entity->id) 
                 return 0;
             if (args->remaining) {
                 args->remaining--;
@@ -116,7 +121,7 @@ int tree_grow(entity_t* entity, void* data, situation situ) {
     switch (entity->type) {
         case ENTITY_PLAYER: {
             field_countdown_args* args = (field_countdown_args*)data;
-            if (entity->player->id != args->player_id) return 0;
+            if (entity->id != args->player_id) return 0;
 
             args->remaining--;
             if (args->remaining != 0) return 0;
@@ -136,7 +141,7 @@ int ocean_drowning(entity_t* entity, void* data, situation situ) {
 
     switch (entity->type) {
         case ENTITY_PLAYER: {
-            death_mark_player(entity->player, "Drowned");
+            kill_player(entity->player, "Drowned");
             return 0;
         }
     }
@@ -147,7 +152,7 @@ int ocean_drowning(entity_t* entity, void* data, situation situ) {
 int bear_trap_escape(entity_t* entity, void* data, situation situ) {
     if (entity->type == ENTITY_PLAYER) {
         player_event_args* args = (player_event_args*)data;
-        if (args->player_id != entity->player->id) return 0;
+        if (args->player_id != entity->id) return 0;
         entity->player->remaining_actions = 0;
         entity->player->remaining_steps = 0;
         return 1;
@@ -161,7 +166,7 @@ int bear_trap_trigger(entity_t* entity, void* data, situation situ) {
         entity->player->remaining_steps = 0;
 
         player_event_args* args = malloc(sizeof(player_event_args));
-        args->player_id = entity->player->id;
+        args->player_id = entity->id;
         add_event(
             _gs->events,
             PHYSICAL_EVENT,
@@ -175,13 +180,16 @@ int bear_trap_trigger(entity_t* entity, void* data, situation situ) {
 int clay_spread(entity_t* entity, void* data, situation situ) {
     if (entity->type == ENTITY_PLAYER) {
         field_state* field = location_field(situ.movement.loc);
-        field_state* clay_field = location_field(entity->player->location);
+        field_state* clay_field = location_field(entity->location);
+
+        if (field == NULL || clay_field == NULL) return 0;
+
         if (clay_field->data->clay_pit.amount >= _gr->settings.clay_pit.spread_limit)
         switch (field->type) {
             case EMPTY:
                 int x, y;
-                location_coords(situ.movement.loc, &x, &y);
-                fields.build.clay_pit(field);
+                if(location_coords(situ.movement.loc, &x, &y)) 
+                    fields.build.clay_pit(field);
                 break;
             case CLAY:
                 if (field->data->clay_pit.amount < _gr->settings.clay_pit.contain_limit) {
@@ -195,6 +203,29 @@ int clay_spread(entity_t* entity, void* data, situation situ) {
     return 0;
 }
 
+int blink_return(entity_t* entity, void* data, situation situ) {
+
+    ice_block_melt_event_args* args = (ice_block_melt_event_args*)data;
+    _log(INFO, "!!!!! %i vs %i, r:%i", entity->id, args->player_id, args->remaining); 
+
+    if (args->player_id != entity->id) 
+        return 0;
+
+    if (entity->location.type != VOID_LOCATION)
+        return 1;
+
+    if (args->remaining) {
+        args->remaining--;
+        return 0;
+    }
+
+    move_entity_to_location(entity, field_location_from_coords(args->x, args->y));
+    
+    return 1;
+    
+    return 0;
+}
+
 const events_namespace events = {
     .bomb = &bomb,
     .mine = &mine,
@@ -205,5 +236,6 @@ const events_namespace events = {
     .ocean_drowning = &ocean_drowning,
     .bear_trap_trigger = &bear_trap_trigger,
     .bear_trap_escape = &bear_trap_escape,
-    .clay_spread = &clay_spread
+    .clay_spread = &clay_spread,
+    .blink_return = &blink_return,
 };

@@ -8,6 +8,7 @@
 #include "vehicles.h"
 #include "events.h"
 #include "visual.h"
+#include "symbols.h"
 
 typedef enum {
     EMPTY,
@@ -69,6 +70,7 @@ typedef union field_data {
 #define PROP_IS_MOUNTAIN    0b00000000000000010000000000000000
 #define PROP_IS_ENEMY       0b00000000000000100000000000000000
 #define PROP_IS_ALLY        0b00000000000001000000000000000000
+#define PROP_IS_VEHICLE     0b00000000000010000000000000000000
 
 
 #define FOREGROUND_COLOR_OVERLAY    0b0001

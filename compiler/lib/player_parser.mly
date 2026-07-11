@@ -3,15 +3,26 @@
   open Lexing
   open Field_props
   open Resources
-  open Builtins
+  open Flags
+  open Exceptions
+  open Helpers
 
+(*type var_name_generator = { mutable next : int }
+let vg = ( {next = 0;} )
+let new_var () =
+  let number = vg.next in
+  let () = vg.next <- vg.next+1 in
+  Int.to_string number*)
 
-  (*type var_name_generator = { mutable next : int }
-  let vg = ( {next = 0;} )
-  let new_var () =
-    let number = vg.next in
-    let () = vg.next <- vg.next+1 in
-    Int.to_string number*)
+(*let themes ts =
+  if List.is_empty ts || List.exists (fun t -> StringSet.mem t compile_flags.themes) ts 
+  then ()
+  else raise_failure ("Attempt to access a feature of an inactive theme: " ^ (String.concat ", " ts))*)
+
+let features fs = 
+  if List.for_all (fun f -> StringSet.mem f compile_flags.features) fs
+  then ()
+  else raise_failure ("Attempt to access an inactive feature: " ^ (String.concat ", " fs))
 
 %}
 %token <int> CSTINT
@@ -20,15 +31,16 @@
 %token <string> FIELD_PROP
 %token LPAR RPAR LBRACE RBRACE LBRAKE RBRAKE
 %token PLUS MINUS TIMES EQ NEQ LT GT LTEQ GTEQ EQEQ
-%token LOGIC_AND LOGIC_OR FSLASH PCT EXCLAIM
+%token LOGIC_AND LOGIC_OR FSLASH BSLASH PCT EXCLAIM
 %token COMMA SEMI COLON EOF
 %token QMARK PLUSPLUS MINUSMINUS
-%token IF ELSE IS REPEAT WHILE CONTINUE BREAK LET
-%token GOTO RARROW
+%token IF ELSE IS REPEAT WHILE CONTINUE BREAK LET CONST TYPE
+%token GOTO RARROW ANY
 %token NORTH EAST SOUTH WEST
-%token INT DIR FIELD PROP RESOURCE L_SHIFT R_SHIFT
+%token L_SHIFT R_SHIFT
 %token RETURN NULL
 %token TIMES_EQ MINUS_EQ PLUS_EQ L_SHIFT_EQ R_SHIFT_EQ
+%token DOT DOTDOT PIPE
 
 // Precedence and assosiativity inspired by https://en.cppreference.com/w/c/language/operator_precedence.html
 
@@ -36,14 +48,16 @@
 %left RARROW
 %right QMARK COLON
 %left LOGIC_OR
-%left LOGIC_AND 
-%left EQEQ NEQ IS
+%left LOGIC_AND
+%left EQEQ NEQ IS ANY
 %left GT LT GTEQ LTEQ
 %left L_SHIFT R_SHIFT
 %left PLUS MINUS 
 %left TIMES FSLASH PCT
 %right UNARY
 %left LPAR
+%left PLUSPLUS MINUSMINUS LBRAKE DOT
+//%right RND
 /*High precedence*/
 
 %start main
@@ -53,30 +67,33 @@
 %public seperated_or_empty(S,C):
   | {[]}
   | C  {[$1]}
+  | C S {[$1]}
   | C S seperated(S,C) {$1::$3}
 ;
 
 %public seperated(S,C):
   | C  {[$1]}
+  | C S {[$1]}
   | C S seperated(S,C) {$1::$3}
 ;
 
 main:
-  stmt* EOF     { (File $1) }
+  stmt* EOF     { (File($1, 0)) }
 ;
 
 simple_typ:
-  | INT { T_Int }
-  | DIR { T_Dir }
-  | FIELD { T_Field }
-  | RESOURCE { T_Resource }
-  | PROP { T_Prop }
-  | LPAR typ RPAR { $2 }
-  | typ  LPAR seperated_or_empty(COMMA, simple_typ) RPAR { T_Func($1, $3) }
+  | NAME { TE_Identifier $1 }
+  | typ LPAR seperated_or_empty(COMMA, typ) RPAR { TE_Func($1, $3) }
+  | LBRAKE seperated(COMMA, tuple_type_element) RBRAKE { TE_Tuple $2 }
+;
+
+tuple_type_element:
+  | typ       { ($1, None) }
+  | NAME COLON typ  { ($3, Some $1) }
 ;
 
 typ:
-  | typ LBRAKE CSTINT RBRAKE { T_Array($1,$3) }
+  | typ LBRAKE expression RBRAKE { TE_Array($1,$3) }
   | simple_typ { $1 }
 ;
 
@@ -84,60 +101,89 @@ block:
   LBRACE stmt* RBRACE    { Block $2 }
 ;
 
-const_value:
+const_expr:
   | CSTINT        { Int $1 }
   | NULL          { Null }
   | direction     { Direction $1 }
-  | FIELD_PROP    { Prop(string_to_prop $1) }
+  | FIELD_PROP    { Field(string_to_field $1) }
   | RESOURCE_NAME { Resource(string_to_resource $1) }
 ;
 
-simple_value:
-  | const_value                        { $1 }
-  | QMARK                              { features ["random"] ; Random }
-  | QMARK LBRAKE simple_value+ RBRAKE  { features ["random"] ; RandomSet $3 }
-  | target                             { Reference($1) }
-  | LPAR value RPAR                    { $2 }
+simple_expression:
+  | simple_expr { Expr($1, $symbolstartpos.pos_lnum) }
 ;
 
-value:
-  | simple_value                       { $1 }
-  | MINUS value                        { Binary_op ("-", Int 0, $2) }  %prec UNARY
-  | EXCLAIM value                      { Unary_op ("!", $2) } %prec UNARY
-  | value binop value                  { Binary_op ($2, $1, $3) }
-  | value IS value                     { FieldProp($1, $3) }
-  | typ COLON LPAR seperated_or_empty(COMMA,func_arg) RPAR block          { features ["func"] ; Func($1, $4, Stmt($6,$symbolstartpos.pos_lnum)) }
-  | COLON LPAR seperated_or_empty(COMMA,func_arg) RPAR block              { features ["func";"sugar"] ; Func(T_Int, $3, Stmt($5,$symbolstartpos.pos_lnum)) }
-  | typ COLON LPAR seperated_or_empty(COMMA,func_arg) RPAR RARROW value   { features ["func";"sugar"] ; Func($1, $4, Stmt(Return $7,$symbolstartpos.pos_lnum)) }
-  | COLON LPAR seperated_or_empty(COMMA,func_arg) RPAR RARROW value       { features ["func";"sugar"] ; Func(T_Int, $3, Stmt(Return $6,$symbolstartpos.pos_lnum)) }
-  | value QMARK value COLON value      { features ["control";"sugar"] ; Ternary($1,$3,$5) }
-  | PLUSPLUS target                    { features ["sugar"] ; Increment($2, true)}
-  | target PLUSPLUS                    { features ["sugar"] ; Increment($1, false)}
-  | MINUSMINUS target                  { features ["sugar"] ; Decrement($2, true)}
-  | target MINUSMINUS                  { features ["sugar"] ; Decrement($1, false)}
-  | value LPAR seperated_or_empty(COMMA, value) RPAR { Call($1, $3) }
+simple_expr:
+  | const_expr                              { $1 }
+  | QMARK                                   { features ["random"] ; Random }
+  | NAME                                    { features ["memory"] ; IdentifierAccess $1 }
+  | LBRAKE seperated_or_empty(COMMA, struct_element) RBRAKE { StructureLiteral $2 }
+  | LPAR expr RPAR                          { $2 }
+;
+
+struct_element: 
+  | expression              { StructureElement(None, $1) }
+  | NAME COLON expression   { StructureElement(Some $1, $3) }
+  | DOTDOT expression       { SpreadElement $2 }
+;
+
+
+/* Position is based on the first char, so in parentheses the first parentheses determins the expressions position... Creating bad errors*/
+expression:
+  | expr { Expr($1,$symbolstartpos.pos_lnum) }
+;
+
+expr:
+  | simple_expr                             { $1 }
+  | expression LBRAKE range RBRAKE          { features ["memory"] ; IndexAccess($1,$3) }
+  | expression DOT NAME                     { features ["memory"] ; TupleAccess($1,$3) }
+  | MINUS expression                        { Binary_op (Minus, Expr(Int 0, $symbolstartpos.pos_lnum), $2) }  %prec UNARY
+  | EXCLAIM expression                      { Unary_op (Negate, $2) } %prec UNARY
+  | expression binop expression             { Binary_op ($2, $1, $3) }
+  | BSLASH typ COLON LPAR seperated_or_empty(COMMA,func_arg) RPAR block          { features ["func"] ; Func{ data = ($2, $5, Stmt($7,$symbolstartpos.pos_lnum)); cache = None} }
+  | BSLASH LPAR seperated_or_empty(COMMA,func_arg) RPAR block              { features ["func";"sugar"] ; Func{ data = (TE_Identifier "int", $3, Stmt($5,$symbolstartpos.pos_lnum)); cache = None} }
+  | BSLASH typ COLON LPAR seperated_or_empty(COMMA,func_arg) RPAR RARROW expression   { features ["func";"sugar"] ; Func{ data = ($2, $5, Stmt(Return $8,$symbolstartpos.pos_lnum)); cache = None} }
+  | BSLASH LPAR seperated_or_empty(COMMA,func_arg) RPAR RARROW expression       { features ["func";"sugar"] ; Func{ data = (TE_Identifier "int", $3, Stmt(Return $6,$symbolstartpos.pos_lnum)); cache = None} }
+  | expression QMARK expression COLON expression      { features ["control";"sugar"] ; Ternary($1,$3,$5) }
+  | PLUSPLUS expression                    { features ["sugar"] ; Increment($2, true)} 
+  | expression PLUSPLUS                    { features ["sugar"] ; Increment($1, false)}
+  | MINUSMINUS expression                  { features ["sugar"] ; Decrement($2, true)} 
+  | expression MINUSMINUS                  { features ["sugar"] ; Decrement($1, false)}
+  | expression LPAR seperated_or_empty(COMMA, expression) RPAR { Call($1, $3) }
+  | PIPE expression PIPE            { SizeOf $2 }
+  //| QMARK expression                       { features ["random"] ; RandomAccess $2 } %prec RND
+;
+
+range:
+  | expression                    { Index $1 }
+  | DOTDOT                        { Range(None, None) }
+  | DOTDOT expression             { Range(None, Some $2) }
+  | expression DOTDOT             { Range(Some $1, None) }
+  | expression DOTDOT expression  { Range(Some $1, Some $3) }
 ;
 
 func_arg:
-  | simple_typ NAME { ($1,$2) }
+  | NAME COLON typ { ($3,$1) }
 ;
 
 %inline binop:
-  | LOGIC_AND   { "&"  }
-  | LOGIC_OR    { "|"  }
-  | EQEQ        { "="  }
-  | NEQ         { "!=" }
-  | LTEQ        { "<=" }
-  | LT          { "<"  }
-  | GTEQ        { ">=" }
-  | GT          { ">"  }
-  | PLUS        { "+"  }
-  | TIMES       { "*"  }
-  | MINUS       { "-"  }
-  | FSLASH      { "/"  }
-  | PCT         { "%"  }
-  | L_SHIFT     { "<<" }
-  | R_SHIFT     { ">>" }
+  | LOGIC_AND   { And }
+  | LOGIC_OR    { Or  }
+  | EQEQ        { Equal  }
+  | NEQ         { NotEqual }
+  | LTEQ        { LessOrEqual }
+  | LT          { Less  }
+  | GTEQ        { GreaterOrEqual }
+  | GT          { Greater }
+  | PLUS        { Plus }
+  | TIMES       { Times }
+  | MINUS       { Minus }
+  | FSLASH      { Divide }
+  | PCT         { Remainder }
+  | L_SHIFT     { LeftShift }
+  | R_SHIFT     { RightShift }
+  | IS          { IsCompare }
+  | ANY         { AnyCompare }
 ;
 
 stmt:
@@ -149,10 +195,10 @@ stmt2:
   stmt2_inner { Stmt($1,$symbolstartpos.pos_lnum) }
 ;
 stmt2_inner:
-  | IF simple_value stmt1 ELSE stmt2         { features ["control"] ; If ($2, $3, $5) }
-  | IF simple_value stmt1                    { features ["control"] ; If ($2, $3, Stmt(Block [], $symbolstartpos.pos_lnum)) }
-  | IF simple_value alt+                     { features ["control"; "sugar"] ; IfIs($2, $3, None)}
-  | IF simple_value alt+ ELSE stmt2          { features ["control"; "sugar"] ; IfIs($2, $3, Some $5) }
+  | IF simple_expression stmt1 ELSE stmt2         { features ["control"] ; If ($2, $3, $5) }
+  | IF simple_expression stmt1                    { features ["control"] ; If ($2, $3, Stmt(Block [], $symbolstartpos.pos_lnum)) }
+  | IF simple_expression alt+                     { features ["control"; "sugar"] ; IfIs($2, $3, None)}
+  | IF simple_expression alt+ ELSE stmt2          { features ["control"; "sugar"] ; IfIs($2, $3, Some $5) }
 ;
 
 /* No unbalanced if-else */
@@ -160,41 +206,39 @@ stmt1:
   stmt1_inner { Stmt($1,$symbolstartpos.pos_lnum) }
 ;
 stmt1_inner: 
-  | block                                     { $1 }
-  | value SEMI                                { Expr $1}
-  | non_control_flow_stmt SEMI                { $1 }
-  | IF simple_value stmt1 ELSE stmt1          { features ["control"] ; If ($2, $3, $5) }
-  | IF simple_value alt+ ELSE stmt1           { features ["control"; "sugar"] ; IfIs($2, $3, Some $5) }
-  | WHILE simple_value stmt1                  { features ["loops"] ; While($2,$3,None) }
-  | WHILE simple_value COLON LPAR value RPAR stmt1     { features ["loops"; "sugar"] ; While($2,$7,Some(Stmt(Expr $5, $symbolstartpos.pos_lnum))) }
+  | block                                          { $1 }
+  | expression SEMI                                { ExprStmt $1}
+  | non_control_flow_stmt SEMI                     { $1 }
+  | IF simple_expression stmt1 ELSE stmt1          { features ["control"] ; If ($2, $3, $5) }
+  | IF simple_expression alt+ ELSE stmt1           { features ["control"; "sugar"] ; IfIs($2, $3, Some $5) }
+  | WHILE simple_expression stmt1                  { features ["loops"] ; While($2,$3,None) }
+  | WHILE simple_expression COLON LPAR expression RPAR stmt1     { features ["loops"; "sugar"] ; While($2,$7,Some(Stmt(ExprStmt $5, $symbolstartpos.pos_lnum))) }
   | BREAK SEMI                                { features ["loops"] ; Break }
   | CONTINUE SEMI                             { features ["loops"] ; Continue }
   | GOTO NAME SEMI                            { GoTo $2 }
   | NAME COLON                                { Label $1 }
-  | REPEAT CSTINT stmt1                       { features ["loops"] ; Block(List.init $2 (fun _ -> $3)) }
-  | REPEAT LPAR CSTINT RPAR stmt1             { features ["loops"] ; Block(List.init $3 (fun _ -> $5)) }
-  | RETURN value SEMI                         { features ["func"] ; Return $2 }
+  // Could this be more flexible?
+  | REPEAT simple_expression stmt1            { features ["loops"] ; Repeat(Some $2, $3) }
+  | REPEAT block                              { features ["loops"] ; Repeat(None, Stmt($2, $symbolstartpos.pos_lnum)) }
+  | RETURN expression SEMI                    { features ["func"] ; Return $2 }
 ;
 
 alt:
-  | IS simple_value stmt1   { ($2,$3) }
-;
-
-target:
-  | NAME { features ["memory"] ; Local $1 }
-  | target LBRAKE value RBRAKE  { features ["memory"] ; Array($1,$3)}
+  | IS seperated(COMMA, simple_expression) COLON stmt1   { ($2,$4) }
 ;
 
 non_control_flow_stmt:
-  | target EQ value          { features ["memory"] ; Assign ($1, $3) }
-  | target PLUS_EQ value     { features ["memory"; "sugar"] ; Assign ($1, Binary_op("+", Reference $1, $3)) }
-  | target MINUS_EQ value    { features ["memory"; "sugar"] ; Assign ($1, Binary_op("-", Reference $1, $3)) }
-  | target TIMES_EQ value    { features ["memory"; "sugar"] ; Assign ($1, Binary_op("*", Reference $1, $3)) }
-  | target L_SHIFT_EQ value  { features ["memory"; "sugar"] ; Assign ($1, Binary_op("<<", Reference $1, $3)) }
-  | target R_SHIFT_EQ value  { features ["memory"; "sugar"] ; Assign ($1, Binary_op(">>", Reference $1, $3)) }
-  | typ NAME                 { features ["memory"] ; Declare($1,$2) }
-  | typ NAME EQ value        { features ["memory"] ; DeclareAssign(Some $1, $2, $4) }
-  | LET NAME EQ value        { features ["memory"; "sugar"] ; DeclareAssign(None, $2, $4) }
+  | expression EQ expression          { features ["memory"] ; Assign ($1, $3) }
+  | expression PLUS_EQ expression     { features ["memory"; "sugar"] ; Assign ($1, Expr(Binary_op(Plus, $1, $3), $symbolstartpos.pos_lnum)) }
+  | expression MINUS_EQ expression    { features ["memory"; "sugar"] ; Assign ($1, Expr(Binary_op(Minus, $1, $3), $symbolstartpos.pos_lnum)) }
+  | expression TIMES_EQ expression    { features ["memory"; "sugar"] ; Assign ($1, Expr(Binary_op(Times, $1, $3), $symbolstartpos.pos_lnum)) }
+  | expression L_SHIFT_EQ expression  { features ["memory"; "sugar"] ; Assign ($1, Expr(Binary_op(LeftShift, $1, $3), $symbolstartpos.pos_lnum)) }
+  | expression R_SHIFT_EQ expression  { features ["memory"; "sugar"] ; Assign ($1, Expr(Binary_op(RightShift, $1, $3), $symbolstartpos.pos_lnum)) }
+  | LET NAME COLON typ                { features ["memory"] ; Declare($4,$2) }
+  | LET NAME COLON typ EQ expression  { features ["memory"] ; DeclareAssign(Some $4, $2, $6) }
+  | LET NAME EQ expression        { features ["memory"; "sugar"] ; DeclareAssign(None, $2, $4) }
+  | CONST NAME EQ expression      { features ["memory"] ; DeclareConst($2, $4) }
+  | TYPE NAME EQ typ              { DeclareType($4, $2) }
 ;
 
 direction:

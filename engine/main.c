@@ -6,7 +6,6 @@
 #include <caml/callback.h>
 
 #include "player.h"
-#include "player_list.h"
 #include "event_list.h"
 #include "game_rules.h"
 #include "game_state.h"
@@ -18,46 +17,50 @@
 #include "log.h"
 
 void debug_print(player_state* ps) {
-    fprintf(stderr,"\nPlayer %s(%i)\ninstr:%i\ndp:%i\nbp:%i\nsp:%i\n", ps->name, ps->id, ps->directive[ps->dp], ps->dp, ps->bp, ps->sp); wait(0.5);
+    fprintf(stderr,"\nRound %i\n", _gs->round);
+    fprintf(stderr,"\nPlayer %s(%i)\n", ps->name, ps->entity->id);
     for(int i = 0; i < ps->sp; i++) {
         fprintf(stderr,"%i, ", ps->stack[i]); wait(0.1);
     }
+    fprintf(stderr,"\ninstr:%i\ndp:%i\nbp:%i\nsp:%i\n\n", ps->directive[ps->dp], ps->dp, ps->bp, ps->sp); 
     wait(1);
 }
 
-void try_kill_player(player_state* ps) {
-    if (ps->alive && ps->death_msg != NULL) {
-        entity_t* ps_e = entity.of_player(ps);
-        update_events(ps_e, ps->pre_death_events, (situation){ .type = NO_SITUATION});
-        if (ps->alive && ps->death_msg != NULL) {
-            kill_player(ps);
-            update_events(ps_e, ps->post_death_events, (situation){ .type = NO_SITUATION});
+void garbage_collect() {
+    int count_active = 0;
+    for(int i = 0; i < _gs->entities->count; i++) {
+        if (get_entity(_gs->entities, i)->active)
+            count_active++;
+    }
+
+    if (count_active == _gs->entities->count) return; // Nothing to collect
+
+    entity_list_t* active_entities = array_list.create(count_active);
+
+    for(int i = _gs->entities->count - 1; i >= 0; i--) {
+        entity_t* entity = get_entity(_gs->entities, i);
+        
+        if (entity->active) {
+            array_list.add(active_entities, entity);
+        } 
+        else switch (entity->type) {
+            case ENTITY_PLAYER: {
+                free_player(entity->player);
+                free(entity);
+                break;
+            }
+            case ENTITY_VEHICLE: {
+                array_list.free(entity->vehicle->entities);
+                free(entity);
+                break;
+            }
+            default:
+                _log(WARN, "Failed to GC entity: %i", entity->id);        
         }
-        free(ps_e);
-    }
-}
-
-void kill_players() {
-    each_player(_gs->players, &try_kill_player);
-}
-
-void remove_dead_players() {
-    int count_alive = 0;
-    for(int i = 0; i < _gs->players->count; i++) 
-        if (get_player(_gs->players, i)->alive) count_alive++;
-
-    player_list_t* cleared_list = array_list.create(count_alive);
-
-    for(int i = _gs->players->count - 1; i >= 0; i--) {
-        player_state* ps = get_player(_gs->players, i);
-        if (ps->alive)
-            array_list.add(cleared_list, ps);
-        else 
-            free_player(ps);
     }
 
-    array_list.free(_gs->players);
-    _gs->players = cleared_list;
+    array_list.free(_gs->entities);
+    _gs->entities = active_entities;
 }
 
 int is_in_view(int x, int y) {
@@ -97,8 +100,8 @@ void pan_viewport(float time, const int x, const int y) {
 
 void pan_viewport_player(float time, player_state* ps) {
     int x, y;
-    location_coords(ps->location, &x, &y);
-    pan_viewport(time, x, y);
+    if (location_coords(ps->entity->location, &x, &y))
+        pan_viewport(time, x, y);
 }
 
 void auto_viewport(int x, int y) {
@@ -110,8 +113,8 @@ void auto_viewport(int x, int y) {
 void auto_viewport_player(player_state* ps) {
     if (_gr->viewport.automatic) {
         int x, y;
-        location_coords(ps->location, &x, &y);
-        auto_viewport(x,y);
+        if (location_coords(ps->entity->location, &x, &y))
+            auto_viewport(x,y);
     }
 }
 
@@ -121,15 +124,9 @@ void player_turn_default(player_state* ps) {
         int change = 0;
         if (ps->dp >= ps->directive_len) return;
         if (!use_resource(1, &ps->remaining_steps)) return;
-        //debug_print(ps);
+        // debug_print(ps);
         _log(DEBUG, "%s executes %i", ps->name, ps->directive[ps->dp]);
         switch (ps->directive[ps->dp++]) {
-            case Meta_PlayerX: change = meta_player_x(ps);break;
-            case Meta_PlayerY: change = meta_player_y(ps);break;
-            case Meta_BoardX: change = meta_board_x(ps);break;
-            case Meta_BoardY: change = meta_board_y(ps);break;
-            case Meta_PlayerID: change = meta_player_id(ps);break;
-            case Meta_Round: change = meta_round(ps);break;
             case Instr_Wait: {
                 if(!use_resource(1,&ps->remaining_actions)) {ps->dp--;return;}
                 ps->stack[ps->sp++] = 1;
@@ -141,9 +138,7 @@ void player_turn_default(player_state* ps) {
                 break;
             }
             case Instr_Random: instr_random_int(ps); break; 
-            case Instr_RandomSet: instr_random_range(ps); break;
             case Instr_Place: instr_place(ps); break;
-            case Instr_Access: change = instr_access(ps); break;
             case Instr_GoTo: change = instr_goto(ps); break;
             case Instr_GoToIf: change = instr_goto_if(ps); break;
             case Instr_Eq: change = instr_eq(ps); break;
@@ -156,29 +151,39 @@ void player_turn_default(player_state* ps) {
             case Instr_Not: change = instr_not(ps); break;
             case Instr_Or: change = instr_or(ps); break;
             case Instr_And: change = instr_and(ps); break;
-            case Instr_Assign: change = instr_assign(ps); break;
-            case Instr_FieldProp: change = instr_field_prop(ps); break;
-            case Instr_DecStack: change = instr_dec_stack(ps); break;
+            case Instr_MoveSP: change = instr_move_sp(ps); break;
             case Instr_Copy: change = instr_copy(ps); break;
             case Instr_Swap: change = instr_swap(ps); break;
             case Instr_Call: change = instr_call(ps); break;
             case Instr_Return: change = instr_return(ps); break;
             case Instr_Declare: change = instr_declare(ps); break;
-            case Instr_GlobalAccess: change = instr_global_access(ps); break;
-            case Instr_GlobalAssign: change = instr_global_assign(ps); break;
             case Instr_Index: change = instr_index(ps); break;
+            case Instr_BinOr: change = instr_binor(ps); break;
+            case Instr_BinNot: change = instr_binnot(ps); break;
+            case Instr_BinAnd: change = instr_binand(ps); break;
+            case Instr_LoadLocal: change = instr_load(ps, ps->bp); break;
+            case Instr_StoreLocal: change = instr_store(ps, ps->bp); break;
+            case Instr_BP: change = instr_bp(ps); break;
+            case Instr_Extract: change = instr_extract(ps); break;
+            case Instr_LoadGlobal: change = instr_load(ps, 0); break;
+            case Instr_StoreGlobal: change = instr_store(ps, 0); break;
+            case Instr_Meta: change = instr_meta(ps); break;
+            case Instr_Bits: change = instr_bits(ps); break;
+            case Instr_TCall: change = instr_tcall(ps); break;
             default: return;
         }
 
-        if (change || _gs->feed_point) { 
+        if (change) { 
             auto_viewport_player(ps);
             print_board(); 
             wait(1); 
         }
+        else if (_gs->feed_change) {
+            print_board();
+            wait(0.25);
+        }
 
-        kill_players();
-        if (_gs->feed_point) { print_board(); wait(1); }
-        if (!ps->alive) return;
+        if (!ps->entity->active) return;
     }
 }
 
@@ -202,7 +207,7 @@ void get_new_directive(player_state* ps) {
             }
         }
         else {   
-            printf("%s#%i, change directive?:\n0: No change\n1: Reload file\n2: New file\n", ps->name, ps->id);
+            printf("%s#%i, change directive?:\n0: No change\n1: Reload file\n2: New file\n", ps->name, ps->entity->id);
 
             terminal_blocking_read_on();
             scanf(" %c",&option);
@@ -248,8 +253,8 @@ void get_new_directive(player_state* ps) {
 }
 
 void nuke_board() {
-    for(int y = 0; y < _gs->board_y; y++)
-    for(int x = 0; x < _gs->board_x; x++) 
+    for(int y = 0; y < _gs->map_height; y++)
+    for(int x = 0; x < _gs->map_width; x++) 
         fields.destroy_field(fields.get(x,y), "Got nuked");
 }
 
@@ -264,19 +269,20 @@ int teams_alive() {
     return alive;
 }
 
-int player_alive(player_state* ps) {
-    return ps->alive;
-}
-
 char* first_team_alive() {
-    player_state* ps = first_player(_gs->players, &player_alive);
-    if (ps && ps->team)
-        return ps->team->team_name;
+    for(int i = 0; i < _gs->entities->count; i++) {
+        entity_t* entity = get_entity(_gs->entities, i);
+
+        if (entity->type == ENTITY_PLAYER && entity->player && entity->player->team)
+            return entity->player->team->team_name;
+    }
+
     printf("No team has live players\n");
     exit(1);
 }
 
 void check_win_condition() {
+
     switch (teams_alive()) {
         case 0:
             _log(INFO, "--- GAME END: Everyone is dead ---");
@@ -369,25 +375,31 @@ void handle_input() {
     Once each player has taken a turn, a round has passed.
 */
 void play_round_default() {
-    const int player_count = _gs->players->count;
-    for(int i = 0; i < player_count; i++) {
+    const int entity_count = _gs->entities->count;
+    for(int i = 0; i < entity_count; i++) {
         handle_input();
-        player_state* player = get_player(_gs->players, i);
-        entity_t* player_e = entity.of_player(player);
-        int finished_events = update_events(player_e, _gs->events, (situation){ .type = NO_SITUATION});
-        if (finished_events) { print_board(); wait(1); }
-        kill_players();
-        if (_gs->feed_point) { print_board(); wait(1); }
-        if (player->alive) {
-            _log(DEBUG, "Turn: %s (#%i)", player->name, player->id);
-            player_turn_default(player);
-            set_player_steps_and_actions(player);
+        entity_t* entity = get_entity(_gs->entities, i);
+        int finished_events = update_events(entity, _gs->events, (situation){ .type = NO_SITUATION});
+        
+        if (finished_events || _gs->feed_change) { print_board(); wait(1); }
+
+        switch (entity->type) {
+            case ENTITY_PLAYER:
+                if (entity->active) {
+                    _log(DEBUG, "Turn: %s (#%i)", entity->player->name, entity->id);
+                    player_turn_default(entity->player);
+                    set_player_steps_and_actions(entity->player);
+                }
+                break;
+            default:
+                break;
         }
+
         check_win_condition();
-        free(player_e);
     }
+    if (_gs->round - _gs->latest_print >= 1000) print_board();
     if (_gr->nuke > 0 && _gs->round % _gr->nuke == 0) nuke_board();
-    remove_dead_players();
+    garbage_collect();
 }
 
 void play_round() {
@@ -397,7 +409,6 @@ void play_round() {
             break;
     }
     _log_flush();
-    clear_screen();
 }
 
 // Mode: 0
@@ -415,14 +426,16 @@ void dynamic_mode() {
     while(1) {
         play_round();
         if (_gs->round % _gr->mode == 0) {
-            const int player_count = _gs->players->count;
-            for (int i = 0; i < player_count; i++) {
-                player_state* player = get_player(_gs->players, i);
-                if (!player->alive) continue; 
-                if (player->is_original_player)
-                    get_new_directive(player);
-                clear_screen();
-                print_board();
+            const int entity_count = _gs->entities->count;
+            for (int i = 0; i < entity_count; i++) {
+                entity_t* entity = get_entity(_gs->entities, i);
+
+                if (entity->type == ENTITY_PLAYER) {
+                    if (!entity->active) continue; 
+                    if (entity->player->is_original_player)
+                        get_new_directive(entity->player);
+                    print_board();
+                }
             }
         }
         _gs->round++;
@@ -434,23 +447,24 @@ void dynamic_mode() {
 // Players can change directive before each of their turns
 void manual_mode() {
     while(1) {
-        const int player_count = _gs->players->count;
-        for(int i = 0; i < player_count; i++) {
-            player_state* player = get_player(_gs->players, i);
-            if (!player->alive) continue;
-            if (player->is_original_player)
-                get_new_directive(player);
-            clear_screen();
-            print_board();
-            player_turn_default(player);
-            check_win_condition();
+        const int entity_count = _gs->entities->count;
+        for(int i = 0; i < entity_count; i++) {
+            entity_t* entity = get_entity(_gs->entities, i);
+
+            if (entity->type == ENTITY_PLAYER) {
+                if (!entity->active) continue;
+                if (entity->player->is_original_player)
+                    get_new_directive(entity->player);
+                print_board();
+                player_turn_default(entity->player);
+                check_win_condition();
+            }
         }
 
         if (_gr->nuke > 0 && _gs->round % _gr->nuke == 0) nuke_board();
         _gs->round++;
     }
 }
-
 
 int main(int argc, char** argv) {
 
@@ -470,7 +484,8 @@ int main(int argc, char** argv) {
     terminal_blocking_read_off();
     terminal_canonical_off();
 
-    clear_screen();
+    set_wait_time_scaler(&_gr->time_scale);
+
     print_board();
 
     handle_input();

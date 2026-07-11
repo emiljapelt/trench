@@ -3,6 +3,10 @@ open Exceptions
 module StringSet = Set.Make(String)
 module StringMap = Map.Make(String)
 
+let identity a = a
+
+let return a _ = a
+
 type environment = string list
 
 type int_generator = { mutable next : int }
@@ -10,21 +14,28 @@ type int_generator = { mutable next : int }
 (* Names *)
 let ng = ( {next = 0}) 
 
-let rename n =
-  let number = ng.next in
-  let () = ng.next <- ng.next+1 in
-  n ^ "_" ^ Int.to_string number
+let curry f a b = f (a,b)
+let uncurry f (a,b) = f a b
 
-let reset_rename_generator () = 
-  ng.next <- 0
+let (<<) f g x = f(g(x))
+let (>>) g f x = f(g(x))
+
 
 (* Labels *)
-let lg = ( {next = 0;} )
+type label_context = {
+  mutable next: int;
+  mutable name: string;
+}
 
-let new_label () =
-  let number = lg.next in
-  let () = lg.next <- lg.next+1 in
-  Int.to_string number
+let lg = ( {next = 0; name = ""} )
+
+let label_context () = string_of_int lg.next ^ "_" ^ lg.name
+
+let new_label_context name =
+  lg.next <- lg.next+1 ; lg.name <- name
+
+let label name = label_context () ^ "_" ^ name
+
 
 (* Lookup *)
 let rec lookup f l =

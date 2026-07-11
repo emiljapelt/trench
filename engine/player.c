@@ -22,12 +22,9 @@ player_state* copy_player_state(const player_state* ps) {
     memcpy(new_directive, ps->directive, dir_bytes);
     memcpy(new_stack, ps->stack, stack_bytes);
 
-    new_player->alive = 1;
     new_player->is_original_player = 0;
-    new_player->death_msg = NULL;
     new_player->team = ps->team;
     new_player->name = strdup(ps->name);
-    new_player->id = _gs->id_counter++;
     new_player->stack = new_stack;
     new_player->bp = ps->bp;
     new_player->sp = ps->sp;
@@ -35,7 +32,6 @@ player_state* copy_player_state(const player_state* ps) {
     new_player->directive = new_directive;
     new_player->directive_len = ps->directive_len;
     new_player->dp = ps->dp;
-    new_player->location = (location) { .type = VOID_LOCATION };
     new_player->pager_channel = ps->pager_channel;
     new_player->pager_msgs = array_list.create(10);
     new_player->pre_death_events = array_list.create(10);

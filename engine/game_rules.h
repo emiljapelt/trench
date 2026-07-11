@@ -1,6 +1,137 @@
 #ifndef GAME_RULES_H
 #define GAME_RULES_H
 
+
+typedef struct {
+    struct {
+        int range;
+        int cost;
+    } fireball;
+
+    struct {
+        int range;
+    } shoot;
+
+    struct {
+        int range;
+        int cost;
+    } bomb;
+    
+    struct {
+        int amount;
+    } meditate;
+
+    struct {
+        int cost;
+    } dispel;
+
+    struct {
+        int cost;
+    } mana_drain;
+
+    struct {
+        int cost;
+    } wall;
+
+    struct {
+        int delay;
+    } plant_tree;
+
+    struct {
+        int cost;
+    } bridge;
+
+    struct {
+        int wood_gain;
+        int sapling_chance;
+    } chop;
+
+    struct {
+        int range;
+        int cost;
+    } fortify;
+
+    struct {
+        int cost;
+        int upkeep;
+    } projection;
+
+    struct {
+        int cost;
+        int duration;
+        int range;
+        int refreeze;
+    } freeze;
+
+    struct {
+        int range;
+    } look;
+
+    struct {
+        int range;
+    } scan;
+
+    struct {
+        int capacity;
+        int cost;
+        int wood_cap;
+        int clay_cap;
+        int ammo_cap;
+        int sapling_cap;
+        int beartrap_cap;
+        int explosive_cap;
+        int metal_cap;
+    } boat;
+
+    struct {
+        int cost;
+        int range;
+    } throw_clay;
+
+    struct {
+        int spread_limit;
+        int contain_limit;
+        int collect_max;
+    } clay_pit;
+
+    struct {
+        int cost;
+    } clay_golem;
+
+    struct {
+        int cost;
+    } mine_shaft;
+
+    struct {
+        int ammo_per_metal;
+        int beartraps_per_metal;
+    } craft;
+
+    struct {
+        int cost;
+        int range;
+    } trench;
+
+    struct {
+        int range;
+    } collect;
+
+    struct {
+        int cost;
+        int range;
+    } obliviate;
+
+    struct {
+        int cost;
+        int duration;
+    } blink;
+
+    struct {
+        int cost;
+    } mine;
+} game_settings;
+
+
 typedef struct game_rules {
     int actions;
     int steps;
@@ -17,123 +148,12 @@ typedef struct game_rules {
     struct {
         int x;
         int y;
-        int width;
-        int height;
+        unsigned int width;
+        unsigned int height;
         int automatic: 1;
     } viewport;
 
-    struct settings {
-        struct {
-            int range;
-            int cost;
-        } fireball;
-
-        struct {
-            int range;
-        } shoot;
-
-        struct {
-            int range;
-        } bomb;
-        
-        struct {
-            int amount;
-        } meditate;
-
-        struct {
-            int cost;
-        } dispel;
-
-        struct {
-            int cost;
-        } mana_drain;
-
-        struct {
-            int cost;
-        } wall;
-
-        struct {
-            int delay;
-        } plant_tree;
-
-        struct {
-            int cost;
-        } bridge;
-
-        struct {
-            int wood_gain;
-            int sapling_chance;
-        } chop;
-
-        struct {
-            int range;
-            int cost;
-        } fortify;
-
-        struct {
-            int cost;
-            int upkeep;
-        } projection;
-
-        struct {
-            int cost;
-            int duration;
-            int range;
-            int refreeze;
-        } freeze;
-
-        struct {
-            int range;
-        } look;
-
-        struct {
-            int range;
-        } scan;
-
-        struct {
-            int capacity;
-            int cost;
-            int wood_cap;
-            int clay_cap;
-            int ammo_cap;
-            int sapling_cap;
-            int beartrap_cap;
-            int explosive_cap;
-            int metal_cap;
-        } boat;
-
-        struct {
-            int cost;
-            int range;
-        } throw_clay;
-
-        struct {
-            int spread_limit;
-            int contain_limit;
-            int collect_max;
-        } clay_pit;
-
-        struct {
-            int cost;
-        } clay_golem;
-
-        struct {
-            int cost;
-        } mine_shaft;
-
-        struct {
-            int ammo_per_metal;
-            int beartraps_per_metal;
-        } craft;
-
-        struct {
-            int range;
-        } trench;
-
-        struct {
-            int range;
-        } collect;
-    } settings;
+    game_settings settings;
 } game_rules;
 
 #endif

@@ -11,4 +11,5 @@ let all_features = [
   "fork";
   "craft";
   "debug";
+  "meta"
 ] |> StringSet.of_list

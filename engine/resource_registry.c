@@ -2,11 +2,11 @@
 
 #include "game_state.h"
 #include "game_rules.h"
+#include "log.h"
 
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
-
 
 resource_registry default_resource_registry;
 
@@ -48,7 +48,7 @@ int peek_resource(resource_registry* registry, resource_type r) {
     return registry->resource[r].amount;
 }
 
-void add_resource(resource_registry* registry, resource_type r, unsigned int amount) {
+void add_resource(resource_registry* registry, resource_type r, int amount) {
     if (r < 0 || r >= RESOURCE_COUNT) return;
 
     if (registry->resource[r].max == -1 || registry->resource[r].amount + amount <= registry->resource[r].max) 

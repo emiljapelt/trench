@@ -9,13 +9,13 @@
 		"main": {
 			"patterns": [{
 				"name": "keyword",
-				"match": "\\b(let)\\b"
+				"match": "\\b(let|const|type)\\b"
 			},{
 				"name": "support.type",
 				"match": "\\b(int|dir|field|property|resource)\\b"
 			},{
 				"name": "keyword.control",
-				"match": "\\b(while|break|continue|return|goto|if|is|else|repeat)\\b"
+				"match": "\\b(while|break|continue|return|goto|if|is|else|repeat|any)\\b"
 			},{
 				"name": "constant.language",
 				"match": "\\b(N|S|E|W|null|true|false)\\b"
@@ -30,22 +30,28 @@
 				"match": "(#(clay|explosive|ammo|mana|sapling|wood|metal))\\b"
 			},{
 				"name": "constant.language",
-				"match": "(@(obstruction|player|trapped|flammable|cover|shelter|empty|trench|ice_block|tree|ocean|wall|bridge|clay|mine_shaft|enemy|mountain|ally))\\b"
+				"match": "(@(obstruction|player|trapped|flammable|cover|shelter|empty|trench|ice_block|tree|ocean|wall|bridge|clay|mine_shaft|enemy|mountain|ally|all|vehicle))\\b"
 			},{
 				"name": "constant.language",
-				"match": "\\b(id|x|y|board_width|board_height|_SUCCESS|_ERROR|_MISSING_RESOURCE|_OUT_OF_BOUNDS|_INVALID_TARGET|_OUT_OF_RANGE|_OBSTRUCTED|_MISSING_SPACE|round)\\b"
+				"match": "\\b(id|x|y|map_width|map_height|_SUCCESS|_ERROR|_MISSING_RESOURCE|_OUT_OF_BOUNDS|_INVALID_TARGET|_OUT_OF_RANGE|_OBSTRUCTED|_MISSING_SPACE|round|actions|meta)\\b"
 			},{
 				"name": "support.function",
-				"match": "\\b(move|trench|fortify|wait|pass|meditate|projection|collect|bomb|freeze|shoot|mine|fireball|chop|dispel|disarm|mana_drain|wall|bridge|plant_tree|mount|dismount|boat|bear_trap|write|pager_write|pager_set|say|pager_read|read|scan|look|throw_clay|clay_golem|count|drop|take|mine_shaft|craft)\\b"
+				"match": "\\b(move|trench|fortify|wait|pass|meditate|projection|collect|bomb|freeze|shoot|mine|fireball|chop|dispel|disarm|mana_drain|wall|bridge|plant_tree|mount|dismount|boat|bear_trap|write|pager_write|pager_set|say|pager_read|read|scan|look|throw_clay|clay_golem|count|drop|take|mine_shaft|craft|blink|obliviate|search)\\b"
 			},{
 				"name": "variable.name",
 				"match": "\\b([A-Za-z'][A-Za-z0-9_]*)\\b"
 			}]
 		},
 		"comments": {
-			"name": "comment.line",
-			"begin": "//",
-			"end": "\\n"
+			"patterns": [{
+				"name": "comment.line",
+				"begin": "//",
+				"end": "\\n"
+			},{
+				"name": "comment.block",
+				"begin": "/\\*",
+				"end": "\\*/"
+			}]
 		}
 	},
 	"scopeName": "source.tr"
