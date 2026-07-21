@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            ocaml-nox ocaml-findlib ocaml-dune menhir \
+            libncurses-dev zlib1g-dev libzstd-dev \
+            build-essential gcc pkg-config
+
+      - name: Make build scripts executable
+        run: |
+          chmod +x build.sh
+          chmod +x engine/build.sh
+
+      - name: Build compiler and engine
+        run: ./build.sh
