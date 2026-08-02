@@ -203,7 +203,7 @@ int instr_move_sp(player_state* ps) {
 int instr_copy(player_state* ps) {
     if (ps->sp + 1 >= _gr->stack_size) {
         kill_player(ps, stack_overflow_msg);
-        return 1;
+        return 0;
     }
 
     ps->stack[ps->sp] = ps->stack[ps->sp - 1];
@@ -260,6 +260,7 @@ int instr_call(player_state* ps) {
     ps->sp += arg_count;
     ps->dp = func_addr;
     _log(DEBUG, "call addr: %i, args: %i", func_addr, arg_count);
+    return 0;
 }
 
 int instr_return(player_state* ps) {
@@ -274,6 +275,7 @@ int instr_return(player_state* ps) {
 
     memcpy(ps->stack + ps->sp, ps->stack + ret_start, sizeof(int) * size);
     ps->sp += size;
+    return 0;
 }
 
 int instr_declare(player_state* ps) {
@@ -340,17 +342,6 @@ int instr_bits(player_state* ps) {
     ps->stack[ps->sp++] = count;
     return 0;
 }
-
-
-
-/*
-Maybe loading negative addresses should work like functions do.
-Such that builtin variables wont need to polute the ISA.
-
-But... CISC or RISC ???
-- Negative addresses reduce the ISA, but increases instructions used.
-- Current solution increase ISA, but reduces instructions used.
-*/
 
 int instr_load(player_state* ps, int base) {
     int addr = ps->stack[--ps->sp];

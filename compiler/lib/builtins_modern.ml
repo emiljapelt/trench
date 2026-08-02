@@ -4,112 +4,206 @@ open ProgramRep
 open Flags
 open Helpers
 
-let themes ts =
+let satisfy_themes ts =
   List.is_empty ts || List.exists (fun t -> StringSet.mem t compile_flags.themes) ts
 
-let features fs = 
+let satisfy_features fs = 
   List.for_all (fun f -> StringSet.mem f compile_flags.features) fs
 
 let builtin_func ret args addr =
   ASM(T_Func(ret,args), [Instr_Place; I(addr)])
 
-let structure elements = StructureLiteral(List.map (fun (n,e) -> StructureElement(Some n, Expr(e,0))) elements)
-
-type builtin = {
+type builtin_value = {
   name: string;
   expr: expr;
+  link: string option;
   themes: string list;
   features: string list;
-  meta: meta list;
 }
 
-and value_link =
-  | No
-  | Impl
-  | Setting of string
+type builtin_structure = { 
+  name: string;
+  elements: builtin list;
+  themes: string list;
+  features: string list;
+}
 
-and meta = 
-  | Value of string * expr * value_link
-  | Structure of string * meta list
+and builtin = 
+  | Value of builtin_value
+  | Structure of builtin_structure
 
-let rec translate_meta loc meta = 
+let themes_of = function
+  | Value v -> v.themes
+  | Structure s -> s.themes 
+
+let features_of = function
+  | Value v -> v.features
+  | Structure s -> s.features 
+
+let rec translate_builtin builtin = 
   let settings = Flags.compile_flags.settings in
   let value s i = Int (settings |> StringMap.find_opt s |> Option.value ~default:i) in
-  match meta with
-  | Value(n,Int i,Impl) -> (n, value (loc^"."^n) i)
-  | Value(n,Int i, Setting s) -> (n, value s i)
-  | Value(n,e,_) -> (n,e)
-  | Structure(n, entries) -> (n, StructureLiteral(
-    entries 
-    |> List.map (translate_meta (loc^"."^n))
+  if not(satisfy_themes(themes_of builtin) && satisfy_features(features_of builtin)) 
+  then None
+  else match builtin with 
+  | Value v -> (match v.expr, v.link with
+    | Int i, Some s -> Some (v.name, value s i)
+    | _,_ -> Some (v.name, v.expr)
+  )
+  | Structure s -> Some(s.name, StructureLiteral(
+    s.elements
+    |> List.filter_map (translate_builtin)
     |> List.map (fun (n,e) -> StructureElement(Some n, Expr(e,0)))
   ))
 
-
-
-(*
-type _builtin_info = {
-  name: string;
-  themes: string list;
-  features: string list;
-  value: _builtin;
+let value = {
+  name = "";
+  expr = Null;
+  link = None;
+  themes = [];
+  features = [];
 }
 
-and _builtin = 
-  | Atom of expr * string option 
-  | Structure of _builtin_info list
-
-
-let _builtins () : _builtin_info list = [
-  {
-    name = "fireball";
-    themes = ["wizardry"]; features = [];
-    value = Structure [{
-      name = "cast";
-      themes = []; features = [];
-      value = Atom(builtin_func T_Int [T_Dir] (-14), None);
-    };{
-      name = "range";
-      themes = []; features = ["meta"];
-      value = Atom(Int 5, Some "fireball.range");
-    };{
-      name = "cost";
-      themes = []; features = ["meta"];
-      value = Structure [{
-        name = "resource";
-        themes = []; features = [];
-        value = Atom (Resource R_Mana, None);
-      };{
-        name = "amount";
-        themes = []; features = [];
-        value = Atom(Int 10, Some "fireball.cost")
-      }]
-    }]
-  }
-]
-
-let rec translate_builtin settings builtin = match builtin with
-  | Atom(Int i, Some setting) -> Int (settings |> StringMap.find_opt setting |> Option.value ~default:i)
-  | Atom(expr, _) -> expr 
-  | Structure entries -> StructureLiteral (
-    entries 
-    |> List.filter_map (translate_builtin_info settings)
-    |> List.map (fun (n,e) -> StructureElement(Some n, Expr(e,0))))
-
-and translate_builtin_info settings (info : _builtin_info) = 
-  if features info.features && themes info.themes 
-  then Some((info.name, translate_builtin settings info.value))
-  else None 
-
-let translate_builtins settings = 
-  _builtins ()
-  |> List.filter_map (translate_builtin_info settings)
-  |> List.map (fun (n,e) -> Const(n, Expr(e,0)))
-*)
-
+let structure = {
+  name = "";
+  elements = [];
+  themes = [];
+  features = [];
+}
 
 
 let builtins () : builtin list = [
+  Value {value with
+    name = "x";
+    expr = ASM(T_Int, [Instr_Meta; I(0)]);
+    features = ["meta"]
+  };
+
+  Value {value with
+    name = "y";
+    expr = ASM(T_Int, [Instr_Meta; I(1)]);
+    features = ["meta"]
+  };
+
+  Value {value with
+    name = "id";
+    expr = ASM(T_Int, [Instr_Meta; I(1)]);
+    features = ["meta"]
+  };
+
+  Value {value with
+    name = "map_width";
+    expr = Int Flags.compile_flags.map_width;
+    features = ["meta"];
+  };
+
+  Value {value with
+    name = "map_height";
+    expr = Int Flags.compile_flags.map_height;
+    features = ["meta"];
+  };
+
+  Value {value with
+    name = "round";
+    expr = ASM(T_Int, [Instr_Meta; I(5)]);
+    features = ["meta"];
+  };
+
+  Value {value with
+    name = "actions";
+    expr = ASM(T_Int, [Instr_Meta; I(6)]);
+    features = ["meta"];
+  };
+  
+  Structure {structure with
+    name = "map";
+    elements = [
+      Value {value with
+        name = "width"; 
+        expr = Int Flags.compile_flags.map_width;
+      };
+      Value {value with
+        name = "height";
+        expr = Int Flags.compile_flags.map_height;
+      };
+    ];
+    features = ["meta"];
+  };
+  
+  Structure {structure with
+    name = "player";
+    elements = [
+      Value {value with 
+        name = "x";
+        expr = ASM(T_Int,[Instr_Meta; I(0)]);
+      };
+      Value {value with 
+        name = "y";
+        expr = ASM(T_Int,[Instr_Meta; I(1)]);
+      };
+      Value {value with 
+        name = "id";
+        expr = ASM(T_Int,[Instr_Meta; I(2)]);
+      };
+      Value {value with 
+        name = "actions";
+        expr = ASM(T_Int,[Instr_Meta; I(6)]);
+      };
+    ];
+    features = ["meta"];
+  };
+  
+  Value {value with
+    name = "true";
+    expr = Int 1;
+  };
+
+  Value {value with
+    name = "false";
+    expr = Int 0;
+  };
+
+  Structure{structure with
+    name = "gun";
+    themes = ["military";"forestry"];
+    elements = [
+      Value {value with 
+        name = "shoot";
+        expr = builtin_func T_Int [T_Dir] (-1);
+      };
+      Value {value with 
+        name = "range";
+        features = ["meta"];
+        expr = Int 6;
+        link = Some "shoot.range";
+      };
+      Structure {structure with
+        name = "cost";
+        features = ["meta"];
+        elements = [
+          Value {value with 
+            name = "resource";
+            expr = Resource R_Ammo;
+          };
+          Value {value with 
+            name = "amount";
+            expr = Int 1;
+            link = Some "shoot.cost"
+          };
+        ];
+      };
+    ]
+  };
+
+  Value {value with
+    name = "say";
+    features = ["debug"];
+    expr = builtin_func T_Int [T_Int] (-26);
+  }
+]
+
+
+(*let builtins () : builtin list = [
   {
     name = "x";
     expr = ASM(T_Int, [Instr_Meta; I(0)]);
@@ -227,6 +321,10 @@ let builtins () : builtin list = [
         Value ("amount", Int 1, No);
       ])
     ]
+  };{
+    name = "gun";
+    expr = structure
+    themes = ["military";"forestry"]; features = []; meta = [];
   };{
     name = "look";
     expr = builtin_func T_Int [T_Dir;T_Field] (-2);
@@ -558,24 +656,11 @@ let builtins () : builtin list = [
     themes = []; features = [];
     meta = []
   };
-]
+]*)
 
-let generate_resource_meta () =
+let resource_meta () =
   let resources = Flags.compile_flags.resources |> ResourceMap.to_list in
   StructureLiteral (List.map (fun (r, (_, m)) -> StructureElement(Some (resource_to_string r), Expr(Int m,0))) resources)
-
-let generate_meta_builtin bs : builtin =
-  let entries = List.filter_map (fun b -> if List.is_empty b.meta then None else Some(b.name, b.meta)) bs in
-  let translated = List.map (fun (n, metas) -> (n, List.map (translate_meta n) metas)) entries in
-  let elements = List.map (fun (name,metas) -> StructureElement(Some name, Expr(StructureLiteral(List.map (fun (entry,expr) -> StructureElement(Some entry, Expr(expr,0))) metas),0))) translated in
-  let resource_element = StructureElement(Some "resource", Expr(generate_resource_meta (), 0)) in
-  {
-    name = "meta";
-    expr = StructureLiteral(resource_element :: elements);
-    features = ["meta"];
-    themes = [];
-    meta = [];
-  }
 
 let builtin_types = [
   Type("int", T_Int);
@@ -584,15 +669,7 @@ let builtin_types = [
   Type("field", T_Field);
 ]
   
-let use_modern = true
-
 let generate_initial_scope () : identifier list =
-
-  if use_modern then Builtins_modern.generate_initial_scope () else
-    
-  let builtins = builtins () in
-  let meta = generate_meta_builtin builtins in
-  let builtins = (meta :: builtins) 
-    |> List.filter (fun b -> themes b.themes && features b.features) in
-  List.map (fun b -> Const(b.name, Expr(b.expr,0))) builtins @ builtin_types
+  let builtins = ("resource", resource_meta ()) :: List.filter_map translate_builtin (builtins ()) in
+  List.map (fun (name,expr) -> Const(name, Expr(expr,0))) builtins @ builtin_types
   
