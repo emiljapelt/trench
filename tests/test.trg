@@ -1,14 +1,14 @@
 actions: 1
 steps: 100000;
-mode: inf
+mode: "inf"
 time_scale: 0
 seed: 0
 
-map: test.trm
-viewport: 11,11
+map: "test.trm"
+viewport: [11 11]
 
-themes: *
-features: *
+themes: true
+features: true
 
 auto_start: true
 debug: false
@@ -20,19 +20,23 @@ resources: {
     ammo: 1000
     sapling: 1000
     clay: 1000
+    bear_trap: 1000
+    metal: 1000
 }
 
-team: {
-    name: test_team
-    color: 150,111,128
-    origin: 6,6
-    player: {
-        name: tester
-        files: test.tr
-    }
-}
+teams: [{
+    name: "test_team"
+    color: [150 111 128]
+    origin: [6 6]
+    players: [{
+        name: "tester"
+        files: ["test.tr"]
+    }]
+}]
 
 settings: {
-    projection.upkeep: 0
-    projection.cost: 0
+    projection: {
+        upkeep: 0
+        cost: 0
+    }
 }

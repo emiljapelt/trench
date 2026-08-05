@@ -2,7 +2,6 @@ open Absyn
 open ProgramRep
 open Exceptions
 open Field_props
-open Builtins
 open Resources
 open Helpers
 open Flags
@@ -755,9 +754,3 @@ and compile_stmt (Stmt(stmt,ln)) state : (compile_state * instruction list) =
   | Failure(p,None,msg) -> raise (Failure(p,Some ln, msg))
   | a -> raise a
 
-let compile_player (File(program,i)) =
-  let program = Stmt(Block program, i) in
-  let labels = available_labels program in
-  let state = {scopes = { local = generate_initial_scope () ; global = None }; size = 0; labels = labels; break = None; continue = None; ret_type = None;} in
-  let (state, instrs) = compile_stmt program state in
-  Instr_Declare :: I(state.size) :: instrs |> Optimize.optimize_instruction_list

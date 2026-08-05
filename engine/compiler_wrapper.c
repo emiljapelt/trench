@@ -339,6 +339,8 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 gs->team_states[i].members_alive = Int_val(Field(team_info, 2));
             }
 
+            
+
             setup_default_resource_registry(Field(unwrapped_result, 10));
 
             for(int i = 0; i < player_count; i++) {

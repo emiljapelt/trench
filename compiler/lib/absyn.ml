@@ -305,6 +305,7 @@ type game_setup = GS of {
     auto_start: bool;
 }
 
+(* Model in TRG load objects *)
 let resolve_string_set all parts =
     let rec aux ps acc = match ps with
         | [] -> acc
@@ -330,6 +331,13 @@ let identifier_name id = match id with
   | Var(_,n) 
   | Type(n,_)
   | Const(n,_) -> n
+
+let remove_identifier_name id = match id with
+  | Var(t,_) -> Var(t,"") 
+  | Type(_,t) -> Type("", t)
+  | Const(_,e) -> Const("", e)
+
+  
 
 let is_bound name scopes =
   match List.find_opt (fun id -> identifier_name id = name) scopes.local with

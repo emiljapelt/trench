@@ -46,15 +46,3 @@ module ResourceMap = Map.Make(struct
   type t = resource
   let compare r0 r1 = Stdlib.compare (resource_value r0) (resource_value r1)
 end)
-
-let default_resources : (int*int) ResourceMap.t = ResourceMap.of_list [
-  R_Explosive,  (0, -1) ;
-  R_Ammo,       (0, -1) ;
-  R_Mana,       (0, -1) ;
-  R_Sapling,    (0, -1) ;
-  R_Clay,       (0, -1) ;
-  R_Wood,       (0, -1) ;
-  R_BearTrap,   (0, -1) ;
-  R_Metal,      (0, -1) ;
-]
-
