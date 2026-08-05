@@ -1,5 +1,5 @@
 {
-  open Player_parser
+  open Tr_parser
   open Exceptions
   let keyword_table = Hashtbl.create 53
   let () = List.iter (fun (kwd, tok) -> Hashtbl.add keyword_table kwd tok)

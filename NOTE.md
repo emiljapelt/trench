@@ -58,3 +58,23 @@ The library is compiled, with these 'syscall' things, which are essentially expo
 
 The functions from the shared library can be made 'atomic' by a syscall which stop spending of steps, which then need to be reenabled at the end.
 
+
+
+
+
+
+
+
+Hidden library, which is is compiled with syscalls in scope. Made for dynamic implementation, which are not accesible to users.
+
+A shared_library, which is compiled for each player, with the hidden library and syscalls in scope. Made for dynamic implementation, which is accesible to users.
+
+event lists.
+
+field list.
+
+resource list
+
+Resource should be an object of arrays with 2 ints, the key is the resource name.
+
+Symbol overrides can just be an int, and a coordinate. The int is then cast to a char. These values can be given names in a struct, in the hidden library.

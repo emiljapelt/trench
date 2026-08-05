@@ -1,4 +1,5 @@
 open Absyn
+open Trg
 open Resources
 open ProgramRep
 open Flags
@@ -16,7 +17,7 @@ let builtin_func ret args addr =
 type builtin_value = {
   name: string;
   expr: expr;
-  link: string option;
+  link: string list;
   themes: string list;
   features: string list;
 }
@@ -41,13 +42,18 @@ let features_of = function
   | Structure s -> s.features 
 
 let rec translate_builtin builtin = 
-  let settings = Flags.compile_flags.settings in
-  let value s i = Int (settings |> StringMap.find_opt s |> Option.value ~default:i) in
+  let value ns i = 
+    let rec aux ns settings = match ns with
+      | [] -> load_int settings
+      | h::t -> Option.fold ~none:i ~some:(aux t) (find_entry_opt h settings)
+    in
+    Int (aux ns Flags.compile_flags.settings)
+  in
   if not(satisfy_themes(themes_of builtin) && satisfy_features(features_of builtin)) 
   then None
   else match builtin with 
   | Value v -> (match v.expr, v.link with
-    | Int i, Some s -> Some (v.name, value s i)
+    | Int i, s -> Some (v.name, value s i)
     | _,_ -> Some (v.name, v.expr)
   )
   | Structure s -> Some(s.name, StructureLiteral(
@@ -59,7 +65,7 @@ let rec translate_builtin builtin =
 let value = {
   name = "";
   expr = Null;
-  link = None;
+  link = [];
   themes = [];
   features = [];
 }
@@ -175,7 +181,7 @@ let builtins () : builtin list = [
         name = "range";
         features = ["meta"];
         expr = Int 6;
-        link = Some "shoot.range";
+        link = ["shoot";"range"];
       };
       Structure {structure with
         name = "cost";
@@ -188,7 +194,7 @@ let builtins () : builtin list = [
           Value {value with 
             name = "amount";
             expr = Int 1;
-            link = Some "shoot.cost"
+            link = ["shoot";"cost"]
           };
         ];
       };

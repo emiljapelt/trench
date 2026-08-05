@@ -13,6 +13,38 @@ const char* div_zero_msg = "DIV_BY_ZERO";
 const char* null_call_msg = "NULL_CALL";
 const char* out_of_bounds_msg = "OUT_OF_BOUNDS";
 
+int print_utf8(unsigned int cp, unsigned char out[4]) {
+    if (cp <= 0x7F) {
+        out[0] = cp;
+        return 1;
+    }
+
+    if (cp <= 0x7FF) {
+        out[0] = 0xC0 | (cp >> 6);
+        out[1] = 0x80 | (cp & 0x3F);
+        return 2;
+    }
+
+    if (cp >= 0xD800 && cp <= 0xDFFF)
+        return 0;
+
+    if (cp <= 0xFFFF) {
+        out[0] = 0xE0 | (cp >> 12);
+        out[1] = 0x80 | ((cp >> 6) & 0x3F);
+        out[2] = 0x80 | (cp & 0x3F);
+        return 3;
+    }
+
+    if (cp <= 0x10FFFF) {
+        out[0] = 0xF0 | (cp >> 18);
+        out[1] = 0x80 | ((cp >> 12) & 0x3F);
+        out[2] = 0x80 | ((cp >> 6) & 0x3F);
+        out[3] = 0x80 | (cp & 0x3F);
+        return 4;
+    }
+
+    return 0;
+}
 
 int max(int a, int b) {
     if (a > b) return a;

@@ -1,5 +1,5 @@
-(ocamllex player_lexer game_lexer)
-(menhir (modules player_parser game_parser))
+(ocamllex tr_lexer trg_lexer)
+(menhir (modules tr_parser trg_parser))
 (library
  (name trenchclib)
  (libraries str) 
@@ -9,14 +9,14 @@
    absyn
    field_props
    optimize
-   player_lexer
-   player_parser
-   game_lexer
-   game_parser
+   tr_lexer
+   tr_parser
+   trg
+   trg_lexer
+   trg_parser
    themes
    features
    toProgramRep
-   settings
    flags
    compile
    builtins

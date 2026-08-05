@@ -21,6 +21,20 @@ let (<<) f g x = f(g(x))
 let (>>) g f x = f(g(x))
 
 
+(* Notes *)
+
+type compiler_notes = {
+  mutable dir: string;
+  mutable shared_library: string; (* Not the right location... *) 
+  mutable hidden_library: string; (* Not the right location... *) 
+}
+
+let compiler_notes = {
+  dir = "";
+  shared_library = "";
+  hidden_library = "";
+}
+
 (* Labels *)
 type label_context = {
   mutable next: int;

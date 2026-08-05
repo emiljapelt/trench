@@ -1,6 +1,6 @@
 open Resources
 open Helpers
-
+open Trg
 
 type flag_record = {
   mutable features : StringSet.t;
@@ -8,7 +8,7 @@ type flag_record = {
   mutable auto_resize : bool;
   mutable map_width : int;
   mutable map_height : int;
-  mutable settings : int StringMap.t;
+  mutable settings : trg;
   mutable resources : (int * int) ResourceMap.t;
 }
 
@@ -18,7 +18,7 @@ let compile_flags : flag_record = {
   auto_resize = true;
   map_width = -1;
   map_height = -1;
-  settings = StringMap.empty;
+  settings = TRGObject StringMap.empty ;
   resources = ResourceMap.empty;
 } 
 

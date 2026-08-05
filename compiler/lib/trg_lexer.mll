@@ -1,37 +1,11 @@
 {
-  open Game_parser
+  open Trg_parser
   open Exceptions
   let keyword_table = Hashtbl.create 53
   let () = List.iter (fun (kwd, tok) -> Hashtbl.add keyword_table kwd tok)
-                      [ 
-                        "player", PLAYER; 
-                        "actions", ACTIONS;
-                        "steps", STEPS;
-                        "mode", MODE;
-                        "map", MAP;
-                        "nuke", NUKE;
-                        "team", TEAM;
-                        "name", NAME;
-                        "origin", ORIGIN;
-                        "files", FILES;
-                        "features", FEATURES;
-                        "exec_mode", EXEC_MODE;
-                        "default", DEFAULT;
-                        "themes", THEMES;
-                        "resources", RESOURCES;
-                        "seed", SEED;
-                        "time_scale", TIME_SCALE;
-                        "color", COLOR;
-                        "manual", MANUAL;
-                        "inf", INFINITE;
-                        "of", OF;
-                        "settings", SETTINGS;
+                      [
                         "false", FALSE;
                         "true", TRUE;
-                        "debug", DEBUG;
-                        "viewport", VIEWPORT;
-                        "auto_start", AUTO_START;
-                        "auto_resize", AUTO_RESIZE;
                       ]
   
   let char_of_string s lexbuf = match s with
@@ -61,19 +35,21 @@ rule lex = parse
     |   "//" [^ '\n' '\r']* ('\r''\n' | '\n' | eof)       { incr_linenum lexbuf ; lex lexbuf }
     |  '-'? ['0'-'9']+ as lxm { CSTINT (int_of_string lxm) }
     |  '-'? ['0'-'9']+ '.' ['0'-'9']+ as lxm { CSTFLOAT (Float.of_string lxm) }
-    |   ['A'-'Z' 'a'-'z' '/' '.' '_']['A'-'Z' 'a'-'z' '0'-'9' '/' '_' '.']* as id
+    |   '"' [^ '"']*? '"' as str { CSTSTRING (String.sub str 1 (String.length str - 2)) }
+    |   ['A'-'Z' 'a'-'z' '_']['A'-'Z' 'a'-'z' '0'-'9' '_']* as id
                 { try
                     Hashtbl.find keyword_table id
-                  with Not_found -> WORD id }
+                  with Not_found -> CSTNAME id }
     |   ','           { COMMA }
     |   ':'           { COLON }
     |   '-'           { MINUS }
     |   ';'           { SEMI }
     |   '('           { LPAR }
     |   ')'           { RPAR }
-    |   '*'           { STAR }
     |   '{'           { LBRACE }
     |   '}'           { RBRACE }
+    |   '['           { LBRAKE }
+    |   ']'           { RBRAKE }
     |   _             { raise (Failure(Some((Lexing.lexeme_start_p lexbuf).pos_fname), Some((Lexing.lexeme_start_p lexbuf).pos_lnum), ("Unknown token"))) }
     |   eof           { EOF }
 

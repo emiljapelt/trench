@@ -7,6 +7,8 @@ extern const char* div_zero_msg;
 extern const char* null_call_msg;
 extern const char* out_of_bounds_msg;
 
+int print_utf8(unsigned int cp, unsigned char out[4]);
+
 void set_wait_time_scaler(float*);
 void wait(float seconds);
 int clamp(int a, int hi, int lo);

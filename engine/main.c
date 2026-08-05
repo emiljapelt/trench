@@ -480,6 +480,8 @@ int main(int argc, char** argv) {
 
     if(!compile_game(argv[1], _gr, _gs)) return 1;
 
+    _log(INFO,  "DONE!");
+
     terminal_echo_off();
     terminal_blocking_read_off();
     terminal_canonical_off();

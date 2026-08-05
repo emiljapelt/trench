@@ -1,4 +1,5 @@
 open Absyn
+open Trg
 open Resources
 open ProgramRep
 open Flags
@@ -26,22 +27,27 @@ type builtin = {
 and value_link =
   | No
   | Impl
-  | Setting of string
+  | Setting of string list
 
 and meta = 
   | Value of string * expr * value_link
   | Structure of string * meta list
 
-let rec translate_meta loc meta = 
-  let settings = Flags.compile_flags.settings in
-  let value s i = Int (settings |> StringMap.find_opt s |> Option.value ~default:i) in
+let rec translate_meta loc meta =
+  let value ns i = 
+    let rec aux ns settings = match ns with
+      | [] -> load_int settings
+      | h::t -> Option.fold ~none:i ~some:(aux t) (find_entry_opt h settings)
+    in
+    Int (aux ns Flags.compile_flags.settings)
+  in
   match meta with
-  | Value(n,Int i,Impl) -> (n, value (loc^"."^n) i)
+  | Value(n,Int i, Impl) -> (n, value (n::loc) i)
   | Value(n,Int i, Setting s) -> (n, value s i)
   | Value(n,e,_) -> (n,e)
   | Structure(n, entries) -> (n, StructureLiteral(
     entries 
-    |> List.map (translate_meta (loc^"."^n))
+    |> List.map (translate_meta (n::loc))
     |> List.map (fun (n,e) -> StructureElement(Some n, Expr(e,0)))
   ))
 
@@ -248,7 +254,7 @@ let builtins () : builtin list = [
     meta = [
       Structure ("cost", [
         Value ("resource", Resource R_Explosive, No);
-        Value ("amount", Int 1, Setting "mine.cost")
+        Value ("amount", Int 1, Setting ["mine";"cost"])
       ])
     ]
   };{
@@ -269,7 +275,7 @@ let builtins () : builtin list = [
       Value ("range", Int 1, Impl);
       Structure ("cost", [
         Value ("resource", Resource R_Wood, No);
-        Value ("amount", Int 0, Setting "trench.cost");
+        Value ("amount", Int 0, Setting ["trench";"cost"]);
       ])
     ]
   };{
@@ -280,7 +286,7 @@ let builtins () : builtin list = [
       Value ("range", Int 1, Impl);
       Structure ("cost", [
         Value ("resource", Resource R_Wood, No);
-        Value ("amount", Int 5, Setting "fortify.cost");
+        Value ("amount", Int 5, Setting ["fortify";"cost"]);
       ])
     ]
   };{
@@ -291,7 +297,7 @@ let builtins () : builtin list = [
       Value ("range", Int 4, Impl);
       Structure ("cost", [
         Value ("resource", Resource R_Explosive, No);
-        Value ("amount", Int 1, Setting "bomb.cost");
+        Value ("amount", Int 1, Setting ["bomb";"cost"]);
       ])
     ]
   };{
@@ -312,7 +318,7 @@ let builtins () : builtin list = [
       Value ("upkeep", Int 10, Impl);
       Structure ("cost", [
         Value ("resource", Resource R_Mana, No);
-        Value ("amount", Int 50, Setting "projection.cost");
+        Value ("amount", Int 50, Setting ["projection";"cost"]);
       ])
     ]
   };{
@@ -324,7 +330,7 @@ let builtins () : builtin list = [
       Value ("range", Int 5, Impl);
       Structure ("cost", [
         Value ("resource", Resource R_Mana, No);
-        Value ("amount", Int 25, Setting "freeze.cost");
+        Value ("amount", Int 25, Setting ["freeze";"cost"]);
       ])
     ]
   };{
@@ -335,7 +341,7 @@ let builtins () : builtin list = [
       Value ("range", Int 5, Impl);
       Structure ("cost", [  
         Value ("resource", Resource R_Mana, No);
-        Value ("amount", Int 10, Setting "fireball.cost");
+        Value ("amount", Int 10, Setting ["fireball";"cost"]);
       ])
     ]
   };{
@@ -352,7 +358,7 @@ let builtins () : builtin list = [
     meta = [
       Structure ("cost", [  
         Value ("resource", Resource R_Mana, No);
-        Value ("amount", Int 5, Setting "dispel.cost");
+        Value ("amount", Int 5, Setting ["dispel";"cost"]);
       ])
     ]
   };{
@@ -367,7 +373,7 @@ let builtins () : builtin list = [
     meta = [
       Structure ("cost", [  
         Value ("resource", Resource R_Mana, No);
-        Value ("amount", Int 20, Setting "mana_drain.cost");
+        Value ("amount", Int 20, Setting ["mana_drain";"cost"]);
       ])
     ]
   };{
@@ -392,7 +398,7 @@ let builtins () : builtin list = [
     meta = [
       Structure ("cost", [  
         Value ("resource", Resource R_Wood, No);
-        Value ("amount", Int 10, Setting "wall.cost");
+        Value ("amount", Int 10, Setting ["wall";"cost"]);
       ])
     ]
   };{
@@ -403,7 +409,7 @@ let builtins () : builtin list = [
       Value ("delay", Int 3, Impl);
       Structure ("cost", [  
         Value ("resource", Resource R_Sapling, No);
-        Value ("amount", Int 1, Setting "plant_tree");
+        Value ("amount", Int 1, Setting ["plant_tree";"cost"]);
       ])
     ]
   };{
@@ -413,7 +419,7 @@ let builtins () : builtin list = [
     meta = [
       Structure ("cost", [  
         Value ("resource", Resource R_Wood, No);
-        Value ("amount", Int 20, Setting "bridge.cost");
+        Value ("amount", Int 20, Setting ["bridge";"cost"]);
       ])
     ]
   };{
@@ -421,7 +427,7 @@ let builtins () : builtin list = [
     expr = builtin_func T_Int [T_Dir;T_Int] (-25);
     themes = []; features = [];
     meta = [
-      Value ("range", Int 1, Setting "collect.range");
+      Value ("range", Int 1, Setting ["collect";"range"]);
     ]
   };{
     name = "say";
@@ -445,7 +451,7 @@ let builtins () : builtin list = [
     meta = [
       Structure ("cost", [  
         Value ("resource", Resource R_Wood, No);
-        Value ("amount", Int 30, Setting "boat.cost");
+        Value ("amount", Int 30, Setting ["boat";"cost"]);
       ]);
       Value ("capacity", Int 4, Impl);
       Value ("wood_cap", Int 50, Impl);
@@ -463,7 +469,7 @@ let builtins () : builtin list = [
     meta = [
       Structure ("cost", [  
         Value ("resource", Resource R_BearTrap, No);
-        Value ("amount", Int 1, Setting "bear_trap.cost");
+        Value ("amount", Int 1, Setting ["bear_trap";"cost"]);
       ])
     ]
   };{
@@ -474,7 +480,7 @@ let builtins () : builtin list = [
       Value ("range", Int 3, Impl);
       Structure ("cost", [  
         Value ("resource", Resource R_Clay, No);
-        Value ("amount", Int 1, Setting "throw_clay.cost");
+        Value ("amount", Int 1, Setting ["throw_clay";"cost"]);
       ])
     ]
   };{
@@ -484,7 +490,7 @@ let builtins () : builtin list = [
     meta = [
       Structure ("cost", [  
         Value ("resource", Resource R_Clay, No);
-        Value ("amount", Int 5, Setting "clay_golem.cost");
+        Value ("amount", Int 5, Setting ["clay_golem";"cost"]);
       ])
     ]
   };{
@@ -504,7 +510,7 @@ let builtins () : builtin list = [
     meta = [
       Structure ("cost", [
         Value ("resource", Resource R_Wood, No);
-        Value ("amount", Int 10, Setting "mine_shaft.cost");
+        Value ("amount", Int 10, Setting ["mine_shaft";"cost"]);
       ])
     ]
   };{
@@ -538,7 +544,7 @@ let builtins () : builtin list = [
       Value ("range", Int 2, Impl);
       Structure ("cost", [  
         Value ("resource", Resource R_Mana, No);
-        Value ("amount", Int 20, Setting "obliviate.cost");
+        Value ("amount", Int 20, Setting ["obliviate";"cost"]);
       ])
     ]
   };{
@@ -549,7 +555,7 @@ let builtins () : builtin list = [
       Value ("duration", Int 2, Impl);
       Structure ("cost", [  
         Value ("resource", Resource R_Mana, No);
-        Value ("amount", Int 10, Setting "blink.cost");
+        Value ("amount", Int 10, Setting ["blink";"cost"]);
       ]) 
     ]
   };{
@@ -566,7 +572,7 @@ let generate_resource_meta () =
 
 let generate_meta_builtin bs : builtin =
   let entries = List.filter_map (fun b -> if List.is_empty b.meta then None else Some(b.name, b.meta)) bs in
-  let translated = List.map (fun (n, metas) -> (n, List.map (translate_meta n) metas)) entries in
+  let translated = List.map (fun (n, metas) -> (n, List.map (translate_meta [n]) metas)) entries in
   let elements = List.map (fun (name,metas) -> StructureElement(Some name, Expr(StructureLiteral(List.map (fun (entry,expr) -> StructureElement(Some entry, Expr(expr,0))) metas),0))) translated in
   let resource_element = StructureElement(Some "resource", Expr(generate_resource_meta (), 0)) in
   {
@@ -584,12 +590,12 @@ let builtin_types = [
   Type("field", T_Field);
 ]
   
-let use_modern = true
+(*let use_modern = false*)
 
 let generate_initial_scope () : identifier list =
 
-  if use_modern then Builtins_modern.generate_initial_scope () else
-    
+  (*if use_modern then Builtins_modern.generate_initial_scope () else*)
+  
   let builtins = builtins () in
   let meta = generate_meta_builtin builtins in
   let builtins = (meta :: builtins) 
