@@ -104,10 +104,10 @@ directive_info load_directive_to_struct(value comp, int stack_size) {
     };
 }
 
-int compile_player(const char* path, int stack_size, int size_limit, directive_info* result) {
+int compile_player(const player_state* player, const char* path, int stack_size, directive_info* result) {
     static const value* compile_player_closure = NULL;
     if(compile_player_closure == NULL) compile_player_closure = caml_named_value("compile_player_file");
-    value callback_result = caml_callback2(*compile_player_closure, caml_copy_string(path), Val_int(size_limit));
+    value callback_result = caml_callback2(*compile_player_closure, caml_copy_string(path), caml_copy_string(player->team->team_name));
     
     switch (Tag_val(callback_result)) {
         case 0: { // Ok
@@ -378,7 +378,7 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 directive_info di;
                 entity_t* entity = get_entity(gs->entities, i);
                 if (entity->type == ENTITY_PLAYER) {
-                    int success = compile_player(entity->player->path, gr->stack_size, gr->program_size_limit, &di);
+                    int success = compile_player(entity->player, entity->player->path, gr->stack_size, &di);
                     if (!success) exit(1);
                     entity->player->stack = di.stack;
                     entity->player->directive = di.directive;

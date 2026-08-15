@@ -14,7 +14,6 @@ let raise_expr_failure (Expr(_,ln)) msg = raise (Failure (None, Some ln, msg))
 
 (*** Compiling functions ***)
 
-
 (* TODO: 
 - Cleanup
 - More helper functions, especially for using 'find_expression_location'
@@ -403,11 +402,10 @@ let rec compile_expr (state:compile_state) (Expr(expr, ln) as expression) : (typ
       (typ, [Instr_GoTo ; LabelRef _stop ; Label _start ; Instr_Declare ; I(state'.size)] @ body @ [Instr_Declare ; I(type_size ret) ; Instr_Return ; I(type_size ret) ; Label _stop ; Instr_Place ; LabelRef _start])
   )
   | Call(f,args) -> (
-    (* TODO: Support shorthands directly... somehow... maybe *)
     let (f_typ, f_instrs) = compile_expr state f in
     match f_typ with
     | T_Func(ret, params) ->
-      (*type check?*)
+      (*type check?*) 
       let total_params_size = params |> List.map type_size |> List.fold_left (+) 0 in
       if List.length params != List.length args then raise_failure "Incorrect amount of arguments" else
       let comped_args = args 
@@ -429,7 +427,7 @@ let rec compile_expr (state:compile_state) (Expr(expr, ln) as expression) : (typ
     let (c_typ, c_instrs) = compile_expr state c in
     let (a_typ, a_instrs) = compile_expr state a in
     let (b_typ, b_instrs) = compile_expr state b in
-    if c_typ != T_Int then raise_failure ("Condition must be of type 'int', but was: " ^ type_string c_typ) else
+    if c_typ <> T_Int then raise_failure ("Condition must be of type 'int', but was: " ^ type_string c_typ) else
     if not(type_eq a_typ b_typ) then raise_failure "Ternary type mismatch" else
     (a_typ, c_instrs @ [Instr_GoToIf ; LabelRef _true] @ b_instrs @ [Instr_GoTo ; LabelRef _stop ; Label _true] @ a_instrs @ [Label _stop])
   )
@@ -496,7 +494,7 @@ and find_expr_location (Expr(e,_) as expr) state = match e with
         match range with 
         | Index index ->
           let (index_typ, index_instrs) = compile_expr state index in
-          if (index_typ != T_Int) then raise_failure "Index must be of type 'int'" else
+          if (index_typ <> T_Int) then raise_failure "Index must be of type 'int'" else
           ComputeStack { typ = elem_t; instrs = loc.instrs @ index_instrs @ [ Instr_Place ; I(elem_size) ; Instr_Mul ; Instr_Extract ; I(array_size * elem_size) ; I(elem_size)] }
         | Range(Some index, Some Expr(Int len,_)) -> 
           if abs len > array_size then raise_failure "Length of the range is greater than the length of the array" else
@@ -532,7 +530,7 @@ and find_expr_location (Expr(e,_) as expr) state = match e with
         match range with
         | Index index ->
           let (index_typ, index_instrs) = compile_expr state index in
-          if (index_typ != T_Int) then raise_failure "Index must be of type 'int'" else
+          if (index_typ <> T_Int) then raise_failure "Index must be of type 'int'" else
           StorageStack { loc with typ = elem_t; instrs = loc.instrs @ index_instrs @ [Instr_Place ; I(elem_size) ; Instr_Mul ; Instr_Index ; I(array_size * elem_size) ; I(elem_size)] }
         | Range(Some index, Some Expr(Int len,_)) ->
           if abs len > array_size then raise_failure "Length of the range is greater than the length of the array" else
@@ -581,6 +579,7 @@ and find_expr_location (Expr(e,_) as expr) state = match e with
         match List.find_index (snd >> Option.fold ~none:false ~some:((=) name)) entries with
         | None -> raise_failure ("No such entry: "^name)
         | Some index -> 
+          Printf.printf "ABE2\n" ;
           let (elem_t,_) = List.nth entries index in
           let sizes = List.map (fst >> type_size) entries in
           let i = sizes |> List.take index |> List.fold_left (+) 0 in
@@ -645,7 +644,7 @@ and compile_stmt (Stmt(stmt,ln)) state : (compile_state * instruction list) =
   )
   | Block stmts -> (
     let (state', instrs) = compile_stmts state stmts in
-    ({state with size = state.size + state'.size}, instrs)
+    ({state with size = state'.size}, instrs)
   )
   | While(c,s,None) -> 
     new_label_context "while" ;
@@ -653,9 +652,9 @@ and compile_stmt (Stmt(stmt,ln)) state : (compile_state * instruction list) =
     let _start = label "start" in
     let _stop = label "stop" in
     let (c_typ, c_instrs) = reduce_compile c in
-    if c_typ != T_Int then raise_expr_failure c "Conditon must be of type 'int'" else
-    let (_, s_instrs) = compile_stmt s {state with break = Some(_stop); continue = Some(_cond) } in
-    (state, [Instr_GoTo ; LabelRef _cond ; Label _start] @ s_instrs @ [Label _cond] @ c_instrs @ [Instr_GoToIf ; LabelRef _start ; Label _stop])
+    if c_typ <> T_Int then raise_expr_failure c "Conditon must be of type 'int'" else
+    let (state', s_instrs) = compile_stmt s {state with break = Some(_stop); continue = Some(_cond) } in
+    ({state with size = state'.size}, [Instr_GoTo ; LabelRef _cond ; Label _start] @ s_instrs @ [Label _cond] @ c_instrs @ [Instr_GoToIf ; LabelRef _start ; Label _stop])
   | While(c,s,Some si) ->
     new_label_context "while" ; 
     let _cond = label "cond" in
@@ -663,10 +662,10 @@ and compile_stmt (Stmt(stmt,ln)) state : (compile_state * instruction list) =
     let _iter = label "iter" in
     let _stop = label "stop" in
     let (c_typ, c_instrs) = reduce_compile c in
-    if c_typ != T_Int then raise_expr_failure c "Conditon must be of type 'int'" else
+    if c_typ <> T_Int then raise_expr_failure c "Conditon must be of type 'int'" else
     let (_, si_instrs) = compile_stmt si state in
-    let (_, s_instrs) = compile_stmt s {state with break = Some(_stop); continue = Some(_iter) } in
-    (state, [Instr_GoTo ; LabelRef _cond ; Label _start] @ s_instrs @ [Label _iter] @ si_instrs @ [Label _cond] @ c_instrs @ [Instr_GoToIf ; LabelRef _start ; Label _stop])
+    let (state', s_instrs) = compile_stmt s {state with break = Some(_stop); continue = Some(_iter) } in
+    ({state with size = state'.size}, [Instr_GoTo ; LabelRef _cond ; Label _start] @ s_instrs @ [Label _iter] @ si_instrs @ [Label _cond] @ c_instrs @ [Instr_GoToIf ; LabelRef _start ; Label _stop])
   | Continue -> (match state.continue with
     | Some label -> (state, [Instr_GoTo ; LabelRef(label)])
     | None -> raise_failure "Nothing to continue"
@@ -734,17 +733,16 @@ and compile_stmt (Stmt(stmt,ln)) state : (compile_state * instruction list) =
     | None -> 
       let _start = label "start" in
       let _stop = label "stop" in 
-      let state' = {state with break = Some _stop; continue = Some _start } in
-      let (_, instrs) = compile_stmt stmt state' in
-      (state, Label _start :: instrs @ [Instr_GoTo ; LabelRef _start ; Label _stop])
+      let (state', instrs) = compile_stmt stmt {state with break = Some _stop; continue = Some _start } in
+      ({state with size = state'.size}, Label _start :: instrs @ [Instr_GoTo ; LabelRef _start ; Label _stop])
     | Some Expr(Int i, _) -> 
       let _stop = label "stop" in
       let _continues = List.init i (fun i -> label (string_of_int i)) in
-      let instrs = List.map (fun _cont -> 
-        let (_,instrs) = compile_stmt stmt {state with break = Some _stop; continue = Some _cont} in
-        instrs @ [Label _cont]
-      ) _continues in
-      (state, List.flatten instrs @ [Label _stop])
+      let (state', instrs) = List.fold_left (fun (state,instrs) _cont -> 
+        let (state',instrs') = compile_stmt stmt {state with break = Some _stop; continue = Some _cont} in
+        ({state with size = state'.size}, instrs @ instrs' @ [Label _cont])
+      ) (state,[]) _continues in
+      (state', instrs @ [Label _stop])
     | Some expr -> raise_expr_failure expr "Expression cannot be used as condition for a repeat statement"
   )
   | ExprStmt expr -> 

@@ -16,8 +16,9 @@ let check_path path extensions =
   | ex -> raise ex
 
 
-let get_line ls l =
-  Printf.sprintf "%i | %s\n" l (List.nth ls (l-1))
+let get_line ls l = match List.nth_opt ls l with
+  | None -> ""
+  | Some ln -> Printf.sprintf "%i | %s\n" l ln
 
 let read_file path =
   let file = open_in path in
@@ -25,6 +26,7 @@ let read_file path =
   let () = close_in_noerr file in
   content
 
+  (* Failures are getting the wrong file *)
 let format_failure f = match f with
   | Failure(Some path,None,msg) -> Printf.sprintf "In %s: %s\n" path msg
   | Failure(Some path, Some line, msg) -> (
@@ -203,20 +205,27 @@ let load_team id team =
     color = find_entry "color" team ~default:TRGNull |> load_color;
     origin = origin;
     players = find_entry "players" team ~default:TRGNull |> load_players id origin;
+    system_library = find_entry "system_library" team ~default:TRGNull |> optional_load load_string;
+    library = find_entry "library" team ~default:TRGNull |> optional_load load_string;
   }
 
-let load_teams = function
-  | TRGArray [] -> raise_failure "There must exist atleast one team"
-  | TRGArray teams -> List.mapi load_team teams
-  | trg -> expected "an array of team definitions" trg
+let load_teams trg = 
+  let teams = match trg with
+    | TRGArray [] -> raise_failure "There must exist atleast one team"
+    | TRGArray teams -> List.mapi load_team teams
+    | trg -> expected "an array of team definitions" trg
+  in
+  Helpers.compiler_notes.team_libraries <- StringMap.of_list (List.map (fun (TI team) -> (team.name, team.library)) teams); teams
 
 let load_game o : game_setup = 
   Flags.set_auto_resize (find_entry "auto_resize" o ~default:(TRGBool true) |> load_bool);
   Flags.set_features (find_entry "features" o ~default:(TRGBool false) |> load_features);
   Flags.set_themes (find_entry "themes" o ~default:(TRGBool false) |> load_themes);
 
-  Helpers.compiler_notes.hidden_library <- find_entry "hidden_library" o ~default:(TRGString "") |> load_string;
-  Helpers.compiler_notes.shared_library <- find_entry "shared_library" o ~default:(TRGString "") |> load_string;
+  Helpers.compiler_notes.system_library <- find_entry "system_library" o ~default:TRGNull |> optional_load load_string;
+  Helpers.compiler_notes.shared_library <- find_entry "shared_library" o ~default:TRGNull |> optional_load load_string;
+  Helpers.compiler_notes.size_limit <- find_entry "program_size_limit" o ~default:(TRGInt 1000) |> load_int;
+  Helpers.compiler_notes.stack_size <- find_entry "stack_size" o ~default:(TRGInt 1000) |> load_int;
 
   GS {
     teams = find_entry "teams" o ~default:TRGNull |> load_teams;
@@ -235,7 +244,10 @@ let load_game o : game_setup =
     auto_start = find_entry "auto_start" o ~default:(TRGBool true) |> load_bool;
   }
 
-let parse parser lexer from str =
+let parse parser lexer from str ~default =
+  match str with 
+  | None -> default
+  | Some str ->
   try (
     let lexbuf = Lexing.from_string str in
     try 
@@ -250,17 +262,21 @@ let parse parser lexer from str =
   | Failure _ as f -> raise f
   (*| _ -> raise (Failure(Some path, None, "Parser error"))*)
 
-let parse_file parser lexer path =
+let parse_file parser lexer path ~default =
+  match path with 
+  | None -> default
+  | Some path ->
   let path = (compress_path (total_path path)) in
   try (
-    parse parser lexer path (read_file path)
+    parse parser lexer path (Some (read_file path)) ~default:default
   )
   with 
   | Failure(None,ln,msg) -> raise (Failure(Some path,ln,msg))
   | Failure _ as f -> raise f
   (*| _ -> raise (Failure(Some path, None, "Parser error"))*)
 
-let player_to_program size_limit program = 
+let player_to_program program = 
+  let size_limit = Helpers.compiler_notes.size_limit in
   let program = program_to_int_list program in
   if size_limit > 0 && List.length program - 1 > size_limit then raise_failure ("Program too large" ^ string_of_int size_limit ^ " " ^ string_of_int (List.length program - 1))
   else List.length program :: program |> Array.of_list 
@@ -302,27 +318,39 @@ let compile_program state (File(program,i)) =
 let scope_ s = 
   List.map identifier_name s |> String.concat " "
 
-let compile_player file =
+let empty_file = File([],0)  (* Not a good solution *)
+
+(* Figure out the order :( *)
+let compile_player team file  =
   let syscalls = [] in
+  let team_sys_lib = StringMap.find_opt team Helpers.compiler_notes.team_system_libraries |> Option.join in
+  let team_lib = StringMap.find_opt team Helpers.compiler_notes.team_libraries |> Option.join in
+
   let init_state = {scopes = { local = syscalls ; global = None }; size = 0; labels = StringSet.empty; break = None; continue = None; ret_type = None;} in
 
-  let (hidden_state, hidden_instrs) = parse Tr_parser.main Tr_lexer.start "hidden" Helpers.compiler_notes.hidden_library |> compile_program init_state in
-  let (shared_state, shared_instrs) = parse Tr_parser.main Tr_lexer.start "shared" Helpers.compiler_notes.shared_library |> compile_program hidden_state in
+  let (system_state, system_instrs) = parse_file Tr_parser.main Tr_lexer.start Helpers.compiler_notes.system_library ~default:empty_file |> compile_program init_state in
+  let (team_system_state, team_system_instrs) = parse_file Tr_parser.main Tr_lexer.start team_sys_lib ~default:empty_file |> compile_program system_state in
+  let (shared_state, shared_instrs) = parse_file Tr_parser.main Tr_lexer.start Helpers.compiler_notes.shared_library ~default:empty_file |> compile_program team_system_state in
 
-  let visible = (List.length shared_state.scopes.local) - (List.length hidden_state.scopes.local) in
+  let visible = (List.length shared_state.scopes.local) - (List.length team_system_state.scopes.local) in
 
   let shared = shared_state.scopes.local |> List.take visible in
   let hidden = shared_state.scopes.local |> List.drop visible |> List.map remove_identifier_name in
 
-  let state = {scopes = { local = generate_initial_scope () @ shared @ hidden ; global = None }; size = shared_state.size; labels = StringSet.empty; break = None; continue = None; ret_type = None;} in
-  let (state, instrs) = compile_program state file in
-  Instr_Declare :: I(state.size) :: (hidden_instrs @ shared_instrs @ instrs) |> Optimize.optimize_instruction_list
+  let state = {scopes = { local = generate_initial_scope () @ shared @ hidden ; global = None }; size = team_system_state.size; labels = StringSet.empty; break = None; continue = None; ret_type = None;} in
 
-let compile_player_file path size_limit = try (
+  let (team_state, team_instrs) = parse_file Tr_parser.main Tr_lexer.start team_lib ~default:empty_file |> compile_program state in
+  let (state, instrs) = compile_program team_state file in
+
+
+  (* Declare per block instead? Decreases stack size, increases program size, Could remove state.size *)
+  Instr_Declare :: I(state.size) :: (system_instrs @ shared_instrs @ team_system_instrs @ team_instrs @ instrs) |> Optimize.optimize_instruction_list
+
+let compile_player_file path team = try (
   check_path path [".tr"] ;
-  parse_file Tr_parser.main Tr_lexer.start path 
-  |> compile_player
-  |> (player_to_program size_limit)
+  parse_file Tr_parser.main Tr_lexer.start (Some path) ~default:empty_file
+  |> compile_player team
+  |> player_to_program
   |> Result.ok
 ) with
 | Failure(None,ln,msg) -> Error(format_failure (Failure(Some path, ln, msg)))
@@ -338,8 +366,7 @@ let game_setup_player (PI player) =
     file = List.hd player.files;
     extra_files_count = List.length player.files - 1;
     extra_files = List.tl player.files |> List.rev |> Array.of_list;
-  }
-
+  }  
 
 let team_list teams =
   List.map (fun (TI ti) -> (ti.name, ti.color, List.length ti.players)) teams
@@ -377,7 +404,7 @@ let compile_game_file path = try (
   check_path path [".trg"];
   let game_file_dir = Filename.dirname path in
   compiler_notes.dir <- game_file_dir;
-  parse_file Trg_parser.main Trg_lexer.start path
+  parse_file Trg_parser.main Trg_lexer.start (Some path) ~default:TRGNull
   |> load_game 
   |> format_game_setup
   |> Result.ok
@@ -387,4 +414,4 @@ let compile_game_file path = try (
 
 
 let _ = Callback.register "compile_game_file" compile_game_file
-let _ = Callback.register "compile_player_file" (fun path size_limit -> compile_player_file path size_limit |> Result.map (fun program -> program |> Array.map Int32.of_int |> Bigarray.Array1.of_array Int32 C_layout))
+let _ = Callback.register "compile_player_file" (fun path team -> compile_player_file path team |> Result.map (fun program -> program |> Array.map Int32.of_int |> Bigarray.Array1.of_array Int32 C_layout))

@@ -48,6 +48,10 @@ let load_int_entry name ~default trg =
     Option.fold ~none:default ~some:load_int (find_entry_opt name trg)
 
 
+let optional_load load trg =
+  try Some(load trg) with _ -> None
+
+
 
 let is_float = function
   | TRGFloat _ -> true
