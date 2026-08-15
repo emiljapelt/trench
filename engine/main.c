@@ -235,7 +235,7 @@ void get_new_directive(player_state* ps) {
         }
 
         directive_info di;
-        if (compile_player(path, _gr->stack_size, _gr->program_size_limit, &di)) {
+        if (compile_player(ps, path, _gr->stack_size, &di)) {
             if (do_free) free(ps->path);
             free(ps->directive);
             free(ps->stack);

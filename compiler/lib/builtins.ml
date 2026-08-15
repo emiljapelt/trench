@@ -564,6 +564,24 @@ let builtins () : builtin list = [
     themes = []; features = [];
     meta = []
   };
+
+  (* EXPERIMENTAL *)
+  {
+    name = "set_color";
+    expr = builtin_func T_Int [T_Array(T_Int, 2); T_Int; T_Int] (-43);
+    themes = []; features = [];
+    meta = [];
+  };{
+    name = "set_symbol";
+    expr = builtin_func T_Int [T_Array(T_Int, 2); T_Int] (-44);
+    themes = []; features = [];
+    meta = [];
+  };{
+    name = "render";
+    expr = builtin_func T_Int [T_Int] (-45);
+    themes = []; features = [];
+    meta = [];
+  };
 ]
 
 let generate_resource_meta () =

@@ -252,8 +252,21 @@ type team_info_field =
     | TeamOrigin of int * int
     | TeamPlayer of player_info
 
-and player_info = PI of { team: int; name: string; origin: int * int; files: string list }
-type team_info = TI of { name: string; color: (int*int*int); origin: int * int; players: player_info list }
+and player_info = PI of { 
+    team: int; 
+    name: string; 
+    origin: int * int; 
+    files: string list 
+}
+
+type team_info = TI of { 
+    name: string; 
+    color: (int*int*int); 
+    origin: int * int; 
+    players: player_info list; 
+    system_library: string option;
+    library: string option;
+}
 
 type exec_mode =
     | DefaultExec

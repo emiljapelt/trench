@@ -78,3 +78,15 @@ resource list
 Resource should be an object of arrays with 2 ints, the key is the resource name.
 
 Symbol overrides can just be an int, and a coordinate. The int is then cast to a char. These values can be given names in a struct, in the hidden library.
+
+
+
+Team library
+
+Expr cache, instead of cache directly on Func. Maybe compile_expr shoud also return state?
+When that is implemented, the flow of compilation can be reworked, so files are only compiled once. Even shared libraries.
+
+Currently compiling the TRG, returns info about the game including which files players are using, and then seperate calls compile those files.
+Not sure this is the way to go. Compiling the team library becomes a little difficult.
+- The team name should be passed to the player compilation call, and a structure in the compiler stores which team they belong to.
+- What to do with size_limit

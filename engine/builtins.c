@@ -1331,6 +1331,65 @@ int builtin_search(player_state* ps) {
     return 0;
 }
 
+// int:(x,y,i,fg)
+// switch to rgb?
+int syscall_set_color(player_state* ps) {
+    int fg = ps->stack[--ps->sp]; 
+    int i = ps->stack[--ps->sp];
+    int y = ps->stack[--ps->sp];
+    int x = ps->stack[--ps->sp];
+
+    if (!in_bounds(x,y)) {
+        ps->stack[ps->sp++] = 0;
+        return 0;
+    }
+
+    location loc = field_location_from_coords(x,y);
+    
+    if (fg) {
+        loc.field->foreground_color = i & 255;
+        loc.field->overlays |= FOREGROUND_COLOR_OVERLAY;
+    }
+    else {
+        loc.field->background_color = i & 255;
+        loc.field->overlays |= BACKGROUND_COLOR_OVERLAY;
+    }
+
+    ps->stack[ps->sp++] = 1;
+    return 0;
+}
+
+// int:(x,y,i,fg)
+// switch to UTF-8 (just setting an int directly on a field)
+int syscall_set_symbol(player_state* ps) { 
+    int i = ps->stack[--ps->sp];
+    int y = ps->stack[--ps->sp];
+    int x = ps->stack[--ps->sp];
+
+    if (!in_bounds(x,y)) {
+        ps->stack[ps->sp++] = 0;
+        return 0;
+    }
+
+    location loc = field_location_from_coords(x,y);
+    
+    loc.field->symbol = i & 255;
+    loc.field->overlays |= SYMBOL_OVERLAY;
+
+    ps->stack[ps->sp++] = 1;
+    return 0;
+}
+
+int syscall_render(player_state* ps) { 
+    int ms = ps->stack[--ps->sp];
+
+    print_board();
+    wait(ms / 1000.0f);
+
+    ps->stack[ps->sp++] = 1;
+    return 0;
+}
+
 #pragma endregion
 
 
@@ -1378,6 +1437,11 @@ int handle_builtin_function(player_state* ps, builtin_func func_addr) {
         case BUILTIN_OBLIVIATE: return builtin_obliviate(ps);
         case BUILTIN_BLINK: return builtin_blink(ps);
         case BUILTIN_SEARCH: return builtin_search(ps);
+
+        //EXPERIMENTAL
+        case SYSCALL_SET_COLOR: return syscall_set_color(ps);
+        case SYSCALL_SET_SYMBOL: return syscall_set_symbol(ps);
+        case SYSCALL_RENDER: return syscall_render(ps);
     }
 }
 

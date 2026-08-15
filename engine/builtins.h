@@ -58,6 +58,11 @@ typedef enum {
     BUILTIN_OBLIVIATE = -40,
     BUILTIN_BLINK = -41,
     BUILTIN_SEARCH = -42,
+
+    // EXPERIMENTAL
+    SYSCALL_SET_COLOR = -43,
+    SYSCALL_SET_SYMBOL = -44,
+    SYSCALL_RENDER = -45,
 } builtin_func;
 
 int handle_builtin_function(player_state* ps, builtin_func func_addr);
