@@ -224,7 +224,7 @@ let load_game o : game_setup =
 
   Helpers.compiler_notes.system_library <- find_entry "system_library" o ~default:TRGNull |> optional_load load_string;
   Helpers.compiler_notes.shared_library <- find_entry "shared_library" o ~default:TRGNull |> optional_load load_string;
-  Helpers.compiler_notes.size_limit <- find_entry "program_size_limit" o ~default:(TRGInt 1000) |> load_int;
+  Helpers.compiler_notes.size_limit <- find_entry "program_size_limit" o ~default:(TRGInt (-1)) |> load_int;
   Helpers.compiler_notes.stack_size <- find_entry "stack_size" o ~default:(TRGInt 1000) |> load_int;
 
   GS {
@@ -278,7 +278,7 @@ let parse_file parser lexer path ~default =
 let player_to_program program = 
   let size_limit = Helpers.compiler_notes.size_limit in
   let program = program_to_int_list program in
-  if size_limit > 0 && List.length program - 1 > size_limit then raise_failure ("Program too large" ^ string_of_int size_limit ^ " " ^ string_of_int (List.length program - 1))
+  if size_limit > 0 && List.length program - 1 > size_limit then raise_failure ("Program too large: " ^ string_of_int size_limit ^ " < " ^ string_of_int (List.length program - 1))
   else List.length program :: program |> Array.of_list 
 
 
