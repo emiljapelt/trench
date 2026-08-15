@@ -122,6 +122,7 @@ let is_true i = i > 0
 let rec reduce_expression state (Expr(expr, ln)) = Expr(reduce_expr state expr, ln)
 
 and reduce_expr state expr = match expr with
+  | Func f -> Func { f with state = Some state }
   | Int i -> Int i
   | Null -> Null
   | Direction d -> Direction d
@@ -383,6 +384,7 @@ let rec compile_expr (state:compile_state) (Expr(expr, ln) as expression) : (typ
       let args = List.map (fun (t,n) -> (eval_type_expr state t, n)) args in
       let typ = T_Func(ret, List.map fst args) in
       f.cache <- Some(typ, _start) ;
+      let state = Option.value f.state ~default:state in
       let func_scope = {
         local = List.fold_left (fun acc (t,n) -> Var(t,n)::acc) [Const("this", expression)] args ; 
         global = Some(state.scopes.global |> Option.fold
@@ -610,10 +612,10 @@ and compile_stmt (Stmt(stmt,ln)) state : (compile_state * instruction list) =
     let _true = label "true" in
     let _stop = label "stop" in
     let (c_typ, c_instrs) = reduce_compile c in
-    let (_, a_instrs) = compile_stmt a state in
-    let (_, b_instrs) = compile_stmt b state in
+    let (state', a_instrs) = compile_stmt a state in
+    let (state'', b_instrs) = compile_stmt b {state with size = state'.size} in
     match c_typ with
-    | T_Int -> (state, c_instrs @ [Instr_GoToIf ; LabelRef _true] @ b_instrs @ [Instr_GoTo ; LabelRef _stop ; Label _true] @ a_instrs @ [Label _stop])
+    | T_Int -> ({state with size = state''.size }, c_instrs @ [Instr_GoToIf ; LabelRef _true] @ b_instrs @ [Instr_GoTo ; LabelRef _stop ; Label _true] @ a_instrs @ [Label _stop])
     | _ -> raise_failure "Condition must be of type 'int'"
   )
   | IfIs(c,cases,else_opt) -> (
