@@ -134,6 +134,7 @@ and structure_element =
 
 and func = {
     data : typ_expr * (typ_expr * string) list * statement;
+    state : compile_state option;
     mutable cache : (typ*string) option;
 }
 
@@ -171,12 +172,12 @@ and identifier =
 and  file = 
     | File of statement list * int
 
-type scopes = {
+and scopes = {
     local: identifier list;
     global: identifier list option;
 }
 
-type compile_state = {
+and compile_state = {
     scopes: scopes;
     labels: StringSet.t;
     break: string option;
@@ -349,8 +350,6 @@ let remove_identifier_name id = match id with
   | Var(t,_) -> Var(t,"") 
   | Type(_,t) -> Type("", t)
   | Const(_,e) -> Const("", e)
-
-  
 
 let is_bound name scopes =
   match List.find_opt (fun id -> identifier_name id = name) scopes.local with
