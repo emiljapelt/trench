@@ -122,11 +122,21 @@ let load_time_scale tn =
   in
   if scale >= 0.0 then scale else expected "timescale to be non-negative" tn
 
-(* How to remove a single feature... [*, -debug] *)
+let load_feature_strings strs =
+  let rec aux strs acc = match strs with
+    | [] -> acc
+    | h::t -> 
+      if h = "*" then aux t StringSet.(Features.all_features |> remove "asm" |> remove "debug")
+      else if String.starts_with ~prefix:"-" h then aux t StringSet.(acc |> remove (String.sub h 1 (String.length h - 1)))
+      else aux t StringSet.(acc |> add h)
+        
+  in
+  aux strs StringSet.empty
+
 let load_features = function
   | TRGBool true -> Features.all_features
   | TRGBool false -> StringSet.empty
-  | TRGArray fs -> fs |> List.filter is_string |> List.map load_string |> StringSet.of_list
+  | TRGArray fs -> fs |> List.filter is_string |> List.map load_string |> load_feature_strings
   | _ -> raise_failure "Could not load feature set"
 
 (* relevant after the rework? *)

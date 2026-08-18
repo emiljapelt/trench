@@ -12,5 +12,5 @@ let all_features = [
   "craft";
   "debug";
   "meta";
-  "asm"
+  "asm";
 ] |> StringSet.of_list
