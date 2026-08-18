@@ -80,6 +80,48 @@ let instruction_to_int label_map instr = match instr with
     | Instr_Bits ->         Some 34
     | Instr_TCall ->        Some 35
 
+let string_to_instruction str = match str with
+    | "add" ->  Instr_Add
+    | "sub" ->  Instr_Sub
+    | "mul" ->  Instr_Mul
+    | "and" ->  Instr_And
+    | "or" ->  Instr_Or
+    | "eq" ->  Instr_Eq
+    | "not" ->  Instr_Not
+    | "lt" ->  Instr_Lt
+    | "div" ->  Instr_Div
+    | "mod" ->  Instr_Mod
+    | "bor" ->  Instr_BinOr
+    | "bnot" ->  Instr_BinNot
+    | "band" ->  Instr_BinAnd
+    | "rnd" ->  Instr_Random
+    | "gtif" ->  Instr_GoToIf
+    | "gt" ->  Instr_GoTo
+    | "wait" ->  Instr_Wait
+    | "pass" ->  Instr_Pass
+    | "call" ->  Instr_Call
+    | "ret" ->  Instr_Return
+    | "dec" ->  Instr_Declare
+    | "p" ->  Instr_Place
+    | "swp" ->  Instr_Swap
+    | "cp" ->  Instr_Copy
+    | "mvsp" ->  Instr_MoveSP
+    | "bp" ->  Instr_BP
+    | "idx" ->  Instr_Index
+    | "ext" ->  Instr_Extract
+    | "lg" ->  Instr_LoadGlobal
+    | "sg" ->  Instr_StoreGlobal
+    | "ll" ->  Instr_LoadLocal
+    | "sl" ->  Instr_StoreLocal
+    | "meta" ->  Instr_Meta
+    | "bits" ->  Instr_Bits
+    | "tcall" ->  Instr_TCall
+    | _ -> LabelRef str
+    (*| _ -> (match int_of_string_opt str with
+      | Some i -> I i
+      | None -> if String.ends_with ~suffix:"_" str then Label str else LabelRef str
+    )*)
+
 let label_set pp =
   let rec aux pp set = match pp with
     | [] -> set

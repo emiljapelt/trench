@@ -452,7 +452,7 @@ let rec compile_expr (state:compile_state) (Expr(expr, ln) as expression) : (typ
     | (T_Field, instrs) -> (T_Int, instrs @ [Instr_Bits])
     | (t, _) -> raise_failure ("Cannot get size of type: " ^ type_string t)
   )
-  | ASM(typ,instrs) -> (typ,instrs)
+  | ASM(typ,instrs) -> (eval_type_expr state typ, instrs)
   with
   | Failure(p,None,msg) -> raise (Failure(p,Some ln, msg))
   | a -> raise a

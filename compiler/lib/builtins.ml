@@ -12,7 +12,7 @@ let features fs =
   List.for_all (fun f -> StringSet.mem f compile_flags.features) fs
 
 let builtin_func ret args addr =
-  ASM(T_Func(ret,args), [Instr_Place; I(addr)])
+  ASM(TE_Func(ret,args), [Instr_Place; I(addr)])
 
 let structure elements = StructureLiteral(List.map (fun (n,e) -> StructureElement(Some n, Expr(e,0))) elements)
 
@@ -73,7 +73,7 @@ let _builtins () : _builtin_info list = [
     value = Structure [{
       name = "cast";
       themes = []; features = [];
-      value = Atom(builtin_func T_Int [T_Dir] (-14), None);
+      value = Atom(builtin_func (TE_Identifier "int") [TE_Identifier "dir"] (-14), None);
     };{
       name = "range";
       themes = []; features = ["meta"];
@@ -118,18 +118,18 @@ let translate_builtins settings =
 let builtins () : builtin list = [
   {
     name = "x";
-    expr = ASM(T_Int, [Instr_Meta; I(0)]);
+    expr = ASM(TE_Identifier "int", [Instr_Meta; I(0)]);
     themes = []; features = ["meta"];
     meta = [];
   };{
     name = "y";
-    expr = ASM(T_Int, [Instr_Meta; I(1)]);
+    expr = ASM(TE_Identifier "int", [Instr_Meta; I(1)]);
     themes = []; features = ["meta"];
     meta = [];
   };
   {
     name = "id";
-    expr = ASM(T_Int, [Instr_Meta; I(2)]);
+    expr = ASM(TE_Identifier "int", [Instr_Meta; I(2)]);
     themes = []; features = ["meta"];
     meta = [];
   };{
@@ -146,12 +146,12 @@ let builtins () : builtin list = [
   };
   {
     name = "round";
-    expr = ASM(T_Int, [Instr_Meta; I(5)]);
+    expr = ASM(TE_Identifier "int", [Instr_Meta; I(5)]);
     themes = []; features = ["meta"];
     meta = [];
   };{
     name = "actions";
-    expr = ASM(T_Int, [Instr_Meta; I(6)]);
+    expr = ASM(TE_Identifier "int", [Instr_Meta; I(6)]);
     themes = []; features = ["meta"];
     meta = []
   };{
@@ -165,10 +165,10 @@ let builtins () : builtin list = [
   };{
     name = "player";
     expr = structure[
-      ("x", ASM(T_Int,[Instr_Meta; I(0)]));
-      ("y", ASM(T_Int,[Instr_Meta; I(1)]));
-      ("id", ASM(T_Int,[Instr_Meta; I(2)]));
-      ("actions", ASM(T_Int,[Instr_Meta; I(6)]));
+      ("x", ASM(TE_Identifier "int",[Instr_Meta; I(0)]));
+      ("y", ASM(TE_Identifier "int",[Instr_Meta; I(1)]));
+      ("id", ASM(TE_Identifier "int",[Instr_Meta; I(2)]));
+      ("actions", ASM(TE_Identifier "int",[Instr_Meta; I(6)]));
     ];
     themes = []; features = ["meta"];
     meta = []
@@ -224,7 +224,7 @@ let builtins () : builtin list = [
     meta = []
   };{
     name = "shoot";
-    expr = builtin_func T_Int [T_Dir] (-1);
+    expr = builtin_func (TE_Identifier "int") [TE_Identifier "dir"] (-1);
     themes = ["military";"forestry"]; features = [];
     meta = [
       Value ("range", Int 6, Impl);
@@ -235,21 +235,21 @@ let builtins () : builtin list = [
     ]
   };{
     name = "look";
-    expr = builtin_func T_Int [T_Dir;T_Field] (-2);
+    expr = builtin_func (TE_Identifier "int") [TE_Identifier "dir";TE_Identifier "field"] (-2);
     themes = []; features = [];
     meta = [
       Value ("range", Int (-1), Impl);
     ]
   };{
     name = "scan";
-    expr = builtin_func T_Field [T_Dir;T_Int] (-3);
+    expr = builtin_func (TE_Identifier "field") [TE_Identifier "dir";TE_Identifier "int"] (-3);
     themes = []; features = [];
     meta = [
       Value ("range", Int (-1), Impl);
     ]
   };{
     name = "mine";
-    expr = builtin_func T_Int [T_Dir] (-4);
+    expr = builtin_func (TE_Identifier "int") [TE_Identifier "dir"] (-4);
     themes = ["military"]; features = []; 
     meta = [
       Structure ("cost", [
@@ -259,17 +259,17 @@ let builtins () : builtin list = [
     ]
   };{
     name = "move";
-    expr = builtin_func T_Int [T_Dir] (-5);
+    expr = builtin_func (TE_Identifier "int") [TE_Identifier "dir"] (-5);
     themes = []; features = [];
     meta = []
   };{
     name = "chop";
-    expr = builtin_func T_Int [T_Dir] (-6);
+    expr = builtin_func (TE_Identifier "int") [TE_Identifier "dir"] (-6);
     themes = []; features = [];
     meta = []
   };{
     name = "trench";
-    expr = builtin_func T_Int [T_Dir;T_Int] (-7);
+    expr = builtin_func (TE_Identifier "int") [TE_Identifier "dir";TE_Identifier "int"] (-7);
     themes = []; features = [];
     meta = [
       Value ("range", Int 1, Impl);
@@ -280,7 +280,7 @@ let builtins () : builtin list = [
     ]
   };{
     name = "fortify";
-    expr = builtin_func T_Int [T_Dir;T_Int] (-8);
+    expr = builtin_func (TE_Identifier "int") [TE_Identifier "dir";TE_Identifier "int"] (-8);
     themes = []; features = [];
     meta = [
       Value ("range", Int 1, Impl);
@@ -291,7 +291,7 @@ let builtins () : builtin list = [
     ]
   };{
     name = "bomb";
-    expr = builtin_func T_Int [T_Dir;T_Int] (-9);
+    expr = builtin_func (TE_Identifier "int") [TE_Identifier "dir";TE_Identifier "int"] (-9);
     themes = ["military"]; features = [];
     meta = [
       Value ("range", Int 4, Impl);
@@ -302,17 +302,17 @@ let builtins () : builtin list = [
     ]
   };{
     name = "write";
-    expr = builtin_func T_Int [T_Int] (-10);
+    expr = builtin_func (TE_Identifier "int") [TE_Identifier "int"] (-10);
     themes = []; features = [];
     meta = []
   };{
     name = "read";
-    expr = builtin_func T_Int [] (-11);
+    expr = builtin_func (TE_Identifier "int") [] (-11);
     themes = []; features = [];
     meta = []
   };{
     name = "projection";
-    expr = builtin_func T_Int [] (-12);
+    expr = builtin_func (TE_Identifier "int") [] (-12);
     themes = ["wizardry"]; features = ["fork"];
     meta = [
       Value ("upkeep", Int 10, Impl);
@@ -323,7 +323,7 @@ let builtins () : builtin list = [
     ]
   };{
     name = "freeze";
-    expr = builtin_func T_Int [T_Dir;T_Int] (-13);
+    expr = builtin_func (TE_Identifier "int") [TE_Identifier "dir";TE_Identifier "int"] (-13);
     themes = ["wizardry"]; features = [];
     meta = [
       Value ("duration", Int 2, Impl);
@@ -335,7 +335,7 @@ let builtins () : builtin list = [
     ]
   };{
     name = "fireball";
-    expr = builtin_func T_Int [T_Dir] (-14);
+    expr = builtin_func (TE_Identifier "int") [TE_Identifier "dir"] (-14);
     themes = ["wizardry"]; features = [];
     meta = [
       Value ("range", Int 5, Impl);
@@ -346,14 +346,14 @@ let builtins () : builtin list = [
     ]
   };{
     name = "meditate";
-    expr = builtin_func T_Int [] (-15);
+    expr = builtin_func (TE_Identifier "int") [] (-15);
     themes = ["wizardry"]; features = [];
     meta = [
       Value ("amount", Int 20, Impl);
     ]
   };{
     name = "dispel";
-    expr = builtin_func T_Int [T_Dir] (-16);
+    expr = builtin_func (TE_Identifier "int") [TE_Identifier "dir"] (-16);
     themes = ["wizardry"]; features = [];
     meta = [
       Structure ("cost", [  
@@ -363,12 +363,12 @@ let builtins () : builtin list = [
     ]
   };{
     name = "disarm";
-    expr = builtin_func T_Int [T_Dir] (-17);
+    expr = builtin_func (TE_Identifier "int") [TE_Identifier "dir"] (-17);
     themes = ["military";"forestry"]; features = [];
     meta = []
   };{
     name = "mana_drain";
-    expr = builtin_func T_Int [T_Dir] (-18);
+    expr = builtin_func (TE_Identifier "int") [TE_Identifier "dir"] (-18);
     themes = ["wizardry"]; features = [];
     meta = [
       Structure ("cost", [  
@@ -378,22 +378,22 @@ let builtins () : builtin list = [
     ]
   };{
     name = "pager_set";
-    expr = builtin_func T_Int [T_Int] (-19);
+    expr = builtin_func (TE_Identifier "int") [TE_Identifier "int"] (-19);
     themes = []; features = ["ipc"];
     meta = []
   };{
     name = "pager_read";
-    expr = builtin_func T_Int [] (-20);
+    expr = builtin_func (TE_Identifier "int") [] (-20);
     themes = []; features = ["ipc"];
     meta = []
   };{
     name = "pager_write";
-    expr = builtin_func T_Int [T_Int] (-21);
+    expr = builtin_func (TE_Identifier "int") [TE_Identifier "int"] (-21);
     themes = []; features = ["ipc"];
     meta = []
   };{
     name = "wall";
-    expr = builtin_func T_Int [T_Dir] (-22);
+    expr = builtin_func (TE_Identifier "int") [TE_Identifier "dir"] (-22);
     themes = []; features = [];
     meta = [
       Structure ("cost", [  
@@ -403,7 +403,7 @@ let builtins () : builtin list = [
     ]
   };{
     name = "plant_tree";
-    expr = builtin_func T_Int [T_Dir] (-23);
+    expr = builtin_func (TE_Identifier "int") [TE_Identifier "dir"] (-23);
     themes = ["forestry"]; features = [];
     meta = [
       Value ("delay", Int 3, Impl);
@@ -414,7 +414,7 @@ let builtins () : builtin list = [
     ]
   };{
     name = "bridge";
-    expr = builtin_func T_Int [T_Dir] (-24);
+    expr = builtin_func (TE_Identifier "int") [TE_Identifier "dir"] (-24);
     themes = []; features = [];
     meta = [
       Structure ("cost", [  
@@ -424,29 +424,29 @@ let builtins () : builtin list = [
     ]
   };{
     name = "collect";
-    expr = builtin_func T_Int [T_Dir;T_Int] (-25);
+    expr = builtin_func (TE_Identifier "int") [TE_Identifier "dir";TE_Identifier "int"] (-25);
     themes = []; features = [];
     meta = [
       Value ("range", Int 1, Setting ["collect";"range"]);
     ]
   };{
     name = "say";
-    expr = builtin_func T_Int [T_Int] (-26);
+    expr = builtin_func (TE_Identifier "int") [TE_Identifier "int"] (-26);
     themes = []; features = ["debug"];
     meta = []
   };{
     name = "mount";
-    expr = builtin_func T_Int [T_Dir] (-27);
+    expr = builtin_func (TE_Identifier "int") [TE_Identifier "dir"] (-27);
     themes = []; features = [];
     meta = []
   };{
     name = "dismount";
-    expr = builtin_func T_Int [T_Dir] (-28);
+    expr = builtin_func (TE_Identifier "int") [TE_Identifier "dir"] (-28);
     themes = []; features = [];
     meta = []
   };{
     name = "boat";
-    expr = builtin_func T_Int [T_Dir] (-29);
+    expr = builtin_func (TE_Identifier "int") [TE_Identifier "dir"] (-29);
     themes = []; features = [];
     meta = [
       Structure ("cost", [  
@@ -464,7 +464,7 @@ let builtins () : builtin list = [
     ]
   };{
     name = "bear_trap";
-    expr = builtin_func T_Int [T_Dir] ( -30);
+    expr = builtin_func (TE_Identifier "int") [TE_Identifier "dir"] ( -30);
     themes = ["forestry"]; features = [];
     meta = [
       Structure ("cost", [  
@@ -474,7 +474,7 @@ let builtins () : builtin list = [
     ]
   };{
     name = "throw_clay";
-    expr = builtin_func T_Int [T_Dir;T_Int] (-31);
+    expr = builtin_func (TE_Identifier "int") [TE_Identifier "dir";TE_Identifier "int"] (-31);
     themes = ["pottery"]; features = [];
     meta = [
       Value ("range", Int 3, Impl);
@@ -485,7 +485,7 @@ let builtins () : builtin list = [
     ]
   };{
     name = "clay_golem";
-    expr = builtin_func T_Int [] (-32);
+    expr = builtin_func (TE_Identifier "int") [] (-32);
     themes = ["pottery"]; features = ["fork"];
     meta = [
       Structure ("cost", [  
@@ -495,17 +495,17 @@ let builtins () : builtin list = [
     ]
   };{
     name = "drop";
-    expr = builtin_func T_Int [T_Int;T_Resource] (-33);
+    expr = builtin_func (TE_Identifier "int") [TE_Identifier "int";TE_Identifier "resource"] (-33);
     themes = []; features = [];
     meta = []
   };{
     name = "take";
-    expr = builtin_func T_Int [T_Int;T_Resource] (-34);
+    expr = builtin_func (TE_Identifier "int") [TE_Identifier "int";TE_Identifier "resource"] (-34);
     themes = []; features = [];
     meta = []
   };{
     name = "mine_shaft";
-    expr = builtin_func T_Int [T_Dir] (-35);
+    expr = builtin_func (TE_Identifier "int") [TE_Identifier "dir"] (-35);
     themes = []; features = [];
     meta = [
       Structure ("cost", [
@@ -515,7 +515,7 @@ let builtins () : builtin list = [
     ]
   };{
     name = "craft";
-    expr = builtin_func T_Int [T_Resource] (-36);
+    expr = builtin_func (TE_Identifier "int") [TE_Identifier "resource"] (-36);
     themes = []; features = [];
     meta = [
       Value ("ammo_per_metal", Int 3, Impl);
@@ -523,22 +523,22 @@ let builtins () : builtin list = [
     ]
   };{
     name = "count";
-    expr = builtin_func T_Int [T_Resource] (-37);
+    expr = builtin_func (TE_Identifier "int") [TE_Identifier "resource"] (-37);
     themes = []; features = [];
     meta = []
   };{
     name = "pass";
-    expr = builtin_func T_Int [] (-38);
+    expr = builtin_func (TE_Identifier "int") [] (-38);
     themes = []; features = [];
     meta = []
   };{
     name = "wait";
-    expr = builtin_func T_Int [] (-39);
+    expr = builtin_func (TE_Identifier "int") [] (-39);
     themes = []; features = [];
     meta = []
   };{
     name = "obliviate";
-    expr = builtin_func T_Int [T_Dir] (-40);
+    expr = builtin_func (TE_Identifier "int") [TE_Identifier "dir"] (-40);
     themes = ["wizardry"]; features = [];
     meta = [
       Value ("range", Int 2, Impl);
@@ -549,7 +549,7 @@ let builtins () : builtin list = [
     ]
   };{
     name = "blink";
-    expr = builtin_func T_Int [] (-41);
+    expr = builtin_func (TE_Identifier "int") [] (-41);
     themes = []; features = [];
     meta = [
       Value ("duration", Int 2, Impl);
@@ -560,7 +560,7 @@ let builtins () : builtin list = [
     ]
   };{
     name = "search";
-    expr = builtin_func T_Int [T_Resource] (-42);
+    expr = builtin_func (TE_Identifier "int") [TE_Identifier "resource"] (-42);
     themes = []; features = [];
     meta = []
   };
@@ -568,17 +568,17 @@ let builtins () : builtin list = [
   (* EXPERIMENTAL *)
   {
     name = "set_color";
-    expr = builtin_func T_Int [T_Array(T_Int, 2); T_Int; T_Int] (-43);
+    expr = builtin_func (TE_Identifier "int") [TE_Array(TE_Identifier "int", Expr(Int 2,0)); TE_Identifier "int"; TE_Identifier "int"] (-43);
     themes = []; features = [];
     meta = [];
   };{
     name = "set_symbol";
-    expr = builtin_func T_Int [T_Array(T_Int, 2); T_Int] (-44);
+    expr = builtin_func (TE_Identifier "int") [TE_Array(TE_Identifier "int", Expr(Int 2,0)); TE_Identifier "int"] (-44);
     themes = []; features = [];
     meta = [];
   };{
     name = "render";
-    expr = builtin_func T_Int [T_Int] (-45);
+    expr = builtin_func (TE_Identifier "int") [TE_Identifier "int"] (-45);
     themes = []; features = [];
     meta = [];
   };
