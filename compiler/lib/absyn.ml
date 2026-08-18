@@ -126,7 +126,7 @@ and expr =
     | Null
     | StructureLiteral of structure_element list
     | SizeOf of expression
-    | ASM of typ * instruction list
+    | ASM of typ_expr * instruction list
 
 and structure_element =
     | StructureElement of string option * expression

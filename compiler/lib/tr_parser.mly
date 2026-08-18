@@ -34,7 +34,7 @@ let features fs =
 %token LOGIC_AND LOGIC_OR FSLASH BSLASH PCT EXCLAIM
 %token COMMA SEMI COLON EOF
 %token QMARK PLUSPLUS MINUSMINUS
-%token IF ELSE IS REPEAT WHILE CONTINUE BREAK LET CONST TYPE
+%token IF ELSE IS REPEAT WHILE CONTINUE BREAK LET CONST TYPE ASM
 %token GOTO RARROW ANY
 %token NORTH EAST SOUTH WEST
 %token L_SHIFT R_SHIFT
@@ -118,7 +118,15 @@ simple_expr:
   | QMARK                                   { features ["random"] ; Random }
   | NAME                                    { features ["memory"] ; IdentifierAccess $1 }
   | LBRAKE seperated_or_empty(COMMA, struct_element) RBRAKE { StructureLiteral $2 }
+  | ASM COLON typ LBRACE asm+ RBRACE  { features ["asm"] ; ASM ($3, $5) }
   | LPAR expr RPAR                          { $2 }
+;
+
+asm:
+  | CSTINT { I $1 }
+  | MINUS CSTINT { I (-$2) }
+  | NAME COLON { Label ($1) }
+  | NAME { ProgramRep.string_to_instruction $1 }
 ;
 
 struct_element: 

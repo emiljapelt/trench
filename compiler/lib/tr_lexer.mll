@@ -22,6 +22,7 @@
                         "null", NULL;
                         "any", ANY;
                         "const", CONST;
+                        "asm", ASM;
                       ] 
   
   let char_of_string s lexbuf = match s with
