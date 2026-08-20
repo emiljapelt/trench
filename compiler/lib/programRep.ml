@@ -95,8 +95,6 @@ let string_to_instruction str = match str with
     | "bnot" ->  Instr_BinNot
     | "band" ->  Instr_BinAnd
     | "rnd" ->  Instr_Random
-    | "gtif" ->  Instr_GoToIf
-    | "gt" ->  Instr_GoTo
     | "wait" ->  Instr_Wait
     | "pass" ->  Instr_Pass
     | "call" ->  Instr_Call
@@ -117,10 +115,6 @@ let string_to_instruction str = match str with
     | "bits" ->  Instr_Bits
     | "tcall" ->  Instr_TCall
     | _ -> LabelRef str
-    (*| _ -> (match int_of_string_opt str with
-      | Some i -> I i
-      | None -> if String.ends_with ~suffix:"_" str then Label str else LabelRef str
-    )*)
 
 let label_set pp =
   let rec aux pp set = match pp with

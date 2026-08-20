@@ -225,7 +225,9 @@ let load_teams trg =
     | TRGArray teams -> List.mapi load_team teams
     | trg -> expected "an array of team definitions" trg
   in
-  Helpers.compiler_notes.team_libraries <- StringMap.of_list (List.map (fun (TI team) -> (team.name, team.library)) teams); teams
+  Helpers.compiler_notes.team_system_libraries <- StringMap.of_list (List.map (fun (TI team) -> (team.name, team.system_library)) teams); 
+  Helpers.compiler_notes.team_libraries <- StringMap.of_list (List.map (fun (TI team) -> (team.name, team.library)) teams); 
+  teams
 
 let load_game o : game_setup = 
   Flags.set_auto_resize (find_entry "auto_resize" o ~default:(TRGBool true) |> load_bool);
@@ -233,7 +235,7 @@ let load_game o : game_setup =
   Flags.set_themes (find_entry "themes" o ~default:(TRGBool false) |> load_themes);
 
   Helpers.compiler_notes.system_library <- find_entry "system_library" o ~default:TRGNull |> optional_load load_string;
-  Helpers.compiler_notes.shared_library <- find_entry "shared_library" o ~default:TRGNull |> optional_load load_string;
+  Helpers.compiler_notes.shared_library <- find_entry "library" o ~default:TRGNull |> optional_load load_string;
   Helpers.compiler_notes.size_limit <- find_entry "program_size_limit" o ~default:(TRGInt (-1)) |> load_int;
   Helpers.compiler_notes.stack_size <- find_entry "stack_size" o ~default:(TRGInt 1000) |> load_int;
 
@@ -322,37 +324,63 @@ type compiled_game_file = {
   auto_start: bool;
 }
 
+(* Maybe file could just be a path, then giving the correct error should be quite easy *)
 let compile_program state (File(program,i)) =
   compile_stmts {state with labels = available_labels (Stmt(Block program, i))} program
 
-let scope_ s = 
-  List.map identifier_name s |> String.concat " "
 
 let empty_file = File([],0)  (* Not a good solution *)
 
-(* Figure out the order :( *)
+let compile_program' state path = 
+  try
+    parse_file Tr_parser.main Tr_lexer.start path ~default:empty_file |> compile_program state
+  with
+  | Failure(None,ln,msg) -> raise (Failure(path, ln, msg))
+  | e -> raise e
+
+let seqment_map seqs l = 
+  let rec aux seqs l acc = match seqs, l with
+  | (f,i)::s, h::t -> 
+    if i <= 0 
+    then aux s l acc 
+    else aux ((f,i-1) :: s) t (f h :: acc)
+  | _,_ -> acc
+  in
+  aux seqs l [] |> List.rev
+
+(* TODO *)
+(* Consider some caching *)
+(* Wrap each seperate file handling bit, such that the error printer is given the correct path
+  - USE compile_program' instead
+*)
 let compile_player team file  =
+  let hide = remove_identifier_name in
+  let show = identity in
   let syscalls = [] in
   let team_sys_lib = StringMap.find_opt team Helpers.compiler_notes.team_system_libraries |> Option.join in
   let team_lib = StringMap.find_opt team Helpers.compiler_notes.team_libraries |> Option.join in
 
   let init_state = {scopes = { local = syscalls ; global = None }; size = 0; labels = StringSet.empty; break = None; continue = None; ret_type = None;} in
 
-  let (system_state, system_instrs) = parse_file Tr_parser.main Tr_lexer.start Helpers.compiler_notes.system_library ~default:empty_file |> compile_program init_state in
-  let (team_system_state, team_system_instrs) = parse_file Tr_parser.main Tr_lexer.start team_sys_lib ~default:empty_file |> compile_program system_state in
-  let (shared_state, shared_instrs) = parse_file Tr_parser.main Tr_lexer.start Helpers.compiler_notes.shared_library ~default:empty_file |> compile_program team_system_state in
+(*  let (system_state, system_instrs) = parse_file Tr_parser.main Tr_lexer.start Helpers.compiler_notes.system_library ~default:empty_file |> compile_program init_state in*)
+  let (system_state, system_instrs) = compile_program' init_state Helpers.compiler_notes.system_library in
+  let system_size = List.length system_state.scopes.local in
 
-  let visible = (List.length shared_state.scopes.local) - (List.length team_system_state.scopes.local) in
+  let (shared_state, shared_instrs) = parse_file Tr_parser.main Tr_lexer.start Helpers.compiler_notes.shared_library ~default:empty_file |> compile_program system_state in
+  let shared_size = List.length shared_state.scopes.local - (system_size) in
 
-  let shared = shared_state.scopes.local |> List.take visible in
-  let hidden = shared_state.scopes.local |> List.drop visible |> List.map remove_identifier_name in
+  let (team_system_state, team_system_instrs) = parse_file Tr_parser.main Tr_lexer.start team_sys_lib ~default:empty_file |> compile_program shared_state in
+  let team_system_size = List.length team_system_state.scopes.local - (system_size + shared_size) in
 
-  let state = {scopes = { local = generate_initial_scope () @ shared @ hidden ; global = None }; size = team_system_state.size; labels = StringSet.empty; break = None; continue = None; ret_type = None;} in
-
+  let team_scope = seqment_map [(show,team_system_size); (show,shared_size); (hide,system_size)] team_system_state.scopes.local in
+  let state = {scopes = { local = generate_initial_scope () @ team_scope ; global = None }; size = team_system_state.size; labels = StringSet.empty; break = None; continue = None; ret_type = None;} in
   let (team_state, team_instrs) = parse_file Tr_parser.main Tr_lexer.start team_lib ~default:empty_file |> compile_program state in
-  let (state, instrs) = compile_program team_state file in
+  let team_size = List.length team_state.scopes.local - (system_size + shared_size + team_system_size) in
 
-
+  let player_scope = seqment_map [(show,team_size); (hide,team_system_size); (show,shared_size); (hide,system_size)] team_state.scopes.local in
+  let state = {scopes = { local = player_scope ; global = None }; size = team_system_state.size; labels = StringSet.empty; break = None; continue = None; ret_type = None;} in
+  let (state, instrs) = compile_program state file in 
+  
   (* Declare per block instead? Decreases stack size, increases program size, Could remove state.size *)
   Instr_Declare :: I(state.size) :: (system_instrs @ shared_instrs @ team_system_instrs @ team_instrs @ instrs) |> Optimize.optimize_instruction_list
 

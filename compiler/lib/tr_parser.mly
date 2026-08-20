@@ -127,6 +127,8 @@ asm:
   | MINUS CSTINT { I (-$2) }
   | NAME COLON { Label ($1) }
   | NAME { ProgramRep.string_to_instruction $1 }
+  | GOTO { Instr_GoTo }
+  | IF { Instr_GoToIf }
 ;
 
 struct_element: 
