@@ -324,16 +324,12 @@ type compiled_game_file = {
   auto_start: bool;
 }
 
-(* Maybe file could just be a path, then giving the correct error should be quite easy *)
-let compile_program state (File(program,i)) =
-  compile_stmts {state with labels = available_labels (Stmt(Block program, i))} program
-
-
 let empty_file = File([],0)  (* Not a good solution *)
 
-let compile_program' state path = 
+let compile_program path state = 
   try
-    parse_file Tr_parser.main Tr_lexer.start path ~default:empty_file |> compile_program state
+    let File(program, i) = parse_file Tr_parser.main Tr_lexer.start path ~default:empty_file in 
+    compile_stmts {state with labels = available_labels (Stmt(Block program, i))} program
   with
   | Failure(None,ln,msg) -> raise (Failure(path, ln, msg))
   | e -> raise e
@@ -349,11 +345,10 @@ let seqment_map seqs l =
   aux seqs l [] |> List.rev
 
 (* TODO *)
-(* Consider some caching *)
-(* Wrap each seperate file handling bit, such that the error printer is given the correct path
-  - USE compile_program' instead
+(* Consider some caching 
+  - Requires non-mutating const funcs (maybe seperate const cache?)
 *)
-let compile_player team file  =
+let compile_player team path  =
   let hide = remove_identifier_name in
   let show = identity in
   let syscalls = [] in
@@ -362,31 +357,30 @@ let compile_player team file  =
 
   let init_state = {scopes = { local = syscalls ; global = None }; size = 0; labels = StringSet.empty; break = None; continue = None; ret_type = None;} in
 
-(*  let (system_state, system_instrs) = parse_file Tr_parser.main Tr_lexer.start Helpers.compiler_notes.system_library ~default:empty_file |> compile_program init_state in*)
-  let (system_state, system_instrs) = compile_program' init_state Helpers.compiler_notes.system_library in
+  let (system_state, system_instrs) = compile_program Helpers.compiler_notes.system_library init_state in
   let system_size = List.length system_state.scopes.local in
 
-  let (shared_state, shared_instrs) = parse_file Tr_parser.main Tr_lexer.start Helpers.compiler_notes.shared_library ~default:empty_file |> compile_program system_state in
+  let (shared_state, shared_instrs) = compile_program Helpers.compiler_notes.shared_library system_state in
   let shared_size = List.length shared_state.scopes.local - (system_size) in
 
-  let (team_system_state, team_system_instrs) = parse_file Tr_parser.main Tr_lexer.start team_sys_lib ~default:empty_file |> compile_program shared_state in
+  let (team_system_state, team_system_instrs) = compile_program team_sys_lib shared_state in
   let team_system_size = List.length team_system_state.scopes.local - (system_size + shared_size) in
 
   let team_scope = seqment_map [(show,team_system_size); (show,shared_size); (hide,system_size)] team_system_state.scopes.local in
   let state = {scopes = { local = generate_initial_scope () @ team_scope ; global = None }; size = team_system_state.size; labels = StringSet.empty; break = None; continue = None; ret_type = None;} in
-  let (team_state, team_instrs) = parse_file Tr_parser.main Tr_lexer.start team_lib ~default:empty_file |> compile_program state in
+  let (team_state, team_instrs) = compile_program team_lib state in
   let team_size = List.length team_state.scopes.local - (system_size + shared_size + team_system_size) in
 
   let player_scope = seqment_map [(show,team_size); (hide,team_system_size); (show,shared_size); (hide,system_size)] team_state.scopes.local in
   let state = {scopes = { local = player_scope ; global = None }; size = team_system_state.size; labels = StringSet.empty; break = None; continue = None; ret_type = None;} in
-  let (state, instrs) = compile_program state file in 
+  let (state, instrs) = compile_program path state in 
   
   (* Declare per block instead? Decreases stack size, increases program size, Could remove state.size *)
   Instr_Declare :: I(state.size) :: (system_instrs @ shared_instrs @ team_system_instrs @ team_instrs @ instrs) |> Optimize.optimize_instruction_list
 
 let compile_player_file path team = try (
   check_path path [".tr"] ;
-  parse_file Tr_parser.main Tr_lexer.start (Some path) ~default:empty_file
+  Some path
   |> compile_player team
   |> player_to_program
   |> Result.ok
