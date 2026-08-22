@@ -173,8 +173,8 @@ and  file =
     | File of statement list * int
 
 and scopes = {
-    local: identifier list;
-    global: identifier list option;
+    local: identifier list option;
+    global: identifier list;
 }
 
 and compile_state = {
@@ -346,16 +346,25 @@ let identifier_name id = match id with
   | Type(n,_)
   | Const(n,_) -> n
 
+let identifier_size id = match id with
+  | Var(t,_) -> type_size t
+  | Type(_,_)
+  | Const(_,_) -> 0
+
 let remove_identifier_name id = match id with
   | Var(t,_) -> Var(t,"") 
   | Type(_,t) -> Type("", t)
   | Const(_,e) -> Const("", e)
 
 let is_bound name scopes =
-  match List.find_opt (fun id -> identifier_name id = name) scopes.local with
-  | Some _ -> true
-  | None -> (
-    match Option.map (fun scope -> List.find_opt (fun id -> identifier_name id = name) scope) scopes.global |> Option.join with
+    match Option.map (fun scope -> List.find_opt (fun id -> identifier_name id = name) scope) scopes.local |> Option.join with
     | Some _ -> true
-    | _ -> false
-  )
+    | _ -> (
+        match List.find_opt (fun id -> identifier_name id = name) scopes.global with
+        | Some _ -> true
+        | None -> false
+    )
+
+let declare id state = match state.scopes.local with
+    | Some local -> { state with scopes = { local = Some(id::local); global = state.scopes.global }; size = state.size + identifier_size id }
+    | None -> { state with scopes = { local = state.scopes.local; global = id::state.scopes.global }; size = state.size + identifier_size id }
