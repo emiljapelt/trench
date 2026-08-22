@@ -59,15 +59,17 @@ let scope_size ids = List.fold_left (fun acc id -> match id with
     | Var(t,_) -> acc + type_size t
   ) 0 ids
 
+
+(* Consolidate the following 3 ?? *)
 let lookup_identifier name scopes =
   let rec aux vars = match vars with
     | [] -> None
     | h::t -> if identifier_name h = name then Some(h, scope_size t) else aux t 
   in
-  match aux scopes.local with
+  match scopes.local |> Option.map (fun scope -> aux scope) |> Option.join with
   | Some id -> Some(LocalScope, id)
   | None -> (
-    match scopes.global |> Option.map (fun scope -> aux scope) |> Option.join with
+    match aux scopes.global with
     | Some id -> Some(GlobalScope, id)
     | None -> None
   )
@@ -78,10 +80,10 @@ let lookup_type name scopes =
     | Type(n,typ)::t -> if n = name then Some(typ) else aux t 
     | _::t -> aux t
   in
-  match aux scopes.local with
+  match scopes.local |> Option.map (fun scope -> aux scope) |> Option.join with
   | Some typ -> Some(typ)
   | None -> (
-    match scopes.global |> Option.map (fun scope -> aux scope) |> Option.join with
+    match aux scopes.global with
     | Some typ -> Some(typ)
     | None -> None
   )
@@ -93,13 +95,12 @@ let lookup_value name scopes =
     | Var(_,n) as h::t -> if n = name then Some(h, scope_size t) else aux t 
     | _::t -> aux t
   in
-  match aux scopes.local with
+  match scopes.local |> Option.map (fun scope -> aux scope) |> Option.join with
   | Some id -> Some(LocalScope, id)
-  | None -> (
-    match scopes.global |> Option.map (fun scope -> aux scope) |> Option.join with
+  | None -> 
+    match aux scopes.global with
     | Some id -> Some(GlobalScope, id)
     | None -> None
-  )
 
 let rec is_constant state (Expr(expr, _)) = match expr with
   | Int _
@@ -385,13 +386,7 @@ let rec compile_expr (state:compile_state) (Expr(expr, ln) as expression) : (typ
       let typ = T_Func(ret, List.map fst args) in
       f.cache <- Some(typ, _start) ;
       let state = Option.value f.state ~default:state in
-      let func_scope = {
-        local = List.fold_left (fun acc (t,n) -> Var(t,n)::acc) [Const("this", expression)] args ; 
-        global = Some(state.scopes.global |> Option.fold
-          ~none:state.scopes.local
-          ~some:(fun gs -> gs @ List.filter (function Const _ | Type _ -> true | _ -> false) state.scopes.local)
-        )
-      } in
+      let func_scope = { state.scopes with local = Some(List.fold_left (fun acc (t,n) -> Var(t,n)::acc) [Const("this", expression)] args) } in
       let new_state = {
         scopes = func_scope;  
         labels = available_labels body;
@@ -594,7 +589,6 @@ and find_expr_location (Expr(e,_) as expr) state = match e with
     let (expr_type, expr_instrs) = compile_expr state expr in
     ComputeStack { typ = expr_type ; instrs = expr_instrs }
 
-
 and compile_stmts state stmts =
   let rec aux stmts state acc = match stmts with
     | [] -> (state, acc |> List.rev |> List.flatten)
@@ -688,12 +682,12 @@ and compile_stmt (Stmt(stmt,ln)) state : (compile_state * instruction list) =
   )
   | Declare(typ,name) -> 
     let typ = eval_type_expr state typ in
-    ({state with scopes = { local = Var(typ,name)::state.scopes.local; global = state.scopes.global }; size = state.size + type_size typ }, [])
+    (declare (Var(typ,name)) state, [])
   | DeclareAssign (typ_opt, name, expr) -> (match typ_opt with
     | None -> (
       let (typ, expr_instrs) = reduce_compile expr in
       if not(can_declare typ) then raise_failure ("Cannot declare a variable of type '"^type_string typ^"'")
-      else let state' = {state with scopes = { local = Var(typ,name)::state.scopes.local; global = state.scopes.global }; size = state.size + type_size typ} in 
+      else let state' = declare (Var(typ,name)) state in
       match find_identifier_location name state' with
       | Some StorageStack loc -> (state', expr_instrs @ loc.instrs @ [loc.store ; I(type_size loc.typ)])
       | _ -> raise_failure "Could not assign"
@@ -702,7 +696,7 @@ and compile_stmt (Stmt(stmt,ln)) state : (compile_state * instruction list) =
       let typ = eval_type_expr state typ in
       let (expr_typ, expr_instrs) = reduce_compile expr in
       if not(can_assign typ expr_typ) then raise_failure ("Cannot assign a value of type '" ^type_string expr_typ^ "' to a variable of type '" ^type_string typ^ "'") else
-      let state' = {state with scopes = { local = Var(typ,name)::state.scopes.local; global = state.scopes.global }; size = state.size + type_size typ} in 
+      let state' = declare (Var(typ,name)) state in
       match find_identifier_location name state' with
       | Some StorageStack loc -> (state', expr_instrs @ adjust_value typ expr_typ @ loc.instrs @ [loc.store ; I(type_size loc.typ)])
       | _ -> raise_failure "Could not assign"
@@ -711,10 +705,10 @@ and compile_stmt (Stmt(stmt,ln)) state : (compile_state * instruction list) =
   | DeclareConst(name, expr) -> 
     let expr = reduce_expression state expr in
     if not(is_constant state expr) then raise_expr_failure expr "Could not reduce to a constant" else
-    ({state with scopes = { local = Const(name,expr)::state.scopes.local; global = state.scopes.global } }, [])
+    (declare (Const(name,expr)) state, [])
   | DeclareType(typ, name) ->
     let typ = eval_type_expr state typ in
-    ({state with scopes = { local = Type(name,typ)::state.scopes.local; global = state.scopes.global } }, [])
+    (declare (Type(name,typ)) state, [])
   | Label name -> (state, [Label name])
   | GoTo n -> 
     if StringSet.mem n state.labels
