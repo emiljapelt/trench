@@ -564,24 +564,6 @@ let builtins () : builtin list = [
     themes = []; features = [];
     meta = []
   };
-
-  (* EXPERIMENTAL *)
-  {
-    name = "set_color";
-    expr = builtin_func (TE_Identifier "int") [TE_Array(TE_Identifier "int", Expr(Int 2,0)); TE_Identifier "int"; TE_Identifier "int"] (-43);
-    themes = []; features = [];
-    meta = [];
-  };{
-    name = "set_symbol";
-    expr = builtin_func (TE_Identifier "int") [TE_Array(TE_Identifier "int", Expr(Int 2,0)); TE_Identifier "int"] (-44);
-    themes = []; features = [];
-    meta = [];
-  };{
-    name = "render";
-    expr = builtin_func (TE_Identifier "int") [TE_Identifier "int"] (-45);
-    themes = []; features = [];
-    meta = [];
-  };
 ]
 
 let generate_resource_meta () =
@@ -620,3 +602,9 @@ let generate_initial_scope () : identifier list =
     |> List.filter (fun b -> themes b.themes && features b.features) in
   List.map (fun b -> Const(b.name, Expr(b.expr,0))) builtins @ builtin_types
   
+
+let get_syscalls () = [ (* EXPERIMENTAL *)
+  Const("set_color", Expr(builtin_func (TE_Identifier "int") [TE_Array(TE_Identifier "int", Expr(Int 2,0)); TE_Identifier "int"; TE_Identifier "int"] (-43), 0));
+  Const("set_symbol", Expr(builtin_func (TE_Identifier "int") [TE_Array(TE_Identifier "int", Expr(Int 2,0)); TE_Identifier "int"] (-44), 0));
+  Const("render", Expr(builtin_func (TE_Identifier "int") [TE_Identifier "int"] (-45), 0));
+]

@@ -346,6 +346,11 @@ let identifier_name id = match id with
   | Type(n,_)
   | Const(n,_) -> n
 
+let identifier_has_size id = match id with
+  | Var(_,_) -> true
+  | Type(_,_)
+  | Const(_,_) -> false
+
 let identifier_size id = match id with
   | Var(t,_) -> type_size t
   | Type(_,_)

@@ -334,7 +334,7 @@ let compile_program path state =
   | Failure(None,ln,msg) -> raise (Failure(path, ln, msg))
   | e -> raise e
 
-let seqment_map seqs l = 
+let segment_map seqs l = 
   let rec aux seqs l acc = match seqs, l with
   | (f,i)::s, h::t -> 
     if i <= 0 
@@ -348,14 +348,15 @@ let seqment_map seqs l =
 (* Consider some caching 
   - Requires non-mutating const funcs (maybe seperate const cache?)
 *)
+
 let compile_player team path  =
   let hide = remove_identifier_name in
   let show = identity in
-  let syscalls = [] in
+  let syscalls = get_syscalls () in
   let team_sys_lib = StringMap.find_opt team Helpers.compiler_notes.team_system_libraries |> Option.join in
   let team_lib = StringMap.find_opt team Helpers.compiler_notes.team_libraries |> Option.join in
 
-  let init_state = {scopes = { local = None ; global = syscalls }; size = 0; labels = StringSet.empty; break = None; continue = None; ret_type = None;} in
+  let init_state = {scopes = { local = None ; global = syscalls @ builtin_types }; size = 0; labels = StringSet.empty; break = None; continue = None; ret_type = None;} in
 
   let (system_state, system_instrs) = compile_program Helpers.compiler_notes.system_library init_state in
   let system_size = List.length system_state.scopes.global in
@@ -366,12 +367,13 @@ let compile_player team path  =
   let (team_system_state, team_system_instrs) = compile_program team_sys_lib shared_state in
   let team_system_size = List.length team_system_state.scopes.global - (system_size + shared_size) in
 
-  let team_scope = seqment_map [(show,team_system_size); (show,shared_size); (hide,system_size)] team_system_state.scopes.global in
+  (* Also filter out size-less identifiers? *)
+  let team_scope = segment_map [(show,team_system_size); (show,shared_size); (hide,system_size)] team_system_state.scopes.global in
   let state = {scopes = { local = None ; global = generate_initial_scope () @ team_scope }; size = team_system_state.size; labels = StringSet.empty; break = None; continue = None; ret_type = None;} in
   let (team_state, team_instrs) = compile_program team_lib state in
   let team_size = List.length team_state.scopes.global - (system_size + shared_size + team_system_size) in
 
-  let player_scope = seqment_map [(show,team_size); (hide,team_system_size); (show,shared_size); (hide,system_size)] team_state.scopes.global in
+  let player_scope = segment_map [(show,team_size); (hide,team_system_size); (show,shared_size); (hide,system_size)] team_state.scopes.global in
   let state = {scopes = { local = None ; global = player_scope }; size = team_system_state.size; labels = StringSet.empty; break = None; continue = None; ret_type = None;} in
   let (state, instrs) = compile_program path state in 
   

@@ -1331,6 +1331,10 @@ int builtin_search(player_state* ps) {
     return 0;
 }
 
+#pragma endregion
+
+#pragma region SYSCALLS
+
 // int:(x,y,i,fg)
 // switch to rgb?
 int syscall_set_color(player_state* ps) {
