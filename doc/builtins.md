@@ -43,7 +43,7 @@ Many of the builtin identifiers, especially the functions, have properties which
 
 This kind of information is gathered in the meta structure, if the `meta` feature is active, and the relevant themes and features are also active, i.e. you cannot lookup what it costs to cast a fireball, if the fireball function does not exist. The structure also has a `resource` entry, containing infomation abount how much of any resource a player can carry. `meta.resource.wood` is the amount of wood a player may carry.
 
-Which informations that are available for a particular builtin, is explained where the builtin itself is explained.
+Which informations that are available for a particular builtin, is explained where the builtin itself is explained, by the meta entry's type.
 
 ## Functions
 
@@ -155,7 +155,7 @@ Changes the channel of the players pager to `i`.
 
 Returns a snapshot of the properties of the field in direction `d`, at a distance of `i` fields. It is possible to scan past an obstruction. By default the is no limit to the size of `i`. If `i` is less the `0`, it becomes `0`.
 
-**Meta:** range
+**Meta:** `[range: int]`
 
 ---
 
@@ -164,7 +164,7 @@ Returns a snapshot of the properties of the field in direction `d`, at a distanc
 
 Get the distance to the nearest field in the direction `d`, which has all the properties of `f`. By default the is no limit to the range.
 
-**Meta:** range
+**Meta:** `[range: int]`
 
 **Returns:**
 
@@ -179,7 +179,7 @@ Attempt to collect resources from the field `p` fields in direction `d`.  If `p`
 
 Resources can be collected from TREE, MINE_SHAFT and CLAY fields.
 
-**Meta:** range
+**Meta:** `[range: int]`
 
 **Returns:** 
 
@@ -203,7 +203,7 @@ Always `_SUCCESS`.
 
 Attempt to create a trench `p` fields in direction `d`. If `p` is greater than 1 (`trench.range`) or less than 0, it is clamped to the valid range. It costs `0` `wood` (`trench.cost`) to create a trench.
 
-**Meta:** cost, range, resource
+**Meta:** `[range: int, cost: [resource: resource, amount: int]]`
 
 **Returns:**  
 
@@ -222,7 +222,7 @@ Attemp to fortify the field `p` fields in direction `d`. This costs `5` `wood` (
 
 TRENCH, WALL and MINE_SHAFT fields can be fortified, but only once.
 
-**Meta:** cost, range, resource
+**Meta:** `[range: int, cost: [resource: resource, amount: int]]`
 
 **Returns:**
 
@@ -242,7 +242,7 @@ Fire a bullet in direction `d`, spending `1` `ammo` to do so. The bullet will tr
 
 **Themes:** military, forestry
 
-**Meta:** range, resource
+**Meta:** `[range: int, cost: [resource: resource, amount: int]]`
 
 **Returns:**
 
@@ -270,7 +270,7 @@ Plant a tree on the adjecent field in direction `d`, spending `1` `#sapling`. Th
 
 **Themes:** forestry
 
-**Meta:** delay, resource
+**Meta:** `[delay: int, cost: [resource: resource, amount: int]]`
 
 **Returns:** 
 
@@ -300,7 +300,7 @@ Always `_SUCCESS`.
 
 Build a WALL in one field direction `d`. This cost `10` `wood` (`wall.cost`), and requires that the target field is EMPTY.
 
-**Meta:** cost, resource
+**Meta:** `[cost: [resource: resource, amount: int]]`
 
 **Returns:**
 
@@ -318,7 +318,7 @@ Build a WALL in one field direction `d`. This cost `10` `wood` (`wall.cost`), an
 
 Build a BRIDGE in one field direction `d`. This cost `20` `wood` (`bridge.cost`), and requires that the target field is OCEAN.
 
-**Meta:** cost, resource
+**Meta:** `[cost: [resource: resource, amount: int]]`
 
 **Returns:**
 
@@ -336,7 +336,7 @@ Throw a ball of clay in direction `d`, upto a maximal range of `i`. If `i` is gr
 
 If the clay hits an obstruction it will be damaged, if it hits a player that player will die. Otherwise, if the ball lands on an EMPTY field, that field is converted to a CLAY field, and if that field was already a CLAY field, a unit of clay will be added to the field.
 
-**Meta:** cost, range, resource
+**Meta:** `[range: int, cost: [resource: resource, amount: int]]`
 
 **Themes:** pottery
 
