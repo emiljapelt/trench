@@ -600,7 +600,7 @@ let generate_initial_scope () : identifier list =
   let meta = generate_meta_builtin builtins in
   let builtins = (meta :: builtins) 
     |> List.filter (fun b -> themes b.themes && features b.features) in
-  List.map (fun b -> Const(b.name, Expr(b.expr,0))) builtins @ builtin_types
+  List.map (fun b -> Const(b.name, Expr(b.expr,0))) builtins
   
 
 let get_syscalls () = [ (* EXPERIMENTAL *)

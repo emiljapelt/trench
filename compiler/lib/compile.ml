@@ -357,9 +357,11 @@ let compile_player team path  =
   let team_lib = StringMap.find_opt team Helpers.compiler_notes.team_libraries |> Option.join in
 
   let init_state = {scopes = { local = None ; global = syscalls @ builtin_types }; size = 0; labels = StringSet.empty; break = None; continue = None; ret_type = None;} in
+  let builtin_size = List.length builtin_types in
+  let syscalls_size = List.length syscalls in
 
   let (system_state, system_instrs) = compile_program Helpers.compiler_notes.system_library init_state in
-  let system_size = List.length system_state.scopes.global in
+  let system_size = List.length system_state.scopes.global - (syscalls_size + builtin_size) in
 
   let (shared_state, shared_instrs) = compile_program Helpers.compiler_notes.shared_library system_state in
   let shared_size = List.length shared_state.scopes.global - (system_size) in
@@ -367,13 +369,13 @@ let compile_player team path  =
   let (team_system_state, team_system_instrs) = compile_program team_sys_lib shared_state in
   let team_system_size = List.length team_system_state.scopes.global - (system_size + shared_size) in
 
-  (* Also filter out size-less identifiers? *)
-  let team_scope = segment_map [(show,team_system_size); (show,shared_size); (hide,system_size)] team_system_state.scopes.global in
+  (* Also filter out hidden consts? *)
+  let team_scope = segment_map [(show,team_system_size); (show,shared_size); (hide,system_size); (hide,syscalls_size); (show,builtin_size)] team_system_state.scopes.global in
   let state = {scopes = { local = None ; global = generate_initial_scope () @ team_scope }; size = team_system_state.size; labels = StringSet.empty; break = None; continue = None; ret_type = None;} in
   let (team_state, team_instrs) = compile_program team_lib state in
   let team_size = List.length team_state.scopes.global - (system_size + shared_size + team_system_size) in
 
-  let player_scope = segment_map [(show,team_size); (hide,team_system_size); (show,shared_size); (hide,system_size)] team_state.scopes.global in
+  let player_scope = segment_map [(show,team_size); (hide,team_system_size); (show,shared_size); (hide,system_size); (hide,syscalls_size); (show,builtin_size)] team_state.scopes.global in
   let state = {scopes = { local = None ; global = player_scope }; size = team_system_state.size; labels = StringSet.empty; break = None; continue = None; ret_type = None;} in
   let (state, instrs) = compile_program path state in 
   
