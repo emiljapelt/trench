@@ -45,7 +45,10 @@ let rec translate_builtin builtin =
   let value ns i = 
     let rec aux ns settings = match ns with
       | [] -> load_int settings
-      | h::t -> Option.fold ~none:i ~some:(aux t) (find_entry_opt h settings)
+      | h::t -> 
+        let e = (settings |> entry h) in
+        if is_null e then i
+        else aux t e
     in
     Int (aux ns Flags.compile_flags.settings)
   in

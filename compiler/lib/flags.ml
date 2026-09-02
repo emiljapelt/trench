@@ -8,7 +8,7 @@ type flag_record = {
   mutable auto_resize : bool;
   mutable map_width : int;
   mutable map_height : int;
-  mutable settings : trg;
+  mutable settings : trg_wrapper;
   mutable resources : (int * int) ResourceMap.t;
 }
 
@@ -18,7 +18,7 @@ let compile_flags : flag_record = {
   auto_resize = true;
   map_width = -1;
   map_height = -1;
-  settings = TRGObject StringMap.empty ;
+  settings = { value = TRGObject StringMap.empty ; path = [] };
   resources = ResourceMap.empty;
 } 
 
@@ -33,6 +33,6 @@ let set_map_size (w, h) =
   compile_flags.map_height <- h ;
   ()
 
-let set_settings s = compile_flags.settings <- s ; ()
+let set_settings s = compile_flags.settings <- { value = s ; path = ["setting"] } ; ()
 
 let set_resources s = compile_flags.resources <- s ; ()

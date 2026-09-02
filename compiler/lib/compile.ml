@@ -91,36 +91,36 @@ let check_map map = match map with
       else FileMap(String.concat "" lines, (x, List.length lines))
     )
 
-let load_mode = function
+let load_mode tw = match tw.value with
   | TRGInt i -> i
   | TRGString "inf" -> 0
-  | trg -> expected "mode to be an int or \"inf\"" trg
+  | _ -> expected "mode to be an int or \"inf\"" tw
 
-let load_viewport = function
+let load_viewport tw = match tw.value with
   | TRGArray[TRGInt w; TRGInt h] -> (w,h) 
-  | trg -> expected "viewport to be an array of two ints" trg
+  | _ -> expected "viewport to be an array of two ints" tw
 
-let load_seed = function
+let load_seed tw = match tw.value with
   | TRGInt i -> Some i
   | TRGNull -> None
-  | tn -> expected "seed to be an int" tn
+  | _ -> expected "seed to be an int" tw
 
-let load_map tn = 
-  let map = (match tn with
+let load_map tw =
+  let map = (match tw.value with
     | TRGArray[TRGInt w; TRGInt h] -> EmptyMap(w,h)
     | TRGString path -> FileMap(fix_path path, (-1,-1))
-    | trg -> expected "map to be a string or an array of two ints" trg
+    | _ -> expected "map to be a string or an array of two ints" tw
   ) |> check_map
   in
   Flags.set_map_size (get_map_size map); map
 
-let load_time_scale tn = 
-  let scale = match tn with
+let load_time_scale tw = 
+  let scale = match tw.value with
     | TRGFloat f -> f
     | TRGInt i -> float_of_int i
-    | _ -> expected "timescale to be an int or float" tn
+    | _ -> expected "timescale to be an int or float" tw
   in
-  if scale >= 0.0 then scale else expected "timescale to be non-negative" tn
+  if scale >= 0.0 then scale else expected "timescale to be non-negative" tw
 
 let load_feature_strings strs =
   let rec aux strs acc = match strs with
@@ -133,28 +133,28 @@ let load_feature_strings strs =
   in
   aux strs StringSet.empty
 
-let load_features = function
+let load_features tw = match tw.value with
   | TRGBool true -> Features.all_features
   | TRGBool false -> StringSet.empty
-  | TRGArray fs -> fs |> List.filter is_string |> List.map load_string |> load_feature_strings
-  | _ -> raise_failure "Could not load feature set"
+  | TRGArray _ -> tw |> filter is_string |> map load_string |> load_feature_strings
+  | _ -> expected "a feature set" tw
 
 (* relevant after the rework? *)
-let load_themes = function
+let load_themes tw = match tw.value with
   | TRGBool true -> Themes.all_themes
   | TRGBool false -> StringSet.empty
-  | TRGArray fs -> fs |> List.filter is_string |> List.map load_string |> StringSet.of_list
-  | _ -> raise_failure "Could not load feature set"
+  | TRGArray _ -> tw |> filter is_string |> map load_string |> StringSet.of_list
+  | _ -> expected "a theme set" tw
 
 (* Load which resources actually exist from trg *)
 (* Likely only doable when trg library is implemented... *)
-let load_resource_info = function
+let load_resource_info tw = match tw.value with
   | TRGArray[TRGInt init; TRGInt max] -> (init, max)
   | TRGInt i -> (i, -1)
-  | trg -> expected ("resource to be an int or an array of two ints") trg
+  | _ -> expected ("resource to be an int or an array of two ints") tw
 
 let load_resource r trg = 
-  (r, trg |> find_entry (resource_to_string r) ~default:(TRGArray[TRGInt(0); TRGInt(-1)]) |> load_resource_info)
+  (r, trg |> entry (resource_to_string r) |> default (TRGArray[TRGInt(0); TRGInt(-1)]) |> load_resource_info)
 
 let load_resources tn = [
   load_resource R_Explosive;
@@ -169,23 +169,21 @@ let load_resources tn = [
 |> List.map (fun f -> f tn)
 |> ResourceMap.of_list
 
-let load_color = function
+let load_color tw = match tw.value with
   | TRGArray[TRGInt r; TRGInt g; TRGInt b] -> 
     let rgb_value v = 
       if 0 <= v && v <= 255 then v
       else raise_failure ("Not a valid RGB value: "^string_of_int v)
     in
     (rgb_value r, rgb_value g, rgb_value b)
-  | tn -> expected "an RGB color" tn
+  | _ -> expected "an RGB color" tw
 
-let load_origin = function
+let load_coordinate tw = match tw.value with 
   | TRGArray[TRGInt x; TRGInt y] -> (x,y)
-  | tn -> expected "a coordinate" tn
+  | _ -> expected "a coordinate" tw
 
-let load_files = function
-  | TRGArray files -> files |> List.filter is_string |> List.map (load_string >> fix_path)
-  | tn -> expected "an array of paths" tn
-
+let load_files = filter is_string >> map (load_string >> fix_path)
+  
 let compute_origin name player team = 
     let result = (fst player + fst team, snd player + snd team) in
     if (
@@ -195,65 +193,62 @@ let compute_origin name player team =
     else raise_failure ("'" ^ name ^ "' would spawn outside the map ")
 
 let load_player team_id team_origin player =
-  let name = find_entry "name" player ~default:TRGNull |> load_string in
-  let origin = find_entry "origin" player ~default:(TRGArray[TRGInt 0; TRGInt 0]) |> load_origin in
+  let name = player |> entry "name" |> load_string in
+  let origin = player |> entry "origin" |> default (TRGArray[TRGInt 0; TRGInt 0]) |> load_coordinate in
   PI {
     team = team_id;
     name = name;
     origin = compute_origin name origin team_origin;
-    files = find_entry "files" player ~default:TRGNull |> load_files
+    files = player |> entry "files" |> load_files
   }
 
-let load_players team_id team_origin = function
-  | TRGArray players -> List.map (load_player team_id team_origin) players
-  | tn -> expected "an array of player definitions" tn
-
+let load_players team_id team_origin = Trg.map (load_player team_id team_origin)
 let load_team id team = 
-  let origin = find_entry "origin" team ~default:TRGNull |> load_origin in
+  let origin = team |> entry "origin" |> load_coordinate in
   TI {
-    name = find_entry "name" team ~default:TRGNull |> load_string;
-    color = find_entry "color" team ~default:TRGNull |> load_color;
+    name = team |> entry "name" |> load_string;
+    color = team |> entry "color" |> load_color;
     origin = origin;
-    players = find_entry "players" team ~default:TRGNull |> load_players id origin;
-    system_library = find_entry "system_library" team ~default:TRGNull |> optional_load load_string;
-    library = find_entry "library" team ~default:TRGNull |> optional_load load_string;
+    players = team |> entry "players" |> load_players id origin;
+    system_library = team |> entry "system_library" |> optional_load load_string;
+    library = team |> entry "library" |> optional_load load_string;
   }
 
-let load_teams trg = 
-  let teams = match trg with
+let load_teams tw = 
+  let teams = match tw.value with
     | TRGArray [] -> raise_failure "There must exist atleast one team"
-    | TRGArray teams -> List.mapi load_team teams
-    | trg -> expected "an array of team definitions" trg
+    | TRGArray _ -> tw |> mapi load_team
+    | _ -> expected "an array of team definitions" tw
   in
   Helpers.compiler_notes.team_system_libraries <- StringMap.of_list (List.map (fun (TI team) -> (team.name, team.system_library)) teams); 
   Helpers.compiler_notes.team_libraries <- StringMap.of_list (List.map (fun (TI team) -> (team.name, team.library)) teams); 
   teams
 
 let load_game o : game_setup = 
-  Flags.set_auto_resize (find_entry "auto_resize" o ~default:(TRGBool true) |> load_bool);
-  Flags.set_features (find_entry "features" o ~default:(TRGBool false) |> load_features);
-  Flags.set_themes (find_entry "themes" o ~default:(TRGBool false) |> load_themes);
+  Flags.set_auto_resize (o |> entry "auto_resize" |> default (TRGBool true) |> load_bool);
+  Flags.set_features (o |> entry "features" |> default (TRGBool false) |> load_features);
+  Flags.set_themes (o |> entry "themes" |> default (TRGBool false) |> load_themes);
 
-  Helpers.compiler_notes.system_library <- find_entry "system_library" o ~default:TRGNull |> optional_load load_string;
-  Helpers.compiler_notes.shared_library <- find_entry "library" o ~default:TRGNull |> optional_load load_string;
-  Helpers.compiler_notes.size_limit <- find_entry "program_size_limit" o ~default:(TRGInt (-1)) |> load_int;
-  Helpers.compiler_notes.stack_size <- find_entry "stack_size" o ~default:(TRGInt 1000) |> load_int;
+  Helpers.compiler_notes.system_library <- o |> entry "system_library" |> optional_load load_string;
+  Helpers.compiler_notes.shared_library <- o |> entry "library" |> optional_load load_string;
+  Helpers.compiler_notes.size_limit <- o |> entry "program_size_limit" |> default (TRGInt (-1)) |> load_int;
+  Helpers.compiler_notes.stack_size <- o |> entry "stack_size" |> default (TRGInt 1000) |> load_int;
 
   GS {
-    teams = find_entry "teams" o ~default:TRGNull |> load_teams;
-    resources = find_entry "resources" o ~default:(TRGArray[]) |> load_resources;
-    actions = find_entry "actions" o ~default:(TRGInt 1) |> load_int;
-    steps = find_entry "steps" o ~default:(TRGInt 100) |> load_int;
-    mode = find_entry "mode" o ~default:(TRGInt 0) |> load_mode;
-    nuke = find_entry "nuke" o ~default:(TRGInt 0) |> load_int; (* Remove??? *)
+    teams = o |> entry "teams" |> load_teams;
+    resources = o |> entry "resources" |> default (TRGArray[]) |> load_resources;
+    actions = o |> entry "actions" |> default (TRGInt 1) |> load_int;
+    steps = o |> entry "steps" |> default (TRGInt 100) |> load_int;
+    mode = o |> entry "mode" |> default (TRGInt 0) |> load_mode;
+    nuke = o |> entry "nuke" |> default (TRGInt 0) |> load_int; (* Remove??? *)
     exec_mode = DefaultExec;
-    seed = find_entry "seed" o ~default:TRGNull |> load_seed;
-    time_scale = find_entry "time_scale" o ~default:(TRGFloat 1.0) |> load_time_scale;
-    map = find_entry "map" o ~default:TRGNull |> load_map;
+    seed = o |> entry "seed" |> load_seed;
+    time_scale = o |> entry "time_scale" |> default (TRGFloat 1.0) |> load_time_scale;
+    map = o |> entry "map" |> load_map;
     setting_overwrites = [];
-    debug = find_entry "debug" o ~default:(TRGBool false) |> load_bool;
-    viewport = find_entry "viewport" o ~default:(TRGArray[TRGInt 20; TRGInt 20]) |> load_viewport;
-    auto_start = find_entry "auto_start" o ~default:(TRGBool true) |> load_bool;
+    debug = o |> entry "debug" |> default (TRGBool false) |> load_bool;
+    viewport = o |> entry "viewport" |> default (TRGArray[TRGInt 20; TRGInt 20]) |> load_viewport;
+    auto_start = o |> entry "auto_start" |> default (TRGBool true) |> load_bool;
   }
 
 let parse parser lexer from str ~default =
@@ -441,6 +436,7 @@ let compile_game_file path = try (
   let game_file_dir = Filename.dirname path in
   compiler_notes.dir <- game_file_dir;
   parse_file Trg_parser.main Trg_lexer.start (Some path) ~default:TRGNull
+  |> wrap
   |> load_game 
   |> format_game_setup
   |> Result.ok
