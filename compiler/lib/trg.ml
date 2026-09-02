@@ -14,6 +14,14 @@ and trg_object = trg StringMap.t
 
 and trg_array = trg list
 
+(* Wrapper for carrying path info and such? *)
+type trg_wrapper = {
+  value: trg;
+  path: string list;
+}
+
+let wrap trg = { value = trg ; path = [] }
+
 let rec tn_string tn = match tn with
     | TRGString s -> "\""^s^"\""
     | TRGInt i -> string_of_int i
@@ -23,81 +31,79 @@ let rec tn_string tn = match tn with
     | TRGArray l -> "["^(l |> List.length |> string_of_int)^"]"
     | TRGNull -> "null"
 
-let expected e tn = 
-  raise_failure ("Expected '"^e^"' but got '"^tn_string tn^"'")
+let location tw = tw.path |> List.rev |> String.concat "."
 
-let find_entry_opt name = function
-  | TRGObject entries -> StringMap.find_opt name entries
-  | _ -> None
+let expected e tw = 
+  raise_failure ("Expected "^e^" but got '"^tn_string tw.value^"' at "^location tw)
 
-let find_entry name ~default tn =
-  find_entry_opt name tn |> Option.value ~default:default
+let entry name tw = match tw.value with
+  | TRGObject entries -> { value = entries |> StringMap.find_opt name |> Option.fold ~none:TRGNull ~some:identity ; path = name::tw.path }
+  | _ -> expected "an object" tw
 
+let map f tw = match tw.value with
+  | TRGArray a -> a |> List.mapi (fun i e -> { value = e ; path = (string_of_int i)::tw.path }) |> List.map f
+  | _ -> expected "an array" tw
 
+let mapi f tw = match tw.value with
+  | TRGArray a -> a |> List.mapi (fun i e -> { value = e ; path = (string_of_int i)::tw.path }) |> List.mapi f
+  | _ -> expected "an array" tw
 
+let filter p tw = match tw.value with
+  | TRGArray a -> { value = TRGArray(a |> List.mapi (fun i e -> { value = e ; path = (string_of_int i)::tw.path }) |> List.filter p |> List.map (fun a -> a.value)); path = tw.path} 
+  | _ -> expected "an array" tw
 
-let is_int = function
+let default d tw = match tw.value with
+  | TRGNull -> { value = d ; path = []  }
+  | _ -> tw
+
+let is_int tw = match tw.value with
   | TRGInt _ -> true
   | _ -> false
 
-let load_int = function
+let load_int tw = match tw.value with
   | TRGInt i -> i
-  | tn -> expected "int" tn
+  | _ -> expected "an int" tw
 
-let load_int_entry name ~default trg = 
-    Option.fold ~none:default ~some:load_int (find_entry_opt name trg)
-
-
-let optional_load load trg =
-  try Some(load trg) with _ -> None
+let optional_load load tw =
+  try Some(load tw) with _ -> None
 
 
 
-let is_float = function
+let is_float tw = match tw.value with
   | TRGFloat _ -> true
   | _ -> false    
 
-let load_float = function
+let load_float tw = match tw.value with
   | TRGFloat f -> f
-  | t -> expected "float" t
-
-let load_float_entry name trg ~default = 
-    Option.fold ~none:default ~some:load_float (find_entry_opt name trg)
+  | _ -> expected "a float" tw
 
 
-
-let is_bool = function
+let is_bool tw = match tw.value with
   | TRGBool _ -> true
   | _ -> false
 
-let load_bool tn = match tn with
+let load_bool tw = match tw.value with
   | TRGBool b -> b
-  | _ -> expected "bool" tn
-
-let load_bool_entry name trg ~default = 
-    Option.fold ~none:default ~some:load_bool (find_entry_opt name trg)
-  
+  | _ -> expected "a boolean" tw
 
 
-let is_string = function
+let is_string tw = match tw.value with
   | TRGString _ -> true
   | _ -> false
 
-let load_string = function
+let load_string tw = match tw.value with
   | TRGString s -> s
-  | tn -> expected "string" tn
-
-let load_string_entry name trg ~default = 
-    Option.fold ~none:default ~some:load_string (find_entry_opt name trg)
+  | _ -> expected "a string" tw
 
 
-
-let is_null = (=) TRGNull
+let is_null tw = match tw.value with 
+  | TRGNull -> true
+  | _ -> false
   
-let is_object = function 
+let is_object tw = match tw.value with
   | TRGObject _ -> true
   | _ -> false
 
-let is_array = function 
+let is_array tw = match tw.value with
   | TRGArray _ -> true
   | _ -> false
