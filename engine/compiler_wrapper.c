@@ -279,7 +279,11 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                     .automatic = 0,
                 },
                 .started = Bool_val(Field(unwrapped_result, 17)),
+                .feed_width = Int_val(Field(unwrapped_result, 18)),
+                .feed = Bool_val(Field(unwrapped_result, 19)),
             };
+            if (gr->feed_width > gr->viewport.width)
+                gr->feed_width = gr->viewport.width;
 
             load_settings_struct(gr, Int_val(Field(unwrapped_result, 13)), Field(unwrapped_result, 14));
 
@@ -307,6 +311,8 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
             int player_count = Int_val(Field(unwrapped_result, 5));
             int team_count = Int_val(Field(unwrapped_result, 7));
 
+            const unsigned int feed_size = gr->feed_width * gr->viewport.height;
+
             *gs = (game_state) {
                 .round = 1,
                 .latest_print = 1,
@@ -315,17 +321,19 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 .id_counter = 0,
                 .entities = array_list.create(player_count + 1),
                 .map = map,
-                .feed = malloc(FEED_WIDTH * gr->viewport.height),
+                .feed = malloc(feed_size),
                 .team_count = team_count,
                 .team_states = malloc(sizeof(team_state) * team_count),
                 .events = array_list.create(10),
             };
 
-            memset(gs->feed, ' ', FEED_WIDTH * gr->viewport.height);
+            memset(gs->feed, ' ', feed_size);
 
             // Center board in viewport;
-            gr->viewport.x = -(gr->viewport.width / 2) + (map_width / 2);
-            gr->viewport.y = -(gr->viewport.height / 2) + (map_height / 2);
+            const int width = _gr->viewport.width - (_gr->feed ? _gr->feed_width : 0);
+            const int height = _gr->viewport.height;
+            gr->viewport.x = -(width / 2) + (map_width / 2);
+            gr->viewport.y = -(height / 2) + (map_height / 2);
 
             for(int i = 0; i < team_count; i++) {
                 value team_info = Field(Field(unwrapped_result, 8),i);

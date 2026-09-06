@@ -39,10 +39,13 @@ void set_overlay(field_state* field, symbol symbol) {
 
 
 void print_to_feed(const char* msg) {
+    if (_gr->feed_width == 0) 
+        return;
+
     int msg_len = strlen(msg);
     char buffer[msg_len]; 
-    int feed_len = msg_len + (FEED_WIDTH - (msg_len % FEED_WIDTH));
-    int feed_lines = feed_len / FEED_WIDTH;
+    int feed_len = msg_len + (_gr->feed_width - (msg_len % _gr->feed_width));
+    int feed_lines = feed_len / _gr->feed_width;
     
     for(int i = 0; i < msg_len; i++) {
         switch(msg[i]) {
@@ -56,8 +59,7 @@ void print_to_feed(const char* msg) {
         }
     }
 
-
-    memmove(_gs->feed + feed_len, _gs->feed, _gr->viewport.height * FEED_WIDTH - feed_len);
+    memmove(_gs->feed + feed_len, _gs->feed, _gr->viewport.height * _gr->feed_width - feed_len);
     memset(_gs->feed, ' ', feed_len);
     memcpy(_gs->feed, buffer, msg_len);
 
@@ -65,7 +67,7 @@ void print_to_feed(const char* msg) {
 }
 
 void clear_feed() {
-    memset(_gs->feed, ' ', _gr->viewport.height * FEED_WIDTH);
+    memset(_gs->feed, ' ', _gr->viewport.height * _gr->feed_width);
 }
 
 void set_player_steps_and_actions(player_state* ps) {
