@@ -292,8 +292,7 @@ let player_to_program program =
   let size_limit = Helpers.compiler_notes.size_limit in
   let program = program_to_int_list program in
   if size_limit > 0 && List.length program - 1 > size_limit then raise_failure ("Program too large: " ^ string_of_int size_limit ^ " < " ^ string_of_int (List.length program - 1))
-  else List.length program :: program |> Array.of_list 
-
+  else List.length program :: program |> Array.of_list
 
 type compiled_player_info = {
   team: int;
@@ -379,8 +378,8 @@ let compile_player team path  =
   let team_size = List.length team_state.scopes.global - (system_size + shared_size + team_system_size) in
 
   let player_scope = segment_map [(show,team_size); (hide,team_system_size); (show,shared_size); (hide,system_size); (hide,syscalls_size); (show,builtin_size)] team_state.scopes.global in
-  let state = {scopes = { local = None ; global = player_scope }; size = team_system_state.size; labels = StringSet.empty; break = None; continue = None; ret_type = None;} in
-  let (state, instrs) = compile_program path state in 
+  let state = {scopes = { local = None ; global = player_scope }; size = team_state.size; labels = StringSet.empty; break = None; continue = None; ret_type = None;} in
+  let (state, instrs) = compile_program path state in
   
   (* Declare per block instead? Decreases stack size, increases program size, Could remove state.size *)
   Instr_Declare :: I(state.size) :: (system_instrs @ shared_instrs @ team_system_instrs @ team_instrs @ instrs) |> Optimize.optimize_instruction_list

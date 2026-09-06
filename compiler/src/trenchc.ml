@@ -1,5 +1,7 @@
 let () = Printexc.record_backtrace true    
 
+(* Need support for "library" files *)
+
 let handle_cmd_line argv = 
   Array.fold_left (fun _ arg -> match arg with 
     | _ -> Some arg
