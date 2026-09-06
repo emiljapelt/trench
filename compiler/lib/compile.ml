@@ -224,6 +224,10 @@ let load_teams tw =
   Helpers.compiler_notes.team_libraries <- StringMap.of_list (List.map (fun (TI team) -> (team.name, team.library)) teams); 
   teams
 
+let load_feed_width tw = match tw.value with
+  | TRGInt i when i >= 0 -> i
+  | _ -> expected "feed_width to be a non-negative int" tw
+
 let load_game o : game_setup = 
   Flags.set_auto_resize (o |> entry "auto_resize" |> default (TRGBool true) |> load_bool);
   Flags.set_features (o |> entry "features" |> default (TRGBool false) |> load_features);
@@ -249,6 +253,8 @@ let load_game o : game_setup =
     debug = o |> entry "debug" |> default (TRGBool false) |> load_bool;
     viewport = o |> entry "viewport" |> default (TRGArray[TRGInt 20; TRGInt 20]) |> load_viewport;
     auto_start = o |> entry "auto_start" |> default (TRGBool true) |> load_bool;
+    feed_width = o |> entry "feed_width" |> default (TRGInt 16) |> load_feed_width;
+    feed = o |> entry "feed" |> default (TRGBool true) |> load_bool;
   }
 
 let parse parser lexer from str ~default =
@@ -317,6 +323,8 @@ type compiled_game_file = {
   debug: bool;
   viewport: int * int;
   auto_start: bool;
+  feed_width: int;
+  feed: bool
 }
 
 let empty_file = File([],0)  (* Not a good solution *)
@@ -429,6 +437,8 @@ let format_game_setup (GS gs) =
     debug = gs.debug;
     viewport = gs.viewport;
     auto_start = gs.auto_start;
+    feed_width = gs.feed_width;
+    feed = gs.feed;
   }
 
 let compile_game_file path = try (

@@ -72,13 +72,17 @@ int is_in_view(int x, int y) {
 }
 
 void center_viewport(int x, int y) {
-    _gr->viewport.x = x - (_gr->viewport.width / 2);
-    _gr->viewport.y = y - (_gr->viewport.height / 2);
+    const int width = _gr->viewport.width - (_gr->feed ? _gr->feed_width : 0);
+    const int height = _gr->viewport.height;
+    _gr->viewport.x = x - (width / 2);
+    _gr->viewport.y = y - (height / 2);
 }
 
 void pan_viewport(float time, const int x, const int y) {
-    int x_diff = x - (_gr->viewport.x + (_gr->viewport.width / 2));
-    int y_diff = y - (_gr->viewport.y + (_gr->viewport.height / 2));
+    const int width = _gr->viewport.width - (_gr->feed ? _gr->feed_width : 0);
+    const int height = _gr->viewport.height;
+    int x_diff = x - (_gr->viewport.x + (width / 2));
+    int y_diff = y - (_gr->viewport.y + (height / 2));
 
     int steps = max(abs(x_diff), abs(y_diff));
     float time_per_step = time / steps;
@@ -359,6 +363,10 @@ void handle_input() {
             case ' ': 
                 pause = !pause;
                 _gr->started = 1;
+                break;
+            case 'f': 
+                _gr->feed ^= 1;
+                print_board();
                 break;
             case 'q': 
                 terminal_echo_on();

@@ -80,7 +80,6 @@ void print_board() {
             _gr->viewport.width + // First line
             _gr->viewport.height + // Newlines
             (2 * _gr->viewport.height + 2 * _gr->viewport.width) + // Border
-            (_gr->viewport.height * FEED_WIDTH) + // Feed
             (_gr->viewport.height * _gr->viewport.width * MAX_SYMBOL_SIZE); // Board
 
         view_buf_size = view_buf_max_size / 10;
@@ -95,13 +94,16 @@ void print_board() {
     for(int i = 0; i < _gr->viewport.width-5; i++) buffer(" ");
     buffer("\n");
 
+    const int width = _gr->viewport.width - (_gr->feed ? _gr->feed_width : 0);
+    const int height = _gr->viewport.height;
+
     buffer("%s", symbol_lookup[SE]);
-    for(int i = 0; i < _gr->viewport.width+2; i++) buffer("%s", symbol_lookup[EW]);
+    for(int i = 0; i < width+2; i++) buffer("%s", symbol_lookup[EW]);
     buffer("%s\n", symbol_lookup[SW]);
-    for(int y = 0; y < _gr->viewport.height; (buffer("\n"), y++)) {
+    for(int y = 0; y < height; (buffer("\n"), y++)) {
         buffer("%s ", symbol_lookup[NS]);
         field_visual prev_visual = empty_visual();
-        for(int x = 0; x < _gr->viewport.width; x++) {
+        for(int x = 0; x < width; x++) {
             int actual_x = _gr->viewport.x + x;
             int actual_y = _gr->viewport.y + y;
             field_visual visual = in_bounds(actual_x, actual_y) ? get_field_visual(actual_x, actual_y, fields.get(actual_x, actual_y)) : empty_visual();
@@ -123,12 +125,14 @@ void print_board() {
         }
         reset_print();
         buffer(" %s ", symbol_lookup[NS]);
-        for(int i = 0; i < FEED_WIDTH; i++) {
-            buffer("%c", _gs->feed[y * FEED_WIDTH + i]);
+
+        if (_gr->feed)
+        for(int i = 0; i < _gr->feed_width; i++) {
+            buffer("%c", _gs->feed[y * _gr->feed_width + i]);
         }
     }
     buffer("%s", symbol_lookup[NE]);
-    for(int i = 0; i < _gr->viewport.width+2; i++) buffer("%s", symbol_lookup[EW]);
+    for(int i = 0; i < width+2; i++) buffer("%s", symbol_lookup[EW]);
     buffer("%s\n", symbol_lookup[NW]);
 
     puts(view_buf);

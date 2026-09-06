@@ -317,6 +317,8 @@ type game_setup = GS of {
     debug: bool;
     viewport: int * int;
     auto_start: bool;
+    feed_width: int;
+    feed: bool;
 }
 
 (* Model in TRG load objects *)

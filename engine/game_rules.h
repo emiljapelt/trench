@@ -144,6 +144,8 @@ typedef struct game_rules {
     int program_size_limit;
     unsigned int debug: 1;
     unsigned int started: 1;
+    unsigned int feed: 1;
+    unsigned int feed_width;
 
     struct {
         int x;
