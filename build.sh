@@ -8,6 +8,7 @@ if [ -e trenchc ]
 then rm -f ./trenchc
 fi
 mv -f ./compiler/_build/default/src/trenchc.exe ./trenchc
+rm -rf ./compiler/_build
 
 echo "Building engine..."
 cd ./engine
