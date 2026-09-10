@@ -1,0 +1,10 @@
+(executable
+ (public_name trench_test) 
+ (name trench_test)
+ (libraries trenchclib)
+ (modules
+   test_lib
+   integration_tests
+   trench_test
+ )
+)

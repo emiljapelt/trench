@@ -26,3 +26,5 @@ map_gen
 !trenchlate/
 !cartographer/
 !maps/*.trm
+!compiler/test/*/*.tr
+!compiler/test/*/*.trg
