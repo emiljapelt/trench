@@ -2,13 +2,19 @@ echo "Building Trench..."
 
 echo "Building compiler..."
 cd ./compiler
+if [ -d _build ]
+then rm -rf ./_build
+fi
+
 dune build
+
 cd ..
+
 if [ -e trenchc ] 
 then rm -f ./trenchc
 fi
-mv -f ./compiler/_build/default/src/trenchc.exe ./trenchc
-rm -rf ./compiler/_build
+cp ./compiler/_build/default/src/trenchc.exe ./trenchc
+
 
 echo "Building engine..."
 cd ./engine
