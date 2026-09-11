@@ -31,6 +31,20 @@ let rec tn_string tn = match tn with
     | TRGArray l -> "["^(l |> List.length |> string_of_int)^"]"
     | TRGNull -> "null"
 
+let pretty_print trg = 
+  let rec aux i trg = match trg with
+    | TRGString s -> "\""^s^"\""
+    | TRGInt i -> string_of_int i
+    | TRGFloat f -> string_of_float f
+    | TRGBool b -> string_of_bool b
+    | TRGNull -> "null"
+    | TRGObject e -> 
+      let indent = List.init i (return "  ") |> String.concat "" in
+      "{\n"^(e |> StringMap.to_list |> List.map (fun (n,e) -> indent ^ n ^ ": " ^ aux (i+1) e) |> String.concat "\n")^indent^"\n}"
+    | TRGArray l -> "["^(l |> List.map (aux i) |> String.concat " ")^"]"
+  in
+  aux 1 trg
+
 let location tw = tw.path |> List.rev |> String.concat "."
 
 let expected e tw = 
