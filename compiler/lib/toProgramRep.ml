@@ -123,7 +123,7 @@ let is_true i = i > 0
 let rec reduce_expression state (Expr(expr, ln)) = Expr(reduce_expr state expr, ln)
 
 and reduce_expr state expr = match expr with
-  | Func f -> Func { f with state = Some state }
+  | Func f -> Func { f with closure = Some state }
   | Int i -> Int i
   | Null -> Null
   | Direction d -> Direction d
@@ -245,6 +245,7 @@ let rec eval_type_expr state te = match te with
     | Some typ -> typ
     | None -> raise_failure ("Unknown type: "^id)
   )
+  | TE_Type t -> t
   | TE_Array(sub, size_expr) -> (match reduce_expression state size_expr with
     | Expr(Int i,_) when i > 0 -> T_Array(eval_type_expr state sub, i)
     | Expr(Int _,_) -> raise_failure "Array size must be positive"
@@ -381,11 +382,11 @@ let rec compile_expr (state:compile_state) (Expr(expr, ln) as expression) : (typ
       new_label_context "func" ;
       let _start = label "start" in
       let _stop = label "stop" in
+      let state = Option.value f.closure ~default:state in
       let ret = eval_type_expr state ret in
       let args = List.map (fun (t,n) -> (eval_type_expr state t, n)) args in
       let typ = T_Func(ret, List.map fst args) in
       f.cache <- Some(typ, _start) ;
-      let state = Option.value f.state ~default:state in
       let func_scope = { state.scopes with local = Some(List.fold_left (fun acc (t,n) -> Var(t,n)::acc) [Const("this", expression)] args) } in
       let new_state = {
         scopes = func_scope;  

@@ -78,6 +78,7 @@ type typ =
 
 and typ_expr =
     | TE_Identifier of string
+    | TE_Type of typ
     | TE_Array of typ_expr * expression
     | TE_Tuple of (typ_expr * string option) list
     | TE_Func of typ_expr * typ_expr list
@@ -134,7 +135,7 @@ and structure_element =
 
 and func = {
     data : typ_expr * (typ_expr * string) list * statement;
-    state : compile_state option;
+    closure : compile_state option;
     mutable cache : (typ*string) option;
 }
 
