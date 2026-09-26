@@ -26,7 +26,6 @@ let read_file path =
   let () = close_in_noerr file in
   content
 
-  (* Failures are getting the wrong file *)
 let format_failure f = match f with
   | Failure(Some path,None,msg) -> Printf.sprintf "In %s: %s\n" path msg
   | Failure(Some path, Some line, msg) -> (
@@ -101,8 +100,8 @@ let load_viewport tw = match tw.value with
   | _ -> expected "viewport to be an array of two ints" tw
 
 let load_seed tw = match tw.value with
-  | TRGInt i -> Some i
-  | TRGNull -> None
+  | TRGInt i -> Random.init i ; Some i
+  | TRGNull -> Random.self_init () ; Some (Random.int_in_range ~min:Int.min_int ~max:Int.max_int)
   | _ -> expected "seed to be an int" tw
 
 let load_map tw =
@@ -182,7 +181,7 @@ let load_coordinate tw = match tw.value with
   | TRGArray[TRGInt x; TRGInt y] -> (x,y)
   | _ -> expected "a coordinate" tw
 
-let load_files = filter is_string >> map (load_string >> fix_path)
+let load_files = filter is_string >> map load_string
   
 let compute_origin name player team = 
     let result = (fst player + fst team, snd player + snd team) in
@@ -224,6 +223,12 @@ let load_teams tw =
   Helpers.compiler_notes.team_libraries <- StringMap.of_list (List.map (fun (TI team) -> (team.name, team.library)) teams); 
   teams
 
+let load_settings t =
+  let rec aux p t = match t with
+  | TRGObject o -> o |> StringMap.to_list |> List.map (fun (k,v) -> aux (k::p) v) |> List.flatten
+  | _ -> [p, t]
+  in aux [] t.value |> List.filter (snd >> wrap >> is_int) |> List.map (fun (p,v) -> (p |> List.rev |>  String.concat ".", v |> wrap |> load_int))
+
 let load_feed_width tw = match tw.value with
   | TRGInt i when i >= 0 -> i
   | _ -> expected "feed_width to be a non-negative int" tw
@@ -232,6 +237,7 @@ let load_game o : game_setup =
   Flags.set_auto_resize (o |> entry "auto_resize" |> default (TRGBool true) |> load_bool);
   Flags.set_features (o |> entry "features" |> default (TRGBool false) |> load_features);
   Flags.set_themes (o |> entry "themes" |> default (TRGBool false) |> load_themes);
+  Flags.set_settings (o |> entry "settings");
 
   Helpers.compiler_notes.system_library <- o |> entry "system_library" |> optional_load load_string;
   Helpers.compiler_notes.shared_library <- o |> entry "library" |> optional_load load_string;
@@ -249,7 +255,7 @@ let load_game o : game_setup =
     seed = o |> entry "seed" |> load_seed;
     time_scale = o |> entry "time_scale" |> default (TRGFloat 1.0) |> load_time_scale;
     map = o |> entry "map" |> load_map;
-    setting_overwrites = [];
+    setting_overwrites = load_settings Flags.compile_flags.settings;
     debug = o |> entry "debug" |> default (TRGBool false) |> load_bool;
     viewport = o |> entry "viewport" |> default (TRGArray[TRGInt 20; TRGInt 20]) |> load_viewport;
     auto_start = o |> entry "auto_start" |> default (TRGBool true) |> load_bool;
@@ -257,10 +263,7 @@ let load_game o : game_setup =
     feed = o |> entry "feed" |> default (TRGBool true) |> load_bool;
   }
 
-let parse parser lexer from str ~default =
-  match str with 
-  | None -> default
-  | Some str ->
+let parse parser lexer from str =
   try (
     let lexbuf = Lexing.from_string str in
     try 
@@ -275,13 +278,10 @@ let parse parser lexer from str ~default =
   | Failure _ as f -> raise f
   (*| _ -> raise (Failure(Some path, None, "Parser error"))*)
 
-let parse_file parser lexer path ~default =
-  match path with 
-  | None -> default
-  | Some path ->
+let parse_file parser lexer path =
   let path = (compress_path (total_path path)) in
   try (
-    parse parser lexer path (Some (read_file path)) ~default:default
+    parse parser lexer path (read_file path)
   )
   with 
   | Failure(None,ln,msg) -> raise (Failure(Some path,ln,msg))
@@ -330,7 +330,14 @@ let empty_file = File([],0)  (* Not a good solution *)
 
 let compile_program path state = 
   try
-    let File(program, i) = parse_file Tr_parser.main Tr_lexer.start path ~default:empty_file in 
+    let File(program, i) = (match path with
+      | None -> empty_file
+      | Some path -> 
+        let path = fix_path path in
+        check_path path [".tr"] ;
+        parse_file Tr_parser.main Tr_lexer.start path
+    ) 
+    in 
     compile_stmts {state with labels = available_labels (Stmt(Block program, i))} program
   with
   | Failure(None,ln,msg) -> raise (Failure(path, ln, msg))
@@ -385,7 +392,6 @@ let compile_player team path  =
   Instr_Declare :: I(state.size) :: (system_instrs @ shared_instrs @ team_system_instrs @ team_instrs @ instrs) |> Optimize.optimize_instruction_list
 
 let compile_player_file path team = try (
-  check_path path [".tr"] ;
   Some path
   |> compile_player team
   |> player_to_program
@@ -444,7 +450,7 @@ let compile_game_file path = try (
   check_path path [".trg"];
   let game_file_dir = Filename.dirname path in
   compiler_notes.dir <- game_file_dir;
-  parse_file Trg_parser.main Trg_lexer.start (Some path) ~default:TRGNull
+  parse_file Trg_parser.main Trg_lexer.start path
   |> wrap
   |> load_game 
   |> format_game_setup

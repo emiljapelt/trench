@@ -45,7 +45,7 @@ let rec translate_meta loc meta =
     Int (aux ns Flags.compile_flags.settings)
   in
   match meta with
-  | Value(n,Int i, Impl) -> (n, value (n::loc) i)
+  | Value(n,Int i, Impl) -> (n, value (List.rev(n::loc)) i)
   | Value(n,Int i, Setting s) -> (n, value s i)
   | Value(n,e,_) -> (n,e)
   | Structure(n, entries) -> (n, StructureLiteral(
@@ -233,7 +233,7 @@ let builtins () : builtin list = [
       Value ("range", Int 6, Impl);
       Structure ("cost", [
         Value ("resource", Resource R_Ammo, No);
-        Value ("amount", Int 1, No);
+        Value ("amount", Int 1, Setting ["shoot";"cost"]);
       ])
     ]
   };{
@@ -593,12 +593,7 @@ let builtin_types = [
   Type("field", T_Field);
 ]
   
-(*let use_modern = false*)
-
 let generate_initial_scope () : identifier list =
-
-  (*if use_modern then Builtins_modern.generate_initial_scope () else*)
-  
   let builtins = builtins () in
   let meta = generate_meta_builtin builtins in
   let builtins = (meta :: builtins) 
@@ -606,8 +601,9 @@ let generate_initial_scope () : identifier list =
   List.map (fun b -> Const(b.name, Expr(b.expr,0))) builtins
   
 
-let get_syscalls () = [ (* EXPERIMENTAL *)
+let get_syscalls () = []
+(*let get_syscalls () = [ (* EXPERIMENTAL *)
   Const("set_color", Expr(builtin_func (T_Int) [T_Array(T_Int, 2); T_Int; T_Int] (-43), 0));
   Const("set_symbol", Expr(builtin_func (T_Int) [T_Array(T_Int, 2); T_Int] (-44), 0));
   Const("render", Expr(builtin_func (T_Int) [T_Int] (-45), 0));
-]
+]*)

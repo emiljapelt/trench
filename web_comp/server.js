@@ -3,20 +3,21 @@ const express = require('express');
 const multer = require('multer');
 const cookie_parser = require('cookie-parser')
 const fs = require('node:fs');
-const { exec } = require('child_process');
+const { execSync } = require('child_process');
 
 const app = express();
 const upload = multer();
 app.use(cookie_parser());
 
-const mode = process.argv[2];
+const trg_template = process.argv[2];
 const trenchc_path = process.argv[3] ?? '../trenchc';
 const save_dir = process.argv[4] ?? '.';
+
 let counter = 0;
-let map = {};
+const players = {};
+const teams = {};
 
-
-const form = (name, append) => `
+const form = (team, player, append) => `
     <head>
         <meta charset="UTF-8">
         <style>
@@ -48,8 +49,12 @@ const form = (name, append) => `
             <p class="big-text">🕳⛏🤖</p>
             <form action="filesubmit" method="post" enctype="multipart/form-data">
                 <div>
-                    <label for="name">Name: </label>
-                    <input class="form-elem" type="text" id="name" name="name" value="${name ?? ''}"/><br>
+                    <label for="name">Team: </label>
+                    <input class="form-elem" type="text" id="team" name="team" value="${team ?? ''}"/><br>
+                </div>
+                <div>
+                    <label for="name">Player: </label>
+                    <input class="form-elem" type="text" id="player" name="player" value="${player ?? ''}"/><br>
                 </div>
                 <div>
                     <label for="file">File: </label>
@@ -70,80 +75,98 @@ const respond = (res, code, content) => {
     res.send();
 };
 
-const modes = {
-    /* Save nothing, just respond the result */
-    checker: (req, res) => {
-        const { body, file } = req;
-        if (file && body.name) {
-            const content = Buffer.from(file.buffer).toString("utf-8");
-            const path = `${save_dir}/file_${counter++}.tr`;
-            fs.writeFileSync(path, content);
-            exec(`${trenchc_path} ${path}`, { cwd: '.'}, (err,stdout,stderr) => {
-                fs.unlinkSync(path);
-                respond(res, 200, form(body.name, `<pre>${stdout}</pre>`));
-            });
-        }
-        else {   
-            respond(res, 200, form(body.name, `<p>Please select a file AND write a name >:(</p>`));
-        }
-    },
+const create_file = (buffer) => {
+    const content = Buffer.from(buffer).toString("utf-8");
+    const path = `${save_dir}/file_${counter++}.tr`;
+    fs.writeFileSync(path, content);
+    return path;
+};
 
-    /* Respond the result, and save each success to a new file */
-    submit: (req, res) => {
-        const { body, file } = req;
-        if (file && body.name) {
-            const content = Buffer.from(file.buffer).toString("utf-8");
-            const path = `${save_dir}/file_${counter++}.tr`;
-            fs.writeFileSync(path, content);
-            exec(`${trenchc_path} ${path}`, { cwd: '.'}, (err,stdout,stderr) => {
-                if (err) fs.unlinkSync(path);
-                else console.log(`${body.name} submitted ${path} at ${(new Date()).toISOString()}`);
-                respond(res, 200, form(body.name, `<pre>${stdout}</pre>`));
-            });
-        }
-        else {   
-            respond(res, 200, form(body.name, `<p>Please select a file AND write a name >:(</p>`));
-        }
-    },
+const try_make_team = (team, path) => {
+    if (!(team in teams)) {
+        teams[team] = {
+            path: path,
+            players: [],
+        };
+    }
+    return teams[team];
+};
 
-    /* Respond the result, and save success to players file overwriting previous */
-    game: (req, res) => {
-        const { body, file } = req;
-        if (file && body.name) {
-            const content = Buffer.from(file.buffer).toString("utf-8");
-            const path = `${save_dir}/file_${counter++}.tr`;
-            fs.writeFileSync(path, content);
-            exec(`${trenchc_path} ${path}`, { cwd: '.'}, (err,stdout,stderr) => {
-                if (err) fs.unlinkSync(path);
-                else {
-                    console.log(`${body.name} submitted at ${(new Date()).toISOString()}`);
-                    if (body.name in map) {
-                        fs.writeFileSync(map[body.name], content);
-                        fs.unlinkSync(path);
-                    } 
-                    else {
-                        console.log(`${body.name} has file: ${path}`);
-                        map[body.name] = path;
-                    }
-                }
-                respond(res, 200, form(body.name, `<pre>${stdout}</pre>`));
-            });
+const empty_file = `${save_dir}/empty.tr`;
+if(!fs.existsSync(empty_file))
+    fs.writeFileSync(empty_file, '// Empty :)');
+
+const regex = /program: \[(.*?)\]/gm;
+
+const check = (team_sys, team, player) => {
+    let temp_trg = `${save_dir}/temp.trg`;
+
+    fs.copyFileSync(trg_template, temp_trg);
+    
+    team_sys = team_sys ? `system_library: "${team_sys}"`: '';
+    team = team ? `library: "${team}"`: '';
+    player ??= empty_file;
+
+    fs.appendFileSync(temp_trg, `teams: [{name: "test" color: [0 0 0] origin: [0 0] ${team_sys} ${team} players: [{name: "test" files: ["${player}"]}]}]`);
+
+    let result = {};
+
+    try {
+        execSync(`${trenchc_path} ${temp_trg}`, { cwd: '.'});
+        result.stdout = 'Compiled';
+        result.err = false;
+    }
+    catch (error) {
+        result.stdout = error.stdout.toString();
+        result.err = true;
+    }
+
+    fs.unlinkSync(temp_trg);
+
+    return result;
+};
+
+const handler = (req, res) => {
+    const { body, file } = req;
+
+    if (!file) respond(res, 200, form(body.team, body.player, `<p>Please upload a file</p>`));
+    let path = create_file(file.buffer);
+
+    if (body.player) {
+        console.log(`Player '${body.player}' submitted at ${(new Date()).toISOString()}`);
+
+        let team = teams[body.team] ?? {};
+        let result = check(team.sys, team.path, path);
+        if (result.err) 
+            fs.unlinkSync(path);
+        else {
+            if (body.player in players) {
+                fs.unlinkSync(players[body.player]);
+                fs.renameSync(path, players[body.player]);
+            } 
+            else {
+                console.log(`${body.player} has file: ${path}`);
+                players[body.player] = path;
+            }
         }
-        else {   
-            respond(res, 200, form(body.name, `<p>Please select a file AND write a name >:(</p>`));
-        }
-    },
+
+        respond(res, 200, form(body.team, body.player, `<pre>${result.stdout}</pre>`));
+    }
+    else if (body.team) {
+        console.log(`Team '${body.team}' submitted at ${(new Date()).toISOString()}`);
+        const team = try_make_team(body.team, path);
+        let result = check(team.sys, team.path, null);
+        if (result.err) fs.unlinkSync(path);
+        respond(res, 200, form(body.team, null, `<pre>${result.stdout}</pre>`));
+    }
+    else 
+        respond(res, 200, form(body.team, body.player, `<p>Please upload a file</p>`));
 };
 
 
-if (mode in modes) {
-    app.get(/.*/, (req, res) => respond(res, 200, form()));
-    app.post('/filesubmit', upload.single('file'), modes[mode]);
-    const PORT = 8080;
-    app.listen(PORT, () => {
-        console.log('Running...');
-    });
-}
-else {
-    console.log(`Unknown mode: ${mode}`);
-}
+app.get(/.*/, (req, res) => respond(res, 200, form()));
+app.post('/filesubmit', upload.single('file'), handler);
+const PORT = 8080;
+app.listen(PORT, () => {
+    console.log('Running...');
+});

@@ -137,7 +137,7 @@ void load_settings_struct(game_rules* gr, int settings_count, value settings) {
     gr->stack_size = 1000;
     gr->settings = (game_settings) {
         .fireball = { .range = 5, .cost = 10, },
-        .shoot  = { .range = 6 },
+        .shoot  = { .range = 6, .cost = 1 },
         .bomb = { .range = 4 },
         .meditate = { .amount = 20 },
         .dispel = { .cost = 5 },
@@ -172,6 +172,7 @@ void load_settings_struct(game_rules* gr, int settings_count, value settings) {
         if (streq(key, "fireball.range")) gr->settings.fireball.range = val;
         else if (streq(key, "fireball.cost")) gr->settings.fireball.cost = val;
         else if (streq(key, "shoot.range")) gr->settings.shoot.range = val;
+        else if (streq(key, "shoot.cost")) gr->settings.shoot.cost = val;
         else if (streq(key, "bomb.range")) gr->settings.bomb.range = val;
         else if (streq(key, "bomb.cost")) gr->settings.bomb.cost = val;
         else if (streq(key, "meditate.amount")) gr->settings.meditate.amount = val;
