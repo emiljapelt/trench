@@ -121,9 +121,12 @@ my_array = [1,2];
 
 // Access
 say(my_array[0]);
+
+// Spread
+let spread = [..my_array, ..my_array];
 ```
 
-If the setting `auto_resize` is set to `true`, the compiler will automatically resize arrays, altough not recursivly. If the array is to small it will be padded with default values, and if it is to long the end will be cut of. 
+If the setting `auto_resize` is set to `true`, the compiler will automatically resize arrays, altough not recursivly. If the array is too short it will be padded with default values, and if it is too long the end will be cut of. 
 
 To manually resize, range access can be utilized.
 
@@ -179,13 +182,11 @@ let move = \(d: dir) {
 let random_move = \int:() {
     move([N,S,E,W][? % 4]);
 };
-
-
 ```
 
 Notice that even though all function have a return type, not all of these examples have a return statement. This is because all functions have an implicit return statement at the end, returning the default value of their return type.
 
-Inside of a function only the parameters, locally declared and global variables are available. Additionally the local constant `this` is implicitly declared in all functions, and refer to the function itself, enabling recursion.
+Inside of a function the parameters, locally- and globally-declared variables, as well as declared constants and types are available. Additionally the local constant `this` is implicitly declared in all functions, and refer to the function itself, enabling recursion.
 
 ```
 let a = 0;
@@ -204,7 +205,6 @@ let f1 = \int:(b: int) {
 };
 
 let g = 0;
-
 ```
 
 If a variable of the function type is declared, but it is not assigned a function it will get the `null` value. Players can check for this case as in the example below.
@@ -271,6 +271,8 @@ say x;         // -> 2
 
 Evaluates to a random non-negative integer.
 
+This expression can be used as the value of a constant, in which case the compiler replaces it with a random non-negative integer.
+
 ---
 ### Unary operation
 
@@ -302,6 +304,12 @@ Evaluates to a random non-negative integer.
 | int | >= | int | Greater than or equal |
 | dir | << | int | Rotate left |
 | dir | >> | int | Rotate right |
+| `a: field` | >= | `b: field` | `b` has a subset of the properties of `a` 
+| `a: field` | <= | `b: field` | `a` has a subset of the properties of `b`
+| `a: field` | + | `b: field` | The properties of both `b` and `a`
+| `a: field` | && | `b: field` | The properties of both `b` and `a`
+| `a: field` | || | `b: field` | The properties that `b` and `a` both have
+| `a: field` | - | `b: field` | The properties of `a` which `b` does not have
 
 
 ---
