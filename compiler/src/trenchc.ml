@@ -11,9 +11,10 @@ let handle_cmd_line argv =
   ) None argv
 
 
+  (* Handle compilation error? *)
 let player_to_trg teams (player : Trenchclib.Compile.compiled_player_info) = 
   let (team_name,_,_) = Array.get teams player.team in
-  match Trenchclib.Compile.compile_player_file player.file team_name with
+  match Trenchclib.Compile.compile_player_file (Trenchclib.Compile.fix_path player.file) team_name with
   | Error msg -> (Printf.printf "%s\n" msg ; exit 1)
   | Ok program ->
     TRGObject ([
@@ -35,8 +36,6 @@ let game_to_trg (game : Trenchclib.Compile.compiled_game_file) =
 
 let print_compiled_game = game_to_trg >> pretty_print >> Printf.printf "%s\n"
 
-
-
 let () = match handle_cmd_line Sys.argv with
   | None -> (Printf.printf "No argument given" ; exit 1)
   | Some path -> (match Filename.extension path with
@@ -48,7 +47,7 @@ let () = match handle_cmd_line Sys.argv with
       | Error msg -> (Printf.printf "%s\n" msg ; exit 1)
     )
     | ".trg" -> (match Trenchclib.Compile.compile_game_file path with
-      | Ok game -> ( Printf.printf "Game file compiled\n" ; print_compiled_game game )
+      | Ok game -> ( Printf.printf "Game file compiled\n\n" ; print_compiled_game game )
       | Error msg -> (Printf.printf "%s\n" msg ; exit 1))
     | _ -> (Printf.printf "Dont know what to do with: %s\n" path ; exit 1)
   )

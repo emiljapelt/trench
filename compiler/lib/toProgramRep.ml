@@ -120,6 +120,12 @@ let rec is_constant state (Expr(expr, _)) = match expr with
 
 let is_true i = i > 0
 
+let constantify expr = match expr with
+  | Expr(e,ln) -> (match e with
+    | Random -> Expr(Int(Random.int Int.max_int), ln)
+    | _ -> expr
+  )
+
 let rec reduce_expression state (Expr(expr, ln)) = Expr(reduce_expr state expr, ln)
 
 and reduce_expr state expr = match expr with
@@ -403,7 +409,6 @@ let rec compile_expr (state:compile_state) (Expr(expr, ln) as expression) : (typ
     let (f_typ, f_instrs) = compile_expr state f in
     match f_typ with
     | T_Func(ret, params) ->
-      (*type check?*) 
       let total_params_size = params |> List.map type_size |> List.fold_left (+) 0 in
       if List.length params != List.length args then raise_failure "Incorrect amount of arguments" else
       let comped_args = args 
@@ -577,7 +582,6 @@ and find_expr_location (Expr(e,_) as expr) state = match e with
         match List.find_index (snd >> Option.fold ~none:false ~some:((=) name)) entries with
         | None -> raise_failure ("No such entry: "^name)
         | Some index -> 
-          Printf.printf "ABE2\n" ;
           let (elem_t,_) = List.nth entries index in
           let sizes = List.map (fst >> type_size) entries in
           let i = sizes |> List.take index |> List.fold_left (+) 0 in
@@ -704,7 +708,7 @@ and compile_stmt (Stmt(stmt,ln)) state : (compile_state * instruction list) =
     )
   )
   | DeclareConst(name, expr) -> 
-    let expr = reduce_expression state expr in
+    let expr = reduce_expression state expr |> constantify in
     if not(is_constant state expr) then raise_expr_failure expr "Could not reduce to a constant" else
     (declare (Const(name,expr)) state, [])
   | DeclareType(typ, name) ->

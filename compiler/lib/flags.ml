@@ -33,6 +33,6 @@ let set_map_size (w, h) =
   compile_flags.map_height <- h ;
   ()
 
-let set_settings s = compile_flags.settings <- { value = s ; path = ["setting"] } ; ()
+let set_settings s = compile_flags.settings <- s ; ()
 
 let set_resources s = compile_flags.resources <- s ; ()

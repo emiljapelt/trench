@@ -10,6 +10,7 @@ typedef struct {
 
     struct {
         int range;
+        int cost;
     } shoot;
 
     struct {

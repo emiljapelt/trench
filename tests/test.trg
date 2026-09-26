@@ -39,4 +39,11 @@ settings: {
         upkeep: 0
         cost: 0
     }
+
+    look: {
+        range: 5
+    }
+    shoot: {
+        cost: 2
+    }
 }

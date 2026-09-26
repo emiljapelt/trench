@@ -14,7 +14,7 @@
 int builtin_shoot(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
 
-    if(!spend_resource(&ps->resources, R_Ammo, 1)) {
+    if(!spend_resource(&ps->resources, R_Ammo, _gr->settings.shoot.cost)) {
         ps->stack[ps->sp++] = INSTR_MISSING_RESOURCE;
         return 0;
     }

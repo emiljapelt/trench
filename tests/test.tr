@@ -197,7 +197,7 @@ test_case(7, \() {
     move(S);
     assert(look(N, @player));
     repeat 5 pass();
-    assert(look(N, @player) == _OUT_OF_BOUNDS);
+    assert(!look(N, @player));
 });
 
 // function usage
@@ -290,7 +290,7 @@ test_case(11, \() {
     assert(look(N, @player));
     pager_write(1);
     repeat 2 pass();
-    assert(look(N, @player) == _OUT_OF_BOUNDS);
+    assert(!look(N, @player));
 
 });
 
@@ -378,6 +378,26 @@ test_case(14, \() {
 
     assert(array[0..2][0] == 0); 
     assert(array[0..2][1] == 1);
+});
+
+// settings overwrite
+test_case(15, \() {
+    while(y) move(N);
+
+    assert(meta.look.range == 5);
+    assert(look(N, @ocean) == _OUT_OF_BOUNDS);
+    assert(look(S, @ocean) == _OUT_OF_RANGE);
+    
+    assert(meta.shoot.cost.amount == 2);
+    let c = count(#ammo);
+    drop(c, #ammo);
+    assert(!shoot(S));
+    take(1, #ammo);
+    assert(!shoot(S));
+    take(1, #ammo);
+    assert(shoot(S));
+    take(c-2, #ammo);
+    assert(count(#ammo) == c-2);
 });
 
 end_test();
