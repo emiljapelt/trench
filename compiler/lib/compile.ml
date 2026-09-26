@@ -358,7 +358,7 @@ let segment_map seqs l =
   - Requires non-mutating const funcs (maybe seperate const cache?)
 *)
 
-let compile_player team path  =
+let compile_player team path =
   let hide = remove_identifier_name in
   let show = identity in
   let syscalls = get_syscalls () in
@@ -386,13 +386,13 @@ let compile_player team path  =
 
   let player_scope = segment_map [(show,team_size); (hide,team_system_size); (show,shared_size); (hide,system_size); (hide,syscalls_size); (show,builtin_size)] team_state.scopes.global in
   let state = {scopes = { local = None ; global = player_scope }; size = team_state.size; labels = StringSet.empty; break = None; continue = None; ret_type = None;} in
-  let (state, instrs) = compile_program path state in
+  let (state, instrs) = compile_program (Some path) state in
   
   (* Declare per block instead? Decreases stack size, increases program size, Could remove state.size *)
   Instr_Declare :: I(state.size) :: (system_instrs @ shared_instrs @ team_system_instrs @ team_instrs @ instrs) |> Optimize.optimize_instruction_list
 
 let compile_player_file path team = try (
-  Some path
+  path
   |> compile_player team
   |> player_to_program
   |> Result.ok
