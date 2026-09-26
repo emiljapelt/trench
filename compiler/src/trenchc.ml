@@ -14,7 +14,7 @@ let handle_cmd_line argv =
   (* Handle compilation error? *)
 let player_to_trg teams (player : Trenchclib.Compile.compiled_player_info) = 
   let (team_name,_,_) = Array.get teams player.team in
-  match Trenchclib.Compile.compile_player_file (Trenchclib.Compile.fix_path player.file) team_name with
+  match Trenchclib.Compile.compile_player_file player.file team_name with
   | Error msg -> (Printf.printf "%s\n" msg ; exit 1)
   | Ok program ->
     TRGObject ([
