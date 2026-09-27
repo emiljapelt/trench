@@ -195,7 +195,10 @@ let f1 = \int:(b: int) {
 
     let c = 0;
 
-    let f2 = \int:(d: int) {
+    let f2 = \int:(d: int) {let a = [1, N];
+let b = [1,2,3];
+
+let c : int = [..a, ..b];
         let e = 0;
         // can reach: a, d, e
     };
