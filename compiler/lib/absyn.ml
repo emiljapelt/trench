@@ -226,6 +226,9 @@ let rec type_size t = match t with
     | T_Array(t,s) -> s * (type_size t)
     | T_Tuple(ts) -> List.fold_left (fun acc (t, _) -> acc + type_size t) 0 ts
 
+let tuple_size t =
+    List.map (fst >> type_size) t |> List.fold_left (+) 0
+
 let rec type_eq t1 t2 = match t1,t2 with
   | T_Int, T_Int
   | T_Dir, T_Dir

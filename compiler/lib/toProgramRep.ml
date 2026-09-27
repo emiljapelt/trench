@@ -31,6 +31,7 @@ type location =
     store: instruction;
   }
 
+(* TODO: Check that tuple/array assignments can do resizing *)
 let rec can_assign target_type value_type = match target_type, value_type with
   | T_Func _, T_Null
   | T_Null, T_Func _ -> true
@@ -41,6 +42,14 @@ let rec can_assign target_type value_type = match target_type, value_type with
   | T_Tuple(ts1), T_Tuple(ts2) -> 
     if List.length ts1 != List.length ts2 then false
     else List.combine ts1 ts2 |> List.for_all (fun ((st1,_),(st2,_)) -> can_assign st1 st2)
+  | T_Array(a,s), T_Tuple t -> 
+    if not(compile_flags.auto_resize)
+    then List.length t = s && List.for_all (fun (tt,_) -> can_assign a tt) t
+    else List.for_all (fun (tt,_) -> can_assign a tt) t
+  | T_Tuple t, T_Array(a,s) -> 
+    if not(compile_flags.auto_resize)
+    then List.length t = s && List.for_all (fun (tt,_) -> can_assign tt a) t
+    else List.for_all (fun (tt,_) -> can_assign tt a) t
   | T_Func(ret1,params1), T_Func(ret2,params2) -> 
     if List.length params1 != List.length params2 then false
     else can_assign ret1 ret2 && List.combine params1 params2 |> List.for_all (uncurry can_assign)
@@ -173,7 +182,6 @@ and reduce_expr state expr = match expr with
     | Less, Field a, Field b -> Int(if FieldPropSet.subset b a && not(FieldPropSet.equal a b) then 1 else 0)
     | Greater, Field a, Field b -> Int(if FieldPropSet.subset a b && not(FieldPropSet.equal a b) then 1 else 0)
     *)
-    
 
     | IsCompare, Field a, Field b -> Int(if FieldPropSet.subset b a then 1 else 0)
     | AnyCompare, Field a, Field b -> Int(if not(FieldPropSet.disjoint a b) then 1 else 0)
@@ -260,15 +268,20 @@ let rec eval_type_expr state te = match te with
   | TE_Func(ret, params) -> T_Func(eval_type_expr state ret, List.map (eval_type_expr state) params)
 
 
+let adjust_structure_size_to target_size element_size value_size = 
+  let diff = target_size - value_size in
+  let abs = abs(diff) * element_size in
+  if (diff < 0) then [Instr_MoveSP;I(-abs)]
+  else if (diff > 0) then [Instr_Declare;I(abs)]
+  else []
+
 let adjust_value target_type value_type = match target_type, value_type with
-  | T_Array(st1, size1), T_Array(_, size2) -> (
-    if not(compile_flags.auto_resize) then [] else
-    let diff = size1 - size2 in
-    let abs = abs(diff) * type_size st1 in
-    if (diff < 0) then [Instr_MoveSP;I(-abs)]
-    else if (diff > 0) then [Instr_Declare;I(abs)]
-    else []
-  )
+  | T_Array(st1, size1), T_Array(_, size2) ->
+    if not(compile_flags.auto_resize) then [] else adjust_structure_size_to size1 (type_size st1) size2
+  | T_Array(st, size), T_Tuple t ->
+    if not(compile_flags.auto_resize) then [] else adjust_structure_size_to size (type_size st) (tuple_size t)
+  | T_Tuple t, T_Array(st, size) ->
+    if not(compile_flags.auto_resize) then [] else adjust_structure_size_to (tuple_size t) (type_size st) size
   | _,_ -> [] 
 
 let rec compile_expr (state:compile_state) (Expr(expr, ln) as expression) : (typ * instruction list) =
@@ -403,13 +416,13 @@ let rec compile_expr (state:compile_state) (Expr(expr, ln) as expression) : (typ
     match f_typ with
     | T_Func(ret, params) ->
       let total_params_size = params |> List.map type_size |> List.fold_left (+) 0 in
-      if List.length params != List.length args then raise_failure "Incorrect amount of arguments" else
+      if List.length params != List.length args then raise_failure ("Exptected "^(params |> List.length |> string_of_int)^" arguments but got "^(args |> List.length |> string_of_int)) else
       let comped_args = args 
         |> List.combine params 
-        |> List.map (fun (param, arg) -> 
+        |> List.mapi (fun i (param, arg) -> 
           let (arg_typ, arg_instrs) = compile_expr state arg in
           if can_assign param arg_typ then arg_instrs @ adjust_value param arg_typ
-          else raise_failure ("Incorrect argument for function of type: '"^type_string f_typ ^"'")
+          else raise_failure ("Expected argument "^string_of_int i^" to be of type: '"^type_string param^"' but got: '"^type_string arg_typ^"'")
         ) 
         |> List.flatten 
       in
@@ -482,8 +495,9 @@ and find_identifier_location name state =
   Random array access now happens safely, if the index is just '?'. Anything else, such as 'a ? ? : ?' is still unsafe.
   This could be "fixed" by instead of handling it *here* directly, adding a random bound to the compile state, when compiling an index.
   - Consider pros and cons
+
+  Consider tuple ranges???
 *)
-(* TODO: Better error messages! *)
 and find_expr_location (Expr(e,_) as expr) state = match e with
   | IdentifierAccess name -> (match find_identifier_location name state with
     | Some loc -> loc
@@ -514,7 +528,7 @@ and find_expr_location (Expr(e,_) as expr) state = match e with
           if (index < 0 || index >= array_size) then raise_failure "Out of bounds" else
           let len = array_size - index in
           ComputeStack { typ = T_Array(elem_t, len); instrs = loc.instrs @ [Instr_Place ; I(index * elem_size) ; Instr_Extract ; I(array_size * elem_size) ; I(len * elem_size)] }
-        | _ -> raise_failure "Not implemented: 2"
+        | _ -> raise_failure "Unsupported indexing of array"
       )
       | T_Tuple(entries) -> (match range with
         | Index Expr(Int i,_) when i >= 0 && i < List.length entries -> (
@@ -524,9 +538,9 @@ and find_expr_location (Expr(e,_) as expr) state = match e with
           let tuple_size = sizes |> List.fold_left (+) 0 in
           ComputeStack { typ = t; instrs = loc.instrs @ [Instr_Place ; I(i) ; Instr_Extract ; I(tuple_size) ; I(type_size t)] }
         )
-        | _ -> raise_failure "Not a valid index"
+        | _ -> raise_failure "Tuple indexing requires a constant value of type: int, which is in bounds"
       )
-      | _ -> raise_failure "Cannot index type"
+      | _ -> raise_failure ("Cannot index a value of type: "^type_string loc.typ)
     )
     | StorageStack loc -> (match loc.typ with
       | T_Array(elem_t, array_size) -> (
@@ -552,7 +566,7 @@ and find_expr_location (Expr(e,_) as expr) state = match e with
           if (index < 0 || index >= array_size) then raise_failure "Out of bounds" else
           let len = array_size - index in
           StorageStack { loc with typ = T_Array(elem_t, len); instrs = loc.instrs @ [Instr_Place ; I(index * elem_size) ; Instr_Add]}
-        | _ -> raise_failure "Not implemented: 3"
+        | _ -> raise_failure "Unsupported indexing of array"
       )
       | T_Tuple(entries) -> (match range with
         | Index Expr(Int i,_) when i >= 0 && i < List.length entries -> (
@@ -561,16 +575,16 @@ and find_expr_location (Expr(e,_) as expr) state = match e with
           let i = sizes |> List.take i |> List.fold_left (+) 0 in
           StorageStack { loc with typ = elem_t; instrs = loc.instrs @ [Instr_Place ; I(i); Instr_Add] }
         )
-        | _ -> raise_failure "Not a valid index"
+        | _ -> raise_failure "Tuple indexing requires a constant value of type: int, which is in bounds"
       )
-      | _ -> raise_failure "Cannot index type"
+      | _ -> raise_failure ("Cannot index a value of type: "^type_string loc.typ)
     )
   )
   | TupleAccess (target, name) -> (match find_expr_location target state with
     | ComputeStack loc -> (match loc.typ with
       | T_Tuple(entries) -> (
         match List.find_index (snd >> Option.fold ~none:false ~some:((=) name)) entries with
-        | None -> raise_failure ("No such entry: "^name)
+        | None -> raise_failure ("No such entry: '" ^name^ "' in a value of type: " ^type_string loc.typ^ "'")
         | Some index -> 
           let (t,_) = List.nth entries index in
           let sizes = List.map (fst >> type_size) entries in
@@ -583,7 +597,7 @@ and find_expr_location (Expr(e,_) as expr) state = match e with
     | StorageStack loc -> (match loc.typ with
       | T_Tuple(entries) -> (
         match List.find_index (snd >> Option.fold ~none:false ~some:((=) name)) entries with
-        | None -> raise_failure ("No such entry: "^name)
+        | None -> raise_failure ("No such entry: '" ^name^ "' in a value of type: " ^type_string loc.typ^ "'")
         | Some index -> 
           let (elem_t,_) = List.nth entries index in
           let sizes = List.map (fst >> type_size) entries in

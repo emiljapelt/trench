@@ -16,7 +16,7 @@ let check_path path extensions =
   | ex -> raise ex
 
 
-let get_line ls l = match List.nth_opt ls l with
+let get_line ls l = match List.nth_opt ls (l-1) with
   | None -> ""
   | Some ln -> Printf.sprintf "%i | %s\n" l ln
 
