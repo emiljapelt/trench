@@ -89,14 +89,12 @@ const try_make_team = (team, path) => {
             players: [],
         };
     }
-    return teams[team];
+   return teams[team];
 };
 
 const empty_file = `${save_dir}/empty.tr`;
 if(!fs.existsSync(empty_file))
     fs.writeFileSync(empty_file, '// Empty :)');
-
-const regex = /program: \[(.*?)\]/gm;
 
 const check = (team_sys, team, player) => {
     let temp_trg = `${save_dir}/temp.trg`;
@@ -126,6 +124,12 @@ const check = (team_sys, team, player) => {
     return result;
 };
 
+const sign = (path, body) => {
+    let team = body.team ? `\n//Team: ${body.team}` : '';
+    let player = body.player ? `\n//Player: ${body.player}` : '';
+    fs.appendFileSync(path, `${team}${player}`);
+};
+
 const handler = (req, res) => {
     const { body, file } = req;
 
@@ -143,10 +147,12 @@ const handler = (req, res) => {
             if (body.player in players) {
                 fs.unlinkSync(players[body.player]);
                 fs.renameSync(path, players[body.player]);
+                sign(players[body.player], body);
             } 
             else {
-                console.log(`${body.player} has file: ${path}`);
+                console.log(`Player ${body.player} has file: ${path}`);
                 players[body.player] = path;
+                sign(players[body.player], body);
             }
         }
 
@@ -154,10 +160,16 @@ const handler = (req, res) => {
     }
     else if (body.team) {
         console.log(`Team '${body.team}' submitted at ${(new Date()).toISOString()}`);
+        
         const team = try_make_team(body.team, path);
         let result = check(team.sys, team.path, null);
-        if (result.err) fs.unlinkSync(path);
-        respond(res, 200, form(body.team, null, `<pre>${result.stdout}</pre>`));
+        if (result.err)
+            fs.unlinkSync(path);
+        else {
+            console.log(`Team ${body.team} has file: ${path}`);
+            sign(teams[body.team].path, body);
+            respond(res, 200, form(body.team, null, `<pre>${result.stdout}</pre>`));
+        }
     }
     else 
         respond(res, 200, form(body.team, body.player, `<p>Please upload a file</p>`));
