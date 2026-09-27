@@ -219,7 +219,6 @@ and reduce_expr state expr = match expr with
     | e -> TupleAccess(e, name)
   )
   | Call(f,args) -> Call(reduce_expression state f, List.map (reduce_expression state) args)
-  | RandomAccess expr -> RandomAccess(reduce_expression state expr)
   | Ternary(c,a,b) -> (match reduce_expression state c with
     | Expr(Int i, _) -> reduce_expression state (if is_true i then a else b ) |> get_expr
     | c -> Ternary(c, reduce_expression state a, reduce_expression state b)
@@ -274,8 +273,8 @@ let adjust_value target_type value_type = match target_type, value_type with
 
 let rec compile_expr (state:compile_state) (Expr(expr, ln) as expression) : (typ * instruction list) =
   try match expr with
-  | IdentifierAccess _ 
-  | IndexAccess _ 
+  | IdentifierAccess _
+  | IndexAccess _
   | TupleAccess _ -> (match find_expr_location expression state with
     | StorageStack loc -> (loc.typ, loc.instrs @ [loc.load ; I(type_size loc.typ)])
     | ComputeStack loc -> (loc.typ, loc.instrs)
@@ -284,12 +283,6 @@ let rec compile_expr (state:compile_state) (Expr(expr, ln) as expression) : (typ
   | Field f -> (T_Field, [Instr_Place ; I(field_value f)])
   | Resource r -> (T_Resource, [Instr_Place ; I(resource_value r)])
   | Random -> (T_Int, [Instr_Random])
-  | RandomAccess expr -> (match compile_expr state expr with (*Unused*)
-    | (T_Array(typ, size), instrs) -> 
-      let elem_size = type_size typ in
-      (typ, instrs @ [Instr_Place ; I(size) ; Instr_Random ; Instr_Mod ; Instr_Place; I(elem_size) ; Instr_Mul ; Instr_Extract ; I(size * elem_size) ; I(elem_size) ])
-    | (typ,_) -> raise_failure ("Cannot do random access on value type: "^type_string typ)
-  )
   | Direction d -> (T_Dir, [Instr_Place ; I(int_of_dir d)])
   | Binary_op (op, e1, e2) -> (
     let (typ1, instrs1) = compile_expr state e1 in
@@ -485,6 +478,12 @@ and find_identifier_location name state =
   | None -> None
 
 (* New function name ??? *)
+(* 
+  Random array access now happens safely, if the index is just '?'. Anything else, such as 'a ? ? : ?' is still unsafe.
+  This could be "fixed" by instead of handling it *here* directly, adding a random bound to the compile state, when compiling an index.
+  - Consider pros and cons
+*)
+(* TODO: Better error messages! *)
 and find_expr_location (Expr(e,_) as expr) state = match e with
   | IdentifierAccess name -> (match find_identifier_location name state with
     | Some loc -> loc
@@ -495,6 +494,8 @@ and find_expr_location (Expr(e,_) as expr) state = match e with
       | T_Array(elem_t, array_size) -> (
         let elem_size = type_size elem_t in
         match range with 
+        | Index(Expr(Random,_)) ->
+          ComputeStack { typ = elem_t; instrs = loc.instrs @ [Instr_Place ; I(array_size) ; Instr_Random ; Instr_Mod ; Instr_Place; I(elem_size) ; Instr_Mul ; Instr_Extract ; I(array_size * elem_size) ; I(elem_size) ] }
         | Index index ->
           let (index_typ, index_instrs) = compile_expr state index in
           if (index_typ <> T_Int) then raise_failure "Index must be of type 'int'" else
@@ -531,6 +532,8 @@ and find_expr_location (Expr(e,_) as expr) state = match e with
       | T_Array(elem_t, array_size) -> (
         let elem_size = type_size elem_t in
         match range with
+        | Index(Expr(Random,_)) ->
+          StorageStack { loc with typ = elem_t; instrs = loc.instrs @ [Instr_Place ; I(array_size) ; Instr_Random ; Instr_Mod ; Instr_Place; I(elem_size) ; Instr_Mul ; Instr_Index ; I(array_size * elem_size) ; I(elem_size) ] }
         | Index index ->
           let (index_typ, index_instrs) = compile_expr state index in
           if (index_typ <> T_Int) then raise_failure "Index must be of type 'int'" else

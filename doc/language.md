@@ -136,6 +136,14 @@ To manually resize, range access can be utilized.
 | a[..n] | `n` must be a constant. Take from the start of the array, until `n` |
 | a[n..m] | `m` must be a constant. Take `m` elements, starting from `n` |
 
+It is possible to access a random value in an array like so:
+
+```
+my_array[?];
+```
+
+This only work when written exactly like this. Had the indexing expression been `? + 1` or anything other than just `?`, there would be no guarantee that the index is in bounds.
+
 ### tuple
 
 Tuples are structures of values, which may have names. It uses a similar syntax to arrays.

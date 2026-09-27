@@ -161,7 +161,6 @@ expr:
   | expression MINUSMINUS                  { features ["sugar"] ; Decrement($1, false)}
   | expression LPAR seperated_or_empty(COMMA, expression) RPAR { Call($1, $3) }
   | PIPE expression PIPE            { SizeOf $2 }
-  //| QMARK expression                       { features ["random"] ; RandomAccess $2 } %prec RND
 ;
 
 range:
