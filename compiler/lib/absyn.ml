@@ -120,7 +120,6 @@ and expr =
     | Field of field
     | Direction of direction
     | Random
-    | RandomAccess of expression
     | Func of func
     | Call of expression *  expression list
     | Ternary of expression * expression * expression
