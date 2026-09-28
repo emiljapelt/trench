@@ -28,3 +28,4 @@ map_gen
 !maps/*.trm
 !compiler/test/*/*.tr
 !compiler/test/*/*.trg
+!examples/*

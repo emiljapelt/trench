@@ -227,7 +227,9 @@ let load_settings t =
   let rec aux p t = match t with
   | TRGObject o -> o |> StringMap.to_list |> List.map (fun (k,v) -> aux (k::p) v) |> List.flatten
   | _ -> [p, t]
-  in aux [] t.value |> List.filter (snd >> wrap >> is_int) |> List.map (fun (p,v) -> (p |> List.rev |>  String.concat ".", v |> wrap |> load_int))
+  in aux [] t.value 
+    |> List.filter (snd >> wrap >> is_int)
+    |> List.map (fun (p,v) -> (p |> List.rev |> String.concat ".", v |> wrap |> load_int))
 
 let load_feed_width tw = match tw.value with
   | TRGInt i when i >= 0 -> i
@@ -237,7 +239,7 @@ let load_game o : game_setup =
   Flags.set_auto_resize (o |> entry "auto_resize" |> default (TRGBool true) |> load_bool);
   Flags.set_features (o |> entry "features" |> default (TRGBool false) |> load_features);
   Flags.set_themes (o |> entry "themes" |> default (TRGBool false) |> load_themes);
-  Flags.set_settings (o |> entry "settings");
+  Flags.set_settings (o |> entry "settings" |> default (TRGObject StringMap.empty));
 
   Helpers.compiler_notes.system_library <- o |> entry "system_library" |> optional_load load_string;
   Helpers.compiler_notes.shared_library <- o |> entry "library" |> optional_load load_string;
