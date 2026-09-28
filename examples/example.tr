@@ -1,0 +1,6 @@
+let d = N;
+
+repeat {
+    move(d);
+    d >>= 1;
+}
