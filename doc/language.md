@@ -83,11 +83,13 @@ Values of this type can be used with the following operators.
 | Operator | Result | Type |
 | --- | --- | --- |
 | *a* + *b* | The union of the properties of the operands | field |
-| *a* - *b* | The properties of the left hand operand, except for the properties of the right hand operand | field |
+| *a* - *b* | The properties of *a*, except for the properties of *b* | field |
+| *a* \|\| *b* | The union of the properties of the operands| field |
+| *a* && *b* | The intersection of the properties of the operands| field |
 | *a* == *b* | 1 if the operands are entirely equal, otherwise 0 | int |
 | *a* != *b* | 1 if the operands are at all different, otherwise 0 | int |
-| *a* is *b* | 1 if the left hand operand has atleast all the properties of the right hand operand, otherwise 0 | int |
-| *a* any *b* | 1 if the operands have any property in common, otherwise 0 | int |
+| *a* >= *b* | 1 *b* has a subset of the properties of *a*, otherwise 0 | int |
+| *a* <= *b* | 1 *a* has a subset of the properties of *b*, otherwise 0 | int |
 | ! *a* | The field with the opposite properties of the operands | field |
 
 
