@@ -44,9 +44,41 @@ Examples:
 6142
 ```
 
+Values of this type can be used with the following operators.
+
+| `a` | Operation | `b` | Description |
+| --- | :---: | --- | --- | 
+| int | + | int | Addition |
+| int | - | int | Subtraction |
+| int | / | int | Division |
+| int | % | int | Modulo |
+| int | && | int | Logical AND |
+| int | \|\| | int | Logical OR |
+| int | == | int | Equality |
+| int | != | int | Inequality |
+| int | < | int | Less than |
+| int | <= | int | Less than or equal |
+| int | > | int | Greater than |
+| int | >= | int | Greater than or equal |
+
+| Operation | Description | Type |
+| :---: | --- | --- | 
+| ! | A value of inverse boolean semantic | int |
+| - | The negative value | int |
+
 ### dir
 
 The 4 cardinal directions, N, S, E and W.
+
+Values of this type can be used with the following operators.
+
+| Left | Operation | Right | Description |
+| --- | :---: | --- | --- |
+| dir | == | dir | Equality |
+| dir | != | dir | Inequality |
+| dir | << | int | Rotate left |
+| dir | >> | int | Rotate right |
+
 
 ### field
 
@@ -80,19 +112,22 @@ A field value with a single property can be created with the syntax: `@`*propert
 
 Values of this type can be used with the following operators.
 
-| Operator | Result | Type |
-| --- | --- | --- |
-| *a* + *b* | The union of the properties of the operands | field |
-| *a* - *b* | The properties of *a*, except for the properties of *b* | field |
-| *a* \|\| *b* | The union of the properties of the operands| field |
-| *a* && *b* | The intersection of the properties of the operands| field |
-| *a* == *b* | 1 if the operands are entirely equal, otherwise 0 | int |
-| *a* != *b* | 1 if the operands are at all different, otherwise 0 | int |
-| *a* >= *b* | 1 *b* has a subset of the properties of *a*, otherwise 0 | int |
-| *a* <= *b* | 1 *a* has a subset of the properties of *b*, otherwise 0 | int |
-| ! *a* | The field with the opposite properties of the operands | field |
+| `a` | Operation | `b` | Description | Type |
+| --- | :---: | --- | --- | --- |
+| field | + | field | The properties of both `b` and `a` | field |
+| field | || | field | The properties that `b` and `a` both have
+| field | && | field | The properties of both `b` and `a` | field |
+| field | - | field | The properties of `a` which `b` does not have | field |
+| field | >= | field | `b` has a subset of the properties of `a` | int |
+| field | <= | field | `a` has a subset of the properties of `b` | int |
+| field | == | field | 1 if the operands are entirely equal, otherwise 0 | int |
+| field | != | field | 1 if the operands are at all different, otherwise 0 | int |
 
+| Operation | Description | Type |
+| :---: | --- | --- | 
+| ! | The field with the inverse properties | field |
 
+---
 
 ### resource
 
@@ -285,45 +320,6 @@ say x;         // -> 2
 Evaluates to a random non-negative integer.
 
 This expression can be used as the value of a constant, in which case the compiler replaces it with a random non-negative integer.
-
----
-### Unary operation
-
-*op* *value*
-
-| Operation | Operand | Description |
-| :---: | --- | --- | 
-| - | int | Negates the integer value |
-| ! | int | Returns the opposite boolean value |
----
-
-### Binary operation
-
-*value* *op* *value*
-
-| Left | Operation | Right | Description |
-| --- | :---: | --- | --- | 
-| int | + | int | Addition |
-| int | - | int | Subtraction |
-| int | / | int | Division |
-| int | % | int | Modulo |
-| int | & | int | Logical AND |
-| int | \| | int | Logical OR |
-| * | == | * | Equality |
-| * | != | * | Inequality |
-| int | < | int | Less than |
-| int | <= | int | Less than or equal |
-| int | > | int | Greater than |
-| int | >= | int | Greater than or equal |
-| dir | << | int | Rotate left |
-| dir | >> | int | Rotate right |
-| `a: field` | >= | `b: field` | `b` has a subset of the properties of `a` 
-| `a: field` | <= | `b: field` | `a` has a subset of the properties of `b`
-| `a: field` | + | `b: field` | The properties of both `b` and `a`
-| `a: field` | && | `b: field` | The properties of both `b` and `a`
-| `a: field` | || | `b: field` | The properties that `b` and `a` both have
-| `a: field` | - | `b: field` | The properties of `a` which `b` does not have
-
 
 ---
 
