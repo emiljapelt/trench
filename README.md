@@ -23,4 +23,4 @@ Documentation for different aspects of the game can be found by following these 
 
 [The game file](doc/game.md)
 
-[Running the game](doc/container.md)
+[Running the game](doc/run.md)
