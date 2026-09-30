@@ -284,6 +284,44 @@ let adjust_value target_type value_type = match target_type, value_type with
     if not(compile_flags.auto_resize) then [] else adjust_structure_size_to (tuple_size t) (type_size st) size
   | _,_ -> [] 
 
+(*type checks?*)
+(*t1 is the type of the condition value*)
+let if_is_comparision op t1 t2 instrs = 
+  let op = Option.value op ~default:(match t1 with
+    | T_Field -> GreaterOrEqual
+    | _ -> Equal
+  )
+  in
+  match op, t1, t2 with
+  | Plus, T_Int, T_Int -> (T_Int, instrs @ [Instr_Add])
+  | Minus, T_Int, T_Int -> (T_Int, instrs @ [Instr_Sub])
+  | Times, T_Int, T_Int -> (T_Int, instrs @ [Instr_Mul])
+  | And, T_Int, T_Int -> (T_Int, instrs @ [Instr_And])
+  | Or, T_Int, T_Int -> (T_Int, instrs @ [Instr_Or])
+  | Equal, T_Int, T_Int 
+  | Equal, T_Dir, T_Dir 
+  | Equal, T_Resource, T_Resource
+  | Equal, T_Field, T_Field
+  | Equal, T_Func _, T_Func _
+  | Equal, T_Null, T_Func _
+  | Equal, T_Func _, T_Null -> (T_Int, instrs @ [Instr_Eq])
+  | NotEqual, T_Int, T_Int 
+  | NotEqual, T_Dir, T_Dir 
+  | NotEqual, T_Resource, T_Resource 
+  | NotEqual, T_Field, T_Field
+  | NotEqual, T_Func _, T_Func _
+  | NotEqual, T_Null, T_Func _
+  | NotEqual, T_Func _, T_Null -> (T_Int, instrs @ [Instr_Eq ; Instr_Not])
+  | Less, T_Int, T_Int -> (T_Int, instrs @ [Instr_Swap;Instr_Lt])
+  | Greater, T_Int, T_Int -> (T_Int, instrs @ [Instr_Lt])
+  | LessOrEqual, T_Int, T_Int -> (T_Int, instrs @ [Instr_Lt ; Instr_Not])
+  | GreaterOrEqual, T_Int, T_Int -> (T_Int, instrs @ [Instr_Swap;Instr_Lt ; Instr_Not])
+  | Divide, T_Int, T_Int ->  (T_Int, instrs @ [Instr_Swap;Instr_Div])
+  | Remainder, T_Int, T_Int -> (T_Int, instrs @ [Instr_Swap;Instr_Mod])
+  | LessOrEqual, T_Field, T_Field -> (T_Int, [Instr_Copy] @ instrs @ [Instr_BinAnd ; Instr_Eq]) (* Set subset *)
+  | GreaterOrEqual, T_Field, T_Field -> (T_Int, instrs @ [Instr_Copy ; Instr_MoveSP ; I(-1) ; Instr_Swap ; Instr_MoveSP ; I(1) ; Instr_BinAnd ; Instr_Eq]) (* Set subset *)
+  | _ -> raise_failure "Unsupported comparision"
+
 let rec compile_expr (state:compile_state) (Expr(expr, ln) as expression) : (typ * instruction list) =
   try match expr with
   | IdentifierAccess _
@@ -639,11 +677,13 @@ and compile_stmt (Stmt(stmt,ln)) state : (compile_state * instruction list) =
     let _stop = label "stop" in
     let _cases = List.init (List.length cases) string_of_int in
     let (c_typ, c_instrs) = reduce_compile c in
-    if (type_size c_typ != 1) then raise_expr_failure c ("Type cannot be used in if-is statements: " ^ type_string c_typ) else
-    let compile_comparison expr = 
+    if (type_size c_typ != 1) then raise_expr_failure c ("Type cannot be used as condition: " ^ type_string c_typ) else
+    let compile_comparison (op, expr) = 
       let (typ, instrs) = reduce_compile expr in
-      if not(can_assign c_typ typ) then raise_expr_failure expr ("All cases must match condition type: "^type_string c_typ) else
-      [Instr_Copy] @ instrs @ [Instr_Eq ; Instr_Swap]
+      let (typ, instrs) = if_is_comparision op c_typ typ instrs in
+      if typ <> T_Int 
+        then raise_expr_failure expr ("Case results must be of the type 'int', but got type: "^type_string typ) 
+        else [Instr_Copy] @ instrs @ [Instr_Swap]
     in
     let compile_case exprs = 
       [Instr_Copy] @ (exprs |> List.map compile_comparison |> List.flatten) @ [Instr_MoveSP ; I(-1)] @ (List.init (List.length exprs - 1) (return Instr_Or))

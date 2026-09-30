@@ -125,7 +125,7 @@ let load_feature_strings strs =
   let rec aux strs acc = match strs with
     | [] -> acc
     | h::t -> 
-      if h = "*" then aux t StringSet.(Features.all_features |> remove "asm" |> remove "debug")
+      if h = "*" then aux t (StringSet.diff Features.all_features Features.non_default_features)
       else if String.starts_with ~prefix:"-" h then aux t StringSet.(acc |> remove (String.sub h 1 (String.length h - 1)))
       else aux t StringSet.(acc |> add h)
         

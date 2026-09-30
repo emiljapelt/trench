@@ -233,7 +233,12 @@ stmt1_inner:
 ;
 
 alt:
-  | IS seperated(COMMA, simple_expression) COLON stmt1   { ($2,$4) }
+  | IS seperated(COMMA, alt_expr) COLON stmt1   { ($2,$4) }
+;
+
+alt_expr:
+  | simple_expression { (None, $1) }
+  | binop expression { features ["experimental"] ; (Some $1, $2)}
 ;
 
 non_control_flow_stmt:

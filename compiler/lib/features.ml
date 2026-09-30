@@ -13,4 +13,11 @@ let all_features = [
   "debug";
   "meta";
   "asm";
+  "experimental";
+] |> StringSet.of_list
+
+let non_default_features = [
+  "debug";
+  "asm";
+  "experimental";
 ] |> StringSet.of_list

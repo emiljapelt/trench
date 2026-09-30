@@ -88,7 +88,7 @@ and  statement =
 
 and stmt =
     | If of  expression * statement * statement
-    | IfIs of  expression * (expression list * statement) list * statement option
+    | IfIs of  expression * ((binop option * expression) list * statement) list * statement option
     | Block of  statement list
     | While of  expression * statement * statement option
     | Continue
@@ -158,8 +158,8 @@ and binop =
     | Remainder
     | RightShift
     | LeftShift
-    | IsCompare
-    | AnyCompare
+    | IsCompare (* Deprecate ?? *)
+    | AnyCompare (* Deprecate ?? *)
 
 and unop =
     | Negate
