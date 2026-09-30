@@ -320,7 +320,7 @@ let if_is_comparision op t1 t2 instrs =
   | Remainder, T_Int, T_Int -> (T_Int, instrs @ [Instr_Swap;Instr_Mod])
   | LessOrEqual, T_Field, T_Field -> (T_Int, [Instr_Copy] @ instrs @ [Instr_BinAnd ; Instr_Eq]) (* Set subset *)
   | GreaterOrEqual, T_Field, T_Field -> (T_Int, instrs @ [Instr_Copy ; Instr_MoveSP ; I(-1) ; Instr_Swap ; Instr_MoveSP ; I(1) ; Instr_BinAnd ; Instr_Eq]) (* Set subset *)
-  | _ -> raise_failure "Unsupported comparision"
+  | _ -> raise_failure ("Could not create a if-is statement comparision")
 
 let rec compile_expr (state:compile_state) (Expr(expr, ln) as expression) : (typ * instruction list) =
   try match expr with
@@ -677,7 +677,6 @@ and compile_stmt (Stmt(stmt,ln)) state : (compile_state * instruction list) =
     let _stop = label "stop" in
     let _cases = List.init (List.length cases) string_of_int in
     let (c_typ, c_instrs) = reduce_compile c in
-    if (type_size c_typ != 1) then raise_expr_failure c ("Type cannot be used as condition: " ^ type_string c_typ) else
     let compile_comparison (op, expr) = 
       let (typ, instrs) = reduce_compile expr in
       let (typ, instrs) = if_is_comparision op c_typ typ instrs in
@@ -686,19 +685,16 @@ and compile_stmt (Stmt(stmt,ln)) state : (compile_state * instruction list) =
         else [Instr_Copy] @ instrs @ [Instr_Swap]
     in
     let compile_case exprs = 
-      [Instr_Copy] @ (exprs |> List.map compile_comparison |> List.flatten) @ [Instr_MoveSP ; I(-1)] @ (List.init (List.length exprs - 1) (return Instr_Or))
+      [Instr_Copy] @ List.(exprs |> map compile_comparison |> flatten) @ [Instr_MoveSP ; I(-1)] @ List.(init (length exprs - 1) (return Instr_Or))
     in
-    let rec compile cases acc = match cases with
-      | [] -> acc
-      | ((exprs, stmt), next)::t -> 
-        let (_, instrs) = compile_stmt stmt state in
-        compile_case exprs @ [Instr_Not ; Instr_GoToIf ; LabelRef next ; Instr_MoveSP ; I(-1)] @ instrs @ [Instr_GoTo ; LabelRef _stop ; Label next] @ compile t acc
+    let compile_alt ((exprs, stmt), next) =
+      compile_case exprs @ [Instr_Not ; Instr_GoToIf ; LabelRef next ; Instr_MoveSP ; I(-1)] @ (compile_stmt stmt state |> snd) @ [Instr_GoTo ; LabelRef _stop ; Label next]
     in
     let else_instrs = else_opt |> Option.fold 
       ~none: []
       ~some:(fun else_stmt -> compile_stmt else_stmt state |> snd)
     in
-    (state, c_instrs @ compile (List.combine cases _cases) [Instr_MoveSP ; I(-1)] @ else_instrs @ [Label _stop])
+    (state, c_instrs @ List.(_cases |> combine cases |> map compile_alt |> flatten) @ [Instr_MoveSP ; I(-1)] @ else_instrs @ [Label _stop])
   )
   | Block stmts -> (
     let (state', instrs) = compile_stmts state stmts in
