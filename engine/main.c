@@ -277,7 +277,8 @@ char* first_team_alive() {
     for(int i = 0; i < _gs->entities->count; i++) {
         entity_t* entity = get_entity(_gs->entities, i);
 
-        if (entity->type == ENTITY_PLAYER && entity->player && entity->player->team)
+        // entity is a player, is alive and is on a team
+        if (entity->type == ENTITY_PLAYER && entity->active && entity->player->team)
             return entity->player->team->team_name;
     }
 

@@ -26,27 +26,6 @@ let read_file path =
   let () = close_in_noerr file in
   content
 
-let format_failure f = match f with
-  | Failure(Some path,None,msg) -> Printf.sprintf "In %s: %s\n" path msg
-  | Failure(Some path, Some line, msg) -> (
-    let msg = Printf.sprintf "%s in %s" msg path in
-    let details = 
-        let line_msg = Printf.sprintf ", line %i: \n" line in
-        let lines = String.split_on_char '\n' (read_file path) in
-        let printer = get_line lines in 
-        let is_first_line = line = 1 in
-        let is_last_line = line = List.length lines in
-        line_msg ^ match is_first_line, is_last_line with
-        | true, true   -> printer 1
-        | true, false  -> printer 1 ^ printer 2
-        | false, true  -> printer (line-1) ^ printer line
-        | false, false -> printer (line-1) ^ printer line ^ printer (line+1)
-      in
-      msg ^ details
-  ) 
-  | Failure(_,_,msg) -> msg ^ "\n"
-  | _ -> "Uncaught error!"
-
 let compress_path path =
   let rec compress parts acc =
     match parts with
@@ -67,6 +46,27 @@ let complete_path base path = compress_path (if path.[0] = '.' then (String.sub 
 let fix_path file = 
   if (Filename.is_relative file) then Filename.concat compiler_notes.dir file
   else file
+
+let format_failure f = match f with
+  | Failure(Some path,None,msg) -> Printf.sprintf "In %s: %s\n" path msg
+  | Failure(Some path, Some line, msg) -> (
+    let msg = Printf.sprintf "%s in %s" msg path in
+    let details = 
+        let line_msg = Printf.sprintf ", line %i: \n" line in
+        let lines = String.split_on_char '\n' (path |> fix_path |> read_file) in
+        let printer = get_line lines in 
+        let is_first_line = line = 1 in
+        let is_last_line = line = List.length lines in
+        line_msg ^ match is_first_line, is_last_line with
+        | true, true   -> printer 1
+        | true, false  -> printer 1 ^ printer 2
+        | false, true  -> printer (line-1) ^ printer line
+        | false, false -> printer (line-1) ^ printer line ^ printer (line+1)
+      in
+      msg ^ details
+  ) 
+  | Failure(_,_,msg) -> msg ^ "\n"
+  | _ -> "Uncaught error!"
 
 
 (* Get from game file fields entry, at some point *)
