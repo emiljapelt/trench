@@ -661,7 +661,7 @@ and compile_stmts state stmts =
 and compile_stmt (Stmt(stmt,ln)) state : (compile_state * instruction list) =
   let reduce_compile = reduce_expression state >> compile_expr state in
   try match stmt with
-  | If (c, a, b) -> (
+  | If (c, a, b) -> ( (* Optimize when c is constant true, and there is no else *)
     new_label_context "if" ;
     let _true = label "true" in
     let _stop = label "stop" in
