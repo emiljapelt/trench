@@ -216,12 +216,13 @@ stmt1:
 ;
 stmt1_inner: 
   | block                                          { $1 }
-  | non_control_flow_stmt SEMI                     { $1 }
   | declaration SEMI                               { $1 }
+  | assignment SEMI                                { $1 }
+  | expression SEMI                                { ExprStmt $1}
   | IF simple_expression stmt1 ELSE stmt1          { features ["control"] ; If ($2, $3, $5) }
   | IF simple_expression alt+ ELSE stmt1           { features ["control"; "sugar"] ; IfIs($2, $3, Some $5) }
   | WHILE simple_expression stmt1                  { features ["loops"] ; While($2,$3,None) }
-  | WHILE simple_expression COLON LPAR non_control_flow_stmt RPAR stmt1     { features ["loops"; "sugar"] ; While($2,$7,Some(Stmt($5,$symbolstartpos.pos_lnum))) }
+  | WHILE simple_expression COLON LPAR iterator RPAR stmt1     { features ["loops"; "sugar"] ; While($2,$7,Some(Stmt($5,$symbolstartpos.pos_lnum))) }
   | BREAK SEMI                                { features ["loops"] ; Break }
   | CONTINUE SEMI                             { features ["loops"] ; Continue }
   | GOTO NAME SEMI                            { GoTo $2 }
@@ -241,8 +242,13 @@ alt_expr:
   | binop expression { features ["experimental"] ; (Some $1, $2)}
 ;
 
-non_control_flow_stmt:
-  | expression                        { ExprStmt $1}
+iterator:
+  | block { $1 }
+  | assignment { $1 }
+  | expression { ExprStmt $1 }
+;
+
+assignment:
   | expression EQ expression          { features ["memory"] ; Assign ($1, $3) }
   | expression PLUS_EQ expression     { features ["memory"; "sugar"] ; Assign ($1, Expr(Binary_op(Plus, $1, $3), $symbolstartpos.pos_lnum)) }
   | expression MINUS_EQ expression    { features ["memory"; "sugar"] ; Assign ($1, Expr(Binary_op(Minus, $1, $3), $symbolstartpos.pos_lnum)) }
