@@ -341,7 +341,7 @@ let available_labels stmt =
     | IfIs(_,alts,Some el) -> List.fold_left (fun acc (_,s) -> aux s acc) (aux el set) alts 
     | IfIs(_,alts,None) -> List.fold_left (fun acc (_,s) -> aux s acc) set alts 
     | Block(stmts) -> List.fold_left (fun acc s -> aux s acc) set stmts
-    | While(_,stmt,_) -> aux stmt set
+    | While(_,stmt,iter) -> aux stmt (Option.fold ~some:(fun i -> aux i set) ~none:StringSet.empty iter)
     | _ -> set
   in
   aux stmt StringSet.empty

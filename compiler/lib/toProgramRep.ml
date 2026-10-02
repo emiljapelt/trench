@@ -709,7 +709,7 @@ and compile_stmt (Stmt(stmt,ln)) state : (compile_state * instruction list) =
     if c_typ <> T_Int then raise_expr_failure c "Conditon must be of type 'int'" else
     let (state', s_instrs) = compile_stmt s {state with break = Some(_stop); continue = Some(_cond) } in
     ({state with size = state'.size}, [Instr_GoTo ; LabelRef _cond ; Label _start] @ s_instrs @ [Label _cond] @ c_instrs @ [Instr_GoToIf ; LabelRef _start ; Label _stop])
-  | While(c,s,Some si) ->
+  | While(c,s,Some iter) ->
     new_label_context "while" ; 
     let _cond = label "cond" in
     let _start = label "start" in
@@ -717,9 +717,9 @@ and compile_stmt (Stmt(stmt,ln)) state : (compile_state * instruction list) =
     let _stop = label "stop" in
     let (c_typ, c_instrs) = reduce_compile c in
     if c_typ <> T_Int then raise_expr_failure c "Conditon must be of type 'int'" else
-    let (_, si_instrs) = compile_stmt si state in
+    let (_, iter_instrs) = compile_stmt iter {state with break = Some(_stop); continue = Some(_iter) } in
     let (state', s_instrs) = compile_stmt s {state with break = Some(_stop); continue = Some(_iter) } in
-    ({state with size = state'.size}, [Instr_GoTo ; LabelRef _cond ; Label _start] @ s_instrs @ [Label _iter] @ si_instrs @ [Label _cond] @ c_instrs @ [Instr_GoToIf ; LabelRef _start ; Label _stop])
+    ({state with size = state'.size}, [Instr_GoTo ; LabelRef _cond ; Label _start] @ s_instrs @ [Label _iter] @ iter_instrs @ [Label _cond] @ c_instrs @ [Instr_GoToIf ; LabelRef _start ; Label _stop])
   | Continue -> (match state.continue with
     | Some label -> (state, [Instr_GoTo ; LabelRef(label)])
     | None -> raise_failure "Nothing to continue"
