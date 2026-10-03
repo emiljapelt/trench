@@ -12,7 +12,6 @@ cartographer
 *.exe
 *.log
 *.bmp
-*.vsix
 .vscode
 node_modules
 package-lock.json
