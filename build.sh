@@ -27,4 +27,11 @@ cd ./cartographer
 source ./build.sh
 cd ..
 
+echo "Packaging extensions..."
+cd ./extensions
+cd ./trench-highlighting
+npx vsce package
+cd ..
+cd ..
+
 echo "Done"

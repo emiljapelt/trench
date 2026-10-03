@@ -12,13 +12,14 @@ cartographer
 *.exe
 *.log
 *.bmp
+*.vsix
 .vscode
 node_modules
 package-lock.json
 package.json
-web_view
-map_gen
 
+web_view
+web_comp/*.json
 
 !logo.tr
 !extensions/trench-highlighting/package.json

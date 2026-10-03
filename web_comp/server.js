@@ -9,9 +9,20 @@ const app = express();
 const upload = multer();
 app.use(cookie_parser());
 
-const trg_template = process.argv[2];
-const trenchc_path = process.argv[3] ?? '../trenchc';
-const save_dir = process.argv[4] ?? '.';
+
+const settings = JSON.parse(fs.readFileSync(process.argv[2]));
+
+const trg_template = settings.trg;
+const trenchc_path = settings.trenchc ?? '../trenchc';
+const save_dir = settings.save_dir;
+
+const create_link = (link) => {
+    switch (link.type ?? 'link') {
+        case 'link': return `<a href=${link.path}>${link.name}</a>`;
+        case 'download': return `<a download href=${link.path}>${link.name}</a>`;
+    }
+};
+const links = settings.links.map(create_link).join('<br>');
 
 let counter = 0;
 const players = {};
@@ -66,6 +77,9 @@ const form = (team, player, append) => `
             </form>
             ${append ?? ''}
         <div>
+        <footer>
+        ${links}
+        </footer>
     </body>
 `;
 
