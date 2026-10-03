@@ -10,7 +10,7 @@ dune build
 
 cd ..
 
-if [ -e trenchc ] 
+if [ -e trenchc ]
 then rm -f ./trenchc
 fi
 cp ./compiler/_build/default/src/trenchc.exe ./trenchc
@@ -30,7 +30,7 @@ cd ..
 echo "Packaging extensions..."
 cd ./extensions
 cd ./trench-highlighting
-npx vsce package
+printf 'y\n' | npx --yes @vscode/vsce package --out trench-highlighting.vsix
 cd ..
 cd ..
 
