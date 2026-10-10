@@ -797,7 +797,16 @@ and compile_stmt (Stmt(stmt,ln)) state : (compile_state * instruction list) =
         ({state with size = state'.size}, instrs @ instrs' @ [Label _cont])
       ) (state,[]) _continues in
       (state', instrs @ [Label _stop])
-    | Some expr -> raise_expr_failure expr "Expression cannot be used as condition for a repeat statement"
+    | Some expr -> 
+      let cond = label "cond" in
+      compile_stmt (Stmt(Block [
+        Stmt(DeclareAssign(None, cond, expr), ln);
+        Stmt(While(
+          Expr(IdentifierAccess cond,ln),
+          stmt,
+          Some(Stmt(Assign(Expr(IdentifierAccess cond,ln), Expr(Binary_op(Minus, Expr(IdentifierAccess cond,ln), Expr(Int 1,ln)),ln)) ,ln));
+        ),ln);
+      ], ln)) state
   )
   | ExprStmt expr -> 
     let (typ, instrs) = reduce_compile expr in
