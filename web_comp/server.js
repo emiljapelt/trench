@@ -4,6 +4,7 @@ const multer = require('multer');
 const cookie_parser = require('cookie-parser')
 const fs = require('node:fs');
 const { execSync } = require('child_process');
+const resolve = require('node:path').resolve;
 
 const app = express();
 const upload = multer();
@@ -14,7 +15,9 @@ const settings = JSON.parse(fs.readFileSync(process.argv[2]));
 
 const trg_template = settings.trg;
 const trenchc_path = settings.trenchc ?? '../trenchc';
-const save_dir = settings.save_dir;
+const workdir = settings.workdir;
+const savedir = resolve(workdir, 'save');
+const empty_file = resolve(workdir, 'empty.tr');
 
 const create_link = (link) => {
     switch (link.type ?? 'link') {
@@ -27,6 +30,7 @@ const links = settings.links.map(create_link).join('<br>');
 let counter = 0;
 const players = {};
 const teams = {};
+const team_sys = {};
 
 const form = (team, player, append) => `
     <head>
@@ -91,29 +95,23 @@ const respond = (res, code, content) => {
 
 const create_file = (buffer) => {
     const content = Buffer.from(buffer).toString("utf-8");
-    const path = `${save_dir}/file_${counter++}.tr`;
+    const path = resolve(savedir, `file_${counter++}.tr`);
     fs.writeFileSync(path, content);
     return path;
 };
 
-const try_make_team = (team, path) => {
-    if (!(team in teams)) {
-        teams[team] = {
-            path: path,
-            players: [],
-        };
-    }
-   return teams[team];
-};
 
-const empty_file = `${save_dir}/empty.tr`;
 if(!fs.existsSync(empty_file))
     fs.writeFileSync(empty_file, '// Empty :)');
 
-const check = (team_sys, team, player) => {
-    let temp_trg = `${save_dir}/temp.trg`;
+if(!fs.existsSync(savedir))
+    fs.mkdirSync(savedir);
 
-    fs.copyFileSync(trg_template, temp_trg);
+
+const check = (team_sys, team, player) => {
+    let temp_trg = resolve(workdir, 'temp.trg');
+
+    fs.copyFileSync(resolve(workdir, trg_template), temp_trg);
     
     team_sys = team_sys ? `system_library: "${team_sys}"`: '';
     team = team ? `library: "${team}"`: '';
@@ -138,10 +136,26 @@ const check = (team_sys, team, player) => {
     return result;
 };
 
-const sign = (path, body) => {
-    let team = body.team ? `\n//Team: ${body.team}` : '';
-    let player = body.player ? `\n//Player: ${body.player}` : '';
-    fs.appendFileSync(path, `${team}${player}`);
+const sign = (collection, target_type, target) => {
+    fs.appendFileSync(collection[target], `\n//${target_type}: ${target}`);
+};
+
+const finalize_file = (check, path, target_type, target, collection) => {
+    if (check.err) 
+        fs.unlinkSync(path);
+    else {
+        console.log(`${target_type} '${target}' submitted at ${(new Date()).toISOString()}`);
+        if (target in collection) {
+            fs.copyFileSync(path, collection[target]);
+            sign(collection, target_type, target);
+            fs.unlinkSync(path);
+        } 
+        else {
+            console.log(`${target_type} ${target} has file: ${path}`);
+            collection[target] = path;
+            sign(collection, target_type, target);
+        }
+    }
 };
 
 const handler = (req, res) => {
@@ -151,45 +165,22 @@ const handler = (req, res) => {
     let path = create_file(file.buffer);
 
     if (body.player) {
-        console.log(`Player '${body.player}' submitted at ${(new Date()).toISOString()}`);
-
-        let team = teams[body.team] ?? {};
-        let result = check(team.sys, team.path, path);
-        if (result.err) 
-            fs.unlinkSync(path);
-        else {
-            if (body.player in players) {
-                fs.unlinkSync(players[body.player]);
-                fs.renameSync(path, players[body.player]);
-                sign(players[body.player], body);
-            } 
-            else {
-                console.log(`Player ${body.player} has file: ${path}`);
-                players[body.player] = path;
-                sign(players[body.player], body);
-            }
-        }
-
+        let result = check(team_sys[body.team], teams[body.team], path);
+        finalize_file(result, path, 'Player', body.player, players);
         respond(res, 200, form(body.team, body.player, `<pre>${result.stdout}</pre>`));
     }
-    else if (body.team) {
-        console.log(`Team '${body.team}' submitted at ${(new Date()).toISOString()}`);
-        
-        const team = try_make_team(body.team, path);
-        let result = check(team.sys, team.path, null);
-        if (result.err)
-            fs.unlinkSync(path);
-        else {
-            console.log(`Team ${body.team} has file: ${path}`);
-            sign(teams[body.team].path, body);
-            respond(res, 200, form(body.team, null, `<pre>${result.stdout}</pre>`));
-        }
+    else if (body.team) {   
+        let result = check(team_sys[body.team], path, null);
+        finalize_file(result, path, 'Team', body.team, teams);
+        respond(res, 200, form(body.team, null, `<pre>${result.stdout}</pre>`));
     }
     else 
         respond(res, 200, form(body.team, body.player, `<p>Please upload a file</p>`));
 };
 
 
+if (settings.public)
+    app.use(express.static(settings.public));
 app.get(/.*/, (req, res) => respond(res, 200, form()));
 app.post('/filesubmit', upload.single('file'), handler);
 const PORT = 8080;

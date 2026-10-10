@@ -1,4 +1,5 @@
 open Helpers
+open Exceptions
 
 type instruction =
   | I of int
@@ -120,7 +121,7 @@ let label_set pp =
   let rec aux pp set = match pp with
     | [] -> set
     | Label n :: t -> ( 
-      if StringSet.mem n set then failwith ("Duplicate label: "^n)   
+      if StringSet.mem n set then raise_failure ("Duplicate label: "^n)   
       else aux t (StringSet.add n set)
     )
     | _::t -> aux t set
@@ -129,7 +130,7 @@ let label_set pp =
 
 let rec check_labels_exist instrs set = match instrs with
   | [] -> ()
-  | LabelRef(n)::t -> if StringSet.mem n set then check_labels_exist t set else failwith ("Undefined label: "^n)
+  | LabelRef(n)::t -> if StringSet.mem n set then check_labels_exist t set else raise_failure ("Undefined label: "^n)
   | _ ::t -> check_labels_exist t set
 
 let extract_label_indecies pps =

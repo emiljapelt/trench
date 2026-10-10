@@ -30,7 +30,7 @@ cd ..
 echo "Packaging extensions..."
 cd ./extensions
 cd ./trench-highlighting
-npx vsce package
+source ./build.sh
 cd ..
 cd ..
 

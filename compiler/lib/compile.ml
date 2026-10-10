@@ -360,6 +360,9 @@ let segment_map seqs l =
   - Requires non-mutating const funcs (maybe seperate const cache?)
 *)
 
+(* builtin types are hidden ... sometimes :(, try not to without redefining... *)
+
+
 let compile_player team path =
   let hide = remove_identifier_name in
   let show = identity in

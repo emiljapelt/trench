@@ -65,7 +65,8 @@ void build_mine_shaft(field_state* field) {
 int has_player(field_state* field) {
     entity_list_t* list = field->entities;
     for(int i = 0; i < list->count; i++)
-        if (get_entity(list, i)->type == ENTITY_PLAYER) return 1;
+        if (get_entity(list, i)->type == ENTITY_PLAYER) 
+            return 1;
     return 0;
 }
 
@@ -73,7 +74,8 @@ int has_enemy(field_state* field, player_state* player) {
     entity_list_t* list = field->entities;
     for(int i = 0; i < list->count; i++) {
         entity_t* ent = get_entity(list,i);
-        if (ent->type == ENTITY_PLAYER && (ent->player->team != NULL || ent->player->team != player->team)) return 1;
+        if (ent->type == ENTITY_PLAYER && ent->player->team != NULL && ent->player->team != player->team)
+            return 1;
     }
     return 0;
 }
@@ -82,7 +84,8 @@ int has_ally(field_state* field, player_state* player) {
     entity_list_t* list = field->entities;
     for(int i = 0; i < list->count; i++) {
         entity_t* ent = get_entity(list,i);
-        if (ent->type == ENTITY_PLAYER && (ent->player->team != NULL || ent->player->team == player->team)) return 1;
+        if (ent->type == ENTITY_PLAYER && ent->player->team != NULL && ent->player->team == player->team)
+            return 1;
     }
     return 0;
 }
