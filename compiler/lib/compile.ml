@@ -235,10 +235,18 @@ let load_feed_width tw = match tw.value with
   | TRGInt i when i >= 0 -> i
   | _ -> expected "feed_width to be a non-negative int" tw
 
+let load_event_type o = match o.value with
+  | TRGString "stateless"
+  | TRGInt 0 -> 0
+  | TRGString "stateful"
+  | TRGInt 1 -> 1
+  | TRGString "shared" -> 2
+  | _ -> expected "stateless/stateful/shared" o
+
 let load_event_template o : event_template = 
   ET {
     path = o |> entry "path" |> load_string;
-    event_type = o |> entry "type" |> load_int;
+    event_type = o |> entry "type" |> load_event_type;
     event_kind = o |> entry "kind" |> load_int;
   }
 
