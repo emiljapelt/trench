@@ -4,23 +4,10 @@
 #include "player.h"
 #include "entity.h"
 
-typedef enum situation_type {
-    NO_SITUATION,
-    MOVEMENT_SITUATION,
-} situation_type;
-
-typedef struct situation {
-    situation_type type : 8;
-    union {
-        struct {
-            location loc;
-        } movement;
-    };
-} situation;
-
+// TODO: Likely just delete all this
 
 // Return 1 if the event is finished, otherwise return 0.
-typedef int (*event_function)(entity_t* e, void* data, situation situ);
+typedef int (*event_function)(entity_t* e, void* data);
 
 typedef struct player_event_args {
     int player_id;

@@ -35,6 +35,8 @@ typedef struct game_state {
     int team_count;
     event_list_t* events;
     team_state* team_states;
+    unsigned int event_template_count;
+    event_template* event_templates;
 } game_state;
 
 extern game_state* _gs;
@@ -45,7 +47,7 @@ void set_player_steps_and_actions(player_state* ps);
 
 void set_color_overlay(field_state* field, color_target ct, color_predef c);
 void set_mod_overlay(field_state* field, print_mod m);
-void set_overlay(field_state* field, symbol symbol);
+void set_overlay(field_state* field, int symbol);
 void unset_overlay_field(const int x, const int y);
 void unset_overlay();
 

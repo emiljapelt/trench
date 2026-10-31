@@ -272,6 +272,13 @@ type team_info = TI of {
     library: string option;
 }
 
+type event_template = ET of { 
+    path: string; 
+    event_type: int;
+    event_kind: int;
+    (*args?*)
+}
+
 type exec_mode =
     | DefaultExec
 
@@ -322,6 +329,7 @@ type game_setup = GS of {
     auto_start: bool;
     feed_width: int;
     feed: bool;
+    event_templates: event_template list;
 }
 
 (* Model in TRG load objects *)

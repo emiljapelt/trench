@@ -11,7 +11,7 @@
 
 #pragma region BUILTIN_FUNCTIONS
 
-int builtin_shoot(player_state* ps) {
+/*int builtin_shoot(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
 
     if(!spend_resource(&ps->resources, R_Ammo, _gr->settings.shoot.cost)) {
@@ -207,9 +207,12 @@ int builtin_chop(player_state* ps) {
     }
 
     field_state* field = fields.get(x,y);
+    unsigned int props = fields.properties_of_field(field, ps);
 
-    if (field->type == TREE) {
-        fields.remove_field(field);
+    // What if frozen???
+    if (props & PROP_IS_TREE) {
+        tile* t = pop_tile(field->tiles);
+        free(t); // Helper for this! Including clean up of events and such
         add_resource(&ps->resources, R_Wood, _gr->settings.chop.wood_gain);
         int got_sapling = rand() % 100 < _gr->settings.chop.sapling_chance;
         if (got_sapling) add_resource(&ps->resources, R_Sapling, 1);
@@ -252,13 +255,12 @@ int builtin_trench(player_state* ps) {
     }
 
     field_state* field = fields.get(x,y);
-    switch (field->type) {
-        case EMPTY: {
-            fields.build.trench(field);
-            ps->stack[ps->sp++] = INSTR_SUCCESS;
-            return 1;
-        }
+    if (field->tiles->count == 0) {
+        push_tile(field->tiles, create_tile(tile_template_lookup + 0));
+        ps->stack[ps->sp++] = INSTR_SUCCESS;
+        return 1;
     }
+
     ps->stack[ps->sp++] = INSTR_INVALID_TARGET;
     return 0;
 }
@@ -286,10 +288,18 @@ int builtin_fortify(player_state* ps) {
         return 0;
     }
 
-    int result = fields.fortify_field(fields.get(x,y));
+    field_state* field = fields.get(x,y);
+    unsigned int props = fields.properties_of_field(field,ps);
 
-    ps->stack[ps->sp++] = result ? INSTR_SUCCESS : INSTR_INVALID_TARGET;
-    return result;
+    int success = (props & PROP_IS_TRENCH) || (props & PROP_IS_WALL) || (props & PROP_IS_MINE_SHAFT);
+
+    _log(DEBUG, ">> %i", success);
+
+    if (success)
+        push_tile(field->tiles, create_tile(tile_template_lookup + 2));
+
+    ps->stack[ps->sp++] = success ? INSTR_SUCCESS : INSTR_INVALID_TARGET;
+    return success;
 }
 
 int builtin_bomb(player_state* ps) {
@@ -394,7 +404,7 @@ int builtin_freeze(player_state* ps) {
     int p = ps->stack[--ps->sp];
     direction d = (direction)ps->stack[--ps->sp];
 
-    if(!spend_resource(&ps->resources, R_Mana, _gr->settings.freeze.cost)) {
+    /*if(!spend_resource(&ps->resources, R_Mana, _gr->settings.freeze.cost)) {
         ps->stack[ps->sp++] = INSTR_MISSING_RESOURCE;
         return 0;
     }
@@ -642,7 +652,7 @@ int builtin_pager_write(player_state* ps) {
 int builtin_wall(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
 
-    int x, y;
+    /*int x, y;
     if(!location_coords(ps->entity->location, &x, &y)) {
         ps->stack[ps->sp++] = INSTR_ERROR;
         return 0;
@@ -708,7 +718,7 @@ int builtin_plant_tree(player_state* ps) {
 int builtin_bridge(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
     
-    if (!spend_resource(&ps->resources, R_Wood, _gr->settings.bridge.cost)) {
+    /*if (!spend_resource(&ps->resources, R_Wood, _gr->settings.bridge.cost)) {
         ps->stack[ps->sp++] = INSTR_MISSING_RESOURCE;
         return 0;
     }
@@ -745,7 +755,7 @@ int builtin_collect(player_state* ps) {
     int p = ps->stack[--ps->sp];
     direction d = (direction)ps->stack[--ps->sp];
 
-    int x, y;
+    /*int x, y;
     if(!location_coords(ps->entity->location, &x, &y)) {
         ps->stack[ps->sp++] = INSTR_ERROR;
         return 0;
@@ -795,6 +805,8 @@ int builtin_collect(player_state* ps) {
 
     ps->stack[ps->sp++] = success;
     return change;
+    ps->stack[ps->sp++] = INSTR_SUCCESS;
+    return 0;
 }
 
 int builtin_say(player_state* ps) {
@@ -883,7 +895,7 @@ int builtin_dismount(player_state* ps) {
 int builtin_boat(player_state* ps) {
     int d = ps->stack[--ps->sp];
     
-    if (!spend_resource(&ps->resources, R_Wood, _gr->settings.boat.cost)) {
+    /*if (!spend_resource(&ps->resources, R_Wood, _gr->settings.boat.cost)) {
         ps->stack[ps->sp++] = INSTR_MISSING_RESOURCE;
         return 0;
     }
@@ -967,7 +979,7 @@ int builtin_throw_clay(player_state* ps) {
     int p = ps->stack[--ps->sp];
     direction d = (direction)ps->stack[--ps->sp];
 
-    if(!spend_resource(&ps->resources, R_Clay, _gr->settings.throw_clay.cost)) {
+    /*if(!spend_resource(&ps->resources, R_Clay, _gr->settings.throw_clay.cost)) {
         ps->stack[ps->sp++] = INSTR_MISSING_RESOURCE;
         return 0;
     }
@@ -1147,7 +1159,7 @@ int builtin_take(player_state* ps) {
 int builtin_mine_shaft(player_state* ps) {
     direction d = (direction)ps->stack[--ps->sp];
 
-    if(!spend_resource(&ps->resources, R_Wood, _gr->settings.mine_shaft.cost)) {
+    /*if(!spend_resource(&ps->resources, R_Wood, _gr->settings.mine_shaft.cost)) {
         ps->stack[ps->sp++] = INSTR_MISSING_RESOURCE;
         return 0;
     }
@@ -1178,6 +1190,7 @@ int builtin_mine_shaft(player_state* ps) {
             return 1;
         }
     }
+
     ps->stack[ps->sp++] = INSTR_ERROR;
     return 0;
 }
@@ -1331,20 +1344,20 @@ int builtin_search(player_state* ps) {
     return 0;
 }
 
-#pragma endregion
+#pragma endregion*/
 
 #pragma region SYSCALLS
 
 // int:(x,y,i,fg)
-// switch to rgb?
-int syscall_set_color(player_state* ps) {
-    int fg = ps->stack[--ps->sp]; 
-    int i = ps->stack[--ps->sp];
-    int y = ps->stack[--ps->sp];
-    int x = ps->stack[--ps->sp];
+// TODO: switch to rgb
+int syscall_set_color(exec_context* c) {
+    int fg = c->stack[--c->sp]; 
+    int i = c->stack[--c->sp];
+    int y = c->stack[--c->sp];
+    int x = c->stack[--c->sp];
 
     if (!in_bounds(x,y)) {
-        ps->stack[ps->sp++] = 0;
+        c->stack[c->sp++] = 0;
         return 0;
     }
 
@@ -1359,19 +1372,19 @@ int syscall_set_color(player_state* ps) {
         loc.field->overlays |= BACKGROUND_COLOR_OVERLAY;
     }
 
-    ps->stack[ps->sp++] = 1;
+    c->stack[c->sp++] = 1;
     return 0;
 }
 
-// int:(x,y,i,fg)
-// switch to UTF-8 (just setting an int directly on a field)
-int syscall_set_symbol(player_state* ps) { 
-    int i = ps->stack[--ps->sp];
-    int y = ps->stack[--ps->sp];
-    int x = ps->stack[--ps->sp];
+// int:(x,y,i)
+// TODO: switch to UTF-8 (just setting an int directly on a field)
+int syscall_set_symbol(exec_context* c) { 
+    int i = c->stack[--c->sp];
+    int y = c->stack[--c->sp];
+    int x = c->stack[--c->sp];
 
     if (!in_bounds(x,y)) {
-        ps->stack[ps->sp++] = 0;
+        c->stack[c->sp++] = 0;
         return 0;
     }
 
@@ -1380,26 +1393,216 @@ int syscall_set_symbol(player_state* ps) {
     loc.field->symbol = i & 255;
     loc.field->overlays |= SYMBOL_OVERLAY;
 
-    ps->stack[ps->sp++] = 1;
+    c->stack[c->sp++] = 1;
     return 0;
 }
 
-int syscall_render(player_state* ps) { 
-    int ms = ps->stack[--ps->sp];
+int syscall_render(exec_context* c) { 
+    int ms = c->stack[--c->sp];
 
     print_board();
     wait(ms / 1000.0f);
 
-    ps->stack[ps->sp++] = 1;
+    c->stack[c->sp++] = 1;
     return 0;
+}
+
+int syscall_kill_entity(exec_context* c) {
+    int id = c->stack[--c->sp];
+
+    entity_t* target = get_entity_from_id(_gs->entities, id);
+    
+    if (target == NULL) {
+        c->stack[c->sp++] = 0;
+        return 0;
+    }
+
+    target->active = 0;
+
+    if (target->type == ENTITY_PLAYER)
+        update_events(target, target->player->pre_death_events);
+
+    if (target->active) {// Saved by pre_death event
+        c->stack[c->sp++] = 1;
+        return 0;
+    }
+
+    if (target->type == ENTITY_PLAYER)
+        update_events(target, target->player->post_death_events);
+
+    resource_registry* target_resources = NULL;
+
+    if (target->type == ENTITY_PLAYER) 
+        target_resources = &target->player->resources;
+    else if (target->type == ENTITY_VEHICLE)
+        target_resources = &target->vehicle->resources;
+
+    if (target_resources != NULL) {
+        field_state* field = location_field(target->location);
+        if (field != NULL) {
+            field->symbol = COFFIN;
+            field->foreground_color = WHITE;
+            
+            // drop resources (maybe on location instead?)
+            add_resource(&field->resources, R_Wood, target_resources->resource[R_Wood].amount);
+            add_resource(&field->resources, R_Clay, target_resources->resource[R_Clay].amount);
+            add_resource(&field->resources, R_Ammo, target_resources->resource[R_Ammo].amount);
+            add_resource(&field->resources, R_Sapling, target_resources->resource[R_Sapling].amount);
+            add_resource(&field->resources, R_BearTrap, target_resources->resource[R_BearTrap].amount);
+            add_resource(&field->resources, R_Explosive, target_resources->resource[R_Explosive].amount);
+            add_resource(&field->resources, R_Metal, target_resources->resource[R_Metal].amount);
+        }
+        
+        zero_out_registry(target_resources);
+    }
+
+    move_entity_to_location(target, VOID);
+
+    if (target->type == ENTITY_PLAYER) {
+        char msg[100];
+        // Reason could be an int from the stack, which is the index in a message array
+        // Until strings become available...
+        sprintf(msg, "%s (#%i) died: %s", target->player->name, target->id, "Unknown reason");
+        print_to_feed(msg);
+        _log(INFO, msg);
+        if (target->player->team)
+            target->player->team->members_alive--;
+    }
+}
+
+int syscall_spend_actions(exec_context* c) {
+    int a = c->stack[--c->sp];
+
+    if (!use_resource(a, &c->actions)) {
+        c->dp--;
+        c->steps = 0;
+        c->stack[c->sp++] = SYSCALL_SPEND_ACTIONS;
+        c->stack[c->sp++] = 1;
+        c->stack[c->sp++] = a;
+    }
+    
+    c->stack[c->sp++] = 1;
+    return 0;
+}
+
+int syscall_feed(exec_context* c) {
+    int a = c->stack[--c->sp];
+
+    char msg[100 + 1];
+
+    switch (c->type) {
+        case ENTITY_CONTEXT:
+            switch (c->entity->type) {
+                case ENTITY_PLAYER:
+                    snprintf(msg, 100, "%s#%i: %i", c->entity->player->name, c->entity->id, a);
+                    break;
+                
+                case ENTITY_VEHICLE:
+                    break;
+            }
+            break;
+
+        case EVENT_CONTEXT:
+            snprintf(msg, 100, "Event: %i", a);
+            break;
+    }
+
+    print_to_feed(msg);
+    _log(INFO, msg);
+    c->stack[c->sp++] = INSTR_SUCCESS;
+    return 0;
+}
+
+int _event_args_count = 0;
+int _event_args[10];
+
+int syscall_event_int_arg(exec_context* c) {
+    int arg = c->stack[--c->sp];
+
+    if (_event_args_count >= 10) {
+        c->stack[c->sp++] = 0;
+        return 0;    
+    }
+
+    _event_args[_event_args_count++] = arg;
+    
+    c->stack[c->sp++] = INSTR_SUCCESS;
+    return 0;
+};
+
+
+//int:(int player_id, int event_index)
+int syscall_register_player_event(exec_context* c) {
+    int event_index = c->stack[--c->sp];
+    int player_id = c->stack[--c->sp];
+
+    entity_t* entity = get_entity_from_id(_gs->entities, player_id);
+    if (entity == NULL || entity->type != ENTITY_PLAYER) {
+        c->stack[c->sp++] = INSTR_ERROR;
+        return 0;
+    }
+
+    // Players should have event lists related to their turns
+    add_event(_gs->events, &_gs->event_templates[event_index], NULL);
+
+    c->stack[c->sp++] = 1;
+    return 0;
+};
+
+int syscall_cancel_this_event(exec_context* c) {
+    switch (c->type){
+        case EVENT_CONTEXT:
+            c->event->cancelled = 1;
+            c->stack[c->sp++] = INSTR_SUCCESS;
+            return 0;
+    
+        default:
+            c->stack[c->sp++] = INSTR_ERROR;
+            return 0;
+    }
+};
+
+//int:(int entity, int x, int y)
+int syscall_move_entity(exec_context* c) {
+    int y = c->stack[--c->sp];
+    int x = c->stack[--c->sp];
+    int entity_id = c->stack[--c->sp];
+
+    /*if (ps->entity->location.type == VEHICLE_LOCATION) {
+        int result = get_vehicle_move_func(ps->entity->location.vehicle->type)(ps->entity->location.vehicle, ps, d);
+        ps->stack[ps->sp++] = result;
+        return result > 0;
+    }*/
+
+    entity_t* entity = get_entity_from_id(_gs->entities, entity_id);
+    if (entity == NULL) {
+        c->stack[c->sp++] = INSTR_ERROR;
+        return 0;
+    }
+
+    int currennt_x, current_y;
+    if(!location_coords(c->entity->location, &x, &y)) {
+        c->stack[c->sp++] = INSTR_ERROR;
+        return 0;
+    }
+
+    if(!in_bounds(x,y)) {
+        c->stack[c->sp++] = INSTR_OUT_OF_BOUNDS;
+        return 0; 
+    }
+
+    move_entity_to_location(entity, field_location_from_coords(x,y));
+
+    c->stack[c->sp++] = INSTR_SUCCESS;
+    return 1;
 }
 
 #pragma endregion
 
 
-int handle_builtin_function(player_state* ps, builtin_func func_addr) {
+int handle_builtin_function(exec_context* c, builtin_func func_addr) {
     switch (func_addr) {
-        case BUILTIN_SHOOT: return builtin_shoot(ps);
+        /*case BUILTIN_SHOOT: return builtin_shoot(ps);
         case BUILTIN_LOOK: return builtin_look(ps);
         case BUILTIN_SCAN: return builtin_scan(ps);
         case BUILTIN_MINE: return builtin_mine(ps);
@@ -1440,12 +1643,17 @@ int handle_builtin_function(player_state* ps, builtin_func func_addr) {
         case BUILTIN_WAIT: return builtin_wait(ps);
         case BUILTIN_OBLIVIATE: return builtin_obliviate(ps);
         case BUILTIN_BLINK: return builtin_blink(ps);
-        case BUILTIN_SEARCH: return builtin_search(ps);
+        case BUILTIN_SEARCH: return builtin_search(ps);*/
 
-        //EXPERIMENTAL
-        case SYSCALL_SET_COLOR: return syscall_set_color(ps);
-        case SYSCALL_SET_SYMBOL: return syscall_set_symbol(ps);
-        case SYSCALL_RENDER: return syscall_render(ps);
+        case SYSCALL_SET_COLOR: return syscall_set_color(c);
+        case SYSCALL_SET_SYMBOL: return syscall_set_symbol(c);
+        case SYSCALL_RENDER: return syscall_render(c);
+        case SYSCALL_KILL_ENTITY: return syscall_kill_entity(c);
+        case SYSCALL_FEED: return syscall_feed(c);
+        case SYSCALL_EVENT_INT_ARG: return syscall_event_int_arg(c);
+        case SYSCALL_REGISTER_PLAYER_EVENT: return syscall_register_player_event(c);
+        case SYSCALL_CANCEL_THIS_EVENT: return syscall_cancel_this_event(c);
+        case SYSCALL_MOVE_ENTITY: return syscall_move_entity(c);
     }
 }
 

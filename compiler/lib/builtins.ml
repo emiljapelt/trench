@@ -601,9 +601,16 @@ let generate_initial_scope () : identifier list =
   List.map (fun b -> Const(b.name, Expr(b.expr,0))) builtins
   
 
-let get_syscalls () = []
-(*let get_syscalls () = [ (* EXPERIMENTAL *)
+let get_syscalls () = [ (* EXPERIMENTAL *)
   Const("set_color", Expr(builtin_func (T_Int) [T_Array(T_Int, 2); T_Int; T_Int] (-43), 0));
   Const("set_symbol", Expr(builtin_func (T_Int) [T_Array(T_Int, 2); T_Int] (-44), 0));
   Const("render", Expr(builtin_func (T_Int) [T_Int] (-45), 0));
-]*)
+  Const("kill", Expr(builtin_func (T_Int) [T_Int] (-46), 0));
+  Const("actions", Expr(builtin_func (T_Int) [T_Int] (-47), 0));
+  Const("feed", Expr(builtin_func (T_Int) [T_Int] (-48), 0));
+  Const("event_int_arg", Expr(builtin_func (T_Int) [T_Int] (-49), 0));
+  Const("event_type", Expr(builtin_func (T_Int) [T_Int] (-50), 0));
+  Const("register_player_event", Expr(builtin_func (T_Int) [T_Int; T_Int] (-51), 0));
+  Const("cancel_this_event", Expr(builtin_func (T_Int) [] (-52), 0));
+  Const("move_entity", Expr(builtin_func (T_Int) [T_Int;T_Int;T_Int] (-53), 0));
+]

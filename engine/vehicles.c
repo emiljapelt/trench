@@ -4,6 +4,7 @@
 #include "game_rules.h"
 #include "builtins.h"
 #include "util.h"
+#include "fields.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -21,7 +22,8 @@ int boat_move(vehicle_state* v, player_state* player, direction d) {
         return INSTR_OUT_OF_BOUNDS;
 
     field_state* target = fields.get(x,y);
-    if (target->type == OCEAN || target->type == BRIDGE) {
+    unsigned int props = fields.properties_of_field(target, player);
+    if (props & PROP_IS_OCEAN || props & PROP_IS_BRIDGE) {
 
         move_entity_to_location(v->entity, field_location_from_field(target));
         if (!v->entity->active)

@@ -235,6 +235,19 @@ let load_feed_width tw = match tw.value with
   | TRGInt i when i >= 0 -> i
   | _ -> expected "feed_width to be a non-negative int" tw
 
+let load_event_template o : event_template = 
+  ET {
+    path = o |> entry "path" |> load_string;
+    event_type = o |> entry "type" |> load_int;
+    event_kind = o |> entry "kind" |> load_int;
+  }
+
+let load_event_templates o : event_template list = 
+   match o.value with
+    | TRGArray [] -> raise_failure "There must exist atleast one team"
+    | TRGArray _ -> o |> map load_event_template
+    | _ -> expected "an array of event templates" o
+
 let load_game o : game_setup = 
   Flags.set_auto_resize (o |> entry "auto_resize" |> default (TRGBool true) |> load_bool);
   Flags.set_features (o |> entry "features" |> default (TRGBool false) |> load_features);
@@ -263,6 +276,7 @@ let load_game o : game_setup =
     auto_start = o |> entry "auto_start" |> default (TRGBool true) |> load_bool;
     feed_width = o |> entry "feed_width" |> default (TRGInt 16) |> load_feed_width;
     feed = o |> entry "feed" |> default (TRGBool true) |> load_bool;
+    event_templates = o |> entry "events" |> load_event_templates;
   }
 
 let parse parser lexer from str =
@@ -290,7 +304,7 @@ let parse_file parser lexer path =
   | Failure _ as f -> raise f
   (*| _ -> raise (Failure(Some path, None, "Parser error"))*)
 
-let player_to_program program = 
+let instructions_to_int_array program = 
   let size_limit = Helpers.compiler_notes.size_limit in
   let program = program_to_int_list program in
   if size_limit > 0 && List.length program - 1 > size_limit then raise_failure ("Program too large: " ^ string_of_int size_limit ^ " < " ^ string_of_int (List.length program - 1))
@@ -303,6 +317,12 @@ type compiled_player_info = {
   file: string;
   extra_files_count: int;
   extra_files: string array;
+}
+
+type compiled_event_template = {
+  program: int array;
+  event_kind: int;
+  event_type: int;
 }
 
 type compiled_game_file = {
@@ -325,7 +345,9 @@ type compiled_game_file = {
   viewport: int * int;
   auto_start: bool;
   feed_width: int;
-  feed: bool
+  feed: bool;
+  event_template_count: int;
+  event_templates: compiled_event_template array
 }
 
 let empty_file = File([],0)  (* Not a good solution *)
@@ -360,9 +382,23 @@ let segment_map seqs l =
   - Requires non-mutating const funcs (maybe seperate const cache?)
 *)
 
+
+(* TODO: Toggle all features *)
+let compile_event_template (ET e) : compiled_event_template =
+  let syscalls = get_syscalls () in
+  let state = {scopes = { local = None ; global = syscalls @ builtin_types }; size = 0; labels = StringSet.empty; break = None; continue = None; ret_type = None;} in
+  let (state, instrs) = compile_program (Some(fix_path e.path)) state in
+  let program = Instr_Declare :: I(state.size) :: instrs 
+    |> Optimize.optimize_instruction_list 
+    |> instructions_to_int_array 
+  in
+  {
+    program = program;
+    event_kind = e.event_kind;
+    event_type = e.event_type;
+  }
+  
 (* builtin types are hidden ... sometimes :(, try not to without redefining... *)
-
-
 let compile_player team path =
   let hide = remove_identifier_name in
   let show = identity in
@@ -399,7 +435,7 @@ let compile_player team path =
 let compile_player_file path team = try (
   path
   |> compile_player team
-  |> player_to_program
+  |> instructions_to_int_array
   |> Result.ok
 ) with
 | Failure(None,ln,msg) -> Error(format_failure (Failure(Some path, ln, msg)))
@@ -428,6 +464,7 @@ let player_list teams =
 let format_game_setup (GS gs) = 
   let teams = gs.teams |> team_list |> Array.of_list in
   let players = player_list gs.teams in
+  let event_templates = List.map compile_event_template gs.event_templates |> Array.of_list in
   {
     actions = gs.actions;
     steps = gs.steps;
@@ -449,6 +486,8 @@ let format_game_setup (GS gs) =
     auto_start = gs.auto_start;
     feed_width = gs.feed_width;
     feed = gs.feed;
+    event_templates = event_templates;
+    event_template_count = Array.length event_templates;
   }
 
 let compile_game_file path = try (

@@ -10,6 +10,7 @@
 #include "visual.h"
 #include "log.h"
 
+// TODO: Does it need to be pointers?
 game_state* _gs = NULL; 
 game_rules* _gr = NULL;
 
@@ -32,7 +33,7 @@ void set_mod_overlay(field_state* field, print_mod m) {
     field->overlays |= MOD_OVERLAY;
 }
 
-void set_overlay(field_state* field, symbol symbol) {
+void set_overlay(field_state* field, int symbol) {
     field->symbol = symbol;
     field->overlays |= SYMBOL_OVERLAY;
 }
@@ -71,18 +72,18 @@ void clear_feed() {
 }
 
 void set_player_steps_and_actions(player_state* ps) {
-    ps->remaining_steps = _gr->steps;
-    ps->remaining_actions = _gr->actions;
+    ps->exec->steps = _gr->steps;
+    ps->exec->actions = _gr->actions;
 }
 
 void kill_player(player_state* ps, const char* reason) {
     ps->entity->active = 0;
 
-    update_events(ps->entity, ps->pre_death_events, (situation){ .type = NO_SITUATION});
+    update_events(ps->entity, ps->pre_death_events);
 
     if (ps->entity->active) return;
 
-    update_events(ps->entity, ps->post_death_events, (situation){ .type = NO_SITUATION});
+    update_events(ps->entity, ps->post_death_events);
 
     field_state* field = location_field(ps->entity->location);
     if (field != NULL) {
@@ -127,7 +128,7 @@ void move_entity_to_location(entity_t* e, location loc) {
         case VOID_LOCATION: break;
         case FIELD_LOCATION: { 
             field_state* field = curr.field;
-            update_events(e, field->exit_events, (situation){ .type = MOVEMENT_SITUATION, .movement.loc = loc });
+            update_events(e, field->exit_events);
             remove_entity(field->entities, e->id);
             break;
         }
@@ -149,7 +150,7 @@ void move_entity_to_location(entity_t* e, location loc) {
         case FIELD_LOCATION: {
             field_state* field = location_field(loc);
             add_entity(field->entities, e);
-            update_events(e, field->enter_events, (situation){ .type = MOVEMENT_SITUATION, .movement.loc = prev_loc });
+            update_events(e, field->enter_events);
             break;
         }
         case VEHICLE_LOCATION: {

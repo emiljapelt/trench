@@ -10,7 +10,7 @@
 // Unless defined, every character is an empty
 #define TRM_EMPTY '.'
 
-typedef enum symbol {
+typedef enum symbol_index {
     ASTERIX,
     NONE,
     F_NONE,
@@ -71,10 +71,10 @@ typedef enum symbol {
     PENTA_DOT,
     MINE_SHAFT_VISUAL,
     MOUNTAIN_VISUAL,
-} symbol;
+} symbol_index;
 
-extern const char* symbol_lookup[];
+extern const unsigned int symbol_lookup[];
 extern const int connector_lookup[];
-extern const int fortified_connector_lookup[];
+extern const int heavy_connector_lookup[];
 
 #endif

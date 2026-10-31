@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <locale.h>
 
 #include <caml/callback.h>
 
@@ -12,19 +13,10 @@
 #include "visual.h"
 #include "util.h"
 #include "compiler_wrapper.h"
-#include "instructions.h"
 #include "entity.h"
+#include "exec_context.h"
 #include "log.h"
-
-void debug_print(player_state* ps) {
-    fprintf(stderr,"\nRound %i\n", _gs->round);
-    fprintf(stderr,"\nPlayer %s(%i)\n", ps->name, ps->entity->id);
-    for(int i = 0; i < ps->sp; i++) {
-        fprintf(stderr,"%i, ", ps->stack[i]); wait(0.1);
-    }
-    fprintf(stderr,"\ninstr:%i\ndp:%i\nbp:%i\nsp:%i\n\n", ps->directive[ps->dp], ps->dp, ps->bp, ps->sp); 
-    wait(1);
-}
+#include "execute.h"
 
 void garbage_collect() {
     int count_active = 0;
@@ -102,6 +94,7 @@ void pan_viewport(float time, const int x, const int y) {
     }
 }
 
+// Deprecated?
 void pan_viewport_player(float time, player_state* ps) {
     int x, y;
     if (location_coords(ps->entity->location, &x, &y))
@@ -114,80 +107,12 @@ void auto_viewport(int x, int y) {
         pan_viewport(0.5, x, y);
 }
 
-void auto_viewport_player(player_state* ps) {
+void auto_viewport_player(entity_t* e) {
+    if (e == NULL) return;
     if (_gr->viewport.automatic) {
         int x, y;
-        if (location_coords(ps->entity->location, &x, &y))
+        if (location_coords(e->location, &x, &y))
             auto_viewport(x,y);
-    }
-}
-
-
-void player_turn_default(player_state* ps) {
-    while(1) {
-        int change = 0;
-        if (ps->dp >= ps->directive_len) return;
-        if (!use_resource(1, &ps->remaining_steps)) return;
-        // debug_print(ps);
-        _log(DEBUG, "%s executes %i", ps->name, ps->directive[ps->dp]);
-        switch (ps->directive[ps->dp++]) {
-            case Instr_Wait: {
-                if(!use_resource(1,&ps->remaining_actions)) {ps->dp--;return;}
-                ps->stack[ps->sp++] = 1;
-                break;
-            }
-            case Instr_Pass: {
-                ps->stack[ps->sp++] = 1;
-                ps->remaining_steps = 0;
-                break;
-            }
-            case Instr_Random: instr_random_int(ps); break; 
-            case Instr_Place: instr_place(ps); break;
-            case Instr_GoTo: change = instr_goto(ps); break;
-            case Instr_GoToIf: change = instr_goto_if(ps); break;
-            case Instr_Eq: change = instr_eq(ps); break;
-            case Instr_Lt: change = instr_lt(ps); break;
-            case Instr_Sub: change = instr_sub(ps); break;
-            case Instr_Add: change = instr_add(ps); break;
-            case Instr_Mul: change = instr_mul(ps); break;
-            case Instr_Div: change = instr_div(ps); break;
-            case Instr_Mod: change = instr_mod(ps); break;
-            case Instr_Not: change = instr_not(ps); break;
-            case Instr_Or: change = instr_or(ps); break;
-            case Instr_And: change = instr_and(ps); break;
-            case Instr_MoveSP: change = instr_move_sp(ps); break;
-            case Instr_Copy: change = instr_copy(ps); break;
-            case Instr_Swap: change = instr_swap(ps); break;
-            case Instr_Call: change = instr_call(ps); break;
-            case Instr_Return: change = instr_return(ps); break;
-            case Instr_Declare: change = instr_declare(ps); break;
-            case Instr_Index: change = instr_index(ps); break;
-            case Instr_BinOr: change = instr_binor(ps); break;
-            case Instr_BinNot: change = instr_binnot(ps); break;
-            case Instr_BinAnd: change = instr_binand(ps); break;
-            case Instr_LoadLocal: change = instr_load(ps, ps->bp); break;
-            case Instr_StoreLocal: change = instr_store(ps, ps->bp); break;
-            case Instr_BP: change = instr_bp(ps); break;
-            case Instr_Extract: change = instr_extract(ps); break;
-            case Instr_LoadGlobal: change = instr_load(ps, 0); break;
-            case Instr_StoreGlobal: change = instr_store(ps, 0); break;
-            case Instr_Meta: change = instr_meta(ps); break;
-            case Instr_Bits: change = instr_bits(ps); break;
-            case Instr_TCall: change = instr_tcall(ps); break;
-            default: return;
-        }
-
-        if (change) { 
-            auto_viewport_player(ps);
-            print_board(); 
-            wait(1); 
-        }
-        else if (_gs->feed_change) {
-            print_board();
-            wait(0.25);
-        }
-
-        if (!ps->entity->active) return;
     }
 }
 
@@ -241,14 +166,14 @@ void get_new_directive(player_state* ps) {
         directive_info di;
         if (compile_player(ps, path, _gr->stack_size, &di)) {
             if (do_free) free(ps->path);
-            free(ps->directive);
-            free(ps->stack);
-            ps->directive = di.directive;
-            ps->stack = di.stack;
-            ps->sp = 0;
-            ps->bp = 0;
-            ps->dp = 0;
-            ps->directive_len = di.dir_len;
+            free(ps->exec->program);
+            free(ps->exec->stack);
+            ps->exec->program = di.directive;
+            ps->exec->program_len = di.dir_len;
+            ps->exec->stack = di.stack;
+            ps->exec->sp = 0;
+            ps->exec->bp = 0;
+            ps->exec->dp = 0;
             ps->path = path;
             _log(INFO, "%s: change to %s", ps->name, path);
             return;
@@ -388,7 +313,7 @@ void play_round_default() {
     for(int i = 0; i < entity_count; i++) {
         handle_input();
         entity_t* entity = get_entity(_gs->entities, i);
-        int finished_events = update_events(entity, _gs->events, (situation){ .type = NO_SITUATION});
+        int finished_events = update_events(entity, _gs->events);
         
         if (finished_events || _gs->feed_change) { print_board(); wait(1); }
 
@@ -396,7 +321,7 @@ void play_round_default() {
             case ENTITY_PLAYER:
                 if (entity->active) {
                     _log(DEBUG, "Turn: %s (#%i)", entity->player->name, entity->id);
-                    player_turn_default(entity->player);
+                    exec(entity->player->exec);
                     set_player_steps_and_actions(entity->player);
                 }
                 break;
@@ -465,7 +390,7 @@ void manual_mode() {
                 if (entity->player->is_original_player)
                     get_new_directive(entity->player);
                 print_board();
-                player_turn_default(entity->player);
+                exec(entity->player->exec);
                 check_win_condition();
             }
         }
@@ -494,6 +419,8 @@ int main(int argc, char** argv) {
     terminal_echo_off();
     terminal_blocking_read_off();
     terminal_canonical_off();
+
+    setlocale(LC_ALL, "");
 
     set_wait_time_scaler(&_gr->time_scale);
 

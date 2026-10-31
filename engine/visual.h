@@ -9,7 +9,7 @@
 typedef struct field_visual {
     color foreground_color;
     color background_color;
-    const char* symbol;
+    unsigned int symbol;
     print_mod mod;
 } field_visual;
 

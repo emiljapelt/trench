@@ -16,8 +16,10 @@ float clampf(float a, float hi, float lo);
 int max(int a, int b);
 
 static inline int use_resource(int amount, int* avail) {
+    if (*avail == -1) return 1;
     if (amount > *avail) return 0;
     *avail -= amount;
+    return 1;
 }
 
 /* params: int mod */

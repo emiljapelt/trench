@@ -11,7 +11,7 @@
 #include "util.h"
 #include "log.h"
 
-int mine(entity_t* entity, void* data, situation situ) {
+int mine(entity_t* entity, void* data) {
     field_args* args = (field_args*)data;
 
     // Check if there are more entities than just 'entity'
@@ -46,7 +46,7 @@ int mine(entity_t* entity, void* data, situation situ) {
     return 0;
 }
 
-int bomb(entity_t* entity, void* data, situation situ) {
+int bomb(entity_t* entity, void* data) {
 
     switch (entity->type) {
         case ENTITY_PLAYER: {
@@ -63,7 +63,7 @@ int bomb(entity_t* entity, void* data, situation situ) {
     return 0;
 }
 
-int projection_upkeep(entity_t* entity, void* data, situation situ) {
+int projection_upkeep(entity_t* entity, void* data) {
 
     switch (entity->type) {
         case ENTITY_PLAYER: {
@@ -81,7 +81,7 @@ int projection_upkeep(entity_t* entity, void* data, situation situ) {
     return 0;
 }
 
-int ice_block_melt(entity_t* entity, void* data, situation situ) {
+/*int ice_block_melt(entity_t* entity, void* data) {
 
     switch (entity->type) {
         case ENTITY_PLAYER: {
@@ -102,9 +102,9 @@ int ice_block_melt(entity_t* entity, void* data, situation situ) {
     }
     
     return 0;
-}
+}*/
 
-int mana_drain(entity_t* entity, void* data, situation situ) {
+int mana_drain(entity_t* entity, void* data) {
 
     switch (entity->type) {
         case ENTITY_PLAYER: {
@@ -116,7 +116,7 @@ int mana_drain(entity_t* entity, void* data, situation situ) {
     return 0;
 }
 
-int tree_grow(entity_t* entity, void* data, situation situ) {
+int tree_grow(entity_t* entity, void* data) {
 
     switch (entity->type) {
         case ENTITY_PLAYER: {
@@ -127,8 +127,8 @@ int tree_grow(entity_t* entity, void* data, situation situ) {
             if (args->remaining != 0) return 0;
 
             field_state* field = fields.get(args->x, args->y);
-            if (field->type == EMPTY)
-                fields.build.tree(field);
+            if (field->tiles->count == 0)
+                push_tile(field->tiles, create_tile(tile_template_lookup + 1));
                 
             return 1;
         }
@@ -137,7 +137,7 @@ int tree_grow(entity_t* entity, void* data, situation situ) {
     return 0;
 }
 
-int ocean_drowning(entity_t* entity, void* data, situation situ) {
+int ocean_drowning(entity_t* entity, void* data) {
 
     switch (entity->type) {
         case ENTITY_PLAYER: {
@@ -149,35 +149,35 @@ int ocean_drowning(entity_t* entity, void* data, situation situ) {
     return 0;
 }
 
-int bear_trap_escape(entity_t* entity, void* data, situation situ) {
+/*int bear_trap_escape(entity_t* entity, void* data) {
     if (entity->type == ENTITY_PLAYER) {
         player_event_args* args = (player_event_args*)data;
         if (args->player_id != entity->id) return 0;
-        entity->player->remaining_actions = 0;
-        entity->player->remaining_steps = 0;
+        entity->player->exec->actions = 0;
+        entity->player->exec->steps = 0;
         return 1;
     }
     return 1;
 }
 
-int bear_trap_trigger(entity_t* entity, void* data, situation situ) {
+int bear_trap_trigger(entity_t* entity, void* data) {
     if (entity->type == ENTITY_PLAYER) {
-        entity->player->remaining_actions = 0;
-        entity->player->remaining_steps = 0;
+        entity->player->exec->actions = 0;
+        entity->player->exec->steps = 0;
 
         player_event_args* args = malloc(sizeof(player_event_args));
         args->player_id = entity->id;
         add_event(
             _gs->events,
             PHYSICAL_EVENT,
-            &bear_trap_escape,
-            args
+            &bear_trap_escape
+            //args
         );
     }
     return 1;
-}
+}*/
 
-int clay_spread(entity_t* entity, void* data, situation situ) {
+/*int clay_spread(entity_t* entity, void* data) {
     if (entity->type == ENTITY_PLAYER) {
         field_state* field = location_field(situ.movement.loc);
         field_state* clay_field = location_field(entity->location);
@@ -201,12 +201,11 @@ int clay_spread(entity_t* entity, void* data, situation situ) {
     }
 
     return 0;
-}
+}*/
 
-int blink_return(entity_t* entity, void* data, situation situ) {
+int blink_return(entity_t* entity, void* data) {
 
     ice_block_melt_event_args* args = (ice_block_melt_event_args*)data;
-    _log(INFO, "!!!!! %i vs %i, r:%i", entity->id, args->player_id, args->remaining); 
 
     if (args->player_id != entity->id) 
         return 0;
@@ -229,13 +228,13 @@ int blink_return(entity_t* entity, void* data, situation situ) {
 const events_namespace events = {
     .bomb = &bomb,
     .mine = &mine,
-    .ice_block_melt = &ice_block_melt,
+    //.ice_block_melt = &ice_block_melt,
     .projection_upkeep = &projection_upkeep,
     .mana_drain = &mana_drain,
     .tree_grow = &tree_grow,
     .ocean_drowning = &ocean_drowning,
-    .bear_trap_trigger = &bear_trap_trigger,
-    .bear_trap_escape = &bear_trap_escape,
-    .clay_spread = &clay_spread,
+    //.bear_trap_trigger = &bear_trap_trigger,
+    //.bear_trap_escape = &bear_trap_escape,
+    //.clay_spread = &clay_spread,
     .blink_return = &blink_return,
 };

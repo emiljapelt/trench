@@ -25,12 +25,11 @@ field_state* create_map(char* map_data, const int x, const int y) {
     for (int _y = 0; _y < y; _y++) {
         map[(_y * x) + _x] = (field_state) {
             .overlays = 0,
-            .type = EMPTY,
-            .data = NULL,
+            .tiles = array_list.create(5),
             .player_data = 0,
             .entities = array_list.create(10),
-            .enter_events = array_list.create(10),
-            .exit_events = array_list.create(10),
+            .enter_events = array_list.create(5),
+            .exit_events = array_list.create(5),
         };
 
         zero_out_registry(&map[(_y * x) + _x].resources);
@@ -42,38 +41,16 @@ field_state* create_map(char* map_data, const int x, const int y) {
         set_resource_entry(&map[(_y * x) + _x].resources, R_Explosive, 0, -1);
         set_resource_entry(&map[(_y * x) + _x].resources, R_Metal, 0, -1);
 
-        if (map_data) switch(map_data[(_y * x) + _x]) {
-            case TRM_TRENCH: {
-                field_data* data = malloc(sizeof(field_data));
-                data->trench.fortified = 0;
-                map[(_y * x) + _x].type = TRENCH;
-                map[(_y * x) + _x].data = data;
-                break;
+        if (map_data) {
+            char c = map_data[(_y * x) + _x];
+            int i = 0;
+            while (i < tile_template_count) {
+                if (tile_template_lookup[i].trm == map_data[(_y * x) + _x]) {
+                    push_tile(map[(_y * x) + _x].tiles, create_tile(tile_template_lookup + i));
+                    break;
+                }
+                i++;
             }
-            case TRM_WALL: {
-                field_data* data = malloc(sizeof(field_data));
-                data->wall.fortified = 0;
-                map[(_y * x) + _x].type = WALL;
-                map[(_y * x) + _x].data = data;
-                break;
-            }
-            case TRM_OCEAN:
-                map[(_y * x) + _x].type = OCEAN;
-                add_event(map[(_y * x) + _x].enter_events, FIELD_EVENT, events.ocean_drowning, NULL);
-                break;
-            case TRM_TREE: 
-                map[(_y * x) + _x].type = TREE;
-                break;
-            case TRM_CLAY:
-                field_data* data = malloc(sizeof(field_data));
-                data->clay_pit.amount = 0;
-                map[(_y * x) + _x].type = CLAY;
-                map[(_y * x) + _x].data = data;
-                add_event(map[(_y * x) + _x].exit_events, FIELD_EVENT, events.clay_spread, NULL);
-                break;
-            case TRM_MOUNTAIN:
-                map[(_y * x) + _x].type = MOUNTAIN;
-                break;
         }
     }
 
@@ -314,6 +291,9 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
 
             const unsigned int feed_size = gr->feed_width * gr->viewport.height;
 
+            const unsigned int event_template_count = Int_val(Field(unwrapped_result, 20));
+            value _event_templates = Field(unwrapped_result, 21);
+
             *gs = (game_state) {
                 .round = 1,
                 .latest_print = 1,
@@ -326,7 +306,22 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 .team_count = team_count,
                 .team_states = malloc(sizeof(team_state) * team_count),
                 .events = array_list.create(10),
+                .event_template_count = event_template_count,
+                .event_templates = malloc(sizeof(event_template) * event_template_count),
             };
+
+            for(int i = 0; i < event_template_count; i++) {
+                value template = Field(Field(unwrapped_result, 21),i);
+                value program = Field(template, 0);
+                int program_len = Int_val(Field(program, 0));
+                gs->event_templates[i].program = malloc(sizeof(int) * program_len);
+                gs->event_templates[i].program_len = program_len;
+                gs->event_templates[i].kind = Int_val(Field(template, 1));
+                gs->event_templates[i].type = Int_val(Field(template, 2));
+                
+                for(int j = 0; j < program_len; j++)
+                    gs->event_templates[i].program[j] = Int_val(Field(program, j+1));
+            }
 
             memset(gs->feed, ' ', feed_size);
 
@@ -348,7 +343,7 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 gs->team_states[i].members_alive = Int_val(Field(team_info, 2));
             }
 
-            
+            stateless_stack = malloc(sizeof(int) * gr->stack_size);
 
             setup_default_resource_registry(Field(unwrapped_result, 10));
 
@@ -361,12 +356,8 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 player->is_original_player = 1;
                 player->team = &gs->team_states[Int_val(Field(player_info, 0))];
                 player->name = strdup(String_val(Field(player_info, 1)));
-                player->bp = 0;
-                player->sp = 0;
                 player->path = strdup(String_val(Field(player_info, 3)));
-                player->dp = 0;
-                player->remaining_steps = gr->steps;
-                player->remaining_actions = gr->actions;
+                player->exec = malloc(sizeof(exec_context));
                 player->pager_channel = 0;
                 player->pager_msgs = array_list.create(10);
                 player->pre_death_events = array_list.create(10);
@@ -389,9 +380,16 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
                 if (entity->type == ENTITY_PLAYER) {
                     int success = compile_player(entity->player, entity->player->path, gr->stack_size, &di);
                     if (!success) exit(1);
-                    entity->player->stack = di.stack;
-                    entity->player->directive = di.directive;
-                    entity->player->directive_len = di.dir_len;
+                    entity->player->exec->stack = di.stack;
+                    entity->player->exec->program = di.directive;
+                    entity->player->exec->program_len = di.dir_len;
+                    entity->player->exec->bp = 0;
+                    entity->player->exec->sp = 0;
+                    entity->player->exec->dp = 0;
+                    entity->player->exec->steps = _gr->steps;
+                    entity->player->exec->actions = _gr->actions;
+                    entity->player->exec->type = ENTITY_CONTEXT;
+                    entity->player->exec->entity = entity;
                 }
             }
 

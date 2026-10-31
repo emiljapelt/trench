@@ -5,6 +5,7 @@
 #include "array_list.h"
 #include "location.h"
 #include "entity.h"
+#include "exec_context.h"
 
 typedef array_list_t event_list_t;
 typedef struct team_state team_state;
@@ -20,15 +21,8 @@ typedef struct player_state {
     unsigned char is_original_player: 1;
     team_state* team;
     char* name;
-    int* stack;
-    int bp;
-    int sp;
     char* path;
-    int* directive;
-    int directive_len;
-    int dp;
-    unsigned int remaining_steps;
-    unsigned int remaining_actions;
+    exec_context* exec;
     int pager_channel;
     array_list_t* pager_msgs;
     event_list_t* pre_death_events;

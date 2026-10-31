@@ -66,10 +66,11 @@ field_visual empty_visual() {
         .background_color = color_lookup[BLACK],
         .foreground_color = color_lookup[DARK_GREY],
         .mod = 0,
-        .symbol = " "
+        .symbol = ' ',
     };
 }
 
+// %lc is for wide characters, such as UTF8
 void print_board() {
     clear_screen();
     reset_cursor();
@@ -97,11 +98,11 @@ void print_board() {
     const int width = _gr->viewport.width - (_gr->feed ? _gr->feed_width : 0);
     const int height = _gr->viewport.height;
 
-    buffer("%s", symbol_lookup[SE]);
-    for(int i = 0; i < width+2; i++) buffer("%s", symbol_lookup[EW]);
-    buffer("%s\n", symbol_lookup[SW]);
+    buffer("0"/*, symbol_lookup[SE]*/);
+    for(int i = 0; i < width+2; i++) buffer("%lc", symbol_lookup[EW]);
+    buffer("%lc\n", symbol_lookup[SW]);
     for(int y = 0; y < height; (buffer("\n"), y++)) {
-        buffer("%s ", symbol_lookup[NS]);
+        buffer("%lc ", symbol_lookup[NS]);
         field_visual prev_visual = empty_visual();
         for(int x = 0; x < width; x++) {
             int actual_x = _gr->viewport.x + x;
@@ -120,20 +121,20 @@ void print_board() {
             if (mod_changed || !color_eq(visual.background_color, prev_visual.background_color))
                 set_color(visual.background_color, BACK);
             
-            buffer("%s", visual.symbol);
+            buffer("%lc", visual.symbol);
             prev_visual = visual;
         }
         reset_print();
-        buffer(" %s ", symbol_lookup[NS]);
+        buffer(" %lc ", symbol_lookup[NS]);
 
         if (_gr->feed)
         for(int i = 0; i < _gr->feed_width; i++) {
             buffer("%c", _gs->feed[y * _gr->feed_width + i]);
         }
     }
-    buffer("%s", symbol_lookup[NE]);
-    for(int i = 0; i < width+2; i++) buffer("%s", symbol_lookup[EW]);
-    buffer("%s\n", symbol_lookup[NW]);
+    buffer("%lc", symbol_lookup[NE]);
+    for(int i = 0; i < width+2; i++) buffer("%lc", symbol_lookup[EW]);
+    buffer("%lc\n", symbol_lookup[NW]);
 
     puts(view_buf);
 

@@ -5,6 +5,10 @@
 
 #include "game_state.h"
 #include "damage.h"
+#include "tile.h"
+#include "log.h"
+
+
 
 field_state* get_field(const int x, const int y) {
     return _gs->map + ((y * _gs->map_width) + x);
@@ -15,7 +19,7 @@ void set_field(const int x, const int y, field_state* f) {
 }
 
 
-void build_trench(field_state* field) {
+/*void build_trench(field_state* field) {
     field_data* data = malloc(sizeof(field_data));
     data->trench.fortified = 0;
 
@@ -57,9 +61,7 @@ void build_mine_shaft(field_state* field) {
 
     field->type = MINE_SHAFT;
     field->data = data;
-}
-
-
+}*/
 
 
 int has_player(field_state* field) {
@@ -101,7 +103,7 @@ int has_trap(field_state* field) {
     return field->enter_events->count + field->exit_events->count;
 }
 
-unsigned int scan_field(field_type type, field_data* data) {
+/*unsigned int scan_field(field_type type, field_data* data) {
     unsigned int result = 0;
     switch (type) {
         case TRENCH:
@@ -138,10 +140,10 @@ unsigned int scan_field(field_type type, field_data* data) {
             break;
     }
     return result;
-}
+}*/
 
 unsigned int properties_of_field(field_state* field, player_state* player) {
-    unsigned int result = scan_field(field->type, field->data);
+    unsigned int result = get_tile_properties(field->tiles);
     if (has_player(field)) result |= PROP_PLAYER;
     if (has_enemy(field, player)) result |= PROP_IS_ENEMY;
     if (has_ally(field, player)) result |= PROP_IS_ALLY;
@@ -155,10 +157,18 @@ unsigned int properties(const int x, const int y, player_state* player) {
 }
 
 void destroy_field(field_state* field, char* death_msg) {
-    remove_events_of_kind(field->enter_events, FIELD_EVENT);
-    remove_events_of_kind(field->exit_events, FIELD_EVENT);
+    //remove_events_of_kind(field->enter_events, FIELD_EVENT);
+    //remove_events_of_kind(field->exit_events, FIELD_EVENT);
 
-    switch (field->type) {
+    while(field->tiles->count > 0) {
+        tile* t = pop_tile(field->tiles);
+        // clear tile events!
+        int stop = t->template->hardend;
+        free(t);
+        if (stop) break;
+    }
+
+    /*switch (field->type) {
         case OCEAN:
         case MOUNTAIN:
             break;
@@ -203,7 +213,7 @@ void destroy_field(field_state* field, char* death_msg) {
             free(field->data);
             break;
         }
-    }
+    }*/
     for(int i = 0; i < field->entities->count; i++) {
         entity_t* entity = get_entity(field->entities, i);
         // What about vehicles?
@@ -212,7 +222,7 @@ void destroy_field(field_state* field, char* death_msg) {
     }
 }
 
-void remove_field(field_state* field) {
+/*void remove_field(field_state* field) {
     remove_events_of_kind(field->enter_events, FIELD_EVENT);
     remove_events_of_kind(field->exit_events, FIELD_EVENT);
 
@@ -243,17 +253,21 @@ void remove_field(field_state* field) {
             break;
         }
     }
-}
+}*/
 
 void damage_field(field_state* field, damage_t d_type, player_state* player, char* death_msg) {
     unsigned int props = properties_of_field(field, player);
-    if ((props & PROP_FLAMMABLE) && IS_DAMAGE_TYPE(FIRE_DMG, d_type))
+
+    if (peek_tile(field->tiles)->template->weaknesses & d_type)
+        destroy_field(field, death_msg);
+
+    /*if ((props & PROP_FLAMMABLE) && IS_DAMAGE_TYPE(FIRE_DMG, d_type))
         destroy_field(field, death_msg);
     else if ((props & PROP_MELTABLE) && IS_DAMAGE_TYPE(FIRE_DMG, d_type))
-        remove_field(field);
+        remove_field(field);*/
 }
 
-int fortify_field(field_state* field) {
+/*int fortify_field(field_state* field) {
     switch (field->type) {
         case TRENCH: {
             field->data->trench.fortified = 1;
@@ -269,26 +283,24 @@ int fortify_field(field_state* field) {
         }
         default: return 0;
     }
-}
+}*/
 
 
 // ** VISUALS
 
-static inline char line_connects(int x, int y, field_type field) {
-    return (!in_bounds(x,y)) 
-        ? 0 
-        : fields.get(x,y)->type == field;
+static inline char line_connects(int x, int y, unsigned int props) {
+    return in_bounds(x,y) && (get_tile_properties(fields.get(x,y)->tiles) & props);
 }
 
-int connections(int x, int y, field_type field) {
+int connections(int x, int y, unsigned int props) {
     return 
-        (line_connects(x,y-1,field) << 3) | // N
-        (line_connects(x+1,y,field) << 2) | // E
-        (line_connects(x,y+1,field) << 1) | // S
-        line_connects(x-1,y,field);         // W 
+        (line_connects(x,y-1,props) << 3) | // N
+        (line_connects(x+1,y,props) << 2) | // E
+        (line_connects(x,y+1,props) << 1) | // S
+        line_connects(x-1,y,props);         // W 
 }
 
-field_visual get_field_data_visual(const int x, const int y, const field_type type, const field_data* data) {
+/*field_visual get_field_data_visual(const int x, const int y, const field_type type, const field_data* data) {
     field_visual result = {
         .background_color = color_lookup[BLACK],
         .foreground_color = color_lookup[DARK_GREY],
@@ -428,34 +440,58 @@ field_visual get_field_data_visual(const int x, const int y, const field_type ty
         }
     }
     return result;
-}
+}*/
 
 field_visual get_field_visual(const int x, const int y, field_state* field) {
 
-    field_visual result = get_field_data_visual(x,y,field->type,field->data);
+    field_visual result = {
+        .background_color = field->overlays & BACKGROUND_COLOR_OVERLAY 
+            ? color_lookup[field->background_color]
+            : get_tile_bg(field->tiles),
+        .foreground_color = field->overlays & FOREGROUND_COLOR_OVERLAY
+            ? color_lookup[field->foreground_color]
+            : get_tile_fg(field->tiles),
+        .mod = field->overlays & MOD_OVERLAY
+            ? result.mod = field->mod
+            : get_tile_mod(field->tiles),
+        .symbol = symbol_lookup[MIDDOT]
+    };
 
-    //if (field->vehicle) {
-    //    switch (field->vehicle->type) {
-    //        case VEHICLE_BOAT: {
-    //            result.foreground_color = color_predefs.white;
-    //            result.symbol = BOAT_VISUAL;
-    //            //result.mod = BOLD;
-    //            break;
-    //        }
-    //    }
-    //}
-
-    if (field->overlays & SYMBOL_OVERLAY) {
+    if (field->overlays & SYMBOL_OVERLAY) 
         result.symbol = symbol_lookup[field->symbol];
+    else if (field->entities->count > 0) {
+        entity_t* e = peek_entity(field->entities);
+        switch (e->type) {
+            case ENTITY_PLAYER:
+                result.symbol = symbol_lookup[PERSON];
+                result.foreground_color = e->player->team ? *e->player->team->color : color_lookup[WHITE];
+                result.mod = 0;
+                break;
+            case ENTITY_VEHICLE:
+                switch (e->vehicle->type) {
+                    case VEHICLE_BOAT:
+                        result.foreground_color = color_lookup[WHITE];
+                        result.symbol = symbol_lookup[BOAT_VISUAL];
+                        result.mod = 0;
+                        break;
+                }
+                break;
+        }
     }
-    if (field->overlays & FOREGROUND_COLOR_OVERLAY) {
-        result.foreground_color = color_lookup[field->foreground_color];
-    }
-    if (field->overlays & BACKGROUND_COLOR_OVERLAY) {
-        result.background_color = color_lookup[field->background_color];
-    }
-    if (field->overlays & MOD_OVERLAY) {
-        result.mod = field->mod;
+    else if (field->tiles->count > 0) {
+        symbol s = get_tile_symbol(field->tiles);
+        switch (s.type) {
+            case SYMBOL:
+                result.symbol = s.symbol;
+                break;
+            
+            case CONNECTOR:
+                const int* connector = result.mod == BOLD
+                    ? heavy_connector_lookup
+                    : connector_lookup;
+                result.symbol = symbol_lookup[connector[connections(x, y, get_tile_properties(field->tiles))]];
+                break;
+        }
     }
 
     // clear overlays
@@ -476,14 +512,14 @@ const fields_namespace fields = {
     .properties_of_field = &properties_of_field,
     .destroy_field = &destroy_field,
     .damage_field = &damage_field,
-    .remove_field = &remove_field,
-    .fortify_field = &fortify_field,
-    .build = {
+    //.remove_field = &remove_field,
+    //.fortify_field = &fortify_field,
+    /*.build = {
         .trench = &build_trench,
         .wall = &build_wall,
         .tree = &build_tree,
         .clay_pit = &build_clay_pit,
         .ocean = &build_ocean,
         .mine_shaft= &build_mine_shaft,
-    },
+    },*/
 };
