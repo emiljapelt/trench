@@ -22,12 +22,15 @@ typedef enum {
 
 extern int* stateless_stack;
 
+// TODO: const
 typedef struct event_template {
     event_type type : 8;
     event_kind kind : 8;
     int* program;
     unsigned int program_len;
+    char* name;
     int* stack; // for shared state event types
+    int args_size;
 } event_template;
 
 typedef struct event {
@@ -38,7 +41,10 @@ typedef struct event {
     exec_context* exec;
 } event;
 
-void add_event(event_list_t* events, event_template* template, int* args);
+extern event** created_events;
+
+int create_event(event_template* template, int* args);
+void add_event(event_list_t* events, event* e);
 void remove_event(event_list_t* events, int index);
 int update_events(entity_t* e, event_list_t* events);
 event* get_event(event_list_t* events, int index);

@@ -8,6 +8,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 #pragma region BUILTIN_FUNCTIONS
 
@@ -1530,10 +1531,34 @@ int syscall_event_int_arg(exec_context* c) {
     return 0;
 };
 
+// TODO: Consider if it is better to give the args_size as a syscall argument. That way the stack might be less likely to break??
+int syscall_create_event(exec_context* c) {
+    int template_index = c->stack[--c->sp];
 
-//int:(int player_id, int event_index)
+    if (template_index < 0 || template_index >= _gs->event_template_count) {
+        _log(WARN, "Event was not created, template index out of bounds, arguments mig be polluting the stack");
+        c->stack[c->sp++] = -1;
+        return 0;
+    }
+
+    event_template* template = &_gs->event_templates[template_index];
+
+    int* args = malloc(sizeof(int) * template->args_size);
+    memcpy(args, &c->stack[c->sp - (template->args_size)], sizeof(int) * template->args_size);
+
+    if (template_index >= 0 && template_index < _gs->event_template_count) {
+        c->stack[c->sp++] = create_event(template, args);
+        return 0;
+    }
+
+    _log(WARN, "Event was not created, template index out of bounds");
+    c->stack[c->sp++] = -1;
+    return 0;
+}
+
+//int:(int player_id, int event_slot)
 int syscall_register_player_event(exec_context* c) {
-    int event_index = c->stack[--c->sp];
+    int event_slot = c->stack[--c->sp];
     int player_id = c->stack[--c->sp];
 
     entity_t* entity = get_entity_from_id(_gs->entities, player_id);
@@ -1542,8 +1567,11 @@ int syscall_register_player_event(exec_context* c) {
         return 0;
     }
 
+    event* e = created_events[event_slot]; // Check if valid...
+    created_events[event_slot] = NULL;
+
     // Players should have event lists related to their turns
-    add_event(_gs->events, &_gs->event_templates[event_index], NULL);
+    add_event(_gs->events, e);
 
     c->stack[c->sp++] = 1;
     return 0;
@@ -1580,8 +1608,8 @@ int syscall_move_entity(exec_context* c) {
         return 0;
     }
 
-    int currennt_x, current_y;
-    if(!location_coords(c->entity->location, &x, &y)) {
+    int current_x, current_y;
+    if(!location_coords(c->entity->location, &current_x, &current_y)) {
         c->stack[c->sp++] = INSTR_ERROR;
         return 0;
     }
@@ -1595,6 +1623,21 @@ int syscall_move_entity(exec_context* c) {
 
     c->stack[c->sp++] = INSTR_SUCCESS;
     return 1;
+}
+
+int syscall_load_arguments(exec_context* c) {
+    
+    switch (c->type) {
+        case EVENT_CONTEXT:
+            memcpy(c->stack + c->sp, c->event->args, sizeof(int) * c->event->template->args_size); // Stack overflow check, different stack sizes between players and events...
+            c->sp += c->event->template->args_size;
+            break;
+    
+        default:
+            break;
+    }
+
+    return 0;
 }
 
 #pragma endregion
@@ -1650,10 +1693,11 @@ int handle_builtin_function(exec_context* c, builtin_func func_addr) {
         case SYSCALL_RENDER: return syscall_render(c);
         case SYSCALL_KILL_ENTITY: return syscall_kill_entity(c);
         case SYSCALL_FEED: return syscall_feed(c);
-        case SYSCALL_EVENT_INT_ARG: return syscall_event_int_arg(c);
         case SYSCALL_REGISTER_PLAYER_EVENT: return syscall_register_player_event(c);
         case SYSCALL_CANCEL_THIS_EVENT: return syscall_cancel_this_event(c);
         case SYSCALL_MOVE_ENTITY: return syscall_move_entity(c);
+        case SYSCALL_LOAD_ARGUMENTS: return syscall_load_arguments(c);
+        case SYSCALL_CREATE_EVENT: return syscall_create_event(c);
     }
 }
 

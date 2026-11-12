@@ -613,4 +613,5 @@ let get_syscalls () = [ (* EXPERIMENTAL *)
   Const("register_player_event", Expr(builtin_func (T_Int) [T_Int; T_Int] (-51), 0));
   Const("cancel_this_event", Expr(builtin_func (T_Int) [] (-52), 0));
   Const("move_entity", Expr(builtin_func (T_Int) [T_Int;T_Int;T_Int] (-53), 0));
+  (* -54 should not be called willy nilly *)
 ]

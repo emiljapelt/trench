@@ -63,6 +63,10 @@ let mapi f tw = match tw.value with
   | TRGArray a -> a |> List.mapi (fun i e -> { value = e ; path = (string_of_int i)::tw.path }) |> List.mapi f
   | _ -> expected "an array" tw
 
+let mapo f o = match o.value with
+  | TRGObject a -> a |> StringMap.to_list |> List.map (fun (n, e) -> (n, { value = e ; path = n::o.path })) |> List.map f
+  | _ -> expected "an object" o
+
 let filter p tw = match tw.value with
   | TRGArray a -> { value = TRGArray(a |> List.mapi (fun i e -> { value = e ; path = (string_of_int i)::tw.path }) |> List.filter p |> List.map (fun a -> a.value)); path = tw.path} 
   | _ -> expected "an array" tw

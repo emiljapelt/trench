@@ -22,5 +22,6 @@
    builtins
    resources
    helpers
+   notes
  )
 )

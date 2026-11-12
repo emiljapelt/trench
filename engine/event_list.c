@@ -4,6 +4,7 @@
 #include "array_list.h"
 #include "entity.h"
 #include "execute.h"
+#include "log.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -11,8 +12,29 @@
 
 int* stateless_stack;
 
-void add_event(event_list_t* events, event_template* template, int* args) {
+unsigned int created_events_size = 8;
+event** created_events = NULL;
+
+int create_event(event_template* template, int* args) {
+    if (created_events == NULL) {
+        created_events = malloc(sizeof(event*) * created_events_size);
+        memset(created_events, 0, sizeof(event*) * created_events_size);
+    }
+    
+    int slot = 0;
+    while (slot < created_events_size) {
+        if (created_events[slot] == NULL) break;
+        slot++;
+    }
+
+    if (slot == created_events_size) {
+        created_events_size *= 2;
+        created_events = realloc(created_events, sizeof(event*) * created_events_size);
+    }
+
     event* e = malloc(sizeof(event));
+    created_events[slot] = e;
+    
     e->cancelled = 0;
     e->template = template;
     e->args = args;
@@ -29,6 +51,8 @@ void add_event(event_list_t* events, event_template* template, int* args) {
             break;
 
         case SHARED_EVENT:
+            if (template->stack == NULL)
+                template->stack = malloc(sizeof(int) * 100); // TODO: Get size from somewhere!
             e->stack = template->stack;
             break;
     }
@@ -45,6 +69,11 @@ void add_event(event_list_t* events, event_template* template, int* args) {
     e->exec->event = e;
     e->exec->type = EVENT_CONTEXT;
 
+    _log(DEBUG, "Event slot: %i", slot);
+    return slot;
+}
+
+void add_event(event_list_t* events, event* e) {
     array_list.add(events, e);
 }
 

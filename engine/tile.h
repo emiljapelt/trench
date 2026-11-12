@@ -59,7 +59,7 @@ typedef struct tile_template {
 
 typedef struct tile {
     tile_template* template;
-    // events
+    // pointers to events, so they can be cancelled on destruction of the owning tile
 } tile;
 
 typedef array_list_t tile_stack;

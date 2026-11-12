@@ -312,12 +312,14 @@ int compile_game(const char* path, game_rules* gr, game_state* gs) {
 
             for(int i = 0; i < event_template_count; i++) {
                 value template = Field(Field(unwrapped_result, 21),i);
-                value program = Field(template, 0);
+                value program = Field(template, 1);
                 int program_len = Int_val(Field(program, 0));
+                gs->event_templates[i].name = strdup(String_val(Field(template, 0)));
                 gs->event_templates[i].program = malloc(sizeof(int) * program_len);
                 gs->event_templates[i].program_len = program_len;
-                gs->event_templates[i].kind = Int_val(Field(template, 1));
-                gs->event_templates[i].type = Int_val(Field(template, 2));
+                gs->event_templates[i].kind = Int_val(Field(template, 2));
+                gs->event_templates[i].type = Int_val(Field(template, 3));
+                gs->event_templates[i].args_size = Int_val(Field(template, 4));
                 
                 for(int j = 0; j < program_len; j++)
                     gs->event_templates[i].program[j] = Int_val(Field(program, j+1));

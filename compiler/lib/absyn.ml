@@ -273,10 +273,11 @@ type team_info = TI of {
 }
 
 type event_template = ET of { 
+    name: string;
     path: string; 
     event_type: int;
     event_kind: int;
-    (*args?*)
+    arguments: (string * typ) list;
 }
 
 type exec_mode =

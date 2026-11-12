@@ -66,11 +66,13 @@ typedef enum {
     SYSCALL_KILL_ENTITY = -46,
     SYSCALL_SPEND_ACTIONS = -47,
     SYSCALL_FEED = -48,
-    SYSCALL_EVENT_INT_ARG = -49,
+    //SYSCALL_EVENT_INT_ARG = -49,
     //SYSCALL_EVENT_TYPE = -50,
     SYSCALL_REGISTER_PLAYER_EVENT = -51,
     SYSCALL_CANCEL_THIS_EVENT = -52,
     SYSCALL_MOVE_ENTITY = -53,
+    SYSCALL_LOAD_ARGUMENTS = -54,
+    SYSCALL_CREATE_EVENT = -55,
 } builtin_func;
 
 int handle_builtin_function(exec_context* c, builtin_func func_addr);

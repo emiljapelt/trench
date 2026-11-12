@@ -44,7 +44,7 @@ let complete_path base path = compress_path (if path.[0] = '.' then (String.sub 
 
 (* If the path is relative, change it to be relative to game files directory *)
 let fix_path file = 
-  if (Filename.is_relative file) then Filename.concat compiler_notes.dir file
+  if (Filename.is_relative file) then Filename.concat Notes.compiler_notes.dir file
   else file
 
 let format_failure f = match f with
@@ -219,8 +219,8 @@ let load_teams tw =
     | TRGArray _ -> tw |> mapi load_team
     | _ -> expected "an array of team definitions" tw
   in
-  Helpers.compiler_notes.team_system_libraries <- StringMap.of_list (List.map (fun (TI team) -> (team.name, team.system_library)) teams); 
-  Helpers.compiler_notes.team_libraries <- StringMap.of_list (List.map (fun (TI team) -> (team.name, team.library)) teams); 
+  Notes.compiler_notes.team_system_libraries <- StringMap.of_list (List.map (fun (TI team) -> (team.name, team.system_library)) teams); 
+  Notes.compiler_notes.team_libraries <- StringMap.of_list (List.map (fun (TI team) -> (team.name, team.library)) teams); 
   teams
 
 let load_settings t =
@@ -243,18 +243,25 @@ let load_event_type o = match o.value with
   | TRGString "shared" -> 2
   | _ -> expected "stateless/stateful/shared" o
 
-let load_event_template o : event_template = 
+let load_type o = match o.value with
+  | TRGString "int" -> T_Int
+  | TRGString "dir" -> T_Dir
+  | TRGString "field" -> T_Field
+  | TRGString "resource" -> T_Resource
+  | _ -> expected "an atomic type name" o
+
+let load_event_arguments o = mapo (fun (name, typ) -> (name, load_type(typ))) o
+
+let load_event_template (name, o) : event_template = 
   ET {
+    name = name;
     path = o |> entry "path" |> load_string;
     event_type = o |> entry "type" |> load_event_type;
     event_kind = o |> entry "kind" |> load_int;
+    arguments = o |> entry "args" |> load_event_arguments;
   }
 
-let load_event_templates o : event_template list = 
-   match o.value with
-    | TRGArray [] -> raise_failure "There must exist atleast one team"
-    | TRGArray _ -> o |> map load_event_template
-    | _ -> expected "an array of event templates" o
+let load_event_templates o : event_template list = mapo load_event_template o
 
 let load_game o : game_setup = 
   Flags.set_auto_resize (o |> entry "auto_resize" |> default (TRGBool true) |> load_bool);
@@ -262,10 +269,10 @@ let load_game o : game_setup =
   Flags.set_themes (o |> entry "themes" |> default (TRGBool false) |> load_themes);
   Flags.set_settings (o |> entry "settings" |> default (TRGObject StringMap.empty));
 
-  Helpers.compiler_notes.system_library <- o |> entry "system_library" |> optional_load load_string;
-  Helpers.compiler_notes.shared_library <- o |> entry "library" |> optional_load load_string;
-  Helpers.compiler_notes.size_limit <- o |> entry "program_size_limit" |> default (TRGInt (-1)) |> load_int;
-  Helpers.compiler_notes.stack_size <- o |> entry "stack_size" |> default (TRGInt 1000) |> load_int;
+  Notes.compiler_notes.system_library <- o |> entry "system_library" |> optional_load load_string;
+  Notes.compiler_notes.shared_library <- o |> entry "library" |> optional_load load_string;
+  Notes.compiler_notes.size_limit <- o |> entry "program_size_limit" |> default (TRGInt (-1)) |> load_int;
+  Notes.compiler_notes.stack_size <- o |> entry "stack_size" |> default (TRGInt 1000) |> load_int;
 
   GS {
     teams = o |> entry "teams" |> load_teams;
@@ -313,7 +320,7 @@ let parse_file parser lexer path =
   (*| _ -> raise (Failure(Some path, None, "Parser error"))*)
 
 let instructions_to_int_array program = 
-  let size_limit = Helpers.compiler_notes.size_limit in
+  let size_limit = Notes.compiler_notes.size_limit in
   let program = program_to_int_list program in
   if size_limit > 0 && List.length program - 1 > size_limit then raise_failure ("Program too large: " ^ string_of_int size_limit ^ " < " ^ string_of_int (List.length program - 1))
   else List.length program :: program |> Array.of_list
@@ -328,9 +335,11 @@ type compiled_player_info = {
 }
 
 type compiled_event_template = {
+  name: string;
   program: int array;
   event_kind: int;
   event_type: int;
+  args_size: int;
 }
 
 type compiled_game_file = {
@@ -391,19 +400,32 @@ let segment_map seqs l =
 *)
 
 
+let event_creation_functions () = 
+  Const("create_event", Expr(StructureLiteral(
+    Notes.compiler_notes.event_templates |> List.mapi (fun index (ET e) -> 
+      let args = List.map (fun (name,typ) -> (TE_Type typ, name)) e.arguments in
+      (*let args_size = List.fold_left (fun acc (_,t) -> acc + type_size t) 0 e.arguments in*)
+      StructureElement(Some e.name, Expr(Func{ data = (TE_Type T_Int, args, Stmt(ExprStmt(Expr(ASM(TE_Type T_Int, [Instr_Place;I(index);Instr_Place;I(-55);Instr_Place;I(1);Instr_Call]),0)),0)); closure = None; cache = None },0)))
+  ),0))
+
 (* TODO: Toggle all features *)
+(* TODO: Include some info on available events, in a struct, saved in compiler notes *)
 let compile_event_template (ET e) : compiled_event_template =
   let syscalls = get_syscalls () in
-  let state = {scopes = { local = None ; global = syscalls @ builtin_types }; size = 0; labels = StringSet.empty; break = None; continue = None; ret_type = None;} in
+  let arguments_type = TE_Tuple(e.arguments |> List.map (fun (name,typ) -> (TE_Type typ, Some name))) in
+  let args = Const("arguments", Expr(ASM(arguments_type, [Instr_Place;I(-54);Instr_Place;I(0);Instr_Call]),0)) in
+  let state = {scopes = { local = None ; global = event_creation_functions () :: args :: syscalls @ builtin_types }; size = 0; labels = StringSet.empty; break = None; continue = None; ret_type = None;} in
   let (state, instrs) = compile_program (Some(fix_path e.path)) state in
   let program = Instr_Declare :: I(state.size) :: instrs 
     |> Optimize.optimize_instruction_list 
     |> instructions_to_int_array 
   in
   {
+    name = e.name;
     program = program;
     event_kind = e.event_kind;
     event_type = e.event_type;
+    args_size = List.fold_left (fun acc (_,t) -> acc + type_size t) 0 e.arguments
   }
   
 (* builtin types are hidden ... sometimes :(, try not to without redefining... *)
@@ -411,17 +433,17 @@ let compile_player team path =
   let hide = remove_identifier_name in
   let show = identity in
   let syscalls = get_syscalls () in
-  let team_sys_lib = StringMap.find_opt team Helpers.compiler_notes.team_system_libraries |> Option.join in
-  let team_lib = StringMap.find_opt team Helpers.compiler_notes.team_libraries |> Option.join in
+  let team_sys_lib = StringMap.find_opt team Notes.compiler_notes.team_system_libraries |> Option.join in
+  let team_lib = StringMap.find_opt team Notes.compiler_notes.team_libraries |> Option.join in
 
-  let init_state = {scopes = { local = None ; global = syscalls @ builtin_types }; size = 0; labels = StringSet.empty; break = None; continue = None; ret_type = None;} in
+  let init_state = {scopes = { local = None ; global = event_creation_functions () :: syscalls @ builtin_types }; size = 0; labels = StringSet.empty; break = None; continue = None; ret_type = None;} in
   let builtin_size = List.length builtin_types in
   let syscalls_size = List.length syscalls in
 
-  let (system_state, system_instrs) = compile_program Helpers.compiler_notes.system_library init_state in
+  let (system_state, system_instrs) = compile_program Notes.compiler_notes.system_library init_state in
   let system_size = List.length system_state.scopes.global - (syscalls_size + builtin_size) in
 
-  let (shared_state, shared_instrs) = compile_program Helpers.compiler_notes.shared_library system_state in
+  let (shared_state, shared_instrs) = compile_program Notes.compiler_notes.shared_library system_state in
   let shared_size = List.length shared_state.scopes.global - (system_size) in
 
   let (team_system_state, team_system_instrs) = compile_program team_sys_lib shared_state in
@@ -472,6 +494,7 @@ let player_list teams =
 let format_game_setup (GS gs) = 
   let teams = gs.teams |> team_list |> Array.of_list in
   let players = player_list gs.teams in
+  Notes.compiler_notes.event_templates <- gs.event_templates ;
   let event_templates = List.map compile_event_template gs.event_templates |> Array.of_list in
   {
     actions = gs.actions;
@@ -501,7 +524,7 @@ let format_game_setup (GS gs) =
 let compile_game_file path = try (
   check_path path [".trg"];
   let game_file_dir = Filename.dirname path in
-  compiler_notes.dir <- game_file_dir;
+  Notes.compiler_notes.dir <- game_file_dir;
   parse_file Trg_parser.main Trg_lexer.start path
   |> wrap
   |> load_game 

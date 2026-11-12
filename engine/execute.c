@@ -20,7 +20,7 @@ void debug_print(exec_context* c) {
             break;
 
         case EVENT_CONTEXT:
-            fprintf(stderr,"\nEvent\n");
+            fprintf(stderr,"\nEvent %s\n", c->event->template->name);
             break;
     }
     
@@ -50,7 +50,7 @@ void clean_up(exec_context* c) {
                     c->dp = 0;
                     c->bp = 0;
                     c->sp = 0;
-                    memset(stateless_stack, 0, sizeof(int) * 100); // TODO: Get this from some shared place
+                    memset(stateless_stack, 0, sizeof(int) * 100); // TODO: Get this size from some shared place
                     break;
 
                 case STATEFUL_EVENT:
