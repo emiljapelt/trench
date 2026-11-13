@@ -2,6 +2,7 @@ open Exceptions
 
 module StringSet = Set.Make(String)
 module StringMap = Map.Make(String)
+module IntMap = Map.Make(Int)
 
 let identity a = a
 
@@ -10,9 +11,8 @@ let return a _ = a
 type environment = string list
 
 type int_generator = { mutable next : int }
-
-(* Names *)
-let ng = ( {next = 0}) 
+let cache_key_counter = ({next = 0}) 
+let cache_key () = cache_key_counter.next <- cache_key_counter.next + 1 ; cache_key_counter.next
 
 let curry f a b = f (a,b)
 let uncurry f (a,b) = f a b

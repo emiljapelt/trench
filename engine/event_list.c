@@ -68,8 +68,8 @@ int create_event(event_template* template, int* args) {
     e->exec->steps = -1;
     e->exec->event = e;
     e->exec->type = EVENT_CONTEXT;
+    e->context.type = NO_EVENT_CONTEXT;
 
-    _log(DEBUG, "Event slot: %i", slot);
     return slot;
 }
 

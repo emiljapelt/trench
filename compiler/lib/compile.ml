@@ -405,12 +405,13 @@ let event_creation_functions () =
     Notes.compiler_notes.event_templates |> List.mapi (fun index (ET e) -> 
       let args = List.map (fun (name,typ) -> (TE_Type typ, name)) e.arguments in
       (*let args_size = List.fold_left (fun acc (_,t) -> acc + type_size t) 0 e.arguments in*)
-      StructureElement(Some e.name, Expr(Func{ data = (TE_Type T_Int, args, Stmt(ExprStmt(Expr(ASM(TE_Type T_Int, [Instr_Place;I(index);Instr_Place;I(-55);Instr_Place;I(1);Instr_Call]),0)),0)); closure = None; cache = None },0)))
+      StructureElement(Some e.name, Expr(Func{ data = (TE_Type T_Int, args, Stmt(ExprStmt(Expr(ASM(TE_Type T_Int, [Instr_Place;I(index);Instr_Place;I(-55);Instr_Place;I(1);Instr_Call]),0)),0)); closure = None; cache_key = cache_key () },0)))
   ),0))
 
 (* TODO: Toggle all features *)
 (* TODO: Include some info on available events, in a struct, saved in compiler notes *)
 let compile_event_template (ET e) : compiled_event_template =
+  Notes.compiler_notes.compilation_cache <- IntMap.empty;
   let syscalls = get_syscalls () in
   let arguments_type = TE_Tuple(e.arguments |> List.map (fun (name,typ) -> (TE_Type typ, Some name))) in
   let args = Const("arguments", Expr(ASM(arguments_type, [Instr_Place;I(-54);Instr_Place;I(0);Instr_Call]),0)) in
@@ -430,6 +431,7 @@ let compile_event_template (ET e) : compiled_event_template =
   
 (* builtin types are hidden ... sometimes :(, try not to without redefining... *)
 let compile_player team path =
+  Notes.compiler_notes.compilation_cache <- IntMap.empty;
   let hide = remove_identifier_name in
   let show = identity in
   let syscalls = get_syscalls () in

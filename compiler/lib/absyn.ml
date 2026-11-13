@@ -135,7 +135,7 @@ and structure_element =
 and func = {
     data : typ_expr * (typ_expr * string) list * statement;
     closure : compile_state option;
-    mutable cache : (typ*string) option;
+    cache_key : int;
 }
 
 and range =
@@ -183,7 +183,7 @@ and compile_state = {
     break: string option;
     continue: string option;
     ret_type: typ option;
-    size: int
+    size: int;
 }
 
 let get_expr (Expr(expr,_)) = expr

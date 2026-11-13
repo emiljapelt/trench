@@ -8,6 +8,12 @@
 typedef array_list_t event_list_t;
 
 typedef enum {
+    NO_EVENT_CONTEXT,
+    FIELD_EVENT_CONTEXT,
+    ENTITY_EVENT_CONTEXT,
+} event_context_t;
+
+typedef enum {
     NONE_EVENT,
     FIELD_EVENT,
     PHYSICAL_EVENT,
@@ -22,7 +28,19 @@ typedef enum {
 
 extern int* stateless_stack;
 
-// TODO: const
+typedef struct {
+    event_context_t type : 8;
+    union {
+        struct {
+            int x;
+            int y;
+        } field;
+        int entity;
+    };
+} event_context;
+
+
+// TODO: make the template const
 typedef struct event_template {
     event_type type : 8;
     event_kind kind : 8;
@@ -39,6 +57,7 @@ typedef struct event {
     int* stack;
     int* args;
     exec_context* exec;
+    event_context context;
 } event;
 
 extern event** created_events;

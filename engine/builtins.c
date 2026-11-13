@@ -1514,23 +1514,6 @@ int syscall_feed(exec_context* c) {
     return 0;
 }
 
-int _event_args_count = 0;
-int _event_args[10];
-
-int syscall_event_int_arg(exec_context* c) {
-    int arg = c->stack[--c->sp];
-
-    if (_event_args_count >= 10) {
-        c->stack[c->sp++] = 0;
-        return 0;    
-    }
-
-    _event_args[_event_args_count++] = arg;
-    
-    c->stack[c->sp++] = INSTR_SUCCESS;
-    return 0;
-};
-
 // TODO: Consider if it is better to give the args_size as a syscall argument. That way the stack might be less likely to break??
 int syscall_create_event(exec_context* c) {
     int template_index = c->stack[--c->sp];
@@ -1569,6 +1552,9 @@ int syscall_register_player_event(exec_context* c) {
 
     event* e = created_events[event_slot]; // Check if valid...
     created_events[event_slot] = NULL;
+
+    e->context.type = ENTITY_EVENT_CONTEXT;
+    e->context.entity = entity->id;
 
     // Players should have event lists related to their turns
     add_event(_gs->events, e);
@@ -1629,7 +1615,10 @@ int syscall_load_arguments(exec_context* c) {
     
     switch (c->type) {
         case EVENT_CONTEXT:
-            memcpy(c->stack + c->sp, c->event->args, sizeof(int) * c->event->template->args_size); // Stack overflow check, different stack sizes between players and events...
+            if (c->event->args == NULL)
+                memset(c->stack + c->sp, 0, sizeof(int) * c->event->template->args_size);
+            else
+                memcpy(c->stack + c->sp, c->event->args, sizeof(int) * c->event->template->args_size); // TODO: Stack overflow check, different stack sizes between players and events...
             c->sp += c->event->template->args_size;
             break;
     
@@ -1637,6 +1626,47 @@ int syscall_load_arguments(exec_context* c) {
             break;
     }
 
+    return 0;
+}
+
+// Maybe move to another file
+// Just return the actual location struct?
+void get_location_from_context(exec_context* c, int* x, int* y) {
+    *x = -1;
+    *y = -1;
+    switch (c->type) {
+        case EVENT_CONTEXT:
+            switch (c->event->context.type) {
+                case ENTITY_EVENT_CONTEXT:
+                    entity_t* entity = get_entity_from_id(_gs->entities, c->event->context.entity);
+                    if (entity == NULL) break;
+                    location_coords(entity->location, x, y);
+                    break;
+            
+                case FIELD_EVENT_CONTEXT:
+                    *x = c->event->context.field.x;
+                    *y = c->event->context.field.y;
+                    break;
+            }
+            break;
+
+        case ENTITY_CONTEXT:
+            location_coords(c->entity->location, x, y);
+            break;
+    }    
+}
+
+int syscall_get_x(exec_context* c) {
+    int x,y;
+    get_location_from_context(c, &x, &y);
+    c->stack[c->sp++] = x;
+    return 0;
+}
+
+int syscall_get_y(exec_context* c) {
+    int x,y;
+    get_location_from_context(c, &x, &y);
+    c->stack[c->sp++] = y;
     return 0;
 }
 
@@ -1698,6 +1728,9 @@ int handle_builtin_function(exec_context* c, builtin_func func_addr) {
         case SYSCALL_MOVE_ENTITY: return syscall_move_entity(c);
         case SYSCALL_LOAD_ARGUMENTS: return syscall_load_arguments(c);
         case SYSCALL_CREATE_EVENT: return syscall_create_event(c);
+        case SYSCALL_GET_X: return syscall_get_x(c);
+        case SYSCALL_GET_Y: return syscall_get_y(c);
+
     }
 }
 

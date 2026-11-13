@@ -1,5 +1,6 @@
 open Helpers
 open Absyn
+open ProgramRep
 
 type compiler_notes = {
   mutable dir: string;
@@ -10,6 +11,9 @@ type compiler_notes = {
   mutable shared_library: string option; (* Not the right location... ? *) 
   mutable system_library: string option; (* Not the right location... ? *) 
   mutable event_templates : event_template list;
+  mutable compilation_cache : (typ * instruction list) IntMap.t;
+
+  mutable syslib : compile_state * instruction list;
 }
 
 let compiler_notes = {
@@ -21,4 +25,7 @@ let compiler_notes = {
   shared_library = None;
   system_library = None;
   event_templates = [];
+  compilation_cache = IntMap.empty;
+
+  syslib = {scopes = { local = None ; global = [] }; size = 0; labels = StringSet.empty; break = None; continue = None; ret_type = None;} , [];
 }

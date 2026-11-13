@@ -425,10 +425,10 @@ int instr_extract(exec_context* c) {
     return 0;
 }
 
-// TODO: Renumber
+// TODO: make into syscalls
 typedef enum {
-    META_ENTITY_X =     0,
-    META_ENTITY_Y =     1,
+    META_ENTITY_X =     0, // This is now a syscall
+    META_ENTITY_Y =     1, // This is now a syscall
     META_ENTITY_ID =    2,
     META_ROUND =        5,
     META_ACTIONS =      6,

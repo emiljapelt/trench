@@ -73,6 +73,8 @@ typedef enum {
     SYSCALL_MOVE_ENTITY = -53,
     SYSCALL_LOAD_ARGUMENTS = -54,
     SYSCALL_CREATE_EVENT = -55,
+    SYSCALL_GET_X = -56,
+    SYSCALL_GET_Y = -57,
 } builtin_func;
 
 int handle_builtin_function(exec_context* c, builtin_func func_addr);

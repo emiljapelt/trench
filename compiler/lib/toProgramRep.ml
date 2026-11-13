@@ -425,8 +425,8 @@ let rec compile_expr (state:compile_state) (Expr(expr, ln) as expression) : (typ
     | StorageStack loc -> (loc.typ, loc.instrs @ [Instr_Copy ; loc.load ; I(type_size loc.typ) ; Instr_Swap ; Instr_Copy ; loc.load ; I(type_size loc.typ) ; Instr_Place ; I(1) ; Instr_Sub ; Instr_Swap ; loc.store ; I(type_size loc.typ)])
     | ComputeStack _ -> raise_failure "Could not decrement"
   )
-  | Func f -> (match f.cache with
-    | Some(typ,label) -> (typ, [Instr_Place ; LabelRef label])
+  | Func f -> (match IntMap.find_opt f.cache_key Notes.compiler_notes.compilation_cache with
+    | Some v -> (Printf.printf "Hit!\n" ; v)
     | None ->
       let (ret,args,body) = f.data in
       new_label_context "func" ;
@@ -436,7 +436,7 @@ let rec compile_expr (state:compile_state) (Expr(expr, ln) as expression) : (typ
       let ret = eval_type_expr state ret in
       let args = List.map (fun (t,n) -> (eval_type_expr state t, n)) args in
       let typ = T_Func(ret, List.map fst args) in
-      f.cache <- Some(typ, _start) ;
+      Notes.compiler_notes.compilation_cache <- IntMap.add f.cache_key (typ, [Instr_Place ; LabelRef _start]) Notes.compiler_notes.compilation_cache;
       let func_scope = { state.scopes with local = Some(List.fold_left (fun acc (t,n) -> Var(t,n)::acc) [Const("this", expression)] args) } in
       let new_state = {
         scopes = func_scope;  
